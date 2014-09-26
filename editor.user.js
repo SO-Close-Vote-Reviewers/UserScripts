@@ -111,13 +111,13 @@ window.onload = function(){
   		},
 
   		so: {
-  			expr: /(^|\s)[Ss]tack\s*[Oo]verflow(.|$)/gm,
+  			expr: /(^|\s)[Ss]tack\s*overflow(.|$)/gm,
   			replacement: "$1Stack Overflow$2",
   			reason: "the legal name is 'Stack Overflow' (two words, capitalized)",
   		},
 
   		se: {
-  			expr: /(^|\s)[Ss]tack\s*[Ee]xchange(.|$)/gm,
+  			expr: /(^|\s)[Ss]tack\s*exchange(.|$)/gm,
   			replacement: "$1Stack Exchange$2",
   			reason: "the legal name is 'Stack Exchange' (two words, capitalized)",
   		},
@@ -189,7 +189,7 @@ window.onload = function(){
   		},
 
   		thanks: {
-  			expr: /(thanks|cheers|regards|thx|thank\s+you|first\s+(?:question|post)).*$/gmi,
+  			expr: /(thanks|cheers|regards|thx|thank\s+you|first\s+question).*$/gmi,
   			replacement: "",
   			reason: "please don't include '$1' in your question: it is unnecessary noise",
   		},
@@ -213,7 +213,7 @@ window.onload = function(){
   		},
 
   		edit: {
-  			expr: /[Ee]dit:/g,
+  			expr: /[*]*edit:?[*]*/gi
   			replacement: "",
   			reason: "Stack Exchange has an advanced revision history system: please don't include 'Edit' with edits, as the revision history makes the timing of your edits clear",
   		},
