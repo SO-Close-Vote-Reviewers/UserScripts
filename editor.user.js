@@ -43,21 +43,30 @@ window.onload = function(){
   var privileges = true;
 
   var button = document.createElement("button");
-  var left = parseInt(rows[rowNum].children[rows[rowNum].children.length - 2].style.left) + 25 + "px"; //grabs the positioning of the last element in the row and adds the proper spacing
-  button.setAttribute("class", "wmd-button");
-  button.setAttribute("id", "fix");
-  button.setAttribute("style", "left: " + left);
-  button.textContent = "Fix";
-  button.addEventListener("click", go);
 
   if (window.location.href.search(/\/posts\/\d*\/edit/) !== -1) { //no editing privileges
   	privileges = false;
+
+    var left = parseInt(rows[rowNum].children[rows[rowNum].children.length - 2].style.left) + 25 + "px"; //grabs the positioning of the last element in the row and adds the proper spacing
+    button.setAttribute("class", "wmd-button");
+    button.setAttribute("id", "fix");
+    button.setAttribute("style", "left: " + left);
+    button.textContent = "Fix";
+    button.addEventListener("click", go);
+
     alert("You do not have editing privileges on this site. The script will still work, but be aware of what it is doing and understand that it may be rejected.");
   	rows[0].appendChild(button);
     rowNum++;
   } else {
   	for (var x = 0; x < edits.length; x++) {
   		edits[x].addEventListener("click", function () {
+        var left = parseInt(rows[rowNum].children[rows[rowNum].children.length - 2].style.left) + 25 + "px"; //grabs the positioning of the last element in the row and adds the proper spacing
+        button.setAttribute("class", "wmd-button");
+        button.setAttribute("id", "fix");
+        button.setAttribute("style", "left: " + left);
+        button.textContent = "Fix";
+        button.addEventListener("click", go);
+
   			window.setTimeout(function () {
   				rows[rowNum].appendChild(button);
   				rowNum++;
@@ -147,7 +156,7 @@ window.onload = function(){
   		},
 
   		caps: {
-  			expr: /^([a-z])/gm,
+  			expr: /^(?!https?)([a-z])/gm,
   			replacement: "$1",
   			reason: "copy edited",
   		},
@@ -213,7 +222,7 @@ window.onload = function(){
   		},
 
   		edit: {
-  			expr: /[\*]*edit:?[\*]*/gi
+  			expr: /[\*]*edit:?[\*]*/gi,
   			replacement: "",
   			reason: "Stack Exchange has an advanced revision history system: please don't include 'Edit' with edits, as the revision history makes the timing of your edits clear",
   		},
