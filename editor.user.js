@@ -213,7 +213,7 @@ window.onload = function(){
   		},
 
   		edit: {
-  			expr: /[*]*edit:?[*]*/gi
+  			expr: /[\*]*edit:?[\*]*/gi
   			replacement: "",
   			reason: "Stack Exchange has an advanced revision history system: please don't include 'Edit' with edits, as the revision history makes the timing of your edits clear",
   		},
