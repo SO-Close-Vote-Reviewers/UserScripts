@@ -3,7 +3,7 @@
 // @author         Cameron Bernhardt (AstroCB)
 // @namespace  http://github.com/AstroCB
 // @version        1.0
-// @description  Fix common grammar annoyances with a click
+// @description  Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        http://*.stackexchange.com/questions/*
 // @include        http://stackoverflow.com/questions/*
 // @include        http://meta.stackoverflow.com/questions/*
@@ -36,7 +36,7 @@
 // @exclude        http://stackapps.com/questions/tagged/*
 // ==/UserScript==
 
-window.onload = function(){
+window.addEventListener("load", function(){
   var edits = document.getElementsByClassName("edit-post");
   var rows = document.getElementsByClassName("wmd-button-row");
   var rowNum = 0;
@@ -47,14 +47,22 @@ window.onload = function(){
   if (window.location.href.search(/\/posts\/\d*\/edit/) !== -1) { //no editing privileges
   	privileges = false;
 
-    var left = parseInt(rows[rowNum].children[rows[rowNum].children.length - 2].style.left) + 25 + "px"; //grabs the positioning of the last element in the row and adds the proper spacing
+    if(localStorage){
+      if(!localStorage.hasAsked){ //only warn users about privileges once per site if their browser supports localStorage
+        alert("You do not have editing privileges on this site. The script will still work, but be aware of what it is doing and understand that it may be rejected.");
+        localStorage.hasAsked = true;
+      }
+    }else{
+      alert("You do not have editing privileges on this site. The script will still work, but be aware of what it is doing and understand that it may be rejected.");
+    }
+
+    var left = parseInt(rows[0].children[rows[0].children.length - 2].style.left) + 25 + "px"; //grabs the positioning of the last element in the row and adds the proper spacing
     button.setAttribute("class", "wmd-button");
     button.setAttribute("id", "fix");
     button.setAttribute("style", "left: " + left);
     button.textContent = "Fix";
     button.addEventListener("click", go);
 
-    alert("You do not have editing privileges on this site. The script will still work, but be aware of what it is doing and understand that it may be rejected.");
   	rows[0].appendChild(button);
     rowNum++;
   } else {
@@ -222,7 +230,7 @@ window.onload = function(){
   		},
 
   		edit: {
-  			expr: /[\*]*edit:?[\*]*/gi,
+  			expr: /[\*]*(edit|update):?[\*]*/gi,
   			replacement: "",
   			reason: "Stack Exchange has an advanced revision history system: please don't include 'Edit' with edits, as the revision history makes the timing of your edits clear",
   		},
@@ -238,18 +246,6 @@ window.onload = function(){
   			replacement: "example.",
   			reason: "links to mysite.domain are not allowed: use example.domain instead",
   		},
-
-  		/*openpar: {
-  		 expr: /(\S)\(/g,
-  		 replacement: "$1 (",
-  		 reason: "parentheses have space between them and their corresponding text",
-  		 },*/
-
-  		/*closepar: {
-  		 expr: /(\((\S))/g,
-  		 replacement: ") $1",
-  		 reason: "parentheses have space between them and their corresponding text",
-  		 }*/
 
   	};
 
@@ -313,4 +309,4 @@ window.onload = function(){
      }
 
   }
-}
+});
