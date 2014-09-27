@@ -128,13 +128,13 @@ window.addEventListener("load", function(){
   		},
 
   		so: {
-  			expr: /(^|\s)[Ss]tack\s*overflow(.|$)/gm,
+  			expr: /(^|\s)[Ss]tack\s*overflow|StackOverflow(.|$)/gm,
   			replacement: "$1Stack Overflow$2",
   			reason: "the legal name is 'Stack Overflow' (two words, capitalized)",
   		},
 
   		se: {
-  			expr: /(^|\s)[Ss]tack\s*exchange(.|$)/gm,
+  			expr: /(^|\s)[Ss]tack\s*exchange|StackExchange(.|$)/gm,
   			replacement: "$1Stack Exchange$2",
   			reason: "the legal name is 'Stack Exchange' (two words, capitalized)",
   		},
