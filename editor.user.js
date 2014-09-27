@@ -206,7 +206,7 @@ window.addEventListener("load", function(){
   		},
 
   		thanks: {
-  			expr: /(thanks|cheers|regards|thx|thank\s+you|first\s+question).*$/gmi,
+  			expr: /(thanks|please\s+help|cheers|regards|thx|thank\s+you|first\s+question).*$/gmi,
   			replacement: "",
   			reason: "please don't include '$1' in your question: it is unnecessary noise",
   		},
