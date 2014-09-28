@@ -224,13 +224,13 @@ window.addEventListener("load", function(){
   		},
 
   		hello: {
-  			expr: /(?:^|\s)([Hh]i\s+[Gg]uys|[Gg]ood\s(?:[Ee]vening|[Mm]orning))/gm,
+  			expr: /(?:^|\s)(hi\s+guys|good\s(?:evening|morning|day|afternoon))(?:\.|!)/gmi,
   			replacement: "",
   			reason: "please don't include '$1' in your question: it is unnecessary noise",
   		},
 
   		edit: {
-  			expr: /[\*]*(edit|update):?[\*]*/gi,
+  			expr: /(?:\*+|\s)(edit|update):?(?:\*+)/gi,
   			replacement: "",
   			reason: "Stack Exchange has an advanced revision history system: please don't include 'Edit' or 'Update' with edits, as the revision history makes the timing of your edits clear",
   		},
