@@ -230,7 +230,7 @@ window.addEventListener("load", function(){
   		},
 
   		edit: {
-  			expr: /(?:\*+|\s|^)(edit|update):?(?:\*+)/gi,
+  			expr: /(?:^\**|\s)(edit|update):?(?:\**)/gi,
   			replacement: "",
   			reason: "Stack Exchange has an advanced revision history system: please don't include 'Edit' or 'Update' with edits, as the revision history makes the timing of your edits clear",
   		},
