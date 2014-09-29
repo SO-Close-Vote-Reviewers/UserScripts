@@ -43,6 +43,10 @@ window.addEventListener("load", function(){
   var privileges = true;
 
   var button = document.createElement("button");
+  button.setAttribute("class", "wmd-button");
+  button.setAttribute("id", "fix");
+  button.textContent = "Fix";
+  button.addEventListener("click", go);
 
   if (window.location.href.search(/\/posts\/\d*\/edit/) !== -1) { //no editing privileges
   	privileges = false;
@@ -57,11 +61,7 @@ window.addEventListener("load", function(){
     }
 
     var left = parseInt(rows[0].children[rows[0].children.length - 2].style.left) + 25 + "px"; //grabs the positioning of the last element in the row and adds the proper spacing
-    button.setAttribute("class", "wmd-button");
-    button.setAttribute("id", "fix");
     button.setAttribute("style", "left: " + left);
-    button.textContent = "Fix";
-    button.addEventListener("click", go);
 
   	rows[0].appendChild(button);
     rowNum++;
@@ -69,11 +69,7 @@ window.addEventListener("load", function(){
   	for (var x = 0; x < edits.length; x++) {
   		edits[x].addEventListener("click", function () {
         var left = parseInt(rows[rowNum].children[rows[rowNum].children.length - 2].style.left) + 25 + "px"; //grabs the positioning of the last element in the row and adds the proper spacing
-        button.setAttribute("class", "wmd-button");
-        button.setAttribute("id", "fix");
         button.setAttribute("style", "left: " + left);
-        button.textContent = "Fix";
-        button.addEventListener("click", go);
 
   			window.setTimeout(function () {
   				rows[rowNum].appendChild(button);
