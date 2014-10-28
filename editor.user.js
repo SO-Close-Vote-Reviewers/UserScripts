@@ -109,7 +109,7 @@ var main = function(){
   });
 
   //check for editing privledges
-  if (window.location.href.search(/\/posts\/\d*\/edit/) !== -1) { //no editing privileges
+  if (window.location.href.search(/\/posts\/\d*\/edit/) !== -1) { // No editing privileges
     privileges = false;
     if (localStorage) {
       if (!localStorage.hasAsked) {
@@ -119,36 +119,39 @@ var main = function(){
     }
   }
 
+  // This is where the magic happens: this function takes a few pieces of information and applies edits to the post with a couple exceptions
   function fixIt(input, expression, replacement, reasoning) {
-    var there = input.search(expression);
-    if (there !== -1) {
+    var there = input.search(expression); // Scan the post text using the expression to see if there are any matches
+    if (there !== -1) { // If so, increase the number of edits performed (used later for edit summary formation)
       editCount++;
-      var phrase;
-      if (replacement === "") {
+      var phrase; // Later, this will store what is removed for the first case
+      // Then, perform the edits using replace()
+      // What follows is a series of exceptions, which I will explain below; I perform special actions by overriding replace()
+      if (replacement === "") { // This is used for removing things entirely without giving a replacement; it matches the expression and then replaces it with nothing
         input = input.replace(expression, function (data, match1) {
-          phrase = match1;
-          return "";
+          phrase = match1; // Save what is removed for the edit summary (see below)
+          return ""; // Replace with nothing
         });
-        reasoning = reasoning.replace("$1", phrase);
-      } else if (replacement == "$1vote") {
+        reasoning = reasoning.replace("$1", phrase); // This is an interesting tidbit: if you want to make the edit summaries dynamic, you can keep track of a match that you receive from overriding the replace() function and then use that in the summary
+      } else if (replacement == "$1vote") { // This allows me to combine the upvote and downvote replacement schemes into one
         input = input.replace(expression, function (data, match1) {
           phrase = match1;
-          return phrase + "vot";
+          return phrase + "vot"; // "return" in this context is what is used to replace what is matched
         });
         reasoning = reasoning.replace("$1", phrase.toLowerCase());
-      } else if (replacement === "$1") {
+      } else if (replacement === "$1") { // This is used to capitalize letters; it merely takes what is matched, uppercases it, and replaces what was matched with the uppercased verison
         input = input.replace(expression, function (data, match1) {
           return match1.toUpperCase();
         });
-      } else {
+      } else { // Default: just replace it with the indicated replacement
         input = input.replace(expression, replacement);
       }
-      return {
+      return { // Return a dictionary with the reasoning for the fix and what is edited (used later to prevent duplicates in the edit summary)
         reason: reasoning,
         fixed: input
       };
     } else {
-      return null;
+      return null; // If nothing needs to be fixed, return null
     }
   }
 
