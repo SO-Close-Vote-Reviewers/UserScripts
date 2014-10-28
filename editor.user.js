@@ -36,276 +36,322 @@
 // @exclude        http://stackapps.com/questions/tagged/*
 // ==/UserScript==
 
-window.addEventListener("load", function(){
-  var edits = document.getElementsByClassName("edit-post");
-  var rows = document.getElementsByClassName("wmd-button-row");
-  var rowNum = 0;
-  var privileges = true;
-
-  var button = document.createElement("button");
-  button.setAttribute("class", "wmd-button");
-  button.setAttribute("id", "fix");
-  button.textContent = "Fix";
-  button.addEventListener("click", go);
-
-  if (window.location.href.search(/\/posts\/\d*\/edit/) !== -1) { // No editing privileges
-  	privileges = false;
-
-    if(localStorage){
-      if(!localStorage.hasAsked){ // Only warn users about privileges once per site if their browser supports localStorage
-        alert("You do not have editing privileges on this site. The script will still work, but be aware of what it is doing and understand that it may be rejected.");
-        localStorage.hasAsked = true;
-      }
-    }else{
-      alert("You do not have editing privileges on this site. The script will still work, but be aware of what it is doing and understand that it may be rejected.");
-    }
-
-    var left = parseInt(rows[0].children[rows[0].children.length - 2].style.left) + 25 + "px"; // Grabs the positioning of the last element in the row and adds the proper spacing
-    button.setAttribute("style", "left: " + left);
-
-  	rows[0].appendChild(button);
-    rowNum++;
-  } else {
-  	for (var x = 0; x < edits.length; x++) {
-  		edits[x].addEventListener("click", function () {
-        var left = parseInt(rows[rowNum].children[rows[rowNum].children.length - 2].style.left) + 25 + "px"; // Grabs the positioning of the last element in the row and adds the proper spacing
-        button.setAttribute("style", "left: " + left);
-
-  			window.setTimeout(function () {
-  				rows[rowNum].appendChild(button);
-  				rowNum++;
-  			}, 750); // Inserts after menu loads: probably a better way to do this
-  		});
-  	}
-  }
-
-  function fixIt(input, expression, replacement, reasoning) {
-  	var there = input.search(expression);
-
-  	if (there !== -1) {
-  		var phrase;
-  		if (replacement === "") {
-  			input = input.replace(expression, function (data, match1) {
-  				phrase = match1;
-  				return "";
-  			});
-  			reasoning = reasoning.replace("$1", phrase);
-  		} else if (replacement == "$1vote") {
-  			input = input.replace(expression, function (data, match1) {
-  				phrase = match1;
-  				return phrase + "vot";
-  			});
-  			reasoning = reasoning.replace("$1", phrase.toLowerCase());
-  		} else if (replacement === "$1") {
-  			input = input.replace(expression, function (data, match1) {
-  				return match1.toUpperCase();
-  			});
-  		} else {
-  			input = input.replace(expression, replacement);
-  		}
-
-  		return {
-  			reason: reasoning,
-  			fixed: input,
-  		};
-  	} else {
-  		return null;
-  	}
-  }
-
-  function go(e) {
-  	e.preventDefault();
-
-// This dictionary contains the presets for editing reasons; feel free to add in any that you'd like
-  	var edits = {
-  		i: {
-  			expr: /(^|\s|\()i(\s|,|\.|!|\?|;|\/|\)|'|$)/gm,
-  			replacement: "$1I$2",
-  			reason: "in the English language, the pronoun 'I' is capitalized",
-  		},
-
-  		so: {
-  			expr: /(^|\s)[Ss]tack\s*overflow|StackOverflow(.|$)/gm,
-  			replacement: "$1Stack Overflow$2",
-  			reason: "the legal name is 'Stack Overflow' (two words, capitalized)",
-  		},
-
-  		se: {
-  			expr: /(^|\s)[Ss]tack\s*exchange|StackExchange(.|$)/gm,
-  			replacement: "$1Stack Exchange$2",
-  			reason: "the legal name is 'Stack Exchange' (two words, capitalized)",
-  		},
-
-  		expansionSO: {
-  			expr: /(^|\s)SO(\s|,|\.|!|\?|;|\/|\)|$)/gm,
-  			replacement: "$1Stack Overflow$2",
-  			reason: "expansion",
-  		},
-
-  		expansionSE: {
-  			expr: /(^|\s)SE(\s|,|\.|!|\?|;|\/|\)|$)/gm,
-  			replacement: "$1Stack Exchange$2",
-  			reason: "expansion",
-  		},
-
-  		javascript: {
-  			expr: /(^|\s)[Jj]ava\s*script(.|$)/gm,
-  			replacement: "$1JavaScript$2",
-  			reason: "the proper capitalization is 'JavaScript' (see http://en.wikipedia.org/wiki/JavaScript)"
-  		},
-
-  		jsfiddle: {
-  			expr: /(^|\s)[Jj][Ss][Ff]iddle(.|$)/gm,
-  			replacement: "$1JSFiddle$2",
-  			reason: "the current accepted capitalization is 'JSFiddle' (see title tag on http://jsfiddle.net)"
-  		},
-
-  		caps: {
-  			expr: /^(?!https?)([a-z])/gm,
-  			replacement: "$1",
-  			reason: "copy edited",
-  		},
-
-  		jquery: {
-  			expr: /(^|\s)[Jj][Qq]uery(.|$)/gm,
-  			replacement: "$1jQuery$2",
-  			reason: "the proper capitalization is 'jQuery' (see http://jquery.com)",
-  		},
-
-  		html: {
-  			expr: /(^|\s)[Hh]tml(?:5*)(\s|$)/gm,
-  			replacement: "$1HTML$2",
-  			reason: "HTML is an initialism for HyperText Markup Language",
-  		},
-
-  		css: {
-  			expr: /(^|\s)[Cc]ss(\s|$)/gm,
-  			replacement: "$1CSS$2",
-  			reason: "CSS is an initialism for Cascading Style Sheets",
-  		},
-
-  		json: {
-  			expr: /(^|\s)[Jj]son(\s|$)/gm,
-  			replacement: "$1JSON$2",
-  			reason: "JSON is an initialism for JavaScript Object Notation",
-  		},
-
-  		ajax: {
-  			expr: /(^|\s)[Aa]jax(\s|$)/gm,
-  			replacement: "$1AJAX$2",
-  			reason: "AJAX is an initialism for Asynchronous JavaScript and XML",
-  		},
-
-  		angular: {
-  			expr: /[Aa]ngular[Jj][Ss]/g,
-  			replacement: "AngularJS",
-  			reason: "the 'JS' in 'AngularJS' is capitalized",
-  		},
-
-  		thanks: {
-  			expr: /(thanks|please\s+help|cheers|regards|thx|thank\s+you|my\s+first\s+question).*$/gmi,
-  			replacement: "",
-  			reason: "please don't include '$1' in your question: it is unnecessary noise",
-  		},
-
-  		commas: {
-  			expr: /,([^\s])/g,
-  			replacement: ", $1",
-  			reason: "commas have one space after them",
-  		},
-
-  		php: {
-  			expr: /(^|\s)[Pp]hp(\s|$)/gm,
-  			replacement: "$1PHP$2",
-  			reason: "PHP is an initialism for PHP: Hypertext Preprocessor (recursive)",
-  		},
-
-  		hello: {
-  			expr: /(?:^|\s)(hi\s+guys|good\s(?:evening|morning|day|afternoon))(?:\.|!)/gmi,
-  			replacement: "",
-  			reason: "please don't include '$1' in your question: it is unnecessary noise",
-  		},
-
-  		edit: {
-  			expr: /(?:^\**)(edit|update):?(?:\**):?/gmi,
-  			replacement: "",
-  			reason: "Stack Exchange has an advanced revision history system: please don't include 'Edit' or 'Update' with edits, as the revision history makes the timing of your edits clear",
-  		},
-
-  		voting: {
-  			expr: /([Dd]own|[Uu]p)[\s*\-]vot/g,
-  			replacement: "$1vote",
-  			reason: "the proper spelling (despite the tag name) is '$1vote' (one word)"
-  		},
-
-  		mysite: {
-  			expr: /mysite\./g,
-  			replacement: "example.",
-  			reason: "links to mysite.domain are not allowed: use example.domain instead",
-  		},
-
-  	};
-
-// The following is what acually performs the edits on the body and title of the post
-
-  	var boxes = document.getElementsByClassName("wmd-input");
-  	var box = boxes[0].value; // This refers to the value of the main post body
-  	var titles = document.getElementsByClassName("ask-title-field");
-  	var title = titles[0].value; // This refers to the title field if it exists (for questions)
-
-  	var reasons = [];
-
-  	for (var j in edits) {
-  		if (edits.hasOwnProperty(j)) {
-  			var fix = fixIt(box, edits[j].expr, edits[j].replacement, edits[j].reason); // Check body
-  			if (fix) {
-  				reasons.push(fix.reason); // Adds reason to an array of edit reasons
-  				box = fix.fixed;
-  				edits[j].fixed = true;
-  			}
-        if (title) {
-    			fix = fixIt(title, edits[j].expr, edits[j].replacement, edits[j].reason); // Check title
-    			if (fix) {
-    				title = fix.fixed;
-    				if (!edits[j].fixed) {
-    					reasons.push(fix.reason);
-    					edits[j].fixed = true;
-    				}
-    			}
+$(window).load(function () {
+    
+    //select button bar
+    var URL = window.location.href;
+    var questionNum = URL.match(/\d/g);
+    questionNum = questionNum.join("");
+    
+    var buttonBar = $('#wmd-button-bar-' + questionNum);
+    var barReady = false;
+    var editsMade = false;
+    var editCount = 0;
+    var toolkitGlobals = {};
+    
+    //wait for the button bar to update
+    buttonBar.unbind().on('DOMSubtreeModified', function () {
+        if (!barReady) {
+            barReady = true;
+            
+            //run asynchronously (important)
+            setTimeout(function () {
+                var redoButton = $('#wmd-redo-button-' + questionNum);
+                var privileges = true;
+                var spacerHTML = '<li class="wmd-spacer wmd-spacer3" id="wmd-spacer3-' + questionNum + '" style="left: 400px !important;"></li>';
+                
+                //what asshole at Stack Exchange didn't understand how to use float:left; margin-right:10px;???
+                var buttonHTML = '<div id="ToolkitButtonWrapper"><button class="wmd-button" id="ToolkitFix"></button><div id="ToolkitInfo"></div></div>';
+                
+                //insert button
+                redoButton.after(buttonHTML);
+                
+                //insert spacer
+                redoButton.after(spacerHTML);
+                
+                //select the button
+                var buttonWrapper = $('#ToolkitButtonWrapper');
+                var buttonFix = $('#ToolkitFix');
+                var buttonInfo = $('#ToolkitInfo');
+                
+                //assign button info to toolkitGlobals for use in other functions
+                toolkitGlobals.buttonInfo = buttonInfo;
+                
+                //style button
+                buttonWrapper.css({
+                    'position': 'relative',
+                    'left': '430px',
+                });
+                buttonFix.css({
+                    'position' : 'static',
+                    'float': 'left',
+                    'border-width': '0px',
+                    'background-color': 'white',
+                    'background-image': 'url("http://i.imgur.com/aXm256k.png")',
+                    'background-size': '100%',
+                    'outline': 'none'
+                });
+                buttonInfo.css({
+                    'position' : 'static',
+                    'float': 'left',
+                    'margin-left': '5px',
+                    'font-size' : '12px',
+                    'color' : '#424242',
+                    'line-height' : '21px'
+                });
+                
+                //add event listener
+                buttonFix.on('click', function (e) {
+                    if (!editsMade){
+                        edit(e);
+                        editsMade = true;
+                    }
+                });
+                
+            }, 0);
         }
-  		}
-  	}
-
-  	boxes[0].value = box; // Replace body with edited body
-    if(titles){
-  	   titles[0].value = title; // Replace title with edited title
+    });
+    
+    //check for editing privledges
+    if (window.location.href.search(/\/posts\/\d*\/edit/) !== -1) { //no editing privileges
+        privileges = false;
+        if (localStorage) {
+            if (!localStorage.hasAsked) {
+                
+                //should we really inform the user of this if they edit so much that they use this user script?
+                alert("You do not have editing privileges on this site; Be aware that your edits may be rejected.");
+                localStorage.hasAsked = true;
+            }
+        }
+        
+        //note: IF a person doesn't have local storage on his browser, he's using something really old; 
+        //let's not make his life any worse by forcing alerts every time he edits
+        
     }
-
-  	var summary = "";
-
-  	for (var z = 0; z < reasons.length; z++) {
-  		if (z === 0) {
-  			summary += reasons[z][0].toUpperCase() + reasons[z].substring(1);
-  		} else if (z !== reasons.length - 1) {
-  			summary += reasons[z] + "; ";
-  		} else {
-  			summary += reasons[z];
-  		}
-
-  		if (z === 0 && reasons.length > 1) {
-  			summary += "; ";
-  		}
-
-  		if (z === reasons.length - 1) {
-  			summary += ".";
-  		}
-  	}
-
-    if(privileges){
-  	   document.getElementsByClassName("edit-comment")[0].value = summary; // Inline editing privs cause multiple summary fields
-     }else{
-       document.getElementById("edit-comment").value = summary; // No editing privs == only one field
-     }
-
-  }
+    
+    function fixIt(input, expression, replacement, reasoning) {
+        var there = input.search(expression);
+        if (there !== -1) {
+            editCount++;
+            var phrase;
+            if (replacement === "") {
+                input = input.replace(expression, function (data, match1) {
+                    phrase = match1;
+                    return "";
+                });
+                reasoning = reasoning.replace("$1", phrase);
+            } else if (replacement == "$1vote") {
+                input = input.replace(expression, function (data, match1) {
+                    phrase = match1;
+                    return phrase + "vot";
+                });
+                reasoning = reasoning.replace("$1", phrase.toLowerCase());
+            } else if (replacement === "$1") {
+                input = input.replace(expression, function (data, match1) {
+                    return match1.toUpperCase();
+                });
+            } else {
+                input = input.replace(expression, replacement);
+            }
+            return {
+                reason: reasoning,
+                fixed: input
+            };
+        } else {
+            return null;
+        }
+    }
+    
+    //'edit' is a bit more explanitory of this function's job than 'go'
+    function edit(e) {
+        
+        console.log("editing...");
+        
+        //define function variables
+        var box = $("#wmd-input-" + questionNum);
+        var title = $(".ask-title-field");
+        var reasons = [];
+        var numReasons = 0;
+        
+        //prevent button's default action
+        e.preventDefault();
+        
+        //visually confirm edit - SE makes it easy because the JQuery color animation plugin seems to be there by default
+        box.animate({backgroundColor : '#c8ffa7'}, 10);
+        box.animate({backgroundColor : '#fff'}, 1000);
+        
+        
+        //define edit rules
+        var edits = {
+            i: {
+                expr: /(^|\s|\()i(\s|,|\.|!|\?|;|\/|\)|'|$)/gm,
+                replacement: "$1I$2",
+                reason: "in the English language, the pronoun 'I' is capitalized"
+            },
+            so: {
+                expr: /(^|\s)[Ss]tack\s*overflow|StackOverflow(.|$)/gm,
+                replacement: "$1Stack Overflow$2",
+                reason: "the legal name is 'Stack Overflow' (two words, capitalized)"
+            },
+            se: {
+                expr: /(^|\s)[Ss]tack\s*exchange|StackExchange(.|$)/gm,
+                replacement: "$1Stack Exchange$2",
+                reason: "the legal name is 'Stack Exchange' (two words, capitalized)"
+            },
+            expansionSO: {
+                expr: /(^|\s)SO(\s|,|\.|!|\?|;|\/|\)|$)/gm,
+                replacement: "$1Stack Overflow$2",
+                reason: "expansion"
+            },
+            expansionSE: {
+                expr: /(^|\s)SE(\s|,|\.|!|\?|;|\/|\)|$)/gm,
+                replacement: "$1Stack Exchange$2",
+                reason: "expansion"
+            },
+            javascript: {
+                expr: /(^|\s)[Jj]ava\s*script(.|$)/gm,
+                replacement: "$1JavaScript$2",
+                reason: "the proper capitalization is 'JavaScript' (see http://en.wikipedia.org/wiki/JavaScript)"
+            },
+            jsfiddle: {
+                expr: /(^|\s)[Jj][Ss][Ff]iddle(.|$)/gm,
+                replacement: "$1JSFiddle$2",
+                reason: "the current accepted capitalization is 'JSFiddle' (see title tag on http://jsfiddle.net)"
+            },
+            caps: {
+                expr: /^(?!https?)([a-z])/gm,
+                replacement: "$1",
+                reason: "basic capitalization"
+            },
+            jquery: {
+                expr: /(^|\s)[Jj][Qq]uery(.|$)/gm,
+                replacement: "$1jQuery$2",
+                reason: "the proper capitalization is 'jQuery' (see http://jquery.com)"
+            },
+            html: {
+                expr: /(^|\s)[Hh]tml(?:5*)(\s|$)/gm,
+                replacement: "$1HTML$2",
+                reason: "HTML is an initialism for HyperText Markup Language"
+            },
+            css: {
+                expr: /(^|\s)[Cc]ss(\s|$)/gm,
+                replacement: "$1CSS$2",
+                reason: "CSS is an initialism for Cascading Style Sheets"
+            },
+            json: {
+                expr: /(^|\s)[Jj]son(\s|$)/gm,
+                replacement: "$1JSON$2",
+                reason: "JSON is an initialism for JavaScript Object Notation"
+            },
+            ajax: {
+                expr: /(^|\s)[Aa]jax(\s|$)/gm,
+                replacement: "$1AJAX$2",
+                reason: "AJAX is an initialism for Asynchronous JavaScript and XML"
+            },
+            angular: {
+                expr: /[Aa]ngular[Jj][Ss]/g,
+                replacement: "AngularJS",
+                reason: "the 'JS' in 'AngularJS' is capitalized"
+            },
+            thanks: {
+                expr: /(thanks|please\s+help|cheers|regards|thx|thank\s+you|my\s+first\s+question).*$/gmi,
+                replacement: "",
+                reason: "please don't include '$1' in your question: it is unnecessary noise"
+            },
+            commas: {
+                expr: /,([^\s])/g,
+                replacement: ", $1",
+                reason: "commas have one space after them"
+            },
+            php: {
+                expr: /(^|\s)[Pp]hp(\s|$)/gm,
+                replacement: "$1PHP$2",
+                reason: "PHP is an initialism for PHP: Hypertext Preprocessor (recursive)"
+            },
+            hello: {
+                expr: /(?:^|\s)(hi\s+guys|good\s(?:evening|morning|day|afternoon))(?:\.|!)/gmi,
+                replacement: "",
+                reason: "please don't include '$1' in your question: it is unnecessary noise"
+            },
+            edit: {
+                expr: /(?:^\**)(edit|update):?(?:\**):?/gmi,
+                replacement: "",
+                reason: "Stack Exchange has an advanced revision history system: please don't include 'Edit' or 'Update' with edits, as the revision history makes the timing of your edits clear"
+            },
+            voting: {
+                expr: /([Dd]own|[Uu]p)[\s*\-]vot/g,
+                replacement: "$1vote",
+                reason: "the proper spelling (despite the tag name) is '$1vote' (one word)"
+            },
+            mysite: {
+                expr: /mysite\./g,
+                replacement: "example.",
+                reason: "links to mysite.domain are not allowed: use example.domain instead"
+            }
+            
+            //expansion reminder: let's support those non web devs with capitalization for popular languages such as C#
+            
+        };
+        
+        //loop through all editing rules
+        for (var j in edits) {
+            if (edits.hasOwnProperty(j)) {
+                
+                //check body
+                console.log("Checking body...");
+                var fix = fixIt(box.val(), edits[j].expr, edits[j].replacement, edits[j].reason);
+                if (fix) {
+                    reasons[numReasons] = fix.reason;
+                    box.val(fix.fixed);
+                    numReasons++;
+                    edits[j].fixed = true;
+                }
+                
+                //check title
+                if (typeof title.val() != 'undefined'){
+                    console.log("Checking title...");
+                    fix = fixIt(title.val(), edits[j].expr, edits[j].replacement, edits[j].reason);
+                    if (fix) {
+                        title.val(fix.fixed);
+                        if (!edits[j].fixed) {
+                            reasons[numReasons] = fix.reason;
+                            numReasons++;
+                            edits[j].fixed = true;
+                        }
+                    }
+                }
+            }
+        }
+        
+        var summary = "";
+        for (var z = 0; z < reasons.length; z++) {
+            if (z === 0) {
+                summary += reasons[z][0].toUpperCase() + reasons[z].substring(1);
+            } else if (z !== reasons.length - 1) {
+                summary += reasons[z] + "; ";
+            } else {
+                summary += reasons[z];
+            }
+            if (z === 0 && reasons.length > 1) {
+                summary += "; ";
+            }
+            if (z === reasons.length - 1) {
+                summary += ".";
+            }
+        }
+        
+        //udate the comment, focusing the inut to remove placeholder text but scroll back to the user's original location
+        var currentPos = document.body.scrollTop;
+        if (privileges) {
+            $(".edit-comment").val(summary);
+            $("#wmd-input-" + questionNum).focus();
+            $(".edit-comment").focus();
+        } else {
+            $("#edit-comment").val(summary);
+            $("#wmd-input-" + questionNum).focus();
+            $("#edit-comment").focus();
+        }
+        window.scrollTo(0, currentPos);
+        toolkitGlobals.buttonInfo.text(editCount + ' changes made');
+    }
 });
