@@ -48,11 +48,11 @@ window.addEventListener("load", function(){
   button.textContent = "Fix";
   button.addEventListener("click", go);
 
-  if (window.location.href.search(/\/posts\/\d*\/edit/) !== -1) { //no editing privileges
+  if (window.location.href.search(/\/posts\/\d*\/edit/) !== -1) { // No editing privileges
   	privileges = false;
 
     if(localStorage){
-      if(!localStorage.hasAsked){ //only warn users about privileges once per site if their browser supports localStorage
+      if(!localStorage.hasAsked){ // Only warn users about privileges once per site if their browser supports localStorage
         alert("You do not have editing privileges on this site. The script will still work, but be aware of what it is doing and understand that it may be rejected.");
         localStorage.hasAsked = true;
       }
@@ -60,7 +60,7 @@ window.addEventListener("load", function(){
       alert("You do not have editing privileges on this site. The script will still work, but be aware of what it is doing and understand that it may be rejected.");
     }
 
-    var left = parseInt(rows[0].children[rows[0].children.length - 2].style.left) + 25 + "px"; //grabs the positioning of the last element in the row and adds the proper spacing
+    var left = parseInt(rows[0].children[rows[0].children.length - 2].style.left) + 25 + "px"; // Grabs the positioning of the last element in the row and adds the proper spacing
     button.setAttribute("style", "left: " + left);
 
   	rows[0].appendChild(button);
@@ -68,13 +68,13 @@ window.addEventListener("load", function(){
   } else {
   	for (var x = 0; x < edits.length; x++) {
   		edits[x].addEventListener("click", function () {
-        var left = parseInt(rows[rowNum].children[rows[rowNum].children.length - 2].style.left) + 25 + "px"; //grabs the positioning of the last element in the row and adds the proper spacing
+        var left = parseInt(rows[rowNum].children[rows[rowNum].children.length - 2].style.left) + 25 + "px"; // Grabs the positioning of the last element in the row and adds the proper spacing
         button.setAttribute("style", "left: " + left);
 
   			window.setTimeout(function () {
   				rows[rowNum].appendChild(button);
   				rowNum++;
-  			}, 750); //inserts after menu loads: probably a better way to do this
+  			}, 750); // Inserts after menu loads: probably a better way to do this
   		});
   	}
   }
@@ -116,6 +116,7 @@ window.addEventListener("load", function(){
   function go(e) {
   	e.preventDefault();
 
+// This dictionary contains the presets for editing reasons; feel free to add in any that you'd like
   	var edits = {
   		i: {
   			expr: /(^|\s|\()i(\s|,|\.|!|\?|;|\/|\)|'|$)/gm,
@@ -245,38 +246,40 @@ window.addEventListener("load", function(){
 
   	};
 
+// The following is what acually performs the edits on the body and title of the post
+
   	var boxes = document.getElementsByClassName("wmd-input");
-  	var box = boxes[rowNum - 1].value;
+  	var box = boxes[0].value; // This refers to the value of the main post body
   	var titles = document.getElementsByClassName("ask-title-field");
-  	var title = titles[rowNum - 1].value;
+  	var title = titles[0].value; // This refers to the title field if it exists (for questions)
 
   	var reasons = [];
-  	var numReasons = 0;
 
   	for (var j in edits) {
   		if (edits.hasOwnProperty(j)) {
-  			var fix = fixIt(box, edits[j].expr, edits[j].replacement, edits[j].reason); //check body
+  			var fix = fixIt(box, edits[j].expr, edits[j].replacement, edits[j].reason); // Check body
   			if (fix) {
-  				reasons[numReasons] = fix.reason;
+  				reasons.push(fix.reason); // Adds reason to an array of edit reasons
   				box = fix.fixed;
-  				numReasons++;
   				edits[j].fixed = true;
   			}
-
-  			fix = fixIt(title, edits[j].expr, edits[j].replacement, edits[j].reason); //check title
-  			if (fix) {
-  				title = fix.fixed;
-  				if (!edits[j].fixed) {
-  					reasons[numReasons] = fix.reason;
-  					numReasons++;
-  					edits[j].fixed = true;
-  				}
-  			}
+        if (title) {
+    			fix = fixIt(title, edits[j].expr, edits[j].replacement, edits[j].reason); // Check title
+    			if (fix) {
+    				title = fix.fixed;
+    				if (!edits[j].fixed) {
+    					reasons.push(fix.reason);
+    					edits[j].fixed = true;
+    				}
+    			}
+        }
   		}
   	}
 
-  	boxes[rowNum - 1].value = box;
-  	titles[rowNum - 1].value = title;
+  	boxes[0].value = box; // Replace body with edited body
+    if(titles){
+  	   titles[0].value = title; // Replace title with edited title
+    }
 
   	var summary = "";
 
@@ -299,9 +302,9 @@ window.addEventListener("load", function(){
   	}
 
     if(privileges){
-  	   document.getElementsByClassName("edit-comment")[rowNum - 1].value = summary;
+  	   document.getElementsByClassName("edit-comment")[0].value = summary; // Inline editing privs cause multiple summary fields
      }else{
-       document.getElementById("edit-comment").value = summary;
+       document.getElementById("edit-comment").value = summary; // No editing privs == only one field
      }
 
   }
