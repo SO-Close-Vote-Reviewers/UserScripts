@@ -121,7 +121,7 @@ var main = function () {
 		}
 	});
 
-	//check for editing privledges
+	// Check for editing privledges
 	if (window.location.href.search(/\/posts\/\d*\/edit/) !== -1) { // No editing privileges
 		privileges = false;
 		if (localStorage) {
@@ -132,12 +132,12 @@ var main = function () {
 		}
 	}
 
-	//Note: by adding a modular name space to all variables, we don't have to worry about mixing variables
-	//between various functions that we implement. This is more useful in larger projects, but it's not a
-	//bad thing to practice regularly. Instead of coming up with complex variable names for other functonalities
-	//within the same function scope, we can now use simple names appended to a namespace object. Also makes it
-	//much easier passing vars between scopes.
-	//define Editing Module namespace
+	/*Note: by adding a modular namespace to all variables, we don't have to worry about mixing variables
+	between various functions that we implement. This is more useful in larger projects, but it's not a
+	bad thing to practice regularly. Instead of coming up with complex variable names for other functonalities
+	within the same function scope, we can now use simple names appended to a namespace object. Also makes it
+	much easier passing vars between scopes.
+	define Editing Module namespace*/
 	var EM = {};
 	EM.reasons = [];
 	EM.numReasons = 0;
@@ -179,7 +179,7 @@ var main = function () {
 				});
 
 				// This is an interesting tidbit: if you want to make the edit summaries dynamic, you can keep track of a match that you receive
-				//from overriding the replace() function and then use that in the summary
+				// from overriding the replace() function and then use that in the summary
 				reasoning = reasoning.replace("$1", phrase);
 
 				// This allows me to combine the upvote and downvote replacement schemes into one
@@ -213,7 +213,7 @@ var main = function () {
 		}
 	};
 
-	//define namespace vars
+	// Define namespace vars
 	EM.replacedStrings = {
 		"block": [],
 		"inline": []
@@ -231,7 +231,7 @@ var main = function () {
 		"inline": /_xCodexInlinexPlacexHolderx_/g
 	};
 
-	//omit code
+	// Omit code
 	EM.omitCode = function (str, type) {
 		str = str.replace(EM.checks[type], function (match) {
 			EM.replacedStrings[type].push(match);
@@ -240,7 +240,7 @@ var main = function () {
 		return str;
 	};
 
-	//omit code
+	// Omit code
 	EM.replaceCode = function (str, type) {
 		for (var i = 0; i < EM.replacedStrings[type].length; i++) {
 			str = str.replace(EM.placeHolders[type], EM.replacedStrings[type][i]);
@@ -248,7 +248,7 @@ var main = function () {
 		return str;
 	};
 
-	//eliminate duplicates in array (awesome method I found on SO, check it out!)
+	// Eliminate duplicates in array (awesome method I found on SO, check it out!)
 	EM.eliminateDuplicates = function (arr) {
 		var i, len = arr.length,
 			out = [],
