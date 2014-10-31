@@ -37,452 +37,532 @@
 // ==/UserScript==
 var main = function () {
 
-	//get url for question id used in id and class names
-	var URL = window.location.href;
-	var questionNum = URL.match(/\d/g);
-	questionNum = questionNum.join("");
+    /* 
 
-	// Select button bar
-	var buttonBar = $('#wmd-button-bar-' + questionNum);
-	var barReady = false;
-	var editsMade = false;
-	var editCount = 0;
-	var toolkitGlobals = {};
-	toolkitGlobals.infoContent = '';
+ Note that in the new version I place many things needlessly into wrappers (container
+ functions) and namespaces (container variables); this is simply an effort to promote modularity 
+ in the structure and keep focused on what's going where and when.
+ 
+ Some of this may have no use at all once the code is all in place, and we may be able to simplify it
+ extensively. This is one of my first user-script projects, and it's confusing putting
+ so many different functionalities into one single file. 
+ 
+ */
 
-	// Wait for the button bar to update
-	buttonBar.unbind().on('DOMSubtreeModified', function () {
-		if (!barReady) {
-			barReady = true;
+    // Define app namespace
+    var App = {};
 
-			// Run asynchronously (important)
-			setTimeout(function () {
-				var redoButton = $('#wmd-redo-button-' + questionNum);
-				var privileges = true;
-				var spacerHTML = '<li class="wmd-spacer wmd-spacer3" id="wmd-spacer3-' + questionNum + '" style="left: 400px !important;"></li>';
-				var buttonHTML = '<div id="ToolkitButtonWrapper"><button class="wmd-button" id="ToolkitFix"></button><div id="ToolkitInfo"></div></div>';
+    // Place edit items here
+    App.items = [];
 
-				redoButton.after(buttonHTML); // Insert button
-				redoButton.after(spacerHTML); // Insert spacer
-				// Select the button
-				var buttonWrapper = $('#ToolkitButtonWrapper');
-				var buttonFix = $('#ToolkitFix');
-				var buttonInfo = $('#ToolkitInfo');
+    // Place selected JQuery items here 
+    App.selections = {};
 
-				// Assign button info to toolkitGlobals for use in other functions
-				toolkitGlobals.buttonInfo = buttonInfo;
+    // Place "global" app data here
+    App.globals = {};
 
-				// Style button
-				buttonWrapper.css({
-					'position': 'relative',
-					'left': '430px'
-				});
-				buttonFix.css({
-					'position': 'static',
-					'float': 'left',
-					'border-width': '0px',
-					'background-color': 'white',
-					'background-image': 'url("http://i.imgur.com/cLCZ21L.png")',
-					'background-size': '100% 100%',
-					'width': '18px',
-					'height': '18px',
-					'outline': 'none'
-				});
-				buttonInfo.css({
-					'position': 'static',
-					'float': 'left',
-					'margin-left': '5px',
-					'font-size': '12px',
-					'color': '#424242',
-					'line-height': '19px'
-				});
+    // Place "helper" functions here
+    App.funcs = {};
 
-				buttonFix.hover(function () {
-					toolkitGlobals.infoContent = toolkitGlobals.buttonInfo.text();
-					toolkitGlobals.buttonInfo.text('Fix the content!');
-					buttonFix.css({
-						'background-image': 'url("http://i.imgur.com/kyE5p6d.png")'
-					});
-				}, function () {
-					toolkitGlobals.buttonInfo.text(toolkitGlobals.infoContent);
-					buttonFix.css({
-						'background-image': 'url("http://i.imgur.com/cLCZ21L.png")'
-					});
-				});
+    // Populate global data
 
-				buttonFix.click(function (e) {
-					e.preventDefault();
-					if (!editsMade) {
-						EM.edit(e);
-						editsMade = true;
-					}
-				});
-			}, 0);
-		}
-	});
 
-	// Check for editing privledges
-	if (window.location.href.search(/\/posts\/\d*\/edit/) !== -1) { // No editing privileges
-		privileges = false;
-		if (localStorage) {
-			if (!localStorage.hasAsked) {
-				alert("You do not have editing privileges on this site.\nBe aware that your edits may be rejected.");
-				localStorage.hasAsked = true;
-			}
-		}
-	}
+    // Get url for question id used in id and class names
+    App.globals.URL = window.location.href;
 
-	/*Note: by adding a modular namespace to all variables, we don't have to worry about mixing variables
-	between various functions that we implement. This is more useful in larger projects, but it's not a
-	bad thing to practice regularly. Instead of coming up with complex variable names for other functonalities
-	within the same function scope, we can now use simple names appended to a namespace object. Also makes it
-	much easier passing vars between scopes.
-	define Editing Module namespace*/
-	var EM = {};
-	EM.reasons = [];
-	EM.numReasons = 0;
+    // Get question num from URL
+    App.globals.questionNum = App.globals.URL.match(/\d/g);
 
-	// Grab input fields
-	EM.populate = function () {
-		EM.bodyBox = $(".wmd-input");
-		EM.titleBox = $(".ask-title-field");
-		EM.body = EM.bodyBox.val();
-		EM.title = EM.titleBox.val();
-	}
+    // Join 
+    App.globals.questionNum = App.globals.questionNum.join("");
 
-	EM.populate();
+    // Define varables for later use
+    App.globals.barReady = false;
+    App.globals.editsMade = false;
+    App.globals.editCount = 0;
+    App.globals.infoContent = '';
 
-	// This is where the magic happens: this function takes a few pieces of information and applies edits to the post with a couple exceptions
-	EM.fixIt = function (input, expression, replacement, reasoning) {
+    App.globals.privileges = true;
+    App.globals.spacerHTML = '<li class="wmd-spacer wmd-spacer3" id="wmd-spacer3-' + App.globals.questionNum + '" style="left: 400px !important;"></li>';
+    App.globals.buttonHTML = '<div id="ToolkitButtonWrapper"><button class="wmd-button" id="ToolkitFix"></button><div id="ToolkitInfo"></div></div>';
 
-		// Scan the post text using the expression to see if there are any matches
-		var match = input.search(expression);
+    App.globals.reasons = [];
+    App.globals.numReasons = 0;
 
-		// If so, increase the number of edits performed (used later for edit summary formation)
-		if (match !== -1) {
-			editCount++;
+    App.globals.replacedStrings = {
+        "block": [],
+            "inline": []
+    };
+    App.globals.placeHolders = {
+        "block": "_xCodexBlockxPlacexHolderx_",
+            "inline": "_xCodexInlinexPlacexHolderx_"
+    };
+    App.globals.checks = {
+        "block": /(    )+.*/gm,
+            "inline": /`.*`/gm
+    };
 
-			// Later, this will store what is removed for the first case
-			var phrase;
+    // Assign modules here
+    App.globals.pipeMods = {};
 
-			// Then, perform the edits using replace()
-			// What follows is a series of exceptions, which I will explain below; I perform special actions by overriding replace()
-			// This is used for removing things entirely without giving a replacement; it matches the expression and then replaces it with nothing
-			if (replacement === "") {
-				input = input.replace(expression, function (data, match1) {
+    // Define order in which mods affect  here
+    App.globals.order = [
+        "omit",
+        "edit",
+    	"replace"];
 
-					// Save what is removed for the edit summary (see below)
-					phrase = match1;
 
-					// Replace with nothing
-					return "";
-				});
+    // Define edit rules
+    App.edits = {
+        i: {
+            expr: /(^|\s|\()i(\s|,|\.|!|\?|;|\/|\)|'|$)/gm,
+            replacement: "$1I$2",
+            reason: "basic capitalization"
+        },
+        so: {
+            expr: /(^|\s)[Ss]tack\s*overflow|StackOverflow(.|$)/gm,
+            replacement: "$1Stack Overflow$2",
+            reason: "'Stack Overflow' in improper format"
+        },
+        se: {
+            expr: /(^|\s)[Ss]tack\s*exchange|StackExchange(.|$)/gm,
+            replacement: "$1Stack Exchange$2",
+            reason: "'Stack Exchange' in improper format"
+        },
+        expansionSO: {
+            expr: /(^|\s)SO(\s|,|\.|!|\?|;|\/|\)|$)/gm,
+            replacement: "$1Stack Overflow$2",
+            reason: "'SO' expanded"
+        },
+        expansionSE: {
+            expr: /(^|\s)SE(\s|,|\.|!|\?|;|\/|\)|$)/gm,
+            replacement: "$1Stack Exchange$2",
+            reason: "'SE' expanded"
+        },
+        javascript: {
+            expr: /(^|\s)[Jj]ava\s*script(.|$)/gm,
+            replacement: "$1JavaScript$2",
+            reason: "'JavaScript' improper capitalization"
+        },
+        jsfiddle: {
+            expr: /(^|\s)[Jj][Ss][Ff]iddle(.|$)/gm,
+            replacement: "$1JSFiddle$2",
+            reason: "'JSFiddle' improper capitalization"
+        },
+        caps: {
+            expr: /^(?!https?)([a-z])/gm,
+            replacement: "$1",
+            reason: "basic capitalization"
+        },
+        jquery: {
+            expr: /(^|\s)[Jj][Qq]uery(.|$)/gm,
+            replacement: "$1jQuery$2",
+            reason: "'jQuery' improper capitalization"
+        },
+        html: {
+            expr: /(^|\s)[Hh]tml(?:5*)(\s|$)/gm,
+            replacement: "$1HTML$2",
+            reason: "HTML capitalized"
+        },
+        css: {
+            expr: /(^|\s)[Cc]ss(\s|$)/gm,
+            replacement: "$1CSS$2",
+            reason: "CSS capitalized"
+        },
+        json: {
+            expr: /(^|\s)[Jj]son(\s|$)/gm,
+            replacement: "$1JSON$2",
+            reason: "JSON capitalized"
+        },
+        ajax: {
+            expr: /(^|\s)[Aa]jax(\s|$)/gm,
+            replacement: "$1AJAX$2",
+            reason: "AJAX capitalized"
+        },
+        angular: {
+            expr: /[Aa]ngular[Jj][Ss]/g,
+            replacement: "AngularJS",
+            reason: "'AngularJS capitalization"
+        },
+        thanks: {
+            expr: /(thanks|please\s+help|cheers|regards|thx|thank\s+you|my\s+first\s+question).*$/gmi,
+            replacement: "",
+            reason: "'$1' in the question is just noise"
+        },
+        commas: {
+            expr: /,([^\s])/g,
+            replacement: ", $1",
+            reason: "punctuation & spacing"
+        },
+        php: {
+            expr: /(^|\s)[Pp]hp(\s|$)/gm,
+            replacement: "$1PHP$2",
+            reason: "PHP capitalized"
+        },
+        hello: {
+            expr: /(?:^|\s)(hi\s+guys|good\s(?:evening|morning|day|afternoon))(?:\.|!)/gmi,
+            replacement: "",
+            reason: "'$1' in the question is just noise"
+        },
+        edit: {
+            expr: /(?:^\**)(edit|update):?(?:\**):?/gmi,
+            replacement: "",
+            reason: "Stack Exchange has an advanced revision history system: 'Edit' or 'Update' is unnecessary"
+        },
+        voting: {
+            expr: /([Dd]own|[Uu]p)[\s*\-]vot/g,
+            replacement: "$1vote",
+            reason: "the proper spelling (despite the tag name) is '$1vote' (one word)"
+        },
+        mysite: {
+            expr: /mysite\./g,
+            replacement: "example.",
+            reason: "links to mysite.domain are not allowed: use example.domain instead"
+        }
 
-				// This is an interesting tidbit: if you want to make the edit summaries dynamic, you can keep track of a match that you receive
-				// from overriding the replace() function and then use that in the summary
-				reasoning = reasoning.replace("$1", phrase);
+        //expansion reminder: let's support those non web devs with capitalization for popular languages such as C#
+    };
 
-				// This allows me to combine the upvote and downvote replacement schemes into one
-			} else if (replacement == "$1vote") {
-				input = input.replace(expression, function (data, match1) {
-					phrase = match1;
-					return phrase + "vot";
-				});
-				reasoning = reasoning.replace("$1", phrase.toLowerCase());
+    // Populate funcs
+    App.popFuncs = function () {
+        // This is where the magic happens: this function takes a few pieces of information and applies edits to the post with a couple exceptions
+        App.funcs.fixIt = function (input, expression, replacement, reasoning) {
 
-				// This is used to capitalize letters; it merely takes what is matched, uppercases it, and replaces what was matched with the uppercased verison
-			} else if (replacement === "$1") {
-				input = input.replace(expression, function (data, match1) {
-					return match1.toUpperCase();
-				});
+            // Scan the post text using the expression to see if there are any matches
+            var match = input.search(expression);
 
-				// Default: just replace it with the indicated replacement
-			} else {
-				input = input.replace(expression, replacement);
-			}
+            // If so, increase the number of edits performed (used later for edit summary formation)
+            if (match !== -1) {
+                App.globals.editCount++;
 
-			// Return a dictionary with the reasoning for the fix and what is edited (used later to prevent duplicates in the edit summary)
-			return {
-				reason: reasoning,
-				fixed: input
-			};
-		} else {
+                // Later, this will store what is removed for the first case
+                var phrase;
 
-			// If nothing needs to be fixed, return null
-			return null;
-		}
-	};
+                // Then, perform the edits using replace()
+                // What follows is a series of exceptions, which I will explain below; I perform special actions by overriding replace()
 
-	// Define namespace vars
-	EM.replacedStrings = {
-		"block": [],
-		"inline": []
-	};
-	EM.placeHolders = {
-		"block": "_xCodexBlockxPlacexHolderx_",
-		"inline": "_xCodexInlinexPlacexHolderx_"
-	};
-	EM.checks = {
-		"block": /(    )+.*/gm,
-		"inline": /`.*`/gm
-	};
-	EM.placeHolderChecks = {
-		"block": /_xCodexBlockxPlacexHolderx_/g,
-		"inline": /_xCodexInlinexPlacexHolderx_/g
-	};
+                // This is used for removing things entirely without giving a replacement; it matches the expression and then replaces it with nothing
+                if (replacement === "") {
+                    input = input.replace(expression, function (data, match1) {
 
-	// Omit code
-	EM.omitCode = function (str, type) {
-		str = str.replace(EM.checks[type], function (match) {
-			EM.replacedStrings[type].push(match);
-			return EM.placeHolders[type];
-		});
-		return str;
-	};
+                        // Save what is removed for the edit summary (see below)
+                        phrase = match1;
 
-	// Omit code
-	EM.replaceCode = function (str, type) {
-		for (var i = 0; i < EM.replacedStrings[type].length; i++) {
-			str = str.replace(EM.placeHolders[type], EM.replacedStrings[type][i]);
-		}
-		return str;
-	};
+                        // Replace with nothing
+                        return "";
+                    });
 
-	// Eliminate duplicates in array (awesome method I found on SO, check it out!)
-	EM.eliminateDuplicates = function (arr) {
-		var i, len = arr.length,
-			out = [],
-			obj = {};
+                    // This is an interesting tidbit: if you want to make the edit summaries dynamic, you can keep track of a match that you receive 
+                    //from overriding the replace() function and then use that in the summary
+                    reasoning = reasoning.replace("$1", phrase);
 
-		for (i = 0; i < len; i++) {
-				obj[arr[i]] = 0;
-			}
-		for (i in obj) {
-				out.push(i);
-			}
-		return out;
-	}
+                    // This allows me to combine the upvote and downvote replacement schemes into one
+                } else if (replacement == "$1vote") {
+                    input = input.replace(expression, function (data, match1) {
+                        phrase = match1;
+                        return phrase + "vot";
+                    });
+                    reasoning = reasoning.replace("$1", phrase.toLowerCase());
 
-	// Pipeline body through code omitter
-	EM.body = EM.omitCode(EM.body, "block");
-	EM.body = EM.omitCode(EM.body, "inline");
+                    // This is used to capitalize letters; it merely takes what is matched, uppercases it, and replaces what was matched with the uppercased verison
+                } else if (replacement === "$1") {
+                    input = input.replace(expression, function (data, match1) {
+                        return match1.toUpperCase();
+                    });
 
-	// Note: no reason to redefine all of these rules for every edit
-	// Define edit rules
-	EM.edits = {
-		i: {
-			expr: /(^|\s|\()i(\s|,|\.|!|\?|;|\/|\)|'|$)/gm,
-			replacement: "$1I$2",
-			reason: "basic capitalization"
-		},
-		so: {
-			expr: /(^|\s)[Ss]tack\s*overflow|StackOverflow(.|$)/gm,
-			replacement: "$1Stack Overflow$2",
-			reason: "'Stack Overflow' in improper format"
-		},
-		se: {
-			expr: /(^|\s)[Ss]tack\s*exchange|StackExchange(.|$)/gm,
-			replacement: "$1Stack Exchange$2",
-			reason: "'Stack Exchange' in improper format"
-		},
-		expansionSO: {
-			expr: /(^|\s)SO(\s|,|\.|!|\?|;|\/|\)|$)/gm,
-			replacement: "$1Stack Overflow$2",
-			reason: "'SO' expanded"
-		},
-		expansionSE: {
-			expr: /(^|\s)SE(\s|,|\.|!|\?|;|\/|\)|$)/gm,
-			replacement: "$1Stack Exchange$2",
-			reason: "'SE' expanded"
-		},
-		javascript: {
-			expr: /(^|\s)[Jj]ava\s*script(.|$)/gm,
-			replacement: "$1JavaScript$2",
-			reason: "'JavaScript' improper capitalization"
-		},
-		jsfiddle: {
-			expr: /(^|\s)[Jj][Ss][Ff]iddle(.|$)/gm,
-			replacement: "$1JSFiddle$2",
-			reason: "'JSFiddle' improper capitalization"
-		},
-		caps: {
-			expr: /^(?!https?)([a-z])/gm,
-			replacement: "$1",
-			reason: "basic capitalization"
-		},
-		jquery: {
-			expr: /(^|\s)[Jj][Qq]uery(.|$)/gm,
-			replacement: "$1jQuery$2",
-			reason: "'jQuery' improper capitalization"
-		},
-		html: {
-			expr: /(^|\s)[Hh]tml(?:5*)(\s|$)/gm,
-			replacement: "$1HTML$2",
-			reason: "HTML capitalized"
-		},
-		css: {
-			expr: /(^|\s)[Cc]ss(\s|$)/gm,
-			replacement: "$1CSS$2",
-			reason: "CSS capitalized"
-		},
-		json: {
-			expr: /(^|\s)[Jj]son(\s|$)/gm,
-			replacement: "$1JSON$2",
-			reason: "JSON capitalized"
-		},
-		ajax: {
-			expr: /(^|\s)[Aa]jax(\s|$)/gm,
-			replacement: "$1AJAX$2",
-			reason: "AJAX capitalized"
-		},
-		angular: {
-			expr: /[Aa]ngular[Jj][Ss]/g,
-			replacement: "AngularJS",
-			reason: "'AngularJS capitalization"
-		},
-		thanks: {
-			expr: /(thanks|please\s+help|cheers|regards|thx|thank\s+you|my\s+first\s+question).*$/gmi,
-			replacement: "",
-			reason: "'$1' in the question is just noise"
-		},
-		commas: {
-			expr: /,([^\s])/g,
-			replacement: ", $1",
-			reason: "punctuation & spacing"
-		},
-		php: {
-			expr: /(^|\s)[Pp]hp(\s|$)/gm,
-			replacement: "$1PHP$2",
-			reason: "PHP capitalized"
-		},
-		hello: {
-			expr: /(?:^|\s)(hi\s+guys|good\s(?:evening|morning|day|afternoon))(?:\.|!)/gmi,
-			replacement: "",
-			reason: "'$1' in the question is just noise"
-		},
-		edit: {
-			expr: /(?:^\**)(edit|update):?(?:\**):?/gmi,
-			replacement: "",
-			reason: "Stack Exchange has an advanced revision history system: 'Edit' or 'Update' is unnecessary"
-		},
-		voting: {
-			expr: /([Dd]own|[Uu]p)[\s*\-]vot/g,
-			replacement: "$1vote",
-			reason: "the proper spelling (despite the tag name) is '$1vote' (one word)"
-		},
-		mysite: {
-			expr: /mysite\./g,
-			replacement: "example.",
-			reason: "links to mysite.domain are not allowed: use example.domain instead"
-		}
+                    // Default: just replace it with the indicated replacement
+                } else {
+                    input = input.replace(expression, replacement);
+                }
 
-		// Expansion reminder: let's support those non web devs with capitalization for popular languages such as C#
-	};
+                // Return a dictionary with the reasoning for the fix and what is edited (used later to prevent duplicates in the edit summary)
+                return {
+                    reason: reasoning,
+                    fixed: input
+                };
+            } else {
 
-	EM.edit = function () {
+                // If nothing needs to be fixed, return null
+                return null;
+            }
+        };
 
-		EM.populate();
+        // Omit code
+        App.funcs.omitCode = function (str, type) {
+            console.log(str);
+            str = str.replace(App.globals.checks[type], function (match) {
+                App.globals.replacedStrings[type].push(match);
+                return App.globals.placeHolders[type];
+            });
+            return str;
+        };
 
-		// Visually confirm edit - SE makes it easy because the jQuery color animation plugin seems to be there by default
-		EM.bodyBox.animate({
-			backgroundColor: '#c8ffa7'
-		}, 10);
-		EM.bodyBox.animate({
-			backgroundColor: '#fff'
-		}, 1000);
+        // Replace code
+        App.funcs.replaceCode = function (str, type) {
+            for (var i = 0; i < App.globals.replacedStrings[type].length; i++) {
+                str = str.replace(App.globals.placeHolders[type], App.globals.replacedStrings[type][i]);
+            }
+            return str;
+        };
 
-		// Loop through all editing rules
-		for (var j in EM.edits) {
-			if (EM.edits.hasOwnProperty(j)) {
+        // Eliminate duplicates in array (awesome method I found on SO, check it out!)
+        App.funcs.eliminateDuplicates = function (arr) {
+            var i,
+            len = arr.length,
+                out = [],
+                obj = {};
 
-				// Check body
-				var fix = EM.fixIt(EM.body, EM.edits[j].expr, EM.edits[j].replacement, EM.edits[j].reason);
-				if (fix) {
+            for (i = 0; i < len; i++) {
+                obj[arr[i]] = 0;
+            }
+            for (i in obj) {
+                out.push(i);
+            }
+            return out;
+        };
 
-					// Replace removed code blocks
-					console.log(fix.fixed);
-					fix.fixed = EM.replaceCode(fix.fixed, "block");
-					fix.fixed = EM.replaceCode(fix.fixed, "inline");
+        // Wait for relevant dynamic content to finish loading
+        App.funcs.dynamicDelay = function (callback) {
+            App.selections.buttonBar = $('#wmd-button-bar-' + App.globals.questionNum);
 
-					// Insert results
-					EM.reasons[EM.numReasons] = fix.reason;
-					EM.bodyBox.val(fix.fixed);
-					EM.numReasons++;
-					EM.edits[j].fixed = true;
-				}
+            // When button bar updates, dynamic DOM is ready for selection
+            App.selections.buttonBar.unbind().on('DOMSubtreeModified', function () {
 
-				// Check title
-				fix = EM.fixIt(EM.title, EM.edits[j].expr, EM.edits[j].replacement, EM.edits[j].reason);
-				if (fix) {
-					console.log(fix);
-					EM.titleBox.val(fix.fixed);
-					console.log(EM.titleBox.val());
-					if (!EM.edits[j].fixed) {
-						EM.reasons[EM.numReasons] = fix.reason;
-						EM.numReasons++;
-						EM.edits[j].fixed = true;
-					}
-				}
-			}
-		}
+                // Avoid running it more than once
+                if (!App.globals.barReady) {
+                    App.globals.barReady = true;
 
-		// Create summary
-		var summary = "";
+                    // Run asynchronously - this lets the bar finish updating before continuing
+                    setTimeout(function () {
+                        callback();
+                    }, 0);
+                }
+            });
+        };
 
-		// Eliminate duplicate reasons
-		console.log(EM.reasons);
-		EM.reasons = EM.eliminateDuplicates(EM.reasons);
-		console.log(EM.reasons);
+        // Populate or refresh DOM selections
+        App.funcs.popSelections = function () {
+            App.selections.redoButton = $('#wmd-redo-button-' + App.globals.questionNum);
+            App.selections.bodyBox = $(".wmd-input");
+            App.selections.titleBox = $(".ask-title-field");
+            App.selections.summaryBox = $("#edit-comment");
+        };
 
-		for (var z = 0; z < EM.reasons.length; z++) {
+        // Populate edit item sets from DOM selections - currently does not support inline edits
+        App.funcs.popItems = function () {
+            App.items[0] = {
+                title: App.selections.titleBox.val(),
+                body: App.selections.bodyBox.val(),
+                summary: ''
+            };
+        };
 
-			// Check that summary is not getting too long
-			if (summary.length < 200) {
+        // Insert editing button(s)
+        App.funcs.createButton = function () {
 
-				// Capitalize first letter
-				if (z === 0) {
-					summary += EM.reasons[z][0].toUpperCase() + EM.reasons[z].substring(1);
-					console.log(summary);
+            // Insert button
+            App.selections.redoButton.after(App.globals.buttonHTML);
 
-					// Post rest of reasons normally
-				} else {
-					summary += EM.reasons[z];
-				}
+            // Insert spacer
+            App.selections.redoButton.after(App.globals.spacerHTML);
 
-				// If it's not the last reason
-				if (z !== EM.reasons.length - 1) {
-					summary += "; ";
-					console.log(summary);
+            // Add new elements to selections
+            App.selections.buttonWrapper = $('#ToolkitButtonWrapper');
+            App.selections.buttonFix = $('#ToolkitFix');
+            App.selections.buttonInfo = $('#ToolkitInfo');
+        };
 
-					// If at end, punctuate
-				} else {
-					summary += ".";
-					console.log(summary);
-				}
-			}
-		}
+        // Style button
+        App.funcs.styleButton = function () {
+            App.selections.buttonWrapper.css({
+                'position': 'relative',
+                    'left': '430px'
+            });
+            App.selections.buttonFix.css({
+                'position': 'static',
+                    'float': 'left',
+                    'border-width': '0px',
+                    'background-color': 'white',
+                    'background-image': 'url("http://i.imgur.com/cLCZ21L.png")',
+                    'background-size': '100% 100%',
+                    'width': '18px',
+                    'height': '18px',
+                    'outline': 'none'
+            });
+            App.selections.buttonInfo.css({
+                'position': 'static',
+                    'float': 'left',
+                    'margin-left': '5px',
+                    'font-size': '12px',
+                    'color': '#424242',
+                    'line-height': '19px'
+            });
 
-		// Update the comment: focusing on the input field to remove placeholder text, but scroll back to the user's original location
-		var currentPos = document.body.scrollTop;
-		if (privileges) {
-			$(".edit-comment").val(summary);
-			$(".wmd-input").focus();
-			$(".edit-comment").focus();
-			$(".wmd-input").focus();
-		} else {
-			$("#edit-comment").val(summary);
-			$("#wmd-input").focus();
-			$("#edit-comment").focus();
-			$("#wmd-input").focus();
-		}
-		window.scrollTo(0, currentPos);
-		toolkitGlobals.infoContent = editCount + ' changes made';
-		toolkitGlobals.buttonInfo.text(editCount + ' changes made');
-	};
+            App.selections.buttonFix.hover(function () {
+                App.globals.infoContent = App.selections.buttonInfo.text();
+                App.selections.buttonInfo.text('Fix the content!');
+                App.selections.buttonFix.css({
+                    'background-image': 'url("http://i.imgur.com/kyE5p6d.png")'
+                });
+            }, function () {
+                App.selections.buttonInfo.text(App.globals.infoContent);
+                App.selections.buttonFix.css({
+                    'background-image': 'url("http://i.imgur.com/cLCZ21L.png")'
+                });
+            });
+        };
+
+        // Listen to button click
+        App.funcs.listenButton = function () {
+            App.selections.buttonFix.click(function (e) {
+                e.preventDefault();
+                if (!App.globals.editsMade) {
+
+                    // Refresh item population
+                    App.funcs.popItems();
+
+                    // Pipe data through editing modules
+                    App.pipe(App.items, App.globals.pipeMods, App.globals.order);
+                    App.globals.editsMade = true;
+                }
+            });
+        };
+
+        // Handle pipe output
+        App.funcs.output = function (data) {
+            App.selections.titleBox.val(data[0].title);
+            App.selections.bodyBox.val(data[0].body);
+            App.selections.summaryBox.val(data[0].summary);
+
+            // Update the comment: focusing on the input field to remove placeholder text, 
+            //but scroll back to the user's original location
+            var currentPos = document.body.scrollTop;
+            $("#wmd-input").focus();
+            $("#edit-comment").focus();
+            $("#wmd-input").focus();
+            window.scrollTo(0, currentPos);
+            App.globals.infoContent = App.globals.editCount + ' changes made';
+            App.selections.buttonInfo.text(App.globals.editCount + ' changes made');
+        };
+    };
+
+
+
+
+
+
+    // Pipe data through modules in proper order, returning the result
+    App.pipe = function (data, mods, order) {
+        console.log("Piping edits...");
+        var modName;
+        for (var i in order) {
+            modName = order[i];
+            data = mods[modName](data);
+            console.log(data[0].body);
+        }
+        App.funcs.output(data);
+        console.log("Edits complete!");
+    };
+
+    // Init app
+    App.init = function () {
+        App.popFuncs();
+        App.funcs.dynamicDelay(function () {
+            App.funcs.popSelections();
+            App.funcs.createButton();
+            App.funcs.styleButton();
+            App.funcs.popItems();
+            App.funcs.listenButton();
+        });
+    };
+
+    App.globals.pipeMods.omit = function (data) {
+        data[0].body = App.funcs.omitCode(data[0].body, "block");
+        data[0].body = App.funcs.omitCode(data[0].body, "inline");
+        return data;
+    };
+    
+    App.globals.pipeMods.replace = function(data){
+        data[0].body = App.funcs.replaceCode(data[0].body, "block");
+        data[0].body = App.funcs.replaceCode(data[0].body, "inline");
+        return data;
+    };
+
+    App.globals.pipeMods.edit = function (data) {
+
+        // Visually confirm edit - SE makes it easy because the jQuery color animation plugin seems to be there by default
+        App.selections.bodyBox.animate({
+            backgroundColor: '#c8ffa7'
+        }, 10);
+        App.selections.bodyBox.animate({
+            backgroundColor: '#fff'
+        }, 1000);
+
+        //loop through all editing rules
+        for (var j in App.edits) {
+            if (App.edits.hasOwnProperty(j)) {
+
+                // Check body
+                var fix = App.funcs.fixIt(data[0].body, App.edits[j].expr, App.edits[j].replacement, App.edits[j].reason);
+                if (fix) {
+                    App.globals.reasons[App.globals.numReasons] = fix.reason;
+                    data[0].body = fix.fixed;
+                    App.globals.numReasons++;
+                    App.edits[j].fixed = true;
+                }
+
+                // Check title
+                fix = App.funcs.fixIt(data[0].title, App.edits[j].expr, App.edits[j].replacement, App.edits[j].reason);
+                if (fix) {
+                    data[0].title = fix.fixed;
+                    if (!App.edits[j].fixed) {
+                        App.globals.reasons[App.globals.numReasons] = fix.reason;
+                        App.globals.numReasons++;
+                        App.edits[j].fixed = true;
+                    }
+                }
+            }
+        }
+
+        //eliminate duplicate reasons
+        App.globals.reasons = App.funcs.eliminateDuplicates(App.globals.reasons);
+
+        for (var z = 0; z < App.globals.reasons.length; z++) {
+
+            //check that summary is not getting too long
+            if (data[0].summary.length < 200) {
+
+                //capitalize first letter
+                if (z === 0) {
+                    data[0].summary += App.globals.reasons[z][0].toUpperCase() + App.globals.reasons[z].substring(1);
+
+                    //post rest of reasons normally
+                } else {
+                    data[0].summary += App.globals.reasons[z];
+                }
+
+                //if it's not the last reason
+                if (z !== App.globals.reasons.length - 1) {
+                    data[0].summary += "; ";
+
+                    //if at end, punctuate
+                } else {
+                    data[0].summary += ".";
+                }
+            }
+        }
+
+        return data;
+    };
+
+    // Start
+    App.init();
+    
 };
 
-// Inject the main script
-var script = document.createElement('script');
-script.type = "text/javascript";
-script.textContent = '(' + main.toString() + ')();';
-document.body.appendChild(script);
+
+    // Inject the main script
+    var script = document.createElement('script');
+    script.type = "text/javascript";
+    script.textContent = '(' + main.toString() + ')();';
+    document.body.appendChild(script);
