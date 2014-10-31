@@ -4,7 +4,7 @@
 // @developer      jt0dd
 // @contributor    Unihedron
 // @namespace  http://github.com/AstroCB
-// @version        3.0
+// @version        1.0.0
 // @description  Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        http://*.stackexchange.com/questions/*
 // @include        http://stackoverflow.com/questions/*
