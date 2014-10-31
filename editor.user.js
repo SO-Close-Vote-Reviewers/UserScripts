@@ -1,8 +1,10 @@
 // ==UserScript==
 // @name           Stack-Exchange-Editor-Toolkit
 // @author         Cameron Bernhardt (AstroCB)
+// @developer      jt0dd
+// @contributor    Unihedron
 // @namespace  http://github.com/AstroCB
-// @version        2.0
+// @version        3.0
 // @description  Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        http://*.stackexchange.com/questions/*
 // @include        http://stackoverflow.com/questions/*
@@ -37,16 +39,16 @@
 // ==/UserScript==
 var main = function () {
 
-    /* 
+    /*
 
  Note that in the new version I place many things needlessly into wrappers (container
- functions) and namespaces (container variables); this is simply an effort to promote modularity 
+ functions) and namespaces (container variables); this is simply an effort to promote modularity
  in the structure and keep focused on what's going where and when.
- 
+
  Some of this may have no use at all once the code is all in place, and we may be able to simplify it
  extensively. This is one of my first user-script projects, and it's confusing putting
- so many different functionalities into one single file. 
- 
+ so many different functionalities into one single file.
+
  */
 
     // Define app namespace
@@ -55,7 +57,7 @@ var main = function () {
     // Place edit items here
     App.items = [];
 
-    // Place selected JQuery items here 
+    // Place selected JQuery items here
     App.selections = {};
 
     // Place "global" app data here
@@ -63,22 +65,22 @@ var main = function () {
 
     // Place "helper" functions here
     App.funcs = {};
-    
+
     //Preload icon alt
-    
-    var SEETicon = new Image(); 
+
+    var SEETicon = new Image();
 
 	SEETicon.src = 'http://i.imgur.com/d5ZL09o.png';
 
     // Populate global data
-    
+
     // Get url for question id used in id and class names
     App.globals.URL = window.location.href;
 
     // Get question num from URL
     App.globals.questionNum = App.globals.URL.match(/\d/g);
 
-    // Join 
+    // Join
     App.globals.questionNum = App.globals.questionNum.join("");
 
     // Define varables for later use
@@ -257,7 +259,7 @@ var main = function () {
                         return "";
                     });
 
-                    // This is an interesting tidbit: if you want to make the edit summaries dynamic, you can keep track of a match that you receive 
+                    // This is an interesting tidbit: if you want to make the edit summaries dynamic, you can keep track of a match that you receive
                     //from overriding the replace() function and then use that in the summary
                     reasoning = reasoning.replace("$1", phrase);
 
@@ -439,7 +441,7 @@ var main = function () {
             App.selections.bodyBox.val(data[0].body);
             App.selections.summaryBox.val(data[0].summary);
 
-            // Update the comment: focusing on the input field to remove placeholder text, 
+            // Update the comment: focusing on the input field to remove placeholder text,
             //but scroll back to the user's original location
             var currentPos = document.body.scrollTop;
             $("#wmd-input").focus();
@@ -481,7 +483,7 @@ var main = function () {
         data[0].body = App.funcs.omitCode(data[0].body, "inline");
         return data;
     };
-    
+
     App.globals.pipeMods.replace = function(data){
         data[0].body = App.funcs.replaceCode(data[0].body, "block");
         data[0].body = App.funcs.replaceCode(data[0].body, "inline");
@@ -557,11 +559,11 @@ var main = function () {
 
     // Start
     App.init();
-    
+
 };
 
-    // Inject the main script
-    var script = document.createElement('script');
-    script.type = "text/javascript";
-    script.textContent = '(' + main.toString() + ')();';
-    document.body.appendChild(script);
+// Inject the main script
+var script = document.createElement('script');
+script.type = "text/javascript";
+script.textContent = '(' + main.toString() + ')();';
+document.body.appendChild(script);
