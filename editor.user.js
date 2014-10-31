@@ -63,10 +63,15 @@ var main = function () {
 
     // Place "helper" functions here
     App.funcs = {};
+    
+    //Preload icon alt
+    
+    var SEETicon = new Image(); 
+
+	SEETicon.src = 'http://i.imgur.com/d5ZL09o.png';
 
     // Populate global data
-
-
+    
     // Get url for question id used in id and class names
     App.globals.URL = window.location.href;
 
@@ -383,7 +388,7 @@ var main = function () {
                     'float': 'left',
                     'border-width': '0px',
                     'background-color': 'white',
-                    'background-image': 'url("http://i.imgur.com/cLCZ21L.png")',
+                    'background-image': 'url("http://i.imgur.com/79qYzkQ.png")',
                     'background-size': '100% 100%',
                     'width': '18px',
                     'height': '18px',
@@ -402,12 +407,12 @@ var main = function () {
                 App.globals.infoContent = App.selections.buttonInfo.text();
                 App.selections.buttonInfo.text('Fix the content!');
                 App.selections.buttonFix.css({
-                    'background-image': 'url("http://i.imgur.com/kyE5p6d.png")'
+                    'background-image': 'url("http://i.imgur.com/d5ZL09o.png")'
                 });
             }, function () {
                 App.selections.buttonInfo.text(App.globals.infoContent);
                 App.selections.buttonFix.css({
-                    'background-image': 'url("http://i.imgur.com/cLCZ21L.png")'
+                    'background-image': 'url("http://i.imgur.com/79qYzkQ.png")'
                 });
             });
         };
@@ -445,11 +450,6 @@ var main = function () {
             App.selections.buttonInfo.text(App.globals.editCount + ' changes made');
         };
     };
-
-
-
-
-
 
     // Pipe data through modules in proper order, returning the result
     App.pipe = function (data, mods, order) {
@@ -559,7 +559,6 @@ var main = function () {
     App.init();
     
 };
-
 
     // Inject the main script
     var script = document.createElement('script');
