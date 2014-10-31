@@ -129,32 +129,32 @@ var main = function () {
         so: {
             expr: /(^|\s)[Ss]tack\s*overflow|StackOverflow(.|$)/gm,
             replacement: "$1Stack Overflow$2",
-            reason: "'Stack Overflow' in improper format"
+            reason: "'Stack Overflow' is the proper capitalization"
         },
         se: {
             expr: /(^|\s)[Ss]tack\s*exchange|StackExchange(.|$)/gm,
             replacement: "$1Stack Exchange$2",
-            reason: "'Stack Exchange' in improper format"
+            reason: "'Stack Exchange' is the proper capitalization"
         },
         expansionSO: {
             expr: /(^|\s)SO(\s|,|\.|!|\?|;|\/|\)|$)/gm,
             replacement: "$1Stack Overflow$2",
-            reason: "'SO' expanded"
+            reason: "'SO' expansion"
         },
         expansionSE: {
             expr: /(^|\s)SE(\s|,|\.|!|\?|;|\/|\)|$)/gm,
             replacement: "$1Stack Exchange$2",
-            reason: "'SE' expanded"
+            reason: "'SE' expansion"
         },
         javascript: {
             expr: /(^|\s)[Jj]ava\s*script(.|$)/gm,
             replacement: "$1JavaScript$2",
-            reason: "'JavaScript' improper capitalization"
+            reason: "'JavaScript' is the proper capitalization"
         },
         jsfiddle: {
             expr: /(^|\s)[Jj][Ss][Ff]iddle(.|$)/gm,
             replacement: "$1JSFiddle$2",
-            reason: "'JSFiddle' improper capitalization"
+            reason: "'JSFiddle' is the currently accepted capitalization"
         },
         caps: {
             expr: /^(?!https?)([a-z])/gm,
@@ -164,37 +164,37 @@ var main = function () {
         jquery: {
             expr: /(^|\s)[Jj][Qq]uery(.|$)/gm,
             replacement: "$1jQuery$2",
-            reason: "'jQuery' improper capitalization"
+            reason: "'jQuery' is the proper capitalization"
         },
         html: {
             expr: /(^|\s)[Hh]tml(?:5*)(\s|$)/gm,
             replacement: "$1HTML$2",
-            reason: "HTML capitalized"
+            reason: "HTML: HyperText Markup Language"
         },
         css: {
             expr: /(^|\s)[Cc]ss(\s|$)/gm,
             replacement: "$1CSS$2",
-            reason: "CSS capitalized"
+            reason: "CSS: Cascading Style Sheets"
         },
         json: {
             expr: /(^|\s)[Jj]son(\s|$)/gm,
             replacement: "$1JSON$2",
-            reason: "JSON capitalized"
+            reason: "JSON: JavaScript Object Notation"
         },
         ajax: {
             expr: /(^|\s)[Aa]jax(\s|$)/gm,
             replacement: "$1AJAX$2",
-            reason: "AJAX capitalized"
+            reason: "AJAX: Asynchronous JavaScript and XML"
         },
         angular: {
             expr: /[Aa]ngular[Jj][Ss]/g,
             replacement: "AngularJS",
-            reason: "'AngularJS capitalization"
+            reason: "'AngularJS is the proper capitalization"
         },
         thanks: {
             expr: /(thanks|please\s+help|cheers|regards|thx|thank\s+you|my\s+first\s+question).*$/gmi,
             replacement: "",
-            reason: "'$1' in the question is just noise"
+            reason: "'$1' is unnecessary noise"
         },
         commas: {
             expr: /,([^\s])/g,
@@ -204,12 +204,12 @@ var main = function () {
         php: {
             expr: /(^|\s)[Pp]hp(\s|$)/gm,
             replacement: "$1PHP$2",
-            reason: "PHP capitalized"
+            reason: "PHP: PHP: Hypertext Preprocessor"
         },
         hello: {
             expr: /(?:^|\s)(hi\s+guys|good\s(?:evening|morning|day|afternoon))(?:\.|!)/gmi,
             replacement: "",
-            reason: "'$1' in the question is just noise"
+            reason: "Greetings like '$1' are unnecessary noise"
         },
         edit: {
             expr: /(?:^\**)(edit|update):?(?:\**):?/gmi,
