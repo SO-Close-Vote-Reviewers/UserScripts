@@ -316,9 +316,17 @@ var main = function () {
         };
 
         // Wait for relevant dynamic content to finish loading
-        App.funcs.dynamicDelay = function (callback, id) {
-          App.selections.buttonBar = $('#wmd-button-bar-' + id);
-
+        App.funcs.dynamicDelay = function (callback, id, inline) {
+          if(inline){ // Inline editing
+            setTimeout(function(){
+              App.selections.buttonBar = $('#wmd-button-bar-' + id);
+              App.selections.buttonBar.unbind();
+              setTimeout(function () {
+                  callback();
+              }, 0);
+            }, 500);
+          }else{ // Question page editing
+            App.selections.buttonBar = $('#wmd-button-bar-' + id);
             // When button bar updates, dynamic DOM is ready for selection
             App.selections.buttonBar.unbind().on('DOMSubtreeModified', function () {
                 // Avoid running it more than once
@@ -331,6 +339,7 @@ var main = function () {
                     }, 0);
                 }
             });
+          }
         };
 
         // Populate or refresh DOM selections
@@ -452,10 +461,10 @@ var main = function () {
     };
 
     // Init app
-    App.init = function (e) {
+    App.init = function (inline, targetID) {
       // Check if there was an ID passed (if not, use question ID from URL);
-      if(!e){
-        e = App.globals.questionNum;
+      if(!targetID){
+        targetID = App.globals.questionNum;
       }
         App.popFuncs();
         App.funcs.dynamicDelay(function () {
@@ -464,7 +473,7 @@ var main = function () {
             App.funcs.styleButton();
             App.funcs.popItems();
             App.funcs.listenButton();
-        }, e);
+        }, targetID, inline);
     };
 
     App.globals.pipeMods.omit = function (data) {
@@ -547,12 +556,10 @@ var main = function () {
 
     if($(".edit-post")[0]) { // User has editing privileges; wait for button press
       $(".edit-post").click(function(e) {
-        setTimeout(function() {
-          App.init(e.target.href.match(/\d/g).join("")); // If there are multiple posts, we need to pass the post ID
-        }, 1000);
+          App.init(true, e.target.href.match(/\d/g).join("")); // If there are multiple posts, we need to pass the post ID
       });
-    } else { // User does not have editing privileges; start immediately
-      App.init();
+    } else { // User does not have editing privileges or is editing on question page; start immediately
+      App.init(false);
     }
 };
 
