@@ -108,7 +108,7 @@ var main = function () {
         i: {
             expr: /(^|\s|\()i(\s|,|\.|!|\?|;|\/|\)|'|$)/gm,
             replacement: "$1I$2",
-            reason: "basic capitalization"
+            reason: "In English, the pronoun 'I' is capitalized"
         },
         so: {
             expr: /(^|\s)[Ss]tack\s*overflow|StackOverflow(.|$)/gm,
@@ -151,24 +151,24 @@ var main = function () {
             reason: "'jQuery' is the proper capitalization"
         },
         html: {
-            expr: /(^|\s)[Hh]tml(?:5*)(\s|$)/gm,
+            expr: /(^|\s)[Hh]tml(5|\s|$)/gm,
             replacement: "$1HTML$2",
-            reason: "HTML: HyperText Markup Language"
+            reason: "HTML stands for HyperText Markup Language"
         },
         css: {
             expr: /(^|\s)[Cc]ss(\s|$)/gm,
             replacement: "$1CSS$2",
-            reason: "CSS: Cascading Style Sheets"
+            reason: "CSS stands for Cascading Style Sheets"
         },
         json: {
             expr: /(^|\s)[Jj]son(\s|$)/gm,
             replacement: "$1JSON$2",
-            reason: "JSON: JavaScript Object Notation"
+            reason: "JSON stands for JavaScript Object Notation"
         },
         ajax: {
             expr: /(^|\s)[Aa]jax(\s|$)/gm,
             replacement: "$1AJAX$2",
-            reason: "AJAX: Asynchronous JavaScript and XML"
+            reason: "AJAX stands for Asynchronous JavaScript and XML"
         },
         angular: {
             expr: /[Aa]ngular[Jj][Ss]/g,
@@ -188,7 +188,7 @@ var main = function () {
         php: {
             expr: /(^|\s)[Pp]hp(\s|$)/gm,
             replacement: "$1PHP$2",
-            reason: "PHP: PHP: Hypertext Preprocessor"
+            reason: "PHP stands for PHP: Hypertext Preprocessor"
         },
         hello: {
             expr: /(?:^|\s)(hi\s+guys|good\s(?:evening|morning|day|afternoon))(?:\.|!)/gmi,
@@ -209,6 +209,16 @@ var main = function () {
             expr: /mysite\./g,
             replacement: "example.",
             reason: "links to mysite.domain are not allowed: use example.domain instead"
+        },
+        c: {
+          expr: /(^|\s)c(#|\++|\s|$)/gm,
+          replacement: "$1C$2",
+          reason: "capitalized C$2"
+        },
+        java: {
+          expr: /(^|\s)java(\s|$)/gm,
+          replacement: "$1Java$2",
+          reason: "capitalized Java"
         }
 
         // Expansion reminder: let's support those non web devs with capitalization for popular languages such as C#
@@ -260,6 +270,15 @@ var main = function () {
                     input = input.replace(expression, function (data, match1) {
                         return match1.toUpperCase();
                     });
+
+                    // I can use C, C#, and C++ capitalization in one rule
+                } else if (replacement === "$1C$2"){
+                    var newPhrase;
+                    input = input.replace(expression, function (data, match1, match2) {
+                        newPhrase = match2;
+                        return match1 + "C" + match2;
+                    });
+                    reasoning = reasoning.replace("$2", newPhrase);
 
                     // Default: just replace it with the indicated replacement
                 } else {
