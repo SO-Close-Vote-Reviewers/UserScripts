@@ -38,19 +38,6 @@
 // @exclude        http://stackapps.com/questions/tagged/*
 // ==/UserScript==
 var main = function () {
-
-    /*
-
- Note that in the new version I place many things needlessly into wrappers (container
- functions) and namespaces (container variables); this is simply an effort to promote modularity
- in the structure and keep focused on what's going where and when.
-
- Some of this may have no use at all once the code is all in place, and we may be able to simplify it
- extensively. This is one of my first user-script projects, and it's confusing putting
- so many different functionalities into one single file.
-
- */
-
     // Define app namespace
     var App = {};
 
@@ -79,17 +66,14 @@ var main = function () {
 
     // Get question num from URL
     App.globals.questionNum = App.globals.URL.match(/\d/g);
-
-    // Join
     App.globals.questionNum = App.globals.questionNum.join("");
 
-    // Define varables for later use
+    // Define variables for later use
     App.globals.barReady = false;
     App.globals.editsMade = false;
     App.globals.editCount = 0;
     App.globals.infoContent = '';
 
-    App.globals.privileges = true;
     App.globals.spacerHTML = '<li class="wmd-spacer wmd-spacer3" id="wmd-spacer3-' + App.globals.questionNum + '" style="left: 400px !important;"></li>';
     App.globals.buttonHTML = '<div id="ToolkitButtonWrapper"><button class="wmd-button" id="ToolkitFix"></button><div id="ToolkitInfo"></div></div>';
 
@@ -227,7 +211,7 @@ var main = function () {
             reason: "links to mysite.domain are not allowed: use example.domain instead"
         }
 
-        //expansion reminder: let's support those non web devs with capitalization for popular languages such as C#
+        // Expansion reminder: let's support those non web devs with capitalization for popular languages such as C#
     };
 
     // Populate funcs
@@ -296,7 +280,6 @@ var main = function () {
 
         // Omit code
         App.funcs.omitCode = function (str, type) {
-            console.log(str);
             str = str.replace(App.globals.checks[type], function (match) {
                 App.globals.replacedStrings[type].push(match);
                 return App.globals.placeHolders[type];
@@ -313,28 +296,31 @@ var main = function () {
         };
 
         // Eliminate duplicates in array (awesome method I found on SO, check it out!)
+        // From AstroCB: the original structure of the edit formation prevents duplicates.
+        // Unless you changed that structure somehow, this shouldn't be needed.
         App.funcs.eliminateDuplicates = function (arr) {
             var i,
             len = arr.length,
-                out = [],
-                obj = {};
+            out = [],
+            obj = {};
 
             for (i = 0; i < len; i++) {
                 obj[arr[i]] = 0;
             }
             for (i in obj) {
+              if(obj.hasOwnProperty(i)){ // Prevents messiness of for..in statements
                 out.push(i);
+              }
             }
             return out;
         };
 
         // Wait for relevant dynamic content to finish loading
-        App.funcs.dynamicDelay = function (callback) {
-            App.selections.buttonBar = $('#wmd-button-bar-' + App.globals.questionNum);
+        App.funcs.dynamicDelay = function (callback, id) {
+          App.selections.buttonBar = $('#wmd-button-bar-' + id);
 
             // When button bar updates, dynamic DOM is ready for selection
             App.selections.buttonBar.unbind().on('DOMSubtreeModified', function () {
-
                 // Avoid running it more than once
                 if (!App.globals.barReady) {
                     App.globals.barReady = true;
@@ -455,19 +441,22 @@ var main = function () {
 
     // Pipe data through modules in proper order, returning the result
     App.pipe = function (data, mods, order) {
-        console.log("Piping edits...");
         var modName;
         for (var i in order) {
+          if(order.hasOwnProperty(i)){
             modName = order[i];
             data = mods[modName](data);
-            console.log(data[0].body);
+          }
         }
         App.funcs.output(data);
-        console.log("Edits complete!");
     };
 
     // Init app
-    App.init = function () {
+    App.init = function (e) {
+      // Check if there was an ID passed (if not, use question ID from URL);
+      if(!e){
+        e = App.globals.questionNum;
+      }
         App.popFuncs();
         App.funcs.dynamicDelay(function () {
             App.funcs.popSelections();
@@ -475,7 +464,7 @@ var main = function () {
             App.funcs.styleButton();
             App.funcs.popItems();
             App.funcs.listenButton();
-        });
+        }, e);
     };
 
     App.globals.pipeMods.omit = function (data) {
@@ -557,9 +546,15 @@ var main = function () {
         return data;
     };
 
-    // Start
-    App.init();
-
+    if($(".edit-post")[0]) { // User has editing privileges; wait for button press
+      $(".edit-post").click(function(e) {
+        setTimeout(function() {
+          App.init(e.target.href.match(/\d/g).join("")); // If there are multiple posts, we need to pass the post ID
+        }, 1000);
+      });
+    } else { // User does not have editing privileges; start immediately
+      App.init();
+    }
 };
 
 // Inject the main script
