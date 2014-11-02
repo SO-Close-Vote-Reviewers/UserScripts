@@ -90,7 +90,7 @@ var main = function () {
     };
     App.globals.checks = {
         "block": /(    )+.*/gm,
-            "inline": /`.*`/gm
+        "inline": /`.*`/gm
     };
 
     // Assign modules here
@@ -489,10 +489,9 @@ var main = function () {
             backgroundColor: '#fff'
         }, 1000);
 
-        //loop through all editing rules
+        // Loop through all editing rules
         for (var j in App.edits) {
             if (App.edits.hasOwnProperty(j)) {
-
                 // Check body
                 var fix = App.funcs.fixIt(data[0].body, App.edits[j].expr, App.edits[j].replacement, App.edits[j].reason);
                 if (fix) {
@@ -515,28 +514,28 @@ var main = function () {
             }
         }
 
-        //eliminate duplicate reasons
+        // Eliminate duplicate reasons
         App.globals.reasons = App.funcs.eliminateDuplicates(App.globals.reasons);
 
         for (var z = 0; z < App.globals.reasons.length; z++) {
 
-            //check that summary is not getting too long
+            // Check that summary is not getting too long
             if (data[0].summary.length < 200) {
 
-                //capitalize first letter
+                // Capitalize first letter
                 if (z === 0) {
                     data[0].summary += App.globals.reasons[z][0].toUpperCase() + App.globals.reasons[z].substring(1);
 
-                    //post rest of reasons normally
+                // Post rest of reasons normally
                 } else {
                     data[0].summary += App.globals.reasons[z];
                 }
 
-                //if it's not the last reason
+                // Not the last reason
                 if (z !== App.globals.reasons.length - 1) {
                     data[0].summary += "; ";
 
-                    //if at end, punctuate
+                    // If at end, punctuate
                 } else {
                     data[0].summary += ".";
                 }
