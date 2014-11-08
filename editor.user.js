@@ -57,7 +57,7 @@ var main = function () {
 
     var SEETicon = new Image();
 
-	SEETicon.src = 'http://i.imgur.com/d5ZL09o.png';
+    SEETicon.src = 'http://i.imgur.com/d5ZL09o.png';
 
     // Populate global data
 
@@ -136,7 +136,7 @@ var main = function () {
             reason: "'JavaScript' is the proper capitalization"
         },
         jsfiddle: {
-            expr: /(^|\s)[Jj][Ss][Ff]iddle(.|$)/gm,
+            expr: /(^|\s)[Jj][Ss]\s+[Ff]iddle(.|$)/gm,
             replacement: "$1JSFiddle$2",
             reason: "'JSFiddle' is the currently accepted capitalization"
         },
