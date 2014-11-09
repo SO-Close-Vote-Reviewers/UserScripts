@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack-Exchange-Editor-Toolkit
 // @author         Cameron Bernhardt (AstroCB)
-// @developer      jt0dd
+// @developer      Jonathan Todd (jt0dd)
 // @contributor    Unihedron
 // @namespace  http://github.com/AstroCB
 // @version        1.0.0
