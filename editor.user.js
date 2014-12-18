@@ -109,7 +109,7 @@ var main = function () {
         i: {
             expr: /(^|\s|\()i(\s|,|\.|!|\?|;|\/|\)|'|$)/gm,
             replacement: "$1I$2",
-            reason: "In English, the pronoun 'I' is capitalized"
+            reason: "in English, the pronoun 'I' is capitalized"
         },
         so: {
             expr: /(^|\s)[Ss]tack\s*overflow|StackOverflow(.|$)/gm,
@@ -194,7 +194,7 @@ var main = function () {
         hello: {
             expr: /(?:^|\s)(hi\s+guys|good\s(?:evening|morning|day|afternoon))(?:\.|!)/gmi,
             replacement: "",
-            reason: "Greetings like '$1' are unnecessary noise"
+            reason: "greetings like '$1' are unnecessary noise"
         },
         edit: {
             expr: /(?:^\**)(edit|update):?(?:\**):?/gmi,
@@ -234,14 +234,14 @@ var main = function () {
         windows: {
           expr:  /(win(?:\ ?)(xp|vista|[0-9]+)|window(?:s?))(\s|$)/igm,
           replacement: "Windows $2$3",
-          reason: "Correct form is Windows"
-        },	
+          reason: "corrected Windows"
+        },
         apostrophes: {
           expr: /(^|\s)(can|doesn|don|won|hasn|isn|didn)t(\s|$)/gmi,
           replacement: "$1$2't$3",
           reason: "contractions are with apostrophes"
-        }		
-		
+        }
+
         // Expansion reminder: let's support those non web devs with capitalization for popular languages such as C#
     };
 
