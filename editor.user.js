@@ -3,8 +3,9 @@
 // @author         Cameron Bernhardt (AstroCB)
 // @developer      Jonathan Todd (jt0dd)
 // @contributor    Unihedron
+// @contributor    sathyabhat
 // @namespace  http://github.com/AstroCB
-// @version        1.0.0
+// @version        1.0.1
 // @description  Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        http://*.stackexchange.com/questions/*
 // @include        http://stackoverflow.com/questions/*
@@ -176,7 +177,7 @@ var main = function () {
             reason: "'AngularJS is the proper capitalization"
         },
         thanks: {
-            expr: /(thanks|please\s+help|cheers|regards|thx|thank\s+you|my\s+first\s+question).*$/gmi,
+            expr: /(thanks|pl[ease|z|s]\s+h[ea]lp|cheers|regards|thx|thank\s+you|my\s+first\s+question).*$/gmi,
             replacement: "",
             reason: "'$1' is unnecessary noise"
         },
@@ -216,11 +217,31 @@ var main = function () {
           reason: "capitalized C$2"
         },
         java: {
-          expr: /(^|\s)java(\s|$)/gm,
+          expr: /(^|\s)java(\s|$)/gmi,
           replacement: "$1Java$2",
           reason: "capitalized Java"
-        }
-
+        },
+        android: {
+          expr: /(^|\s)android(\s|$)/gmi,
+          replacement: "$1Android$2",
+          reason: "capitalized Android"
+        },
+        oracle: {
+          expr: /(^|\s)oracle(\s|$)/gmi,
+          replacement: "$1Oracle$2",
+          reason: "capitalized Oracle"
+        },
+        windows: {
+          expr:  /(win(?:\ ?)(xp|vista|[0-9]+)|window(?:s?))(\s|$)/igm,
+          replacement: "Windows $2$3",
+          reason: "Correct form is Windows"
+        },	
+        apostrophes: {
+          expr: /(^|\s)(can|doesn|don|won|hasn|isn|didn)t(\s|$)/gmi,
+          replacement: "$1$2't$3",
+          reason: "contractions are with apostrophes"
+        }		
+		
         // Expansion reminder: let's support those non web devs with capitalization for popular languages such as C#
     };
 
@@ -231,7 +252,6 @@ var main = function () {
 
             // Scan the post text using the expression to see if there are any matches
             var match = input.search(expression);
-
             // If so, increase the number of edits performed (used later for edit summary formation)
             if (match !== -1) {
                 App.globals.editCount++;
@@ -243,6 +263,7 @@ var main = function () {
                 // What follows is a series of exceptions, which I will explain below; I perform special actions by overriding replace()
 
                 // This is used for removing things entirely without giving a replacement; it matches the expression and then replaces it with nothing
+
                 if (replacement === "") {
                     input = input.replace(expression, function (data, match1) {
 
