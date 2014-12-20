@@ -5,7 +5,7 @@
 // @contributor    Unihedron
 // @contributor    sathyabhat
 // @namespace  http://github.com/AstroCB
-// @version        1.0.1
+// @version        1.0.2
 // @description  Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        http://*.stackexchange.com/questions/*
 // @include        http://stackoverflow.com/questions/*
@@ -66,8 +66,8 @@ var main = function () {
     App.globals.URL = window.location.href;
 
     // Get question num from URL
-    App.globals.questionNum = App.globals.URL.match(/\d/g);
-    App.globals.questionNum = App.globals.questionNum.join("");
+    App.globals.questionNum = App.globals.URL.match(/\/(\d+)\//g);
+    App.globals.questionNum = App.globals.questionNum[0].split("/").join("");
 
     // Define variables for later use
     App.globals.barReady = false;
