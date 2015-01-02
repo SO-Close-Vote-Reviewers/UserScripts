@@ -2,10 +2,10 @@
 // @name           Stack-Exchange-Editor-Toolkit
 // @author         Cameron Bernhardt (AstroCB)
 // @developer      Jonathan Todd (jt0dd)
+// @developer    sathyabhat
 // @contributor    Unihedron
-// @contributor    sathyabhat
 // @namespace  http://github.com/AstroCB
-// @version        1.0.2
+// @version        1.1
 // @description  Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        http://*.stackexchange.com/questions/*
 // @include        http://stackoverflow.com/questions/*
@@ -385,9 +385,9 @@ var main = function () {
         // Populate or refresh DOM selections
         App.funcs.popSelections = function () {
             App.selections.redoButton = $('#wmd-redo-button-' + App.globals.questionNum);
-            App.selections.bodyBox = $(".wmd-input");
+            App.selections.bodyBox =    $("#wmd-input-" + App.globals.questionNum);
             App.selections.titleBox = $(".ask-title-field");
-            App.selections.summaryBox = $("#edit-comment");
+            App.selections.summaryBox = $('#edit-comment-' + App.globals.questionNum);
         };
 
         // Populate edit item sets from DOM selections - currently does not support inline edits
