@@ -286,7 +286,7 @@ var main = function () {
                     });
                     reasoning = reasoning.replace("$1", phrase.toLowerCase());
 
-                    // This is used to capitalize letters; it merely takes what is matched, uppercases it, and replaces what was matched with the uppercased verison
+                    // This is used to capitalize letters; it merely takes what is matched, uppercases it, and replaces what was matched with the uppercased version
                 } else if (replacement === "$1") {
                     input = input.replace(expression, function (data, match1) {
                         return match1.toUpperCase();
@@ -390,7 +390,7 @@ var main = function () {
             App.selections.summaryBox = $('#edit-comment-' + App.globals.questionNum);
         };
 
-        // Populate edit item sets from DOM selections - currently does not support inline edits
+        // Populate edit item sets from DOM selections
         App.funcs.popItems = function () {
             App.items[0] = {
                 title: App.selections.titleBox.val(),
@@ -479,9 +479,15 @@ var main = function () {
             // Update the comment: focusing on the input field to remove placeholder text,
             //but scroll back to the user's original location
             var currentPos = document.body.scrollTop;
-            $("#wmd-input").focus();
-            $("#edit-comment").focus();
-            $("#wmd-input").focus();
+            if($("#wmd-input")){
+              $("#wmd-input").focus();
+              $("#edit-comment").focus();
+              $("#wmd-input").focus();
+            } else {
+              $(".wmd-input")[0].focus();
+              $(".edit-comment")[0].focus();
+              $(".wmd-input")[0].focus();
+            }
             window.scrollTo(0, currentPos);
             App.globals.infoContent = App.globals.editCount + ' changes made';
             App.selections.buttonInfo.text(App.globals.editCount + ' changes made');
