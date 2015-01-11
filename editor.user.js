@@ -232,8 +232,8 @@ var main = function () {
           reason: "capitalized Oracle"
         },
         windows: {
-          expr:  /(win(?:\ ?)(xp|vista|[0-9]+)|window(?:s?))(\s|$)/igm,
-          replacement: "Windows $2$3",
+          expr:  /(win(?:\ ?)(\sxp|\svista|\s[0-9]+)|window(?:s?))(\s|$)/igm,
+          replacement: "Windows$2$3",
           reason: "corrected Windows"
         },
         apostrophes: {
