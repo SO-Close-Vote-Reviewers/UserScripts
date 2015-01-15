@@ -2,10 +2,10 @@
 // @name           Stack-Exchange-Editor-Toolkit
 // @author         Cameron Bernhardt (AstroCB)
 // @developer      Jonathan Todd (jt0dd)
-// @developer    sathyabhat
+// @developer      sathyabhat
 // @contributor    Unihedron
 // @namespace  http://github.com/AstroCB
-// @version        1.1.1
+// @version        1.1.2
 // @description  Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        http://*.stackexchange.com/questions/*
 // @include        http://stackoverflow.com/questions/*
@@ -192,7 +192,7 @@ var main = function () {
             reason: "PHP stands for PHP: Hypertext Preprocessor"
         },
         hello: {
-            expr: /(?:^|\s)(hi\s+guys|hi|good\s(?:evening|morning|day|afternoon))(?:\.|!|\ )/gmi,
+            expr: /(?:^|\s)(hi\s+guys|hi|hello|good\s(?:evening|morning|day|afternoon))(?:\.|!|\ )/gmi,
             replacement: "",
             reason: "greetings like '$1' are unnecessary noise"
         },
@@ -220,6 +220,16 @@ var main = function () {
           expr: /(^|\s)java(\s|$)/gmi,
           replacement: "$1Java$2",
           reason: "capitalized Java"
+        },
+        sql: {
+            expr: /(^|\s)[Ss]ql(\s|$)/gm,
+            replacement: "$1SQL$2",
+            reason: "proper form is SQL"
+        },
+        sqlite: {
+            expr: /(^|\s)[Ss]qlite([0-9]*)(\s|$)/gm,
+            replacement: "$1SQLite$2$3",
+            reason: "proper form is SQLite"
         },
         android: {
           expr: /(^|\s)android(\s|$)/gmi,
