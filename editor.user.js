@@ -5,7 +5,7 @@
 // @developer      sathyabhat
 // @contributor    Unihedron
 // @namespace  http://github.com/AstroCB
-// @version        1.1.2
+// @version        1.1.3
 // @description  Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        http://*.stackexchange.com/questions/*
 // @include        http://stackoverflow.com/questions/*
@@ -245,6 +245,16 @@ var main = function () {
           expr:  /(win(?:\ ?)(\sxp|\svista|\s[0-9]+)|window(?:s?))(\s|$)/igm,
           replacement: "Windows$2$3",
           reason: "corrected Windows"
+        },
+        ubuntu: {
+          expr:  /(ubunto|ubunut|ubunutu|ubunu|ubntu|ubutnu|ubanto[o?]|unbuntu|ubunt|ubutu)(\s|$)/igm,
+          replacement: "Ubuntu$2",
+          reason: "corrected to Ubuntu"
+        },
+        linux: {
+          expr:  /(linux)(\s|$)/igm,
+          replacement: "Linux$2",
+          reason: "corrected to Linux"
         },
         apostrophes: {
           expr: /(^|\s)(can|doesn|don|won|hasn|isn|didn)t(\s|$)/gmi,
