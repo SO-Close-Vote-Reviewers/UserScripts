@@ -114,12 +114,12 @@ var main = function () {
         so: {
             expr: /(^|\s)[Ss]tack\s*overflow|StackOverflow(.|$)/gm,
             replacement: "$1Stack Overflow$2",
-            reason: "'Stack Overflow' is the proper capitalization"
+            reason: "'Stack Overflow' is the legal name"
         },
         se: {
             expr: /(^|\s)[Ss]tack\s*exchange|StackExchange(.|$)/gm,
             replacement: "$1Stack Exchange$2",
-            reason: "'Stack Exchange' is the proper capitalization"
+            reason: "'Stack Exchange' is the legal name"
         },
         expansionSO: {
             expr: /(^|\s)SO(\s|,|\.|!|\?|;|\/|\)|$)/gm,
@@ -144,7 +144,7 @@ var main = function () {
         caps: {
             expr: /^(?!https?)([a-z])/gm,
             replacement: "$1",
-            reason: "basic capitalization"
+            reason: "copy edited"
         },
         jquery: {
             expr: /(^|\s)[Jj][Qq]uery(.|$)/gm,
@@ -214,55 +214,53 @@ var main = function () {
         c: {
           expr: /(^|\s)c(#|\++|\s|$)/gm,
           replacement: "$1C$2",
-          reason: "capitalized C$2"
+          reason: "C$2 is the proper capitalization"
         },
         java: {
           expr: /(^|\s)java(\s|$)/gmi,
           replacement: "$1Java$2",
-          reason: "capitalized Java"
+          reason: "Java should be capitalized"
         },
         sql: {
             expr: /(^|\s)[Ss]ql(\s|$)/gm,
             replacement: "$1SQL$2",
-            reason: "proper form is SQL"
+            reason: "SQL is the proper capitalization"
         },
         sqlite: {
             expr: /(^|\s)[Ss]qlite([0-9]*)(\s|$)/gm,
             replacement: "$1SQLite$2$3",
-            reason: "proper form is SQLite"
+            reason: "SQLite is the proper capitalization"
         },
         android: {
           expr: /(^|\s)android(\s|$)/gmi,
           replacement: "$1Android$2",
-          reason: "capitalized Android"
+          reason: "Android should be capitalizaed"
         },
         oracle: {
           expr: /(^|\s)oracle(\s|$)/gmi,
           replacement: "$1Oracle$2",
-          reason: "capitalized Oracle"
+          reason: "Oracle should be capitalized"
         },
         windows: {
           expr:  /(win(?:\ ?)(\sxp|\svista|\s[0-9]+)|window(?:s?))(\s|$)/igm,
           replacement: "Windows$2$3",
-          reason: "corrected Windows"
+          reason: "Windows should be capitalized"
         },
         ubuntu: {
           expr:  /(ubunto|ubunut|ubunutu|ubunu|ubntu|ubutnu|ubanto[o?]|unbuntu|ubunt|ubutu)(\s|$)/igm,
           replacement: "Ubuntu$2",
-          reason: "corrected to Ubuntu"
+          reason: "corrected Ubuntu spelling"
         },
         linux: {
           expr:  /(linux)(\s|$)/igm,
           replacement: "Linux$2",
-          reason: "corrected to Linux"
+          reason: "Linux should be capitalized"
         },
         apostrophes: {
           expr: /(^|\s)(can|doesn|don|won|hasn|isn|didn)t(\s|$)/gmi,
           replacement: "$1$2't$3",
-          reason: "contractions are with apostrophes"
+          reason: "English contractions use apostrophes"
         }
-
-        // Expansion reminder: let's support those non web devs with capitalization for popular languages such as C#
     };
 
     // Populate funcs
