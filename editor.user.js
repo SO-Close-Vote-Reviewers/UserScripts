@@ -73,11 +73,8 @@ var main = function() {
     App.globals.editCount = 0;
     App.globals.infoContent = '';
 
-    App.globals.spacerHTML =
-        '<li class="wmd-spacer wmd-spacer3" id="wmd-spacer3-' + App.globals
-        .questionNum + '" style="left: 400px !important;"></li>';
-    App.globals.buttonHTML =
-        '<div id="ToolkitButtonWrapper"><button class="wmd-button" id="ToolkitFix"></button><div id="ToolkitInfo"></div></div>';
+    App.globals.spacerHTML = '<li class="wmd-spacer wmd-spacer3" id="wmd-spacer3-' + App.globals.questionNum + '" style="left: 400px !important;"></li>';
+    App.globals.buttonHTML = '<div id="ToolkitButtonWrapper"><button class="wmd-button" id="ToolkitFix"></button><div id="ToolkitInfo"></div></div>';
 
     App.globals.reasons = [];
     App.globals.numReasons = 0;
@@ -264,8 +261,7 @@ var main = function() {
     // Populate funcs
     App.popFuncs = function() {
         // This is where the magic happens: this function takes a few pieces of information and applies edits to the post with a couple exceptions
-        App.funcs.fixIt = function(input, expression, replacement,
-            reasoning) {
+        App.funcs.fixIt = function(input, expression, replacement, reasoning) {
             // Scan the post text using the expression to see if there are any matches
             var match = input.search(expression);
             // If so, increase the number of edits performed (used later for edit summary formation)
@@ -279,9 +275,7 @@ var main = function() {
                 // What follows is a series of exceptions, which I will explain below; I perform special actions by overriding replace()
                 // This is used for removing things entirely without giving a replacement; it matches the expression and then replaces it with nothing
                 if (replacement === "") {
-                    input = input.replace(expression, function(data,
-                        match1) {
-
+                    input = input.replace(expression, function(data, match1) {
                         // Save what is removed for the edit summary (see below)
                         phrase = match1;
 
@@ -295,8 +289,7 @@ var main = function() {
 
                     // This allows me to combine the upvote and downvote replacement schemes into one
                 } else if (replacement == "$1vote") {
-                    input = input.replace(expression, function(data,
-                        match1) {
+                    input = input.replace(expression, function(data, match1) {
                         phrase = match1;
                         return phrase + "vot";
                     });
@@ -304,16 +297,14 @@ var main = function() {
 
                     // This is used to capitalize letters; it merely takes what is matched, uppercases it, and replaces what was matched with the uppercased version
                 } else if (replacement === "$1") {
-                    input = input.replace(expression, function(data,
-                        match1) {
+                    input = input.replace(expression, function(data, match1) {
                         return match1.toUpperCase();
                     });
 
                     // I can use C, C#, and C++ capitalization in one rule
                 } else if (replacement === "$1C$2") {
                     var newPhrase;
-                    input = input.replace(expression, function(data,
-                        match1, match2) {
+                    input = input.replace(expression, function(data, match1, match2) {
                         newPhrase = match2;
                         return match1 + "C" + match2;
                     });
@@ -338,10 +329,8 @@ var main = function() {
 
         // Omit code
         App.funcs.omitCode = function(str, type) {
-            str = str.replace(App.globals.checks[type], function(
-                match) {
-                App.globals.replacedStrings[type].push(
-                    match);
+            str = str.replace(App.globals.checks[type], function(match) {
+                App.globals.replacedStrings[type].push(match);
                 return App.globals.placeHolders[type];
             });
             return str;
@@ -376,8 +365,6 @@ var main = function() {
         };
 
         App.funcs.applyListeners = function() { // Removes default Stack Exchange listeners; see https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit/issues/43
-
-
             function removeEventListeners(e) {
                 if (e.which === 13) {
                     if (e.metaKey || e.ctrlKey) {
@@ -389,8 +376,7 @@ var main = function() {
                         var elClone = this.cloneNode(true);
                         this.parentNode.replaceChild(elClone,
                             this);
-                        $("#submit-button-" + App.globals.questionNum)
-                            .click();
+                        $("#submit-button-" + App.globals.questionNum).click();
                     }
                 }
             }
@@ -417,18 +403,17 @@ var main = function() {
                 App.selections.buttonBar = $('#wmd-button-bar-' +
                     id);
                 // When button bar updates, dynamic DOM is ready for selection
-                App.selections.buttonBar.unbind().on(
-                    'DOMSubtreeModified', function() {
-                        // Avoid running it more than once
-                        if (!App.globals.barReady) {
-                            App.globals.barReady = true;
+                App.selections.buttonBar.unbind().on('DOMSubtreeModified', function() {
+                    // Avoid running it more than once
+                    if (!App.globals.barReady) {
+                        App.globals.barReady = true;
 
-                            // Run asynchronously - this lets the bar finish updating before continuing
-                            setTimeout(function() {
-                                callback();
-                            }, 0);
-                        }
-                    });
+                        // Run asynchronously - this lets the bar finish updating before continuing
+                        setTimeout(function() {
+                            callback();
+                        }, 0);
+                    }
+                });
             }
         };
 
@@ -461,8 +446,7 @@ var main = function() {
             App.selections.redoButton.after(App.globals.spacerHTML);
 
             // Add new elements to selections
-            App.selections.buttonWrapper = $(
-                '#ToolkitButtonWrapper');
+            App.selections.buttonWrapper = $('#ToolkitButtonWrapper');
             App.selections.buttonFix = $('#ToolkitFix');
             App.selections.buttonInfo = $('#ToolkitInfo');
         };
@@ -519,8 +503,7 @@ var main = function() {
                     App.funcs.popItems();
 
                     // Pipe data through editing modules
-                    App.pipe(App.items, App.globals.pipeMods,
-                        App.globals.order);
+                    App.pipe(App.items, App.globals.pipeMods, App.globals.order);
                     App.globals.editsMade = true;
                 }
             });
@@ -632,8 +615,7 @@ var main = function() {
         }
 
         // Eliminate duplicate reasons
-        App.globals.reasons = App.funcs.eliminateDuplicates(App.globals
-            .reasons);
+        App.globals.reasons = App.funcs.eliminateDuplicates(App.globals.reasons);
 
         for (var z = 0; z < App.globals.reasons.length; z++) {
             // Check that summary is not getting too long
