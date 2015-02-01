@@ -7,36 +7,36 @@
 // @namespace  http://github.com/AstroCB
 // @version        1.1.3
 // @description  Fix common grammar/usage annoyances on Stack Exchange posts with a click
-// @include        http://*.stackexchange.com/questions/*
-// @include        http://stackoverflow.com/questions/*
-// @include        http://meta.stackoverflow.com/questions/*
-// @include        http://serverfault.com/questions/*
-// @include        http://meta.serverfault.com/questions/*
-// @include        http://superuser.com/questions/*
-// @include        http://meta.superuser.com/questions/*
-// @include        http://askubuntu.com/questions/*
-// @include        http://meta.askubuntu.com/questions/*
-// @include        http://stackapps.com/questions/*
-// @include        http://*.stackexchange.com/posts/*
-// @include        http://stackoverflow.com/posts/*
-// @include        http://meta.stackoverflow.com/posts/*
-// @include        http://serverfault.com/posts/*
-// @include        http://meta.serverfault.com/posts/*
-// @include        http://superuser.com/posts/*
-// @include        http://meta.superuser.com/posts/*
-// @include        http://askubuntu.com/posts/*
-// @include        http://meta.askubuntu.com/posts/*
-// @include        http://stackapps.com/posts/*
-// @exclude        http://*.stackexchange.com/questions/tagged/*
-// @exclude        http://stackoverflow.com/questions/tagged/*
-// @exclude        http://meta.stackoverflow.com/questions/tagged/*
-// @exclude        http://serverfault.com/questions/tagged/*
-// @exclude        http://meta.serverfault.com/questions/*
-// @exclude        http://superuser.com/questions/tagged/*
-// @exclude        http://meta.superuser.com/questions/tagged/*
-// @exclude        http://askubuntu.com/questions/tagged/*
-// @exclude        http://meta.askubuntu.com/questions/tagged/*
-// @exclude        http://stackapps.com/questions/tagged/*
+// @include        *://*.stackexchange.com/questions/*
+// @include        *://stackoverflow.com/questions/*
+// @include        *://meta.stackoverflow.com/questions/*
+// @include        *://serverfault.com/questions/*
+// @include        *://meta.serverfault.com/questions/*
+// @include        *://superuser.com/questions/*
+// @include        *://meta.superuser.com/questions/*
+// @include        *://askubuntu.com/questions/*
+// @include        *://meta.askubuntu.com/questions/*
+// @include        *://stackapps.com/questions/*
+// @include        *://*.stackexchange.com/posts/*
+// @include        *://stackoverflow.com/posts/*
+// @include        *://meta.stackoverflow.com/posts/*
+// @include        *://serverfault.com/posts/*
+// @include        *://meta.serverfault.com/posts/*
+// @include        *://superuser.com/posts/*
+// @include        *://meta.superuser.com/posts/*
+// @include        *://askubuntu.com/posts/*
+// @include        *://meta.askubuntu.com/posts/*
+// @include        *://stackapps.com/posts/*
+// @exclude        *://*.stackexchange.com/questions/tagged/*
+// @exclude        *://stackoverflow.com/questions/tagged/*
+// @exclude        *://meta.stackoverflow.com/questions/tagged/*
+// @exclude        *://serverfault.com/questions/tagged/*
+// @exclude        *://meta.serverfault.com/questions/*
+// @exclude        *://superuser.com/questions/tagged/*
+// @exclude        *://meta.superuser.com/questions/tagged/*
+// @exclude        *://askubuntu.com/questions/tagged/*
+// @exclude        *://meta.askubuntu.com/questions/tagged/*
+// @exclude        *://stackapps.com/questions/tagged/*
 // ==/UserScript==
 var main = function () {
     // Define app namespace
@@ -58,7 +58,7 @@ var main = function () {
 
     var SEETicon = new Image();
 
-    SEETicon.src = 'http://i.imgur.com/d5ZL09o.png';
+    SEETicon.src = '//i.imgur.com/d5ZL09o.png';
 
     // Populate global data
 
@@ -443,7 +443,7 @@ var main = function () {
                     'float': 'left',
                     'border-width': '0px',
                     'background-color': 'white',
-                    'background-image': 'url("http://i.imgur.com/79qYzkQ.png")',
+                    'background-image': 'url("//i.imgur.com/79qYzkQ.png")',
                     'background-size': '100% 100%',
                     'width': '18px',
                     'height': '18px',
@@ -462,12 +462,12 @@ var main = function () {
                 App.globals.infoContent = App.selections.buttonInfo.text();
                 App.selections.buttonInfo.text('Fix the content!');
                 App.selections.buttonFix.css({
-                    'background-image': 'url("http://i.imgur.com/d5ZL09o.png")'
+                    'background-image': 'url("//i.imgur.com/d5ZL09o.png")'
                 });
             }, function () {
                 App.selections.buttonInfo.text(App.globals.infoContent);
                 App.selections.buttonFix.css({
-                    'background-image': 'url("http://i.imgur.com/79qYzkQ.png")'
+                    'background-image': 'url("//i.imgur.com/79qYzkQ.png")'
                 });
             });
         };
