@@ -638,9 +638,14 @@ var main = function() {
             }
             // Quickly focus the summary field to show generated edit summary, and then jump back
             App.selections.summaryBox.focus();
+
             // Asynchronous to get in both focuses
             setTimeout(function() {
+              if(App.globals.lastSelectedElement){
                 App.globals.lastSelectedElement.focus();
+              } else {
+                window.scrollTo(0);
+              }
             }, 0);
         }
 
