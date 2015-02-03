@@ -453,10 +453,21 @@ var main = function() {
 
         // Style button
         App.funcs.styleButton = function() {
-            App.selections.buttonWrapper.css({
+            var buttonCSS = {
                 'position': 'relative',
                 'left': '430px'
-            });
+            };
+
+            // This should fix the M/SO redesign styling issues; design may be pushed to other sites later
+            if (App.globals.URL.search("stackoverflow") > -1) {
+                buttonCSS["padding-top"] = "2%";
+                // I have no idea why, but the above fix causes the help button to jump down, too; this should fix that
+                $("#wmd-help-button-" + App.globals.questionNum).css({
+                  'padding': '0px'
+                });
+            }
+            App.selections.buttonWrapper.css(buttonCSS);
+
             App.selections.buttonFix.css({
                 'position': 'static',
                 'float': 'left',
