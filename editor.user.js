@@ -5,7 +5,7 @@
 // @developer      sathyabhat
 // @contributor    Unihedron
 // @namespace  http://github.com/AstroCB
-// @version        1.2.1
+// @version        1.3.0
 // @description  Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        *://*.stackexchange.com/questions/*
 // @include        *://stackoverflow.com/questions/*
@@ -376,13 +376,13 @@ var main = function() {
                         var elClone = this.cloneNode(true);
                         this.parentNode.replaceChild(elClone,
                             this);
-                        $("#submit-button-" + App.globals.questionNum).click();
+                        App.selections.submitButton.click();
                     }
                 }
             }
 
             // Tags box
-            $($(".tag-editor")[0]).keydown(removeEventListeners);
+            App.selections.tagField.keydown(removeEventListeners);
 
             // Edit summary box
             App.selections.summaryBox.keydown(removeEventListeners);
@@ -392,16 +392,14 @@ var main = function() {
         App.funcs.dynamicDelay = function(callback, id, inline) {
             if (inline) { // Inline editing
                 setTimeout(function() {
-                    App.selections.buttonBar = $(
-                        '#wmd-button-bar-' + id);
+                    App.selections.buttonBar = $('#wmd-button-bar-' + id);
                     App.selections.buttonBar.unbind();
                     setTimeout(function() {
                         callback();
                     }, 0);
                 }, 500);
             } else { // Question page editing
-                App.selections.buttonBar = $('#wmd-button-bar-' +
-                    id);
+                App.selections.buttonBar = $('#wmd-button-bar-' + id);
                 // When button bar updates, dynamic DOM is ready for selection
                 App.selections.buttonBar.unbind().on('DOMSubtreeModified', function() {
                     // Avoid running it more than once
@@ -419,12 +417,12 @@ var main = function() {
 
         // Populate or refresh DOM selections
         App.funcs.popSelections = function() {
-            App.selections.redoButton = $('#wmd-redo-button-' + App
-                .globals.questionNum);
+            App.selections.redoButton = $('#wmd-redo-button-' + App.globals.questionNum);
             App.selections.bodyBox = $("#wmd-input-" + App.globals.questionNum);
             App.selections.titleBox = $(".ask-title-field");
-            App.selections.summaryBox = $('#edit-comment-' + App.globals
-                .questionNum);
+            App.selections.summaryBox = $("#edit-comment-" + App.globals.questionNum);
+            App.selections.tagField = $($(".tag-editor")[0]);
+            App.selections.submitButton = $("#submit-button-" + App.globals.questionNum);
         };
 
         // Populate edit item sets from DOM selections
@@ -438,7 +436,6 @@ var main = function() {
 
         // Insert editing button(s)
         App.funcs.createButton = function() {
-
             // Insert button
             App.selections.redoButton.after(App.globals.buttonHTML);
 
@@ -463,7 +460,7 @@ var main = function() {
                 buttonCSS["padding-top"] = "2%";
                 // I have no idea why, but the above fix causes the help button to jump down, too; this should fix that
                 $("#wmd-help-button-" + App.globals.questionNum).css({
-                  'padding': '0px'
+                    'padding': '0px'
                 });
             }
             App.selections.buttonWrapper.css(buttonCSS);
@@ -489,10 +486,8 @@ var main = function() {
             });
 
             App.selections.buttonFix.hover(function() {
-                App.globals.infoContent = App.selections.buttonInfo
-                    .text();
-                App.selections.buttonInfo.text(
-                    'Fix the content!');
+                App.globals.infoContent = App.selections.buttonInfo.text();
+                App.selections.buttonInfo.text('Fix the content!');
                 App.selections.buttonFix.css({
                     'background-image': 'url("//i.imgur.com/d5ZL09o.png")'
                 });
@@ -509,7 +504,6 @@ var main = function() {
             App.selections.buttonFix.click(function(e) {
                 e.preventDefault();
                 if (!App.globals.editsMade) {
-
                     // Refresh item population
                     App.funcs.popItems();
 
@@ -520,14 +514,32 @@ var main = function() {
             });
         };
 
+        // Figure out the last selected element before pressing the button so we can return there after focusing the summary field
+        App.funcs.setLastFocus = function() {
+            App.selections.titleBox.click(function() {
+                App.globals.lastSelectedElement = $(this);
+            });
+
+            App.selections.bodyBox.click(function() {
+                App.globals.lastSelectedElement = $(this);
+            });
+
+            App.selections.summaryBox.click(function() {
+                App.globals.lastSelectedElement = $(this);
+            });
+
+            App.selections.tagField.click(function() {
+                App.globals.lastSelectedElement = $(this);
+            });
+        };
+
         // Handle pipe output
         App.funcs.output = function(data) {
             App.selections.titleBox.val(data[0].title);
             App.selections.bodyBox.val(data[0].body);
             App.selections.summaryBox.val(data[0].summary);
 
-            // Update the comment: focusing on the input field to remove placeholder text,
-            //but scroll back to the user's original location
+            // Update the comment: focusing on the input field to remove placeholder text, but scroll back to the user's original location
             var currentPos = document.body.scrollTop;
             if ($("#wmd-input")) {
                 $("#wmd-input").focus();
@@ -573,6 +585,7 @@ var main = function() {
             App.funcs.popItems();
             App.funcs.listenButton();
             App.funcs.applyListeners();
+            App.funcs.setLastFocus();
         }, targetID, inline);
     };
 
@@ -623,6 +636,12 @@ var main = function() {
                     }
                 }
             }
+            // Quickly focus the summary field to show generated edit summary, and then jump back
+            App.selections.summaryBox.focus();
+            // Asynchronous to get in both focuses
+            setTimeout(function() {
+                App.globals.lastSelectedElement.focus();
+            }, 0);
         }
 
         // Eliminate duplicate reasons
