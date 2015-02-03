@@ -162,8 +162,8 @@ var main = function() {
             reason: "JSON stands for JavaScript Object Notation"
         },
         ajax: {
-            expr: /(^|\s)[Aa]jax(\s|$)/gm,
-            replacement: "$1AJAX$2",
+            expr: /(^|\s)ajax(\s|$)/gm,
+            replacement: "$AJAX$2",
             reason: "AJAX stands for Asynchronous JavaScript and XML"
         },
         angular: {
