@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         @Closey command auto complete
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/UserScripts
-// @version      0.1
+// @version      0.2
 // @description  command completion for bot commands
 // @author       rene
 // @match        http://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers
 // @grant        none
 // ==/UserScript==
 
-/*global $:false */
+/*global $:false, document:false, console:false */
 (function (jquery) {
 	"use strict";
     if (!String.prototype.startsWith) {
@@ -67,7 +67,7 @@
     }
 
     // build on single le that holds the hint
-    function buildHint(bot, value) {
+    function buildHint(value, bot) {
         var li = $('<li></li>')
             .css('display', 'inline-block')
             .css('margin-left', '3px')
@@ -79,26 +79,86 @@
         return li;
     }
 
-    inp.on('keyup', function (e) {
-        var cmd,
-            BOT = 1,
-            COMMAND = 2,
-            result = parse.exec(e.result),
-            sc,
+    function highlight(li) {
+        li.addClass('tab');
+        li.css('background-color', 'yellow');
+        return li.text();
+    }
+    function highlightNextHint() {
+        var setnext = false,
+		    lif,
+            selected;
+        $('#closey').find('li').each(function () {
+            var li = $(this);
+            if (li.hasClass('tab')) {
+                setnext = true;
+                li.removeClass('tab');
+                li.css('background-color', 'white');
+            } else {
+                if (setnext) {
+                    selected = highlight(li);
+                    return false;
+                }
+            }
+        });
+        if (!setnext) {
+            lif = $('#closey').find('li');
+            if (lif.length > 0) {
+                selected = highlight($(lif[0]));
+                setnext = true;
+            }
+        }
+        return selected;
+    }
+
+    function handleKey(cmd, bot) {
+        var botcmd,
             c,
             container;
 
-        if (result !== null && result.length > COMMAND) {
-            cmd = result[COMMAND];
-            clearHints();
-            container = $('<ul id="closey"></ul>').css('text-align', 'left');
-            for (c = 0; c < cmds.length; c = c + 1) {
-                sc = cmds[c];
-                if (sc.startsWith(cmd) && sc !== cmd) {
-                    container.append(buildHint(result[BOT], sc));
-                }
+        clearHints();
+        container = $('<ul id="closey"></ul>').css('text-align', 'left');
+        for (c = 0; c < cmds.length; c = c + 1) {
+            botcmd = cmds[c];
+            if (botcmd.startsWith(cmd) && botcmd !== cmd) {
+                container.append(buildHint(botcmd, bot));
             }
-            $('#tabcomplete-container').append(container);
+        }
+        $('#tabcomplete-container').append(container);
+    }
+
+    $(document).on('keydown', function (k) {
+        var BOT = 1,
+            COMMAND = 2,
+            result = parse.exec(inp.val()),
+            selected;
+
+        if (result !== null &&
+				result.length > COMMAND &&
+				k.keyCode === 9) {
+            selected = highlightNextHint();
+            if (selected !== undefined) {
+                k.preventDefault();
+                k.stopPropagation();
+                inp.val(result[BOT] + selected);
+                return true;
+            }
+        }
+    });
+
+    inp.on('keyup', function (e) {
+        var BOT = 1,
+            COMMAND = 2,
+            result = parse.exec(e.result);
+        console.log(e);
+        console.log(result);
+        if (e.keyCode !== 9) {
+            if (result !== null &&
+					result.length > COMMAND) {
+				handleKey(result[COMMAND], result[BOT]);
+            } else {
+                clearHints();
+            }
         }
     });
 }($));
