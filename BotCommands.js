@@ -4,7 +4,7 @@
 // @version      0.2
 // @description  command completion for bot commands
 // @author       rene
-// @match        http://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers
+// @match        *://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers
 // @grant        none
 // ==/UserScript==
 
