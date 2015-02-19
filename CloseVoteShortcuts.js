@@ -25,37 +25,37 @@
             '9': 57,
             '0': 48
         },
-			configuration = {
-				'actions': {
-					'leaveOpen': { 'key': '1', 'value': '8' },
-					'close': { 'key': '2', 'value': '6' },
-					'edit': { 'key': '3', 'value': '5' },
-					'skip': { 'key': '4', 'value': '1' }
-				},
-				'closeReasons': {
-					'duplicate': { 'key': '1', 'value': 'Duplicate' },
-					'offTopic': { 'key': '2', 'value': 'OffTopic' },
-					'unclear': { 'key': '3', 'value': 'Unclear' },
-					'tooBroad': { 'key': '4', 'value': 'TooBroad' },
-					'opinionBased': { 'key': '5', 'value': 'OpinionBased' }
-				},
-				'offTopicReasons': {
-					'superUser': { 'key': '1', 'value': '4' },
-					'serverFault': { 'key': '2', 'value': '7' },
-					'recommend': { 'key': '3', 'value': '16' },
-					'minimalProgram': { 'key': '4', 'value': '13' },
-					'typo': { 'key': '5', 'value': '11' },
-					'migration': { 'key': '6', 'value': '2' },
-					'other': { 'key': '7', 'value': '3' }
-				},
-				'migrationReasons': {
-					'meta': { 'key': '1', 'value': 'meta.stackoverflow.com' },
-					'superUser': { 'key': '2', 'value': 'superuser.com' },
-					'tex': { 'key': '3', 'value': 'tex.stackexchange.com' },
-					'dba': { 'key': '4', 'value': 'dba.stackexchange.com' },
-					'stats': { 'key': '5', 'value': 'stats.stackexchange.com' }
-				}
-			};
+            configuration = {
+                'actions': {
+                    'leaveOpen': { 'key': '1', 'value': '8' },
+                    'close': { 'key': '2', 'value': '6' },
+                    'edit': { 'key': '3', 'value': '5' },
+                    'skip': { 'key': '4', 'value': '1' }
+                },
+                'closeReasons': {
+                    'duplicate': { 'key': '1', 'value': 'Duplicate' },
+                    'offTopic': { 'key': '2', 'value': 'OffTopic' },
+                    'unclear': { 'key': '3', 'value': 'Unclear' },
+                    'tooBroad': { 'key': '4', 'value': 'TooBroad' },
+                    'opinionBased': { 'key': '5', 'value': 'OpinionBased' }
+                },
+                'offTopicReasons': {
+                    'superUser': { 'key': '1', 'value': '4' },
+                    'serverFault': { 'key': '2', 'value': '7' },
+                    'recommend': { 'key': '3', 'value': '16' },
+                    'minimalProgram': { 'key': '4', 'value': '13' },
+                    'typo': { 'key': '5', 'value': '11' },
+                    'migration': { 'key': '6', 'value': '2' },
+                    'other': { 'key': '7', 'value': '3' }
+                },
+                'migrationReasons': {
+                    'meta': { 'key': '1', 'value': 'meta.stackoverflow.com' },
+                    'superUser': { 'key': '2', 'value': 'superuser.com' },
+                    'tex': { 'key': '3', 'value': 'tex.stackexchange.com' },
+                    'dba': { 'key': '4', 'value': 'dba.stackexchange.com' },
+                    'stats': { 'key': '5', 'value': 'stats.stackexchange.com' }
+                }
+            };
 
         (function () {
             var states = {
@@ -65,7 +65,7 @@
                 atOffTopic: 4,
                 atOtherSite: 5
             },
-				state = states.atQuestion;
+                state = states.atQuestion;
 
             function clickElement(selector) {
                 $(selector).focus().click();
@@ -87,114 +87,114 @@
                 clickElement('[name="migration"][value="' + site + '"]');
             }
 
-			function resetState() {
+            function resetState() {
                 state = states.atQuestion;
             }
 
             function actionHandler(key) {
                 switch (key) {
-				case keys[configuration.actions.leaveOpen.key]:
-					clickAction(configuration.actions.leaveOpen.value);
-					resetState();
-					break;
-				case keys[configuration.actions.close.key]:
-					state = states.atCloseReason;
-					clickAction(configuration.actions.close.value);
-					break;
-				case keys[configuration.actions.edit.key]:
-					clickAction(configuration.actions.edit.value);
-					resetState();
-					break;
-				case keys[configuration.actions.skip.key]:
-					clickAction(configuration.actions.skip.value);
-					resetState();
-					break;
+                case keys[configuration.actions.leaveOpen.key]:
+                    clickAction(configuration.actions.leaveOpen.value);
+                    resetState();
+                    break;
+                case keys[configuration.actions.close.key]:
+                    state = states.atCloseReason;
+                    clickAction(configuration.actions.close.value);
+                    break;
+                case keys[configuration.actions.edit.key]:
+                    clickAction(configuration.actions.edit.value);
+                    resetState();
+                    break;
+                case keys[configuration.actions.skip.key]:
+                    clickAction(configuration.actions.skip.value);
+                    resetState();
+                    break;
                 }
             }
 
             function closeReasonHandler(key) {
                 switch (key) {
-				case keys[configuration.closeReasons.duplicate.key]:
-					clickCloseReason(configuration.closeReasons.duplicate.value);
-					state = states.atDuplicate;
-					break;
-				case keys[configuration.closeReasons.offTopic.key]:
-					clickCloseReason(configuration.closeReasons.offTopic.value);
-					state = states.atOffTopic;
-					break;
-				case keys[configuration.closeReasons.unclear.key]:
-					clickCloseReason(configuration.closeReasons.unclear.value);
-					break;
-				case keys[configuration.closeReasons.tooBroad.key]:
-					clickCloseReason(configuration.closeReasons.tooBroad.value);
-					break;
-				case keys[configuration.closeReasons.opinionBased.key]:
-					clickCloseReason(configuration.closeReasons.opinionBased.value);
-					break;
+                case keys[configuration.closeReasons.duplicate.key]:
+                    clickCloseReason(configuration.closeReasons.duplicate.value);
+                    state = states.atDuplicate;
+                    break;
+                case keys[configuration.closeReasons.offTopic.key]:
+                    clickCloseReason(configuration.closeReasons.offTopic.value);
+                    state = states.atOffTopic;
+                    break;
+                case keys[configuration.closeReasons.unclear.key]:
+                    clickCloseReason(configuration.closeReasons.unclear.value);
+                    break;
+                case keys[configuration.closeReasons.tooBroad.key]:
+                    clickCloseReason(configuration.closeReasons.tooBroad.value);
+                    break;
+                case keys[configuration.closeReasons.opinionBased.key]:
+                    clickCloseReason(configuration.closeReasons.opinionBased.value);
+                    break;
                 }
             }
 
             function offTopicHandler(key) {
                 switch (key) {
-				case keys[configuration.offTopicReasons.superUser.key]:
-					clickOffTopicReason(configuration.offTopicReasons.superUser.value);
-					break;
-				case keys[configuration.offTopicReasons.serverFault.key]:
-					clickOffTopicReason(configuration.offTopicReasons.serverFault.value);
-					break;
-				case keys[configuration.offTopicReasons.recommend.key]:
-					clickOffTopicReason(configuration.offTopicReasons.recommend.value);
-					break;
-				case keys[configuration.offTopicReasons.minimalProgram.key]:
-					clickOffTopicReason(configuration.offTopicReasons.minimalProgram.value);
-					break;
-				case keys[configuration.offTopicReasons.typo.key]:
-					clickOffTopicReason(configuration.offTopicReasons.typo.value);
-					break;
-				case keys[configuration.offTopicReasons.migration.key]:
-					state = states.atOtherSite;
-					clickOffTopicReason(configuration.offTopicReasons.migration.value);
-					break;
-				case keys[configuration.offTopicReasons.other.key]:
-					clickOffTopicReason(configuration.offTopicReasons.other.value);
-					break;
+                case keys[configuration.offTopicReasons.superUser.key]:
+                    clickOffTopicReason(configuration.offTopicReasons.superUser.value);
+                    break;
+                case keys[configuration.offTopicReasons.serverFault.key]:
+                    clickOffTopicReason(configuration.offTopicReasons.serverFault.value);
+                    break;
+                case keys[configuration.offTopicReasons.recommend.key]:
+                    clickOffTopicReason(configuration.offTopicReasons.recommend.value);
+                    break;
+                case keys[configuration.offTopicReasons.minimalProgram.key]:
+                    clickOffTopicReason(configuration.offTopicReasons.minimalProgram.value);
+                    break;
+                case keys[configuration.offTopicReasons.typo.key]:
+                    clickOffTopicReason(configuration.offTopicReasons.typo.value);
+                    break;
+                case keys[configuration.offTopicReasons.migration.key]:
+                    state = states.atOtherSite;
+                    clickOffTopicReason(configuration.offTopicReasons.migration.value);
+                    break;
+                case keys[configuration.offTopicReasons.other.key]:
+                    clickOffTopicReason(configuration.offTopicReasons.other.value);
+                    break;
                 }
             }
 
             function otherSiteHandler(key) {
                 switch (key) {
-				case keys[configuration.migrationReasons.meta.key]:
-					clickOtherSite(configuration.migrationReasons.meta.value);
-					break;
-				case keys[configuration.migrationReasons.superUser.key]:
-					clickOtherSite(configuration.migrationReasons.superUser.value);
-					break;
-				case keys[configuration.migrationReasons.tex.key]:
-					clickOtherSite(configuration.migrationReasons.tex.value);
-					break;
-				case keys[configuration.migrationReasons.dba.key]:
-					clickOtherSite(configuration.migrationReasons.dba.value);
-					break;
-				case keys[configuration.migrationReasons.stats.key]:
-					clickOtherSite(configuration.migrationReasons.stats.value);
-					break;
+                case keys[configuration.migrationReasons.meta.key]:
+                    clickOtherSite(configuration.migrationReasons.meta.value);
+                    break;
+                case keys[configuration.migrationReasons.superUser.key]:
+                    clickOtherSite(configuration.migrationReasons.superUser.value);
+                    break;
+                case keys[configuration.migrationReasons.tex.key]:
+                    clickOtherSite(configuration.migrationReasons.tex.value);
+                    break;
+                case keys[configuration.migrationReasons.dba.key]:
+                    clickOtherSite(configuration.migrationReasons.dba.value);
+                    break;
+                case keys[configuration.migrationReasons.stats.key]:
+                    clickOtherSite(configuration.migrationReasons.stats.value);
+                    break;
                 }
             }
 
-			function keyHandler(key) {
+            function keyHandler(key) {
                 switch (state) {
-				case states.atQuestion:
-					actionHandler(key);
-					break;
-				case states.atCloseReason:
-					closeReasonHandler(key);
-					break;
-				case states.atOffTopic:
-					offTopicHandler(key);
-					break;
-				case states.atOtherSite:
-					otherSiteHandler(key);
-					break;
+                case states.atQuestion:
+                    actionHandler(key);
+                    break;
+                case states.atCloseReason:
+                    closeReasonHandler(key);
+                    break;
+                case states.atOffTopic:
+                    offTopicHandler(key);
+                    break;
+                case states.atOtherSite:
+                    otherSiteHandler(key);
+                    break;
                 }
             }
 
@@ -229,13 +229,13 @@
 
             observer = new MutationObserver(function (mutations) {
                 mutations.forEach(function (mutation) {
-					var i, j, node;
+                    var i, j, node;
                     for (i = 0, j = mutation.addedNodes.length; i < j; i = i + 1) {
                         node = $(mutation.addedNodes[i]);
                         if (node.prop('tagName') === 'INPUT' &&
-								node.prop('type') === 'button' &&
-								node.val().indexOf('[') === -1) {
-							node.val('[' + lookup[node.data('result-type')] + '] ' + node.val());
+                                node.prop('type') === 'button' &&
+                                node.val().indexOf('[') === -1) {
+                            node.val('[' + lookup[node.data('result-type')] + '] ' + node.val());
                         }
                     }
                 });
@@ -246,7 +246,7 @@
 
         (function () {
 
-		    var observer;
+            var observer;
 
             // the mutation observers picks up this change as well
             // this function prevent adding another [1] if it already has one
@@ -261,7 +261,7 @@
             function addSiblingHelper(root, selector, key) {
                 var element = $(root).find(selector).next(),
                     keyNumber = parseInt(key, 10),
-					i;
+                    i;
                 // if a custom close reason has been given
                 // multiple elements are found
                 // in that case we iterate and increase the keyNumber by one
@@ -311,7 +311,7 @@
 
             observer = new MutationObserver(function (mutations) {
                 mutations.forEach(function (mutation) {
-				    var i, j, node;
+                    var i, j, node;
                     for (i = 0, j = mutation.addedNodes.length; i < j; i = i + 1) {
                         node = mutation.addedNodes[i];
                         if (node.tagName === 'DIV' && node.id === 'popup-close-question') {
