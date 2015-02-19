@@ -165,10 +165,7 @@ function startAutoComplete(jquery) {
 
 function getJquery() {
   "use strict";
-    if (typeof($) !== 'undefined')
-        return $;
-    else
-        return unsafeWindow.jQuery;
+    return $ || unsafeWindow.jQuery;
 }
 
 window.addEventListener('load',
