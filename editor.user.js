@@ -163,7 +163,7 @@ var main = function() {
         },
         ajax: {
             expr: /(^|\s)ajax(\s|$)/gm,
-            replacement: "$AJAX$2",
+            replacement: "$1AJAX$2",
             reason: "AJAX stands for Asynchronous JavaScript and XML"
         },
         angular: {
@@ -321,7 +321,6 @@ var main = function() {
                     fixed: input
                 };
             } else {
-
                 // If nothing needs to be fixed, return null
                 return null;
             }
@@ -537,10 +536,14 @@ var main = function() {
         App.funcs.output = function(data) {
             App.selections.titleBox.val(data[0].title);
             App.selections.bodyBox.val(data[0].body);
-            App.selections.summaryBox.val(data[0].summary);
+
+            if (App.selections.summaryBox.val()) {
+                data[0].summary = " " + data[0].summary; // Add a leading space if there's something already in the box
+            }
+            App.selections.summaryBox.val(App.selections.summaryBox.val() + data[0].summary);
 
             // Update the comment: focusing on the input field to remove placeholder text, but scroll back to the user's original location
-            var currentPos = document.body.scrollTop;
+            App.globals.currentPos = document.body.scrollTop;
             if ($("#wmd-input")) {
                 $("#wmd-input").focus();
                 $("#edit-comment").focus();
@@ -551,10 +554,8 @@ var main = function() {
                 $(".wmd-input")[0].focus();
             }
             window.scrollTo(0, currentPos);
-            App.globals.infoContent = App.globals.editCount +
-                ' changes made';
-            App.selections.buttonInfo.text(App.globals.editCount +
-                ' changes made');
+            App.globals.infoContent = App.globals.editCount + ' changes made';
+            App.selections.buttonInfo.text(App.globals.editCount + ' changes made');
         };
     };
 
@@ -641,11 +642,11 @@ var main = function() {
 
             // Asynchronous to get in both focuses
             setTimeout(function() {
-              if(App.globals.lastSelectedElement){
-                App.globals.lastSelectedElement.focus();
-              } else {
-                window.scrollTo(0);
-              }
+                if (App.globals.lastSelectedElement) {
+                    App.globals.lastSelectedElement.focus();
+                } else {
+                    window.scrollTo(0);
+                }
             }, 0);
         }
 
