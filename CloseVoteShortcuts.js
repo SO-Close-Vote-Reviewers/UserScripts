@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         StackOverflow close votes shortcuts
 // @namespace    https://github.com/kappa7194/stackoverflow-close-votes-shortcuts
-// @version      1.0.1
+// @version      1.0.2
 // @description  A script to add keyboard shortcuts to StackOverflow's close votes review queue
 // @author       Albireo, rene
 // @match        http://stackoverflow.com/review/close*
@@ -30,7 +30,8 @@
                     'leaveOpen': { 'key': '1', 'value': '8' },
                     'close': { 'key': '2', 'value': '6' },
                     'edit': { 'key': '3', 'value': '5' },
-                    'skip': { 'key': '4', 'value': '1' }
+                    'skip': { 'key': '4', 'value': '1' },
+                    'next': { 'key': '0', 'value': '254' }
                 },
                 'closeReasons': {
                     'duplicate': { 'key': '1', 'value': 'Duplicate' },
@@ -107,6 +108,10 @@
                     break;
                 case keys[configuration.actions.skip.key]:
                     clickAction(configuration.actions.skip.value);
+                    resetState();
+                    break;
+                case keys[configuration.actions.next.key]:
+                    clickAction(configuration.actions.next.value);
                     resetState();
                     break;
                 }
@@ -226,6 +231,7 @@
             lookup[configuration.actions.close.value] = configuration.actions.close.key;
             lookup[configuration.actions.edit.value] = configuration.actions.edit.key;
             lookup[configuration.actions.skip.value] = configuration.actions.skip.key;
+            lookup[configuration.actions.next.value] = configuration.actions.next.key;
 
             observer = new MutationObserver(function (mutations) {
                 mutations.forEach(function (mutation) {
@@ -252,7 +258,8 @@
             // this function prevent adding another [1] if it already has one
             function singleAdd(elem, key) {
                 var add = '[' + key + '] ';
-                if (elem.html().indexOf(add) !== 0) {
+                //strangely some elem doesn't contain html hence the null check...
+                if (elem.html() !== null && elem.html().indexOf(add) !== 0) {
                     elem.html(add + elem.html());
                 }
             }
