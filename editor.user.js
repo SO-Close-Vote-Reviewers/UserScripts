@@ -255,6 +255,11 @@ var main = function() {
             expr: /(^|\s)(can|doesn|don|won|hasn|isn|didn)t(\s|$)/gmi,
             replacement: "$1$2't$3",
             reason: "English contractions use apostrophes"
+        },
+        ios: {
+          expr: /(^|\s)[Ii][Oo][Ss](\d)?(\s|$)/gm,
+          replacement: "$1iOS $2$3",
+          reason: "the proper usage is 'iOS' followed by a space and the version number"
         }
     };
 
