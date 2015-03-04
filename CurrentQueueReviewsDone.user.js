@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Current Completed Reviews in Queue
 // @namespace    http://stackoverflow.com/users/578411/rene
-// @version      0.1
+// @version      0.2
 // @description  Adds the current number of reviews you have completed in the queue in front of your total reviews on the review tab
 // @author       Rene, SOCVR
 // @match        http://stackoverflow.com/review/*
@@ -19,15 +19,21 @@
         .css('float','left')
         .css('padding-top','13px');
 
-    // build the stats url
-    parts = window.location.pathname.split('/');
-    parts[parts.length-1] = 'stats';
+    function buildUrl() {
+        // build the stats url
+        parts = window.location.pathname.split('/');
+        if (parts.length>3) {
+           parts[parts.length-1] = 'stats';
+        } else {
+            parts.push('stats');
+        }
+        return parts.join('/');
+    }
 
-    statsurl = parts.join('/');
+    statsurl = buildUrl();
 
     // integate in the review page
-    $('#badge-progress').prepend(
-            stat);
+    $('#badge-progress').prepend(stat);
 
     // get the (fullblown) stats page and find your own stat
     function refreshstat() {
@@ -36,6 +42,12 @@
                 td = html.find('td.review-stats-count-current-user:first');
             // replace our current stat with the just loaded one
             stat.html(td.text() + '&nbsp;/&nbsp;');    
+        }).fail(function(prom, error, msg) {
+            debugger;
+            if (msg === 'Not Found') {
+                // the url is not correct, try a new one
+                statsurl = buildUrl();
+            }
         });
     }
 
