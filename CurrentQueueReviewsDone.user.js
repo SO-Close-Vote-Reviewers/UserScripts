@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         Stats
+// @name         Current Completed Reviews in Queue
 // @namespace    http://stackoverflow.com/users/578411/rene
 // @version      0.1
-// @description  Adds the current stat count in front of your total reviews on the review tab
-// @author       You
+// @description  Adds the current number of reviews you have completed in the queue in front of your total reviews on the review tab
+// @author       Rene, SOCVR
 // @match        http://stackoverflow.com/review/*
 // @grant        none
 // ==/UserScript==
