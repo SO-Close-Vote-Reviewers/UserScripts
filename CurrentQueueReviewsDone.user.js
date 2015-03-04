@@ -8,6 +8,9 @@
 // @grant        none
 // ==/UserScript==
 
+// this script comes from the request here: http://meta.stackexchange.com/q/250580/213671
+// rene originally made this: http://meta.stackexchange.com/a/250622/213671
+
 (function($, window) {
 
     var parts,
