@@ -459,8 +459,8 @@ var main = function() {
                 'left': '430px'
             };
 
-            // This should fix the M/SO redesign styling issues; design may be pushed to other sites later
-            if (App.globals.URL.search("stackoverflow") > -1) {
+            // This should fix the M/SO redesign styling issues; design has been pushed to M.SE and may be pushed to other sites later
+            if (App.globals.URL.search("stackoverflow") > -1 || App.globals.URL.search("meta.stackexchange") > -1) {
                 buttonCSS["padding-top"] = "2%";
                 // I have no idea why, but the above fix causes the help button to jump down, too; this should fix that
                 $("#wmd-help-button-" + App.globals.questionNum).css({
