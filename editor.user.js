@@ -257,8 +257,8 @@ var main = function() {
             reason: "English contractions use apostrophes"
         },
         ios: {
-            expr: /(^|\s)[Ii][Oo][Ss](\d)?(\s|$)/gm,
-            replacement: "$1iOS $2$3",
+          expr: /(ios(?:\s?)(\d+)|ios(?:s?))/igm,
+            replacement: "iOS $2",
             reason: "the proper usage is 'iOS' followed by a space and the version number"
         }
     };
