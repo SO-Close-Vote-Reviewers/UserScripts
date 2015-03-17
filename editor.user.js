@@ -172,7 +172,7 @@ var main = function() {
             reason: "'AngularJS is the proper capitalization"
         },
         thanks: {
-            expr: /(thanks|pl[ease|z|s]\s+h[ea]lp|cheers|regards|thx|thank\s+you|my\s+first\s+question|kindly\shelp).*$/gmi,
+            expr: /(thanks|pl(?:ease|z|s)\s+h[ea]lp|cheers|regards|thx|thank\s+you|my\s+first\s+question|kindly\shelp).*$/gmi,
             replacement: "",
             reason: "'$1' is unnecessary noise"
         },
