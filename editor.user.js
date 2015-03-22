@@ -4,11 +4,13 @@
 // @developer      Jonathan Todd (jt0dd)
 // @developer      sathyabhat
 // @contributor    Unihedron
-// @namespace  http://github.com/AstroCB
+// @license        MIT
+// @namespace      http://github.com/AstroCB
 // @version        1.3.0
-// @description  Fix common grammar/usage annoyances on Stack Exchange posts with a click
+// @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        *://*.stackexchange.com/questions/*
 // @include        *://stackoverflow.com/questions/*
+// @include        *://stackoverflow.com/review/helper/*
 // @include        *://meta.stackoverflow.com/questions/*
 // @include        *://serverfault.com/questions/*
 // @include        *://meta.serverfault.com/questions/*
@@ -65,7 +67,9 @@ var main = function() {
 
     // Get question num from URL
     App.globals.questionNum = App.globals.URL.match(/\/(\d+)\//g);
-    App.globals.questionNum = App.globals.questionNum[0].split("/").join("");
+    if (App.globals.questionNum) {
+        App.globals.questionNum = App.globals.questionNum[0].split("/").join("");
+    }
 
     // Define variables for later use
     App.globals.barReady = false;
@@ -257,7 +261,7 @@ var main = function() {
             reason: "English contractions use apostrophes"
         },
         ios: {
-          expr: /(ios(?:\s?)(\d+)|ios(?:s?))/igm,
+            expr: /(ios(?:\s?)(\d+)|ios(?:s?))/igm,
             replacement: "iOS $2",
             reason: "the proper usage is 'iOS' followed by a space and the version number"
         }
@@ -558,7 +562,8 @@ var main = function() {
                 $(".edit-comment")[0].focus();
                 $(".wmd-input")[0].focus();
             }
-            window.scrollTo(0, currentPos);
+
+            window.scrollTo(0, App.globals.currentPos);
             App.globals.infoContent = App.globals.editCount + ' changes made';
             App.selections.buttonInfo.text(App.globals.editCount + ' changes made');
         };
@@ -685,14 +690,20 @@ var main = function() {
 
         return data;
     };
-
-    if ($(".edit-post")[0]) { // User has editing privileges; wait for button press
-        $(".edit-post").click(function(e) {
-            App.init(true, e.target.href.match(/\d/g).join("")); // If there are multiple posts, we need to pass the post ID
-        });
-    } else { // User does not have editing privileges or is editing on question page; start immediately
-        App.init(false);
-    }
+    setTimeout(function() { // Allow post to load entirely
+        if ($(".edit-post")[0]) { // User has editing privileges; wait for button press
+            $(".edit-post").click(function(e) {
+                App.init(true, e.target.href.match(/\d/g).join("")); // If there are multiple posts, we need to pass the post ID
+            });
+        } else if ($(".reviewable-post")[0]) { // H&I review queue
+            App.globals.questionNum = $(".reviewable-post")[0].getAttribute("class").match(/\d/g).join("");
+            $($(".review-actions")[0].children[0]).click(function(e) {
+                App.init(true, App.globals.questionNum);
+            });
+        } else { // User does not have editing privileges or is editing on question page; start immediately
+            App.init(false);
+        }
+    }, 1000);
 };
 
 // Inject the main script
