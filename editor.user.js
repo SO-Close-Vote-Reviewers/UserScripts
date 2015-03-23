@@ -6,7 +6,7 @@
 // @contributor    Unihedron
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.3.0
+// @version        1.4.0
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        *://*.stackexchange.com/questions/*
 // @include        *://stackoverflow.com/questions/*
@@ -47,7 +47,7 @@ var main = function() {
     // Place edit items here
     App.items = [];
 
-    // Place selected JQuery items here
+    // Place selected jQuery items here
     App.selections = {};
 
     // Place "global" app data here
