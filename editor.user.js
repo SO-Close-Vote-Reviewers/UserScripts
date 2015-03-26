@@ -264,6 +264,11 @@ var main = function() {
             expr: /(ios(?:\s?)(\d+)|ios(?:s?))/igm,
             replacement: "iOS $2",
             reason: "the proper usage is 'iOS' followed by a space and the version number"
+        },
+        caps: {
+          expr: /^((?=.*[A-Z])[^a-z]*)$/g,
+          replacement: "$1",
+          reason: "no need to yell"
         }
     };
 
@@ -304,6 +309,11 @@ var main = function() {
                     });
                     reasoning = reasoning.replace("$1", phrase.toLowerCase());
 
+                    // Fix all caps
+                } else if (reasoning === "no need to yell") {
+                    input = input.replace(expression, function(data, match1) {
+                        return match1.substring(0,1).toUpperCase() + match1.substring(1).toLowerCase();
+                    });
                     // This is used to capitalize letters; it merely takes what is matched, uppercases it, and replaces what was matched with the uppercased version
                 } else if (replacement === "$1") {
                     input = input.replace(expression, function(data, match1) {
