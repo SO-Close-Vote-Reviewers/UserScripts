@@ -241,7 +241,7 @@ var main = function() {
             reason: "Oracle should be capitalized"
         },
         windows: {
-            expr: /(win(?:\ ?)(\sxp|\svista|\s[0-9]+)|window(?:s?))(\s|$)/igm,
+            expr: /(win(?:\ ?)(\sxp|\svista|\s[0-9]+)|window(?:s))(\s|$)/igm,
             replacement: "Windows$2$3",
             reason: "Windows should be capitalized"
         },
@@ -261,14 +261,19 @@ var main = function() {
             reason: "English contractions use apostrophes"
         },
         ios: {
-            expr: /(ios(?:\s?)(\d+)|ios(?:s?))/igm,
+            expr: /(?:ios|iOs|ioS|IOS|Ios|IoS|ioS)(\d|\s)/gm,
             replacement: "iOS $2",
             reason: "the proper usage is 'iOS' followed by a space and the version number"
         },
         caps: {
-          expr: /^((?=.*[A-Z])[^a-z]*)$/g,
-          replacement: "$1",
-          reason: "no need to yell"
+            expr: /^((?=.*[A-Z])[^a-z]*)$/g,
+            replacement: "$1",
+            reason: "no need to yell"
+        },
+        wordpress: {
+            expr: /[Ww]ordpress/g,
+            replacement: "WordPress",
+            reason: "'WordPress' is the proper capitalization"
         }
     };
 
@@ -312,7 +317,7 @@ var main = function() {
                     // Fix all caps
                 } else if (reasoning === "no need to yell") {
                     input = input.replace(expression, function(data, match1) {
-                        return match1.substring(0,1).toUpperCase() + match1.substring(1).toLowerCase();
+                        return match1.substring(0, 1).toUpperCase() + match1.substring(1).toLowerCase();
                     });
                     // This is used to capitalize letters; it merely takes what is matched, uppercases it, and replaces what was matched with the uppercased version
                 } else if (replacement === "$1") {
@@ -328,6 +333,16 @@ var main = function() {
                         return match1 + "C" + match2;
                     });
                     reasoning = reasoning.replace("$2", newPhrase);
+
+                    // iOS numbering/spacing fixes
+                } else if (replacement === "iOS $2") {
+                    input = input.replace(expression, function(data, match1) {
+                        if (match1.match(/\d/)) { // Is a number
+                            return "iOS " + match1;
+                        }
+
+                        return "iOS" + match1;
+                    });
 
                     // Default: just replace it with the indicated replacement
                 } else {
