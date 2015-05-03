@@ -6,7 +6,7 @@
 // @contributor    Unihedron
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.4.0
+// @version        1.4.1
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        *://*.stackexchange.com/questions/*
 // @include        *://stackoverflow.com/questions/*
@@ -274,6 +274,26 @@ var main = function() {
             expr: /[Ww]ordpress/g,
             replacement: "WordPress",
             reason: "'WordPress' is the proper capitalization"
+        },
+        google: {
+          expr:  /(google)(\s|$)/igm,
+          replacement: "Google$2",
+          reason: "Google is the proper capitalization"
+        },
+        mysql: {
+          expr:  /(mysql)(\s|$)/igm,
+          replacement: "MySQL$2",
+          reason: "MySQL is the proper capitalization"
+        },
+        apache: {
+          expr:  /(apache)(\s|$)/igm,
+          replacement: "Apache$2",
+          reason: "Apache is the proper capitalization"
+        },
+        harddisk: {
+          expr:  /(hdd|harddisk)(\s|$)/igm,
+          replacement: "hard disk$2",
+          reason: "Hard disk is the proper capitalization"
         }
     };
 
