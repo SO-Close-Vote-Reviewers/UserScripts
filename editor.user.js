@@ -6,7 +6,7 @@
 // @contributor    Unihedron
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.4.1
+// @version        1.4.2
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        *://*.stackexchange.com/questions/*
 // @include        *://stackoverflow.com/questions/*
@@ -505,17 +505,12 @@ var main = function() {
         App.funcs.styleButton = function() {
             var buttonCSS = {
                 'position': 'relative',
-                'left': '430px'
+                'left': '430px',
+                'padding-top': '2%'
             };
-
-            // This should fix the M/SO redesign styling issues; design has been pushed to M.SE and may be pushed to other sites later
-            if (App.globals.URL.search("stackoverflow") > -1 || App.globals.URL.search("meta.stackexchange") > -1) {
-                buttonCSS["padding-top"] = "2%";
-                // I have no idea why, but the above fix causes the help button to jump down, too; this should fix that
-                $("#wmd-help-button-" + App.globals.questionNum).css({
-                    'padding': '0px'
-                });
-            }
+            $("#wmd-help-button-" + App.globals.questionNum).css({
+                'padding': '0px'
+            });
             App.selections.buttonWrapper.css(buttonCSS);
 
             App.selections.buttonFix.css({
