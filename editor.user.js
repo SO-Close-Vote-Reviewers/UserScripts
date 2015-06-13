@@ -261,7 +261,7 @@ var main = function() {
             reason: "English contractions use apostrophes"
         },
         ios: {
-            expr: /(?:ios|iOs|ioS|IOS|Ios|IoS|ioS)(\d|\s)/gm,
+            expr: /\b(?:ios|iOs|ioS|IOS|Ios|IoS|ioS)(\d|\s)/gm,
             replacement: "iOS $2",
             reason: "the proper usage is 'iOS' followed by a space and the version number"
         },
