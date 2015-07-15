@@ -290,6 +290,11 @@ var main = function() {
           replacement: "Apache$2",
           reason: "Apache is the proper capitalization"
         },
+        git: {
+          expr:  /(^|\s)(git|GIT)(\s|$)/gm,
+          replacement: "$1Git$2",
+          reason: "Git is the proper capitalization"
+        },
         harddisk: {
           expr:  /(hdd|harddisk)(\s|$)/igm,
           replacement: "hard disk$2",
