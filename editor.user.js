@@ -6,7 +6,7 @@
 // @contributor    Unihedron
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.4.2
+// @version        1.5.1
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        *://*.stackexchange.com/questions/*
 // @include        *://stackoverflow.com/questions/*
@@ -532,7 +532,8 @@ var main = function() {
                 'background-size': '100% 100%',
                 'width': '18px',
                 'height': '18px',
-                'outline': 'none'
+                'outline': 'none',
+                'box-shadow': 'none'
             });
             App.selections.buttonInfo.css({
                 'position': 'static',
