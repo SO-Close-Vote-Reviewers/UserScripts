@@ -292,7 +292,7 @@ var main = function() {
         },
         git: {
           expr:  /(^|\s)(git|GIT)(\s|$)/gm,
-          replacement: "$1Git$2",
+          replacement: "$1Git$3",
           reason: "Git is the proper capitalization"
         },
         harddisk: {
