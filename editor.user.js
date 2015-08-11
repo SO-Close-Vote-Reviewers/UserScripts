@@ -301,7 +301,7 @@ var main = function() {
           reason: "Hard disk is the proper capitalization"
         },
         github: {
-          expr:  /\b([gG]ithub|GITHUB)(\s|$)/gm,
+          expr:  /\b([gG]ithub|GITHUB)\b(\S|)(?!\S)/gm,
           replacement: "GitHub$2",
           reason: "GitHub is the proper capitalization"
         }
