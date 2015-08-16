@@ -41,7 +41,7 @@
 
 
     var cvButton = $('<a href="javascript:void(0)" style="position:relative;display:inline-block">cv-pls</a>');
-    var cvList = $('<dl style="display:none;position:absolute;white-space:nowrap;border:1px solid #eee;padding: 5px 10px;border-radius:3px"/>');
+    var cvList = $('<dl style="display:none;position:absolute;white-space:nowrap;border:1px solid #eee;padding: 5px 10px;border-radius:3px;background:#FFF;box-shadow:0px 1px 5px -2px black"/>');
     var cvListRoom = $('<dd><a href="javascript:void(0)">Set Room</a>');
     var cvListSend = $('<dd><a href="javascript:void(0)">Send Request</a>');
     var cvListSep = $('<dd style="border-bottom: 1px solid #eee;margin: 2.5px 0;"/>');
