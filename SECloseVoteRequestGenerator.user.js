@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
-// @namespace    http://your.homepage/
+// @namespace    https://github.com/SO-Close-Vote-Reviewers
 // @version      1.3
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
@@ -28,7 +28,7 @@
 
 (function(){
     "use strict";
-    
+
     var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
     var CURRENT = '1.3';
     function CheckUpdates(force) {
@@ -43,7 +43,7 @@
         } else if(force) alert('No new version available');
     }
     CheckUpdates();
-    
+
     function isVersionNewer(proposed, current) {
         proposed = proposed.split(".");
         current = current.split(".");
@@ -62,7 +62,7 @@
 
         return false;
     }
-    function sendRequest(roomURL,result) {            
+    function sendRequest(roomURL,result) {
         GM_xmlhttpRequest({
             method: 'GET',
             url: 'http://chat.stack' + roomURL[1] + '.com/rooms/' + roomURL[2],
@@ -169,9 +169,9 @@
             return false;
         }
         cvList.hide();
-        var reason = window.prompt('Reason for closing'); 
+        var reason = window.prompt('Reason for closing');
         if(!reason) return false;
-        var tit = '[' + $('#question-header h1 a').text() + '](' + base + $('#question .short-link').attr('href') + ')'; 
+        var tit = '[' + $('#question-header h1 a').text() + '](' + base + $('#question .short-link').attr('href') + ')';
         var usr = '[' + $('#question .owner a').text() + '](' + base + $('#question .owner a').attr('href') + ')';
         var tim = $('#question .owner .relativetime').html();
         var result = '[tag:cv-pls] ' + reason + ' ' + tit + ' - ' + usr + ' ' + tim;
