@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    http://your.homepage/
-// @version      1.1
+// @version      1.2
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @match        http://*.stackoverflow.com/questions/*
@@ -29,7 +29,7 @@
 // (the first line of this template _must_ be a comment!)
 (function(){
     "use string";
-    var VERSION = '1.1';
+    var VERSION = '1.2';
     var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
 
     if(window["SECloseVoteRequestGenerator_AutoUpdateCallback"]) {
