@@ -7,7 +7,7 @@
 // @match        http://*.stackoverflow.com/questions/*
 // @match        http://*.stackexchange.com/questions/*
 // @grant        GM_xmlhttpRequest
-// @require      https://raw.githubusercontent.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version.js
+// @require      https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version.js
 // ==/UserScript==
 
 // Usage:
