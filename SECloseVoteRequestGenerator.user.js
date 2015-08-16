@@ -85,13 +85,10 @@
     var cvList = $('<dl style="display:none;position:absolute;white-space:nowrap;border:1px solid #eee;padding: 5px 10px;border-radius:3px;background:#FFF;box-shadow:0px 1px 5px -2px black"/>');
     var cvListRoom = $('<dd><a href="javascript:void(0)">Set target room</a>');
     var cvListSend = $('<dd><a href="javascript:void(0)">Send request</a>');
-    var cvListUpdt = $('<dd><a href="javascript:void(0)">Check for updates</a>');
     var cvListSep = $('<dd style="border-bottom: 1px solid #eee;margin: 2.5px 0;"/>');
     cvList.append(cvListRoom);
     cvList.append(cvListSep.clone());
     cvList.append(cvListSend);
-    cvList.append(cvListSep.clone());
-    cvList.append(cvListUpdt);
     cvButton.append(cvList);
     $('#question .post-menu').append(cvButton);
     $(document).on('click',function(e){
@@ -118,11 +115,6 @@
         SetStorage(base + 'room', room = response);
     });
     cvListSend.on('click', cvRequest);
-    cvListUpdt.on('click', function(e){
-        e.stopPropagation();
-        cvList.hide();
-        CheckForNewVersion(true);
-    });
     $(document).keydown(function(e) {
         if(e.ctrlKey && e.shiftKey && e.which === 65)
             cvRequest(e);
