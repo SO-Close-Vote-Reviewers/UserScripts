@@ -16,6 +16,7 @@ How to work this:
 4. This script will send the request to the SO Close Vote Reviewers room.
 
 To change the target chat room:
+
 1. Select `[Set Room]` from the `[cv-pls]` menu.
 2. Past the URL of the room you would like to send the requests to in the dialog. This setting will be saved for the site that you set it on only.
 
