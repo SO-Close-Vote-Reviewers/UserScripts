@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    http://your.homepage/
-// @version      1.2
+// @version      1.1
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @match        http://*.stackoverflow.com/questions/*
@@ -37,7 +37,7 @@ with_jquery(function ($) {
     StackExchange.ready(function () {
         //// Self Updating Userscript, see https://gist.github.com/Benjol/874058
         // (the first line of this template _must_ be a comment!)
-        var VERSION = '1.2';
+        var VERSION = '1.1';
         var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
 
         if(window["SECloseVoteRequestGenerator_AutoUpdateCallback"]) {
@@ -85,7 +85,7 @@ with_jquery(function ($) {
             if(LastUpdateCheckDay && LastUpdateCheckDay == today && !force) return false;
             console.log('Checking for updates');
             updateCheck(function (newver, oldver, install_url) {
-                if(newver != GetStorage("LastVersionAcknowledged")) {
+                if(newver != GetStorage("LastVersionAcknowledged") || force) {
                     if(confirm('A new version (' + newver + ') of the Stack Exchange Close Vote Request Generator UserScript is now available. Update it now?'))
                         window.location.href = install_url;
                     else
