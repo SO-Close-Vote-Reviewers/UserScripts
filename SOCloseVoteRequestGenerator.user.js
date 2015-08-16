@@ -34,11 +34,9 @@ var cvRequest = function() {
     var reason = window.prompt('Reason for closing'); 
     if(reason !== null) { 
         var tit = '[' + $('#question-header h1 a').text() + '](' + "http://stackoverflow.com" + $('#question .short-link').attr('href') + ')'; 
-        // Zephyr doesn't pick up the CV requests when these lines are enabled
-        // var usr = '[' + $('#question .owner a').text() + '](' + "http://stackoverflow.com" + $('#question .owner a').attr('href') + ')';
-        // var tim = $('#question .owner .relativetime').html();
-        // var result = '[tag:cv-pls] ' + reason + ' ' + tit + ' - ' + usr + ' ' + tim;
-        var result = '[tag:cv-pls] ' + reason + ' ' + tit;
+        var usr = '[' + $('#question .owner a').text() + '](' + "http://stackoverflow.com" + $('#question .owner a').attr('href') + ')';
+        var tim = $('#question .owner .relativetime').html();
+        var result = '[tag:cv-pls] ' + reason + ' ' + tit + ' - ' + usr + ' ' + tim;
         GM_xmlhttpRequest({
             method: 'GET',
             url: 'http://chat.stackoverflow.com/rooms/' + room,
