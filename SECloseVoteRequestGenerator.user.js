@@ -88,13 +88,20 @@
                         alert('Close vote request failed to send. ' + response.status + ':' + response.statusText);
                     }
                 });
+            } else {
+                cvList.hide();
             }
         } else {
             alert('Invalid room URL. Please set a valid room.');
         }
     }
 
-    cvButton.on('click', function(){
+    $(document).on('click',function(e){
+        if(cvList.is(':visible'))
+            cvList.hide();
+    });
+    cvButton.on('click', function(e){
+        e.stopPropagation();
         cvList.toggle();
     })
     cvListRoom.on('click', function(){
