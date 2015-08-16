@@ -32,13 +32,10 @@
     var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
     var CURRENT = '1.2';
     function CheckUpdates(force) {
-        var today = (new Date().setHours(0, 0, 0, 0));
-        var LastUpdateCheckDay = GetStorage("LastUpdateCheckDay");
-        if(LastUpdateCheckDay === today && !force) return false;
         if(isVersionNewer(VERSION,CURRENT)) {
             var LastAcknowledgedVersion = GetStorage('LastAcknowledgedVersion');
             if(LastAcknowledgedVersion != VERSION || force) {
-                if(confirm('A new version of The Close Vote Reques Generator is available, would you like to install it now?'))
+                if(confirm('A new version of The Close Vote Request Generator is available, would you like to install it now?'))
                     window.location.href = URL;
                 else
                     SetStorage('LastAcknowledgedVersion',VERSION);
