@@ -7,6 +7,7 @@
 // @match        http://*.stackoverflow.com/questions/*
 // @match        http://*.stackexchange.com/questions/*
 // @grant        GM_xmlhttpRequest
+// @require      https://raw.githubusercontent.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version.js
 // ==/UserScript==
 
 // Usage:
@@ -27,6 +28,43 @@
 
 (function(){
     "use strict";
+    
+    var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
+    var CURRENT = '1.2';
+    function CheckUpdates(force) {
+        var today = (new Date().setHours(0, 0, 0, 0));
+        var LastUpdateCheckDay = GetStorage("LastUpdateCheckDay");
+        if(LastUpdateCheckDay === today && !force) return false;
+        if(isVersionNewer(VERSION,CURRENT)) {
+            var LastAcknowledgedVersion = GetStorage('LastAcknowledgedVersion');
+            if(LastAcknowledgedVersion != VERSION || force) {
+                if(confirm('A new version of The Close Vote Reques Generator is available, would you like to install it now?'))
+                    window.location.href = URL;
+                else
+                    SetStorage('LastAcknowledgedVersion',VERSION);
+            }
+        } else if(force) alert('No new version available');
+    }
+    CheckUpdates();
+    
+    function isVersionNewer(proposed, current) {
+        proposed = proposed.split(".");
+        current = current.split(".");
+
+        while (proposed.length < current.length) proposed.push("0");
+        while (current.length < proposed.length) current.push("0");
+
+        for (var i = 0; i < proposed.length; i++) {
+            if (parseInt(proposed[i]) > parseInt(current[i])) {
+                return true;
+            }
+            if (parseInt(proposed[i]) < parseInt(current[i])) {
+                return false;
+            }
+        }
+
+        return false;
+    }
     function sendRequest(roomURL,result) {            
         GM_xmlhttpRequest({
             method: 'GET',
@@ -85,10 +123,13 @@
     var cvList = $('<dl style="display:none;position:absolute;white-space:nowrap;border:1px solid #eee;padding: 5px 10px;border-radius:3px;background:#FFF;box-shadow:0px 1px 5px -2px black"/>');
     var cvListRoom = $('<dd><a href="javascript:void(0)">Set target room</a>');
     var cvListSend = $('<dd><a href="javascript:void(0)">Send request</a>');
+    var cvListUpdt = $('<dd><a href="javascript:void(0)">Check for updates</a>');
     var cvListSep = $('<dd style="border-bottom: 1px solid #eee;margin: 2.5px 0;"/>');
     cvList.append(cvListRoom);
     cvList.append(cvListSep.clone());
     cvList.append(cvListSend);
+    cvList.append(cvListSep.clone());
+    cvList.append(cvListUpdt);
     cvButton.append(cvList);
     $('#question .post-menu').append(cvButton);
     $(document).on('click',function(e){
@@ -115,6 +156,11 @@
         SetStorage(base + 'room', room = response);
     });
     cvListSend.on('click', cvRequest);
+    cvListUpdt.on('click', function(e){
+        e.stopPropagation();
+        cvList.hide();
+        CheckUpdates(true);
+    });
     $(document).keydown(function(e) {
         if(e.ctrlKey && e.shiftKey && e.which === 65)
             cvRequest(e);
