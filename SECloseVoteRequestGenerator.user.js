@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    http://your.homepage/
-// @version      1.0
+// @version      1.1
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @match        http://*.stackoverflow.com/questions/*
@@ -54,65 +54,69 @@
 
     var cvRequest = function(e) {
         e.stopPropagation();
-        if(roomURL) {
-            var reason = window.prompt('Reason for closing'); 
-            if(reason !== null) { 
-                var tit = '[' + $('#question-header h1 a').text() + '](' + base + $('#question .short-link').attr('href') + ')'; 
-                var usr = '[' + $('#question .owner a').text() + '](' + base + $('#question .owner a').attr('href') + ')';
-                var tim = $('#question .owner .relativetime').html();
-                var result = '[tag:cv-pls] ' + reason + ' ' + tit + ' - ' + usr + ' ' + tim;
+        if(!roomURL) {
+            alert('Invalid room URL. Please set a valid room.');
+            return false;
+        }
+        cvList.hide();
+        var reason = window.prompt('Reason for closing'); 
+        if(!reason) return false;
+
+        var tit = '[' + $('#question-header h1 a').text() + '](' + base + $('#question .short-link').attr('href') + ')'; 
+        var usr = '[' + $('#question .owner a').text() + '](' + base + $('#question .owner a').attr('href') + ')';
+        var tim = $('#question .owner .relativetime').html();
+        var result = '[tag:cv-pls] ' + reason + ' ' + tit + ' - ' + usr + ' ' + tim;
+        GM_xmlhttpRequest({
+            method: 'GET',
+            url: 'http://chat.stack' + roomURL[1] + '.com/rooms/' + roomURL[2],
+            onload: function(response) {
+                var key = response.responseText.match(/hidden" value="([\dabcdef]{32})/);
+                if(!key) {
+                    alert('Failed retrieving key, is the room URL valid?');
+                    return false;
+                }
                 GM_xmlhttpRequest({
-                    method: 'GET',
-                    url: 'http://chat.stack' + roomURL[1] + '.com/rooms/' + roomURL[2],
-                    onload: function(response) {
-                        var key = response.responseText.match(/hidden" value="([\dabcdef]{32})/);
-                        if(key) {
-                            GM_xmlhttpRequest({
-                                synchronous: true,
-                                method: 'POST',
-                                url: 'http://chat.stack' + roomURL[1] + '.com/chats/' + roomURL[2] + '/messages/new',
-                                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                                data: 'text=' + encodeURIComponent(result) + '&fkey=' + key[1],
-                                onload: function() {
-                                    alert('Close vote request sent.');
-                                },
-                                onerror: function(response) {
-                                    alert('Close vote request failed to send. ' + response.status + ':' + response.statusText);
-                                }
-                            });
-                        } else {
-                            alert('Failed retrieving key, is the room URL valid?');
-                        }
+                    synchronous: true,
+                    method: 'POST',
+                    url: 'http://chat.stack' + roomURL[1] + '.com/chats/' + roomURL[2] + '/messages/new',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    data: 'text=' + encodeURIComponent(result) + '&fkey=' + key[1],
+                    onload: function() {
+                        alert('Close vote request sent.');
                     },
                     onerror: function(response) {
-                        alert('Close vote request failed to send. ' + response.status + ':' + response.statusText);
+                        alert('Close vote request failed to send.');
                     }
                 });
-            } else {
-                cvList.hide();
+            },
+            onerror: function(response) {
+                alert('Close vote request failed to send.');
             }
-        } else {
-            alert('Invalid room URL. Please set a valid room.');
-        }
+        });
     }
 
     $(document).on('click',function(e){
         if(cvList.is(':visible'))
             cvList.hide();
     });
+    $('a').not(cvButton).click(function(e){
+        if(cvList.is(':visible')) cvList.hide();
+    })
     cvButton.on('click', function(e){
         e.stopPropagation();
         cvList.toggle();
     })
     cvListRoom.on('click', function(){
+        cvList.hide();
         response = window.prompt('Paste the URL of the room.', room);
-        if(response) {
-            roomURL = getRoom(response);
-            if(!roomURL)
-                alert('Invalid room URL. Please set a valid room.');
-            else
-                localStorage[base + 'room'] = room = response;
+        if(!response) return false;
+        var roomURLt = getRoom(response);
+        if(!roomURLt) {
+            alert('Invalid room URL. Please set a valid room.');
+            return false;
         }
+        roomURL = roomURLt;
+        localStorage[base + 'room'] = room = response;
     });
     cvListSend.on('click', cvRequest);
     $(document).keydown(function(e) {
