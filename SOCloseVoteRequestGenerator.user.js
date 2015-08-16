@@ -45,7 +45,13 @@ var cvRequest = function() {
                     method: 'POST',
                     url: 'http://chat.stackoverflow.com/chats/' + room + '/messages/new',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    data: 'text=' + encodeURIComponent(result) + '&fkey=' + response.responseText.match(/hidden" value="([\dabcdef]{32})/)[1]
+                    data: 'text=' + encodeURIComponent(result) + '&fkey=' + response.responseText.match(/hidden" value="([\dabcdef]{32})/)[1],
+                    onload: function() {
+                        alert('Close vote request sent.');
+                    },
+                    onerror: function() {
+                        alert('Close vote request failed to send. Please try again.');
+                    }
                 });
             }
         });
