@@ -109,7 +109,7 @@
                         cvList.hide();
                     },
                     onerror: function() {
-                        notify('Failed sending close vote request.',p);
+                        notify('Failed sending close vote request.',true);
                         spinner.remove();
                         $('div', cvList).hide();
                         cvList.hide();
@@ -117,7 +117,7 @@
                 });
             },
             onerror: function() {
-                notify('Failed retrieving fkey from chat.',p);
+                notify('Failed retrieving fkey from chat.',true);
             }
         });
     }
@@ -192,7 +192,7 @@
         if(!response) return false;
         var roomURLt = getRoom(response);
         if(!roomURLt) {
-            notify('Invalid room URL. Please set a valid room.',p);
+            notify('Invalid room URL. Please set a valid room.',true);
             return false;
         }
         roomURL = roomURLt;
@@ -211,7 +211,7 @@
         e.preventDefault();
         $('div', this).append(spinner);
         if(!roomURL) {
-            notify('Invalid room URL. Please set a valid room.',p);
+            notify('Invalid room URL. Please set a valid room.',true);
             return false;
         }
         var reason = $('input[type="text"]', cvListSend).val();
