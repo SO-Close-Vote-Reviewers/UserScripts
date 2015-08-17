@@ -21,7 +21,6 @@
 // @exclude      http://*.stackapps.com/questions/tagged/*
 // @exclude      http://*.mathoverflow.net/questions/tagged/*
 // @grant        GM_xmlhttpRequest
-// @require      https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version.js
 // ==/UserScript==
 
 (function(){
@@ -60,15 +59,18 @@
     }
     
     function checkUpdates(force) {
-        if(isVersionNewer(VERSION,GM_info.script.version)) {
-            var lastAcknowledgedVersion = getStorage('LastAcknowledgedVersion');
-            if(lastAcknowledgedVersion != VERSION || force) {
-                if(confirm('A new version of The Close Vote Request Generator is available, would you like to install it now?'))
-                    window.location.href = URL;
-                else
-                    setStorage('LastAcknowledgedVersion',VERSION);
-            }
-        } else if(force) alert('No new version available');
+        $.getScript('https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version.js',function(){
+            console.log(VERSION,GM_info.script.version);
+            if(isVersionNewer(VERSION,GM_info.script.version)) {
+                var lastAcknowledgedVersion = getStorage('LastAcknowledgedVersion');
+                if(lastAcknowledgedVersion != VERSION || force) {
+                    if(confirm('A new version of The Close Vote Request Generator is available, would you like to install it now?'))
+                        window.location.href = URL;
+                    else
+                        setStorage('LastAcknowledgedVersion',VERSION);
+                }
+            } else if(force) alert('No new version available');
+        });
     }
     
     function sendRequest(roomURL,result) {            
