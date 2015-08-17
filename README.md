@@ -7,7 +7,7 @@ This repository contains various [Tampermonkey](http://tampermonkey.net/) user s
 This script sends a `[tag:cv-pls]` message to the site's chatroom for the post you are currently viewing. It works on `*.stackexchange.com` and `*.stackoverflow.com` at the moment.
 
 ###Installation
-Visit the following URL, and GreaseMonkey/TamperMonkey should ask you to install it.
+To install this script [click here](https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js) or otherwise visit the following URL, and GreaseMonkey/TamperMonkey should ask you to install it.
 
      https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js
      
