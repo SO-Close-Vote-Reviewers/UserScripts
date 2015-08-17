@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      1.4.1
+// @version      1.4
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @match        http://*.stackoverflow.com/questions/*
@@ -26,7 +26,6 @@
 
 (function(){
     "use strict";
-    
     var reasons = {
         't': 'too broad', 
         'u': 'unclear',
@@ -38,9 +37,9 @@
         'f': 'serverfault',
         get: function(r) { return this[r]; }
     };
-    
+
     var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
-    
+
     function isVersionNewer(proposed, current) {
         proposed = proposed.split(".");
         current = current.split(".");
@@ -58,22 +57,27 @@
         }
         return false;
     }
-    
-    function checkUpdates(force) {
-        $.getScript('https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version.js',function(){
-            console.log(VERSION,GM_info.script.version);
-            if(isVersionNewer(VERSION,GM_info.script.version)) {
-                var lastAcknowledgedVersion = getStorage('LastAcknowledgedVersion');
-                if(lastAcknowledgedVersion != VERSION || force) {
-                    if(confirm('A new version of The Close Vote Request Generator is available, would you like to install it now?'))
-                        window.location.href = URL;
-                    else
-                        setStorage('LastAcknowledgedVersion',VERSION);
-                }
-            } else if(force) alert('No new version available');
+
+    function checkUpdates(force) {        
+        GM_xmlhttpRequest({
+            method: 'GET',
+            url: 'https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version',
+            onload: function(response) {
+                var VERSION = response.responseText;
+                console.log(VERSION,GM_info.script.version);
+                if(isVersionNewer(VERSION,GM_info.script.version)) {
+                    var lastAcknowledgedVersion = getStorage('LastAcknowledgedVersion');
+                    if(lastAcknowledgedVersion != VERSION || force) {
+                        if(confirm('A new version of The Close Vote Request Generator is available, would you like to install it now?'))
+                            window.location.href = URL;
+                        else
+                            setStorage('LastAcknowledgedVersion',VERSION);
+                    }
+                } else if(force) alert('No new version available');
+            }
         });
     }
-    
+
     function sendRequest(roomURL,result) {            
         GM_xmlhttpRequest({
             method: 'GET',
@@ -103,7 +107,7 @@
             }
         });
     }
-    
+
     function cvRequest() {
         if(!roomURL) {
             alert('Invalid room URL. Please set a valid room.');
@@ -120,18 +124,18 @@
         var result = '[tag:cv-pls] ' + reason + ' ' + tit + ' - ' + usr + ' ' + tim;
         sendRequest(roomURL,result);
     }
-    
+
     function getRoom(room) {
         var m = /(http:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)\/rooms\/(.*)\/.*/.exec(room);
         if(m) return [m[1],m[4]];
         return false;
     }
-    
+
     //Wrap local storage access so that we avoid collisions with other scripts
     var prefix = "SECloseVoteRequestGenerator_"; //prefix to avoid clashes in localstorage
     function getStorage(key) { return localStorage[prefix + key]; }
     function setStorage(key, val) { return (localStorage[prefix + key] = val); }
-    
+
     var base = 'http://' + window.location.hostname;
 
     if(!getStorage(base + 'room'))
@@ -159,16 +163,16 @@
         if(cvList.is(':visible'))
             cvList.hide();
     });
-    
+
     $('a').not(cvButton).on('click',function(){
         if(cvList.is(':visible')) cvList.hide();
     });
-    
+
     cvButton.on('click', function(e){ 
         e.stopPropagation();
         cvList.toggle(); 
     });
-    
+
     cvListRoom.on('click',function(e){
         e.stopPropagation();
         cvList.hide();
@@ -182,23 +186,22 @@
         roomURL = roomURLt;
         setStorage(base + 'room', room = response);
     });
-    
+
     cvListSend.on('click',function(e){
         e.stopPropagation();
         cvRequest();
     });
-    
+
     cvListUpdt.on('click',function(e){
         e.stopPropagation();
         cvList.hide();
         checkUpdates(true);
     });
-    
+
     $(document).keydown(function(e) {
         if(e.ctrlKey && e.shiftKey && e.which === 65)
             cvRequest();
     });
-    
+
     checkUpdates();
-    
 })();
