@@ -1,1 +1,1 @@
-var VERSION = '1.3';
+var VERSION = '1.4';
