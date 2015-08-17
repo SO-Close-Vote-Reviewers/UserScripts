@@ -39,3 +39,14 @@ They can also be sent whether you are in the target room or not, as long as you 
   *  Any markdown that is acceptable in chat is acceptable in the reason dialog.
 3. Click <kbd>OK</kbd> on the prompt or press <kbd>enter</kbd> on your keyboard to submit the request. 
   * Clicking on the <kbd>X</kbd> or <kbd>Cancel</kbd> in the dialog will cancel the request.
+
+###Short Reasons
+This script has a short reason replacement feature. Basically what this means is that if you submit a one-letter reason and it matches a predefined short reason, the script will replace that letter with its corresponding reason.
+* `t: too broad` 
+* `u: unclear`
+* `p: pob`
+* `d: duplicate`
+* `m: no mcve`
+* `r: no repro`
+* `s: superuser`
+* `f: serverfault`
