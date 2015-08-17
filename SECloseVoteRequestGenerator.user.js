@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      1.4.2
+// @version      1.4.3
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @match        http://*.stackoverflow.com/questions/*
@@ -26,6 +26,7 @@
 
 (function(){
     "use strict";
+
     var reasons = {
         't': 'too broad', 
         'u': 'unclear',
@@ -35,7 +36,7 @@
         'r': 'no repro',
         's': 'superuser',
         'f': 'serverfault',
-        get: function(r) { return this[r]; }
+        get: function(r) { return r.length === 1 && this[r] ? this[r] : r; }
     };
 
     var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
@@ -63,8 +64,8 @@
             method: 'GET',
             url: 'https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version',
             onload: function(response) {
-                var VERSION = response.responseText;
-                console.log(VERSION,GM_info.script.version);
+                var VERSION = response.responseText.trim();
+                //console.log(GM_info.script.version,VERSION);
                 if(isVersionNewer(VERSION,GM_info.script.version)) {
                     var lastAcknowledgedVersion = getStorage('LastAcknowledgedVersion');
                     if(lastAcknowledgedVersion != VERSION || force) {
@@ -85,7 +86,7 @@
             onload: function(response) {
                 var fkey = response.responseText.match(/hidden" value="([\dabcdef]{32})/)[1];
                 if(!fkey) {
-                    alert('Failed retrieving key, is the room URL valid?');
+                    StackExchange.notify.show('Failed retrieving key, is the room URL valid?',1);
                     return false;
                 }
                 GM_xmlhttpRequest({
@@ -95,38 +96,28 @@
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                     data: 'text=' + encodeURIComponent(result) + '&fkey=' + fkey,
                     onload: function() {
-                        alert('Close vote request sent.');
+                        StackExchange.notify.show('Close vote request sent.',1);
+                        spinner.remove();
+                        $('div', cvList).hide();
+                        cvList.hide();
                     },
                     onerror: function() {
-                        alert('Failed sending close vote request.');
+                        StackExchange.notify.show('Failed sending close vote request.',1);
+                        spinner.remove();
+                        $('div', cvList).hide();
+                        cvList.hide();
                     }
                 });
             },
             onerror: function() {
-                alert('Failed retrieving fkey from chat.');
+                StackExchange.notify.show('Failed retrieving fkey from chat.',1);
             }
         });
     }
 
-    function cvRequest() {
-        if(!roomURL) {
-            alert('Invalid room URL. Please set a valid room.');
-            return false;
-        }
-        cvList.hide();
-        var reason = window.prompt('Reason for closing'); 
-        if(!reason) return false;
-        if(reason.length === 1 && reasons.get(reason))
-            reason = reasons.get(reason);
-        var tit = '[' + $('#question-header h1 a').text() + '](' + base + $('#question .short-link').attr('href') + ')'; 
-        var usr = '[' + $('#question .owner a').text() + '](' + base + $('#question .owner a').attr('href') + ')';
-        var tim = $('#question .owner .relativetime').html();
-        var result = '[tag:cv-pls] ' + reason + ' ' + tit + ' - ' + usr + ' ' + tim;
-        sendRequest(roomURL,result);
-    }
 
     function getRoom(room) {
-        var m = /(http:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)\/rooms\/(.*)\/.*/.exec(room);
+        var m = /(https?:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)\/rooms\/(.*)\/.*/.exec(room);
         if(m) return [m[1],m[4]];
         return false;
     }
@@ -144,13 +135,16 @@
     var room = getStorage(base + 'room');
     var roomURL = getRoom(room);
 
-    var cvButton = $('<a href="javascript:void(0)" style="position:relative;display:inline-block">cv-pls</a>');
-    var cvList = $('<dl style="display:none;position:absolute;white-space:nowrap;border:1px solid #eee;padding: 5px 10px;border-radius:3px;background:#FFF;box-shadow:0px 1px 5px -2px black"/>');
-    var cvListRoom = $('<dd><a href="javascript:void(0)">Set target room</a>');
-    var cvListSend = $('<dd><a href="javascript:void(0)">Send request</a>');
-    var cvListUpdt = $('<dd><a href="javascript:void(0)">Check for updates</a>');
-    var cvListSep = $('<dd style="border-bottom: 1px solid #eee;margin: 2.5px 0;"/>');
+    var spinner = $('<img src="http://i.imgur.com/vrjXpiS.gifv">');
+    var style      = $('<style>.cv-button { position:relative;display:inline-block } .cv-list { display:none;position:absolute;white-space:nowrap;border:1px solid #eee;padding: 7.5px;border-radius:3px;background:#FFF;box-shadow:0px 1px 5px -2px black } .cv-list dd { margin: 5px; } .cv-list-sep { border-bottom: 1px solid #eee;margin: 2.5px 0 } .cv-list a { display: block; } .cv-list input { display: inline-block; vertical-align: middle; } .cv-list input:first-child { margin-right: 5px; } .cv-list a div:focus { display: block }</style>');
+    var cvButton   = $('<a href="javascript:void(0)" class="cv-button">cv-pls</a>');
+    var cvList     = $('<dl class="cv-list" />');
+    var cvListRoom = $('<dd><a href="javascript:void(0)">Set target room</a><div style="display:none"><form><input type="text"/><input type="submit"></form></div></dd>');
+    var cvListSend = $('<dd><a href="javascript:void(0)">Send request</a><div style="display:none"><form><input type="text"/><input type="submit"></form></div></dd>');
+    var cvListUpdt = $('<dd><a href="javascript:void(0)">Check for updates</a></dd>');
+    var cvListSep  = $('<dd class="cv-list-sep"/>');
 
+    cvList.append(style);
     cvList.append(cvListRoom);
     cvList.append(cvListSep.clone());
     cvList.append(cvListSend);
@@ -164,23 +158,34 @@
             cvList.hide();
     });
 
-    $('a').not(cvButton).on('click',function(){
+    $('a:not(.cv-button,.cv-button a)').on('click',function(){
         if(cvList.is(':visible')) cvList.hide();
+    });
+    $('.cv-list *:not(a)').on('click',function(e){
+        e.stopPropagation();
     });
 
     cvButton.on('click', function(e){ 
         e.stopPropagation();
         cvList.toggle(); 
+        $('div', cvList).hide();
     });
 
     cvListRoom.on('click',function(e){
         e.stopPropagation();
-        cvList.hide();
-        var response = window.prompt('Paste the URL of the room.', room);
+        var div = $('div', this).toggle();
+        $('div', cvList).not(div).hide();
+        $('input[type="text"]', this).val(getStorage(base + 'room'));
+        if(div.is(':visible')) $('input[type="text"]', div).focus();
+    });
+    $('form', cvListRoom).on('submit',function(e) {
+        e.preventDefault();
+        var response = $('input[type="text"]', this).val();
+        console.log(response);
         if(!response) return false;
         var roomURLt = getRoom(response);
         if(!roomURLt) {
-            alert('Invalid room URL. Please set a valid room.');
+            StackExchange.notify.show('Invalid room URL. Please set a valid room.');
             return false;
         }
         roomURL = roomURLt;
@@ -189,7 +194,29 @@
 
     cvListSend.on('click',function(e){
         e.stopPropagation();
-        cvRequest();
+        var div = $('div', this).toggle();
+        $('div', cvList).not(div).hide();
+        if(div.is(':visible')) $('input[type="text"]', div).focus();
+    });
+
+    $('form', cvListSend).on('submit',function(e){
+        e.preventDefault();
+        $('div', this).append(spinner);
+        if(!roomURL) {
+            StackExchange.notify.show('Invalid room URL. Please set a valid room.');
+            return false;
+        }
+        var reason = $('input[type="text"]', cvListSend).val();
+        if(!reason) return false;
+        reason = reasons.get(reason);
+        var tit = '[' + $('#question-header h1 a').text() + '](' + base + $('#question .short-link').attr('href') + ')'; 
+        var usr = '[' + $('#question .owner a').text() + '](' + base + $('#question .owner a').attr('href') + ')';
+        var tim = $('#question .owner .relativetime').html();
+        var result = '[tag:cv-pls] ' + reason + ' ' + tit + ' - ' + usr + ' ' + tim;
+        sendRequest(roomURL,result);
+    });
+    $('input[type="text"]', cvListRoom).on('focus', function(){
+        $(this).select();
     });
 
     cvListUpdt.on('click',function(e){
@@ -198,9 +225,11 @@
         checkUpdates(true);
     });
 
-    $(document).keydown(function(e) {
-        if(e.ctrlKey && e.shiftKey && e.which === 65)
-            cvRequest();
+    $(document).keyup(function(e) {
+        if(e.ctrlKey && e.shiftKey && e.which === 65) {
+            cvList.show();
+            cvListSend.click();
+        } 
     });
 
     checkUpdates();
