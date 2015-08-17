@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      1.4.3
+// @version      1.4.4
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @match        http://*.stackoverflow.com/questions/*
@@ -41,6 +41,13 @@
 
     var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
 
+    function notify(m,p) {
+        StackExchange.notify.show(m,1);
+        if(!p) setTimeout(function(){
+            StackExchange.notify.close(1);
+        },1000);
+    }
+    
     function isVersionNewer(proposed, current) {
         proposed = proposed.split(".");
         current = current.split(".");
@@ -86,7 +93,7 @@
             onload: function(response) {
                 var fkey = response.responseText.match(/hidden" value="([\dabcdef]{32})/)[1];
                 if(!fkey) {
-                    StackExchange.notify.show('Failed retrieving key, is the room URL valid?',1);
+                    notify('Failed retrieving key, is the room URL valid?');
                     return false;
                 }
                 GM_xmlhttpRequest({
@@ -96,13 +103,13 @@
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                     data: 'text=' + encodeURIComponent(result) + '&fkey=' + fkey,
                     onload: function() {
-                        StackExchange.notify.show('Close vote request sent.',1);
+                        notify('Close vote request sent.');
                         spinner.remove();
                         $('div', cvList).hide();
                         cvList.hide();
                     },
                     onerror: function() {
-                        StackExchange.notify.show('Failed sending close vote request.',1);
+                        notify('Failed sending close vote request.',p);
                         spinner.remove();
                         $('div', cvList).hide();
                         cvList.hide();
@@ -110,7 +117,7 @@
                 });
             },
             onerror: function() {
-                StackExchange.notify.show('Failed retrieving fkey from chat.',1);
+                notify('Failed retrieving fkey from chat.',p);
             }
         });
     }
@@ -185,11 +192,12 @@
         if(!response) return false;
         var roomURLt = getRoom(response);
         if(!roomURLt) {
-            StackExchange.notify.show('Invalid room URL. Please set a valid room.');
+            notify('Invalid room URL. Please set a valid room.',p);
             return false;
         }
         roomURL = roomURLt;
         setStorage(base + 'room', room = response);
+        notify('Target room changed to ' + room);
     });
 
     cvListSend.on('click',function(e){
@@ -203,7 +211,7 @@
         e.preventDefault();
         $('div', this).append(spinner);
         if(!roomURL) {
-            StackExchange.notify.show('Invalid room URL. Please set a valid room.');
+            notify('Invalid room URL. Please set a valid room.',p);
             return false;
         }
         var reason = $('input[type="text"]', cvListSend).val();
