@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      1.4.5
+// @version      1.4.6
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @match        http://*.stackoverflow.com/questions/*
@@ -85,6 +85,11 @@
             }
         });
     }
+    
+    function hideMenu() {
+        $('div', cvList).hide();
+        cvList.hide();
+    }
 
     function sendRequest(roomURL,result) {            
         GM_xmlhttpRequest({
@@ -105,14 +110,12 @@
                     onload: function() {
                         notify('Close vote request sent.');
                         spinner.remove();
-                        $('div', cvList).hide();
-                        cvList.hide();
+                        hideMenu();
                     },
                     onerror: function() {
                         notify('Failed sending close vote request.',true);
                         spinner.remove();
-                        $('div', cvList).hide();
-                        cvList.hide();
+                        hideMenu();
                     }
                 });
             },
@@ -175,11 +178,12 @@
 
     $(document).on('click',function(){
         if(cvList.is(':visible'))
-            cvList.hide();
+            hideMenu();
     });
 
     $('a:not(.cv-button,.cv-button a)').on('click',function(){
-        if(cvList.is(':visible')) cvList.hide();
+        if(cvList.is(':visible')) 
+            hideMenu();
     });
     $('.cv-list *:not(a)').on('click',function(e){
         e.stopPropagation();
@@ -187,8 +191,8 @@
 
     cvButton.on('click', function(e){ 
         e.stopPropagation();
-        cvList.toggle(); 
         $('div', cvList).hide();
+        cvList.toggle(); 
     });
 
     cvListRoom.on('click',function(e){
@@ -245,7 +249,7 @@
 
     cvListUpdt.on('click',function(e){
         e.stopPropagation();
-        cvList.hide();
+        hideMenu();
         checkUpdates(true);
     });
     
@@ -256,10 +260,14 @@
 
     $(document).keyup(function(e) {
         if(e.ctrlKey && e.shiftKey && e.which === 65) {
-            cvList.show();
-            cvListSend.click();
+            if(cvList.is(':hidden')) {
+                cvList.show();
+                $('div', cvListSend).show().find('input[type="text"]').focus();
+            } else {
+                hideMenu();
+            }
         } 
     });
 
-    checkUpdates();
+    setTimeout(checkUpdates);
 })();
