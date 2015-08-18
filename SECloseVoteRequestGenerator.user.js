@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      1.4.4
+// @version      1.4.5
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @match        http://*.stackoverflow.com/questions/*
@@ -81,7 +81,7 @@
                         else
                             setStorage('LastAcknowledgedVersion',VERSION);
                     }
-                } else if(force) alert('No new version available');
+                } else if(force) notify('No new version available',true);
             }
         });
     }
@@ -121,6 +121,11 @@
             }
         });
     }
+    
+    function appendInfo() {
+        if(getStorage('appendInfo') === "1") return true;
+        return false;
+    }
 
 
     function getRoom(room) {
@@ -138,9 +143,14 @@
 
     if(!getStorage(base + 'room'))
         setStorage(base + 'room', 'http://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers');
+    
+    if(!getStorage('appendInfo'))
+        setStorage('appendInfo', 1);
 
     var room = getStorage(base + 'room');
     var roomURL = getRoom(room);
+    
+    console.log(appendInfo(),getStorage('appendInfo'));
 
     var spinner = $('<img src="http://i.imgur.com/vrjXpiS.gifv">');
     var style      = $('<style>.cv-button { position:relative;display:inline-block } .cv-list { display:none;position:absolute;white-space:nowrap;border:1px solid #eee;padding: 7.5px;border-radius:3px;background:#FFF;box-shadow:0px 1px 5px -2px black } .cv-list dd { margin: 5px; } .cv-list-sep { border-bottom: 1px solid #eee;margin: 2.5px 0 } .cv-list a { display: block; } .cv-list input { display: inline-block; vertical-align: middle; } .cv-list input:first-child { margin-right: 5px; } .cv-list a div:focus { display: block }</style>');
@@ -149,6 +159,7 @@
     var cvListRoom = $('<dd><a href="javascript:void(0)">Set target room</a><div style="display:none"><form><input type="text"/><input type="submit"></form></div></dd>');
     var cvListSend = $('<dd><a href="javascript:void(0)">Send request</a><div style="display:none"><form><input type="text"/><input type="submit"></form></div></dd>');
     var cvListUpdt = $('<dd><a href="javascript:void(0)">Check for updates</a></dd>');
+    var cvListAppd = $('<dd><label for="append-info"><input type="checkbox" id="append-info"' + (appendInfo() ? ' checked' : '') + '>Append user / time</label></dd>');
     var cvListSep  = $('<dd class="cv-list-sep"/>');
 
     cvList.append(style);
@@ -157,6 +168,8 @@
     cvList.append(cvListSend);
     cvList.append(cvListSep.clone());
     cvList.append(cvListUpdt);
+    cvList.append(cvListSep.clone());
+    cvList.append(cvListAppd);
     cvButton.append(cvList);
     $('#question .post-menu').append(cvButton);
 
@@ -218,9 +231,12 @@
         if(!reason) return false;
         reason = reasons.get(reason);
         var tit = '[' + $('#question-header h1 a').text() + '](' + base + $('#question .short-link').attr('href') + ')'; 
-        var usr = '[' + $('#question .owner a').text() + '](' + base + $('#question .owner a').attr('href') + ')';
-        var tim = $('#question .owner .relativetime').html();
-        var result = '[tag:cv-pls] ' + reason + ' ' + tit + ' - ' + usr + ' ' + tim;
+        var result = '[tag:cv-pls] ' + reason + ' ' + tit;
+        if(appendInfo()) {
+            var usr = '[' + $('#question .owner a').text() + '](' + base + $('#question .owner a').attr('href') + ')';
+            var tim = $('#question .owner .relativetime').html();
+            result += ' - ' + usr + ' ' + tim;
+        }
         sendRequest(roomURL,result);
     });
     $('input[type="text"]', cvListRoom).on('focus', function(){
@@ -231,6 +247,11 @@
         e.stopPropagation();
         cvList.hide();
         checkUpdates(true);
+    });
+    
+    cvListAppd.on('change','#append-info',function(e) {
+        e.stopPropagation();
+        setStorage('appendInfo',(e.target.checked ? 1 : 2));
     });
 
     $(document).keyup(function(e) {
