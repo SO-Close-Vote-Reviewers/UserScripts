@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      1.4.7
+// @version      1.4.6
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @match        http://*.stackoverflow.com/questions/*
@@ -43,8 +43,6 @@ StackExchange.ready(function(){
     function notify(m,t) {
         var timeout;
         if(getStorage('notifyStyle') === 'fancy') {
-            clearTimeout(timeout);
-            StackExchange.notify.close(1);
             StackExchange.notify.show(m,1);
             if(t) timeout = setTimeout(function(){
                 StackExchange.notify.close(1);
@@ -167,9 +165,7 @@ StackExchange.ready(function(){
         return success;
     };
     RoomList.count = function() {
-        var count = 1;
-        this.each(function() { ++count; });
-        return count;
+        return Object.keys(this.rooms).length;
     };
     RoomList.name = function(name)  { return this.search('name',name);  };
     RoomList.index = function(name) { return this.search('index',name); };
@@ -287,7 +283,7 @@ StackExchange.ready(function(){
         CVRGUI.list   = $('<dl class="cv-list" />');
         CVRGUI.css    = $('<style>.post-menu > span > a{padding:0 3px 2px 3px;color:#888}.post-menu > span > a:hover{color:#444;text-decoration:none} .cvrgui { position:relative;display:inline-block } .cvrgui * { box-sizing: border-box } .cv-list { display: none; margin:0; z-index:1; position:absolute; white-space:nowrap; border:1px solid #ccc;border-radius:3px;background:#FFF;box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5) } .cv-list dd, .cv-list dl { margin: 0; padding: 0; } .cv-list dl dd { padding: 0px; margin: 0; width: 100%; display: table } .cv-list dl label, .cv-list dl button { display: table-cell } .cv-list dl button { margin: 2.5px 0; } .cv-list dl label { width: 100%; padding: 0px; }  .cv-list * { vertical-align: middle; } .cv-list dd > div { padding: 0px 15px; padding-bottom: 15px; } .cv-list dd > div > form { white-space: nowrap } .cv-list dd > div > form > input { display: inline-block; vertical-align: middle } .cv-list dd > div > form > input[type="text"] { width: 300px; margin-right: 5px; } .cv-list hr { margin:0 15px; border: 0px; border-bottom: 1px solid #ccc; } .cv-list a { display: block; padding: 10px 15px;}  .cv-list label { display: inline-block; padding: 10px 15px;} .cv-list label:last-child { padding-left: 0; }</style>');
         CVRGUI.target = (function(){
-            var span = $('<span/>');
+            var span = $('<span id="#target"/>');
             RoomList.getRoom(function(room){
                 span.html(room.name);
             });
@@ -307,9 +303,9 @@ StackExchange.ready(function(){
                     });
                     list.on('submit',function(e){
                         e.preventDefault();
-                        var value = $('button', e.target).val();
-                        var room = RoomList.url(value);
-                        if($(':selected', $(e.target).parent()).length) {
+                        var room = RoomList.url($('button', e.target).val());
+                        if($('[checked]', $(this)).length) {
+                            console.log(RoomList.count());
                             if(RoomList.count() === 1) {
                                 notify('Cannot remove last room');
                                 return false;
@@ -332,7 +328,8 @@ StackExchange.ready(function(){
                     }));
                     (function(div){
                         item.append($('<a href="javascript:void(0)">Target room: </a>').on('click',function(e){
-                            e.stopPropagation();
+                            if($(this).is(e.currentTarget))
+                                e.stopPropagation();
                             div.toggle();
                             $('div', CVRGUI.list).not(div).hide();
                             if(div.is(':visible')) $('input[type="text"]', div).focus();
