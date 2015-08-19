@@ -4,22 +4,22 @@
 // @version      1.4.7
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
-// @match        http://*.stackoverflow.com/questions/*
-// @match        http://*.stackexchange.com/questions/*
-// @match        http://*.stackoverflow.com/questions/*
-// @match        http://*.serverfault.com/questions/*
-// @match        http://*.superuser.com/questions/*
-// @match        http://*.askubuntu.com/questions/*
-// @match        http://*.stackapps.com/questions/*
-// @match        http://*.mathoverflow.net/questions/*
-// @exclude      http://*.stackoverflow.com/questions/tagged/*
-// @exclude      http://*.stackexchange.com/questions/tagged/*
-// @exclude      http://*.stackoverflow.com/questions/tagged/*
-// @exclude      http://*.serverfault.com/questions/tagged/*
-// @exclude      http://*.superuser.com/questions/tagged/*
-// @exclude      http://*.askubuntu.com/questions/tagged/*
-// @exclude      http://*.stackapps.com/questions/tagged/*
-// @exclude      http://*.mathoverflow.net/questions/tagged/*
+// @match        *://*.stackoverflow.com/questions/*
+// @match        *://*.stackexchange.com/questions/*
+// @match        *://*.stackoverflow.com/questions/*
+// @match        *://*.serverfault.com/questions/*
+// @match        *://*.superuser.com/questions/*
+// @match        *://*.askubuntu.com/questions/*
+// @match        *://*.stackapps.com/questions/*
+// @match        *://*.mathoverflow.net/questions/*
+// @exclude      *://*.stackoverflow.com/questions/tagged/*
+// @exclude      *://*.stackexchange.com/questions/tagged/*
+// @exclude      *://*.stackoverflow.com/questions/tagged/*
+// @exclude      *://*.serverfault.com/questions/tagged/*
+// @exclude      *://*.superuser.com/questions/tagged/*
+// @exclude      *://*.askubuntu.com/questions/tagged/*
+// @exclude      *://*.stackapps.com/questions/tagged/*
+// @exclude      *://*.mathoverflow.net/questions/tagged/*
 // @require      https://code.jquery.com/jquery-2.1.4.min.js
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
@@ -43,14 +43,10 @@ if(typeof StackExchange === "undefined")
     var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
     function notify(m,t) {
         var timeout;
-        if(getStorage('notifyStyle') === 'fancy') {
-            StackExchange.notify.show(m,1);
-            if(t) timeout = setTimeout(function(){
-                StackExchange.notify.close(1);
-            },t);
-        } else {
-            alert(m);
-        }
+        StackExchange.notify.show(m,1);
+        if(t) timeout = setTimeout(function(){
+            StackExchange.notify.close(1);
+        },t);
     }
 
     function isVersionNewer(proposed, current) {
@@ -242,7 +238,7 @@ if(typeof StackExchange === "undefined")
             }
         },url);
     };
-    RoomList.init = function() {
+    RoomList.init = function(callback) {
         var rooms = getStorage('rooms');
         if(rooms) {
             this.rooms = JSON.parse(getStorage('rooms'));
@@ -251,6 +247,7 @@ if(typeof StackExchange === "undefined")
         this.getRoom(function(room) {
             if(room)
                 RoomList.rooms = room.rooms;
+                callback();
         });
     };
 
@@ -259,21 +256,16 @@ if(typeof StackExchange === "undefined")
     function getStorage(key) { return localStorage[prefix + key]; }
     function setStorage(key, val) { return (localStorage[prefix + key] = val); }
 
-        var base = 'http://' + window.location.hostname;
+    var base = 'http://' + window.location.hostname;
 
-        if(!getStorage(base + 'room'))
-            setStorage(base + 'room', 'http://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers');
+    if(!getStorage(base + 'room'))
+        setStorage(base + 'room', 'http://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers');
 
-        if(!getStorage('appendInfo'))
-            setStorage('appendInfo', 1);
+    if(!getStorage('appendInfo'))
+        setStorage('appendInfo', 1);
 
-        if(!getStorage('notifyStyle'))
-            setStorage('notifyStyle', 'fancy');
-        
-        if(!StackExchange)
-            setStorage('notifyStyle', 'classic');
-
-        RoomList.init();
+    RoomList.init(function(){
+    });
 
         var CVRGUI = {};
         CVRGUI.wrp    = $('<span class="cvrgui" />');
@@ -339,8 +331,7 @@ if(typeof StackExchange === "undefined")
             })(),
             send:    $('<dd><a href="javascript:void(0)">Send request</a><div style="display:none"><form><input type="text"/><input type="submit" value="Send"></form></div><hr></dd>'),
             update:  $('<dd><a href="javascript:void(0)">Check for updates</a><hr></dd>'),
-            stamp:   $('<dd><label><input type="checkbox"' + (appendInfo() ? ' checked' : '') + '>Append user / time</label><hr></dd>'),
-            notify:  $('<dd><span style="padding-left: 15px;display: inline-block;">Notification Style:</span><label><input type="radio" name="notify-style" value="classic"' + (getStorage('notifyStyle') === 'classic' ? ' checked' : '') + '>Prompt</label><label><input type="radio" name="notify-style" value="fancy"' + (getStorage('notifyStyle') === 'fancy' ? ' checked' : '') + '>Input</label></dd>')
+            stamp:   $('<dd><label><input type="checkbox"' + (appendInfo() ? ' checked' : '') + '>Append user / time</label><hr></dd>')
         };
         if(!StackExchange)
             delete CVRGUI.items.notify;
@@ -373,14 +364,9 @@ if(typeof StackExchange === "undefined")
 
         CVRGUI.items.send.on('click',function(e){
             e.stopPropagation();
-            if(getStorage('notifyStyle') === 'fancy') {
-                var div = $('div', this).toggle();
-                $('div', CVRGUI.list).not(div).hide();
-                if(div.is(':visible')) $('input[type="text"]', div).focus();
-            } else {
-                $('input[type="text"]', CVRGUI.items.send).val(prompt('Please enter reason'));
-                $('form', CVRGUI.items.send).submit();
-            }
+            var div = $('div', this).toggle();
+            $('div', CVRGUI.list).not(div).hide();
+            if(div.is(':visible')) $('input[type="text"]', div).focus();
         });
 
         $('form', CVRGUI.items.send).on('submit',function(e){
