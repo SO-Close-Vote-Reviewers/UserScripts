@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      1.4.6
+// @version      1.4.7
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @match        http://*.stackoverflow.com/questions/*
@@ -24,9 +24,9 @@
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
 
-(function(){
+StackExchange.ready(function(){
     "use strict";
-    localStorage.clear();
+    
     var reasons = {
         't': 'too broad', 
         'u': 'unclear',
@@ -40,11 +40,13 @@
     };
 
     var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
-
     function notify(m,t) {
+        var timeout;
         if(getStorage('notifyStyle') === 'fancy') {
+            clearTimeout(timeout);
+            StackExchange.notify.close(1);
             StackExchange.notify.show(m,1);
-            if(t) setTimeout(function(){
+            if(t) timeout = setTimeout(function(){
                 StackExchange.notify.close(1);
             },t);
         } else {
@@ -96,37 +98,36 @@
     }
 
     function sendRequest(result) {
-        var room = RoomList.getRoom();
-        GM_xmlhttpRequest({
-            method: 'GET',
-            url: room.url,
-            onload: function(response) {
-                var fkey = response.responseText.match(/hidden" value="([\dabcdef]{32})/)[1];
-                if(!fkey) {
-                    notify('Failed retrieving key, is the room URL valid?');
-                    return false;
-                }
-                GM_xmlhttpRequest({
-                    synchronous: true,
-                    method: 'POST',
-                    url: room.host + '/chats/' + room.id + '/messages/new',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    data: 'text=' + encodeURIComponent(result) + '&fkey=' + fkey,
-                    onload: function() {
-                        notify('Close vote request sent.',1000);
-                        spinner.remove();
-                        hideMenu();
-                    },
-                    onerror: function() {
-                        notify('Failed sending close vote request.');
-                        spinner.remove();
-                        hideMenu();
+        RoomList.getRoom(function(room){
+            GM_xmlhttpRequest({
+                method: 'GET',
+                url: room.url,
+                onload: function(response) {
+                    var fkey = response.responseText.match(/hidden" value="([\dabcdef]{32})/)[1];
+                    if(!fkey) {
+                        notify('Failed retrieving key, is the room URL valid?');
+                        return false;
                     }
-                });
-            },
-            onerror: function() {
-                notify('Failed retrieving fkey from chat.');
-            }
+                    GM_xmlhttpRequest({
+                        synchronous: true,
+                        method: 'POST',
+                        url: room.host + '/chats/' + room.id + '/messages/new',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        data: 'text=' + encodeURIComponent(result) + '&fkey=' + fkey,
+                        onload: function() {
+                            notify('Close vote request sent.',1000);
+                            hideMenu();
+                        },
+                        onerror: function() {
+                            notify('Failed sending close vote request.');
+                            hideMenu();
+                        }
+                    });
+                },
+                onerror: function() {
+                    notify('Failed retrieving fkey from chat.');
+                }
+            });
         });
     }
 
@@ -140,8 +141,8 @@
     RoomList.save = function() {
         var rooms = {}
         this.each(function(room,i){
+            delete room.rooms;
             rooms[i] = room;
-            room.rooms = {};
         });
         return setStorage('rooms',JSON.stringify(rooms));
     };
@@ -180,69 +181,80 @@
         room.index = index;
         if(RoomList.index(index))
             this.spread(index);
+        room.rooms = this.rooms;
         this.rooms[room.url] = room;
         this.save();
         return this.rooms[room.url];
     };
-    RoomList.setRoom = function(room) {
-        if(typeof room === "string") {
-            room = this.getRoom(room);
-            if(!room)
-                return false;
-        } 
-        if(!room)
-            room = RoomList.getRoom();
-        setStorage(base + 'room', room.url);
-        notify('Target room changed to ' + room.name,2500);
-        return this;
-    };
-    RoomList.getRoom = function(url) {
+    RoomList.getRoom = function(callback,url) {
         var rooms = this.rooms;
-        if(url) {
-            var m = /(https?:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)\/rooms\/(.*)\/.*/.exec(url);
-            if(m) {
-                var room = RoomList.url(url);
-                if(room)
-                    return room;
-                var success;
-                GM_xmlhttpRequest({
-                    method: 'GET',
-                    url: url,
-                    synchronous: true,
-                    onload: function(response){
-                        var name = /.*<title>(.*)\ \|.*/.exec(response.response);
-                        if(!name) {
-                            notify('Failed retrieving room name. Is it a valid room?');
-                        } else {
-                            success = RoomList.insert({ 
-                                host: m[1],
-                                url: url,
-                                id: m[4],
-                                name: name[1],
-                                rooms: rooms
-                            });
-                            console.log(success);
-                        }
-                    },
-                    onerror: function(){
-                        notify('Failed retrieving room name. Is it a valid room?');
-                    }
-                });
-                console.log(success);
-                return success;
+        if(!url) 
+            url = getStorage(base + 'room');
+        var m = /(https?:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)\/rooms\/(.*)\/.*/.exec(url);
+        if(m) {
+            var room = RoomList.url(url);
+            if(room) {
+                callback(room);
+                return false;
             }
-            return false;
+            GM_xmlhttpRequest({
+                method: 'GET',
+                url: url,
+                synchronous: true,
+                onload: function(response){
+                    var name = /.*<title>(.*)\ \|.*/.exec(response.response);
+                    if(!name) {
+                        notify('Failed finding room name. Is it a valid room?');
+                        callback(false);
+                    } else {
+                        callback(RoomList.insert({ 
+                            host: m[1],
+                            url: url,
+                            id: m[4],
+                            name: name[1],
+                            rooms: rooms
+                        }));
+                    }
+                },
+                onerror: function(){
+                    notify('Failed retrieving room name. Is it a valid room?');
+                    callback(false);
+                }
+            });
         } else {
-            return this.getRoom(getStorage(base + 'room'));
+            console.log(url);
+            notify('The chat room URL you supplied is invalid.');
+            callback(false);
         }
+    };
+    RoomList.setRoom = function(url) {
+        var exists;
+        if(this.url(url))
+            exists = true;
+        RoomList.getRoom(function(room) {
+            if(room && getStorage(base + 'room') !== room.url) {
+                setStorage(base + 'room',room.url);
+                CVRGUI.roomList.find('input[type="checkbox"]').prop('checked',false);
+                if(!exists)
+                    CVRGUI.roomList.append($('<dd><label><input type="radio" name="target-room" value="' + room.url + '" checked>' + room.name + '</label><form><button value="' + room.url + '">-</button></form></dd>'));
+                else
+                    CVRGUI.roomList.find('[value="' + room.url + '"]').prop('checked', true);
+                notify('Target room changed to ' + room.name,2500);
+                //$('div', CVRGUI.room).hide();
+            }
+        },url);
     };
     RoomList.init = function() {
         try {
             var rooms = getStorage('rooms');
-            if(!rooms)
-                return false;
-            this.rooms = JSON.parse(getStorage('rooms'));
-            this.each(function(room){ room.rooms = this.rooms; });
+            if(rooms) {
+                this.rooms = JSON.parse(getStorage('rooms'));
+                this.each(function(room){ room.rooms = this.rooms; });
+            }
+            this.getRoom(function(room) {
+                if(room)
+                    this.rooms = room.rooms;
+            });
         } catch(e) {
             console.log(e);
         }
@@ -267,18 +279,65 @@
 
         RoomList.init();
 
-        var spinner = $('<img src="http://i.imgur.com/vrjXpiS.gifv">');
-
         var CVRGUI = {};
         CVRGUI.wrp    = $('<span class="cvrgui" />');
         CVRGUI.button = $('<a href="javascript:void(0)" class="cv-button">cv-pls</a>');
         CVRGUI.list   = $('<dl class="cv-list" />');
-        CVRGUI.css    = $('<style>.cvrgui { position:relative;display:inline-block } .cvrgui * { box-sizing: border-box } .cv-list { display: none; margin:0; position:absolute; white-space:nowrap; border:1px solid #ccc;border-radius:3px;background:#FFF;box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5) } .cv-list dd { margin: 0; } .cv-list dd > div { padding: 0px 15px; padding-bottom: 15px; } .cv-list dd > div > form { white-space: nowrap } .cv-list dd > div > form > input { display: inline-block; vertical-align: middle } .cv-list dd > div > form > input[type="text"] { width: 300px; margin-right: 5px; } .cv-list hr { margin:0 15px; } .cv-list a { display: block; padding: 10px 15px;}  .cv-list label { display: inline-block; padding: 10px 15px;} .cv-list label:last-child { padding-left: 0; }</style>');
+        CVRGUI.css    = $('<style>.cvrgui { position:relative;display:inline-block } .cvrgui * { box-sizing: border-box } .cv-list { display: none; margin:0; z-index:1; position:absolute; white-space:nowrap; border:1px solid #ccc;border-radius:3px;background:#FFF;box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5) } .cv-list dd, .cv-list dl { margin: 0; padding: 0; } .cv-list dl dd { padding: 0px; margin: 0; width: 100%; display: table } .cv-list dl label, .cv-list dl button { display: table-cell } .cv-list dl button { margin: 2.5px 0; } .cv-list dl label { width: 100%; padding: 0px; }  .cv-list * { vertical-align: middle; } .cv-list dd > div { padding: 0px 15px; padding-bottom: 15px; } .cv-list dd > div > form { white-space: nowrap } .cv-list dd > div > form > input { display: inline-block; vertical-align: middle } .cv-list dd > div > form > input[type="text"] { width: 300px; margin-right: 5px; } .cv-list hr { margin:0 15px; } .cv-list a { display: block; padding: 10px 15px;}  .cv-list label { display: inline-block; padding: 10px 15px;} .cv-list label:last-child { padding-left: 0; }</style>');
         CVRGUI.items  = {
-            room:    $('<dd><a href="javascript:void(0)">Set target room</a><div style="display:none"><form><input type="text"/><input type="submit" value="Set"></form></div><hr></dd>'),
+            room:    (function(){
+                var item = $('<dd></dd>');
+                var list = $('<dl>');
+                var div = $('<div style="display:none"/>');
+                RoomList.getRoom(function(r){
+                    RoomList.each(function(room){
+                        list.append($('<dd><label><input type="radio" name="target-room" value="' + room.url + '"' + (r.url === room.url ? ' checked' : '' ) + '>' + room.name + '</label><form><button value="' + room.url + '">-</button></form></dd>'));
+                    });
+                    list.on('change',function(e){
+                        RoomList.setRoom(e.target.value);
+                    });
+                    list.on('submit',function(e){
+                        e.preventDefault();
+                        var value = $('button', e.target).val();
+                        var room = RoomList.url(value);
+                        if($(':selected', $(e.target).parent()).length) {
+                            if(RoomList.count() === 1) {
+                                notify('Cannot remove last room');
+                                return false;
+                            }
+                            $('input[name="target-room"]:not([value="' + room.url + '"])').eq(0).prop('checked',true);
+                        }
+                        if(room) {
+                            delete RoomList.rooms[room.url];
+                            RoomList.save();
+                            console.log(RoomList.rooms);
+                        }
+                        $(e.target).parent().remove();
+                    });
+                    div.append(list);
+                    div.append($('<form><input type="text"/><input type="submit" value="Set"></form>').on('submit',function(e) {
+                        e.preventDefault();
+                        var response = $('input[type="text"]', this).val();
+                        if(!response) return false;
+                        RoomList.setRoom(response);
+                    }));
+                    (function(div){
+                        item.append($('<a href="javascript:void(0)">Set target room</a>').on('click',function(e){
+                            e.stopPropagation();
+                            div.toggle();
+                            $('div', CVRGUI.list).not(div).hide();
+                            if(div.is(':visible')) $('input[type="text"]', div).focus();
+                        }));
+                    })(div);
+                    item.append(div);
+                    item.append($('<hr>'));
+                    CVRGUI.roomList = list;
+                });
+                return item;
+            })(),
             send:    $('<dd><a href="javascript:void(0)">Send request</a><div style="display:none"><form><input type="text"/><input type="submit" value="Send"></form></div><hr></dd>'),
             update:  $('<dd><a href="javascript:void(0)">Check for updates</a><hr></dd>'),
-            stamp:   $('<dd><label for="append-info"><input type="checkbox" id="append-info"' + (appendInfo() ? ' checked' : '') + '>Append user / time</label><hr></dd>'),
+            stamp:   $('<dd><label><input type="checkbox"' + (appendInfo() ? ' checked' : '') + '>Append user / time</label><hr></dd>'),
             notify:  $('<dd><label><input type="radio" name="notify-style" value="classic"' + (getStorage('notifyStyle') === 'classic' ? ' checked' : '') + '>Classic</label><label><input type="radio" name="notify-style" value="fancy"' + (getStorage('notifyStyle') === 'fancy' ? ' checked' : '') + '>Fancy</label></dd>')
         };
         for(var item in CVRGUI.items) {
@@ -308,20 +367,7 @@
             CVRGUI.list.toggle(); 
         });
 
-        CVRGUI.items.room.on('click',function(e){
-            e.stopPropagation();
-            var div = $('div', this).toggle();
-            $('div', CVRGUI.list).not(div).hide();
-            $('input[type="text"]', this).val(getStorage(base + 'room'));
-            if(div.is(':visible')) $('input[type="text"]', div).focus();
-        });
-        $('form', CVRGUI.items.room).on('submit',function(e) {
-            e.preventDefault();
-            var response = $('input[type="text"]', this).val();
-            if(!response) return false;
-            RoomList.setRoom(response);
-            $(this).parent().hide();
-        });
+        
 
         CVRGUI.items.send.on('click',function(e){
             e.stopPropagation();
@@ -337,7 +383,6 @@
 
         $('form', CVRGUI.items.send).on('submit',function(e){
             e.preventDefault();
-            $('div', this).append(spinner);
             var reason = $('input[type="text"]', CVRGUI.items.send).val();
             if(!reason) return false;
             reason = reasons.get(reason);
@@ -393,5 +438,5 @@
             } 
         });
         setTimeout(checkUpdates);
-    } catch(exception) {  console.log(exception) };
-})();
+    } catch(exception) {  console.log(exception); }
+});
