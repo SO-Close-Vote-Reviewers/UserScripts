@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      1.4.6
+// @version      1.4.7
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @match        http://*.stackoverflow.com/questions/*
@@ -24,9 +24,10 @@
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
 
-StackExchange.ready(function(){
-    "use strict";
+if(typeof StackExchange === "undefined")
+    var StackExchange = unsafeWindow.StackExchange;
 
+(function(){
     var reasons = {
         't': 'too broad', 
         'u': 'unclear',
@@ -107,7 +108,6 @@ StackExchange.ready(function(){
                         return false;
                     }
                     GM_xmlhttpRequest({
-                        synchronous: true,
                         method: 'POST',
                         url: room.host + '/chats/' + room.id + '/messages/new',
                         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -133,7 +133,7 @@ StackExchange.ready(function(){
         if(getStorage('appendInfo') === "1") return true;
         return false;
     }
-
+    
     var RoomList = {};
     RoomList.rooms = {};
     RoomList.save = function() {
@@ -196,7 +196,6 @@ StackExchange.ready(function(){
             GM_xmlhttpRequest({
                 method: 'GET',
                 url: url,
-                synchronous: true,
                 onload: function(response){
                     var name = /.*<title>(.*)\ \|.*/.exec(response.response);
                     if(!name) {
@@ -230,12 +229,13 @@ StackExchange.ready(function(){
         RoomList.getRoom(function(room) {
             if(room && getStorage(base + 'room') !== room.url) {
                 setStorage(base + 'room',room.url);
-                CVRGUI.roomList.find('input[type="checkbox"]').prop('checked',false);
+                CVRGUI.roomList.find('[type="checkbox"]').prop('checked',false);
                 if(!exists)
-                    CVRGUI.roomList.append($('<dd><label><input type="radio" name="target-room" value="' + room.url + '" checked>' + room.name + '</label><form><button value="' + room.url + '">-</button></form></dd>'));
+                    CVRGUI.roomList.append($('<dd><label><input type="radio" name="target-room" value="' + room.url + '" checked>' + room.name + '</label><form><button>-</button></form></dd>'));
                 else
                     CVRGUI.roomList.find('[value="' + room.url + '"]').prop('checked', true);
                 CVRGUI.target.html(room.name);
+                $('input[type="text"]', CVRGUI.items.room).val('');
                 $('div', CVRGUI.items.room).hide();
                 $('div', CVRGUI.items.send).show();
                 $('input[type="text"]', CVRGUI.items.send).focus();
@@ -243,19 +243,15 @@ StackExchange.ready(function(){
         },url);
     };
     RoomList.init = function() {
-        try {
-            var rooms = getStorage('rooms');
-            if(rooms) {
-                this.rooms = JSON.parse(getStorage('rooms'));
-                this.each(function(room){ room.rooms = this.rooms; });
-            }
-            this.getRoom(function(room) {
-                if(room)
-                    this.rooms = room.rooms;
-            });
-        } catch(e) {
-            console.log(e);
+        var rooms = getStorage('rooms');
+        if(rooms) {
+            this.rooms = JSON.parse(getStorage('rooms'));
+            this.each(function(room){ room.rooms = RoomList.rooms; });
         }
+        this.getRoom(function(room) {
+            if(room)
+                RoomList.rooms = room.rooms;
+        });
     };
 
     //Wrap local storage access so that we avoid collisions with other scripts
@@ -263,7 +259,6 @@ StackExchange.ready(function(){
     function getStorage(key) { return localStorage[prefix + key]; }
     function setStorage(key, val) { return (localStorage[prefix + key] = val); }
 
-    try {
         var base = 'http://' + window.location.hostname;
 
         if(!getStorage(base + 'room'))
@@ -274,6 +269,9 @@ StackExchange.ready(function(){
 
         if(!getStorage('notifyStyle'))
             setStorage('notifyStyle', 'fancy');
+        
+        if(!StackExchange)
+            setStorage('notifyStyle', 'classic');
 
         RoomList.init();
 
@@ -281,7 +279,7 @@ StackExchange.ready(function(){
         CVRGUI.wrp    = $('<span class="cvrgui" />');
         CVRGUI.button = $('<a href="javascript:void(0)" class="cv-button">cv-pls</a>');
         CVRGUI.list   = $('<dl class="cv-list" />');
-        CVRGUI.css    = $('<style>.post-menu > span > a{padding:0 3px 2px 3px;color:#888}.post-menu > span > a:hover{color:#444;text-decoration:none} .cvrgui { position:relative;display:inline-block } .cvrgui * { box-sizing: border-box } .cv-list { display: none; margin:0; z-index:1; position:absolute; white-space:nowrap; border:1px solid #ccc;border-radius:3px;background:#FFF;box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5) } .cv-list dd, .cv-list dl { margin: 0; padding: 0; } .cv-list dl dd { padding: 0px; margin: 0; width: 100%; display: table } .cv-list dl label, .cv-list dl button { display: table-cell } .cv-list dl button { margin: 2.5px 0; } .cv-list dl label { width: 100%; padding: 0px; }  .cv-list * { vertical-align: middle; } .cv-list dd > div { padding: 0px 15px; padding-bottom: 15px; } .cv-list dd > div > form { white-space: nowrap } .cv-list dd > div > form > input { display: inline-block; vertical-align: middle } .cv-list dd > div > form > input[type="text"] { width: 300px; margin-right: 5px; } .cv-list hr { margin:0 15px; border: 0px; border-bottom: 1px solid #ccc; } .cv-list a { display: block; padding: 10px 15px;}  .cv-list label { display: inline-block; padding: 10px 15px;} .cv-list label:last-child { padding-left: 0; }</style>');
+        CVRGUI.css    = $('<style>.post-menu > span > a{padding:0 3px 2px 3px;color:#888}.post-menu > span > a:hover{color:#444;text-decoration:none} .cvrgui { position:relative;display:inline-block } .cvrgui * { box-sizing: border-box } .cv-list { display: none; margin:0; z-index:1; position:absolute; white-space:nowrap; border:1px solid #ccc;border-radius:3px;background:#FFF;box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5) } .cv-list dd, .cv-list dl { margin: 0; padding: 0; } .cv-list dl dd { padding: 0px; margin: 0; width: 100%; display: table } .cv-list dl label, .cv-list dl form { display: table-cell } .cv-list dl button { margin: 2.5px 0; } .cv-list dl label { width: 100%; padding: 0px; }  .cv-list * { vertical-align: middle; } .cv-list dd > div { padding: 0px 15px; padding-bottom: 15px; } .cv-list dd > div > form { white-space: nowrap } .cv-list dd > div > form > input { display: inline-block; vertical-align: middle } .cv-list dd > div > form > input[type="text"] { width: 300px; margin-right: 5px; } .cv-list hr { margin:0 15px; border: 0px; border-bottom: 1px solid #ccc; } .cv-list a { display: block; padding: 10px 15px;}  .cv-list label { display: inline-block; padding: 10px 15px;} .cv-list label:last-child { padding-left: 0; }</style>');
         CVRGUI.target = (function(){
             var span = $('<span id="#target"/>');
             RoomList.getRoom(function(room){
@@ -296,28 +294,26 @@ StackExchange.ready(function(){
                 var div = $('<div style="display:none"/>');
                 RoomList.getRoom(function(r){
                     RoomList.each(function(room){
-                        list.append($('<dd><label><input type="radio" name="target-room" value="' + room.url + '"' + (r.url === room.url ? ' checked' : '' ) + '>' + room.name + '</label><form><button value="' + room.url + '">-</button></form></dd>'));
+                        list.append($('<dd><label><input type="radio" name="target-room" value="' + room.url + '"' + (r.url === room.url ? ' checked' : '' ) + '>' + room.name + '</label><form><button>-</button></form></form></dd>'));
                     });
                     list.on('change',function(e){
                         RoomList.setRoom(e.target.value);
                     });
-                    list.on('submit',function(e){
+                    list.on('submit', function(e){
                         e.preventDefault();
-                        var room = RoomList.url($('button', e.target).val());
-                        if($('[checked]', $(this)).length) {
-                            console.log(RoomList.count());
+                        var room = RoomList.url($('[name="target-room"]', $(e.target).parent()).val());
+                        if(room) {
                             if(RoomList.count() === 1) {
                                 notify('Cannot remove last room');
                                 return false;
                             }
-                            $('input[name="target-room"]:not([value="' + room.url + '"])').eq(0).prop('checked',true);
-                        }
-                        if(room) {
+                            if($('[checked]', $(e.target).parent()).length) {
+                                RoomList.setRoom($('input[name="target-room"]:not([value="' + room.url + '"])', list).val());
+                            }
                             delete RoomList.rooms[room.url];
                             RoomList.save();
-                            console.log(RoomList.rooms);
-                        }
                         $(e.target).parent().remove();
+                        }
                     });
                     div.append(list);
                     div.append($('<form><input type="text"/><input type="submit" value="Set"></form>').on('submit',function(e) {
@@ -344,8 +340,10 @@ StackExchange.ready(function(){
             send:    $('<dd><a href="javascript:void(0)">Send request</a><div style="display:none"><form><input type="text"/><input type="submit" value="Send"></form></div><hr></dd>'),
             update:  $('<dd><a href="javascript:void(0)">Check for updates</a><hr></dd>'),
             stamp:   $('<dd><label><input type="checkbox"' + (appendInfo() ? ' checked' : '') + '>Append user / time</label><hr></dd>'),
-            notify:  $('<dd><label><input type="radio" name="notify-style" value="classic"' + (getStorage('notifyStyle') === 'classic' ? ' checked' : '') + '>Classic</label><label><input type="radio" name="notify-style" value="fancy"' + (getStorage('notifyStyle') === 'fancy' ? ' checked' : '') + '>Fancy</label></dd>')
+            notify:  $('<dd><span style="padding-left: 15px;display: inline-block;">Notification Style:</span><label><input type="radio" name="notify-style" value="classic"' + (getStorage('notifyStyle') === 'classic' ? ' checked' : '') + '>Prompt</label><label><input type="radio" name="notify-style" value="fancy"' + (getStorage('notifyStyle') === 'fancy' ? ' checked' : '') + '>Input</label></dd>')
         };
+        if(!StackExchange)
+            delete CVRGUI.items.notify;
         for(var item in CVRGUI.items) {
             CVRGUI.list.append(CVRGUI.items[item]);
         }
@@ -372,8 +370,6 @@ StackExchange.ready(function(){
             $('div', CVRGUI.list).hide();
             CVRGUI.list.toggle(); 
         });
-
-
 
         CVRGUI.items.send.on('click',function(e){
             e.stopPropagation();
@@ -411,16 +407,18 @@ StackExchange.ready(function(){
             checkUpdates(true);
         });
 
-        CVRGUI.items.stamp.on('change','#append-info',function(e) {
+        CVRGUI.items.stamp.on('change',function(e) {
             e.stopPropagation();
+            console.log(e.target.checked)
             setStorage('appendInfo',(e.target.checked ? 1 : 2));
         });
-
-        $('input', CVRGUI.items.notify).on('change',function(){
-            setStorage('notifyStyle',this.value);
-            if(this.value === 'classic')
-                $('div', CVRGUI.list).hide();
-        });
+        if(StackExchange) {
+            $('input', CVRGUI.items.notify).on('change',function(){
+                setStorage('notifyStyle',this.value);
+                if(this.value === 'classic')
+                    $('div', CVRGUI.list).hide();
+            });
+        }
 
         var combo;
         $(document).keydown(function(e) {
@@ -444,5 +442,4 @@ StackExchange.ready(function(){
             } 
         });
         setTimeout(checkUpdates);
-    } catch(exception) {  console.log(exception); }
-});
+})();
