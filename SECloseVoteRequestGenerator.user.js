@@ -256,6 +256,10 @@ if(typeof StackExchange === "undefined")
                 $('input[type="text"]', div).focus();
             } else {
                 var link = this;
+                RoomList.getRoom(function(room){
+                    $(link).html(room.name);
+                })
+                var link = this;
             }
         })
         RoomList.getRoom(function(room){
