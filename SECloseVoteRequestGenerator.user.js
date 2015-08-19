@@ -26,7 +26,7 @@
 
 StackExchange.ready(function(){
     "use strict";
-    
+
     var reasons = {
         't': 'too broad', 
         'u': 'unclear',
@@ -239,8 +239,10 @@ StackExchange.ready(function(){
                     CVRGUI.roomList.append($('<dd><label><input type="radio" name="target-room" value="' + room.url + '" checked>' + room.name + '</label><form><button value="' + room.url + '">-</button></form></dd>'));
                 else
                     CVRGUI.roomList.find('[value="' + room.url + '"]').prop('checked', true);
-                notify('Target room changed to ' + room.name,2500);
-                //$('div', CVRGUI.room).hide();
+                CVRGUI.target.html(room.name);
+                $('div', CVRGUI.items.room).hide();
+                $('div', CVRGUI.items.send).show();
+                $('input[type="text"]', CVRGUI.items.send).focus();
             }
         },url);
     };
@@ -283,7 +285,14 @@ StackExchange.ready(function(){
         CVRGUI.wrp    = $('<span class="cvrgui" />');
         CVRGUI.button = $('<a href="javascript:void(0)" class="cv-button">cv-pls</a>');
         CVRGUI.list   = $('<dl class="cv-list" />');
-        CVRGUI.css    = $('<style>.cvrgui { position:relative;display:inline-block } .cvrgui * { box-sizing: border-box } .cv-list { display: none; margin:0; z-index:1; position:absolute; white-space:nowrap; border:1px solid #ccc;border-radius:3px;background:#FFF;box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5) } .cv-list dd, .cv-list dl { margin: 0; padding: 0; } .cv-list dl dd { padding: 0px; margin: 0; width: 100%; display: table } .cv-list dl label, .cv-list dl button { display: table-cell } .cv-list dl button { margin: 2.5px 0; } .cv-list dl label { width: 100%; padding: 0px; }  .cv-list * { vertical-align: middle; } .cv-list dd > div { padding: 0px 15px; padding-bottom: 15px; } .cv-list dd > div > form { white-space: nowrap } .cv-list dd > div > form > input { display: inline-block; vertical-align: middle } .cv-list dd > div > form > input[type="text"] { width: 300px; margin-right: 5px; } .cv-list hr { margin:0 15px; } .cv-list a { display: block; padding: 10px 15px;}  .cv-list label { display: inline-block; padding: 10px 15px;} .cv-list label:last-child { padding-left: 0; }</style>');
+        CVRGUI.css    = $('<style>.post-menu > span > a{padding:0 3px 2px 3px;color:#888}.post-menu > span > a:hover{color:#444;text-decoration:none} .cvrgui { position:relative;display:inline-block } .cvrgui * { box-sizing: border-box } .cv-list { display: none; margin:0; z-index:1; position:absolute; white-space:nowrap; border:1px solid #ccc;border-radius:3px;background:#FFF;box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5) } .cv-list dd, .cv-list dl { margin: 0; padding: 0; } .cv-list dl dd { padding: 0px; margin: 0; width: 100%; display: table } .cv-list dl label, .cv-list dl button { display: table-cell } .cv-list dl button { margin: 2.5px 0; } .cv-list dl label { width: 100%; padding: 0px; }  .cv-list * { vertical-align: middle; } .cv-list dd > div { padding: 0px 15px; padding-bottom: 15px; } .cv-list dd > div > form { white-space: nowrap } .cv-list dd > div > form > input { display: inline-block; vertical-align: middle } .cv-list dd > div > form > input[type="text"] { width: 300px; margin-right: 5px; } .cv-list hr { margin:0 15px; border: 0px; border-bottom: 1px solid #ccc; } .cv-list a { display: block; padding: 10px 15px;}  .cv-list label { display: inline-block; padding: 10px 15px;} .cv-list label:last-child { padding-left: 0; }</style>');
+        CVRGUI.target = (function(){
+            var span = $('<span/>');
+            RoomList.getRoom(function(room){
+                span.html(room.name);
+            });
+            return span;
+        })();
         CVRGUI.items  = {
             room:    (function(){
                 var item = $('<dd></dd>');
@@ -322,12 +331,12 @@ StackExchange.ready(function(){
                         RoomList.setRoom(response);
                     }));
                     (function(div){
-                        item.append($('<a href="javascript:void(0)">Set target room</a>').on('click',function(e){
+                        item.append($('<a href="javascript:void(0)">Target room: </a>').on('click',function(e){
                             e.stopPropagation();
                             div.toggle();
                             $('div', CVRGUI.list).not(div).hide();
                             if(div.is(':visible')) $('input[type="text"]', div).focus();
-                        }));
+                        }).append(CVRGUI.target));
                     })(div);
                     item.append(div);
                     item.append($('<hr>'));
@@ -367,7 +376,7 @@ StackExchange.ready(function(){
             CVRGUI.list.toggle(); 
         });
 
-        
+
 
         CVRGUI.items.send.on('click',function(e){
             e.stopPropagation();
