@@ -87,7 +87,8 @@ if(typeof StackExchange === "undefined")
     }
 
     function hideMenu() {
-        $('div', CVRGUI.list).hide();
+        closeTarget();
+        $('div', CVRGUI.items.send).hide();
         CVRGUI.list.hide();
     }
 
