@@ -32,10 +32,7 @@ if(typeof StackExchange === "undefined")
         get: function(r) {  
             var a = r.split(' ');
             a.forEach(function(v,i){ 
-                console.log(a[i]);
                 a[i] = reasons[v] && v !== 'get' ? reasons[v] : v; 
-                console.log(a[i]);
-                
             });
             return a.join(' '); 
         }
