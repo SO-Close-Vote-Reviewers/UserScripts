@@ -378,8 +378,10 @@ if(typeof StackExchange === "undefined")
 
     var combo;
     $(document).keydown(function(e) {
-        if(e.ctrlKey && e.shiftKey && e.which === 65)
+        if(e.ctrlKey && e.shiftKey && e.which === 65) {
+            e.preventDefault();
             combo = true;
+        }
     });
     $(document).keyup(function(e) {
         if(combo) {
