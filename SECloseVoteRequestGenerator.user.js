@@ -12,14 +12,6 @@
 // @match        *://*.askubuntu.com/questions/*
 // @match        *://*.stackapps.com/questions/*
 // @match        *://*.mathoverflow.net/questions/*
-// @exclude      *://*.stackoverflow.com/questions/tagged/*
-// @exclude      *://*.stackexchange.com/questions/tagged/*
-// @exclude      *://*.stackoverflow.com/questions/tagged/*
-// @exclude      *://*.serverfault.com/questions/tagged/*
-// @exclude      *://*.superuser.com/questions/tagged/*
-// @exclude      *://*.askubuntu.com/questions/tagged/*
-// @exclude      *://*.stackapps.com/questions/tagged/*
-// @exclude      *://*.mathoverflow.net/questions/tagged/*
 // @require      https://code.jquery.com/jquery-2.1.4.min.js
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
@@ -41,12 +33,20 @@ if(typeof StackExchange === "undefined")
     };
 
     var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
+    var notifyint = 0;
     function notify(m,t) {
         var timeout;
-        StackExchange.notify.show(m,1);
-        if(t) timeout = setTimeout(function(){
-            StackExchange.notify.close(1);
-        },t);
+        (function(i){
+            var div = $('#notify-' + (i - 1));
+            if(div.length) {
+                clearTimeout(timeout);
+                if(i > 1)StackExchange.notify.close(i-1);
+            }
+            StackExchange.notify.show(m,i);
+            if(t) timeout = setTimeout(function(){
+                StackExchange.notify.close(i);
+            },t);
+        })(++notifyint);
     }
 
     function isVersionNewer(proposed, current) {
@@ -213,11 +213,7 @@ if(typeof StackExchange === "undefined")
                     CVRGUI.roomList.append($('<dd><label><input type="radio" name="target-room" value="' + room.url + '" checked>' + room.name + '</label><form><button>-</button></form></dd>'));
                 else
                     CVRGUI.roomList.find('[value="' + room.url + '"]').prop('checked', true);
-                CVRGUI.target.html(room.name);
-                $('input[type="text"]', CVRGUI.items.room).val('');
-                $('div', CVRGUI.items.room).hide();
-                $('div', CVRGUI.items.send).show();
-                $('input[type="text"]', CVRGUI.items.send).focus();
+                closeTarget();
             }
         },url);
     };
@@ -249,24 +245,23 @@ if(typeof StackExchange === "undefined")
     CVRGUI.target = (function(){
         var link = $('<a href="javascript:void(0)"></a>').on('click',function(){
             var div = $('div', $(this).parent());
-            div.toggle();
             $('div', CVRGUI.list).not(div).hide();
-            if(div.is(':visible')) {
+            if(div.is(':hidden')) {
+                div.show().find('[type="text"]').focus();
                 $(this).html('Set target room:');
-                $('input[type="text"]', div).focus();
-            } else {
-                var link = this;
-                RoomList.getRoom(function(room){
-                    $(link).html(room.name);
-                })
-                var link = this;
-            }
+            } else closeTarget();
         })
         RoomList.getRoom(function(room){
             link.html(room.name);
         });
         return link;
     })();
+    function closeTarget() {
+        RoomList.getRoom(function(room){ $(CVRGUI.target).html(room.name); });
+        $('div', CVRGUI.items.room).hide();
+        $('div', CVRGUI.items.send).show();
+        $('input[type="text"]', CVRGUI.items.send).focus();
+    }
     CVRGUI.items  = {
         send:    $('<dd><a href="javascript:void(0)">Send request</a><div style="display:none"><form><input type="text"/><input type="submit" value="Send"></form></div><hr></dd>'),
         room:    (function(){
@@ -310,7 +305,7 @@ if(typeof StackExchange === "undefined")
             });
             return item;
         })(),
-        update:  $('<dd><a href="javascript:void(0)">Check for updates</a><hr></dd>')
+        update:  $('<dd><a href="javascript:void(0)">Check for updates</a>   </dd>')
     };
     for(var item in CVRGUI.items) {
         CVRGUI.list.append(CVRGUI.items[item]);
@@ -345,9 +340,9 @@ if(typeof StackExchange === "undefined")
 
     CVRGUI.items.send.on('click',function(e){
         e.stopPropagation();
-        var div = $('div', this).toggle();
-        $('div', CVRGUI.list).not(div).hide();
-        if(div.is(':visible')) $('input[type="text"]', div).focus();
+        if($('div', CVRGUI.items.send).is(':hidden'))
+            closeTarget();
+        else $('div', CVRGUI.items.send).hide();
     });
 
     $('form', CVRGUI.items.send).on('submit',function(e){
@@ -356,10 +351,12 @@ if(typeof StackExchange === "undefined")
         if(!reason) return false;
         reason = reasons.get(reason);
         var tit = '[' + $('#question-header h1 a').text().replace(/\[(.*)\]/g, '($1)') + '](' + base + $('#question .short-link').attr('href') + ')'; 
-        var usr = '[' + $('#question .owner a').text() + '](' + base + $('#question .owner a').attr('href') + ')';
-        var tim = $('#question .owner .relativetime').attr('title');
-        tim = tim.substring(0,tim.length-1);
-        var result = '[tag:cv-pls] ' + reason + ' ' + tit + ' - ' + usr + ' ' + tim;
+        var nam = $('#question .owner a').text();
+        if(nam) {
+            var usr = '[' + nam + '](' + base + $('#question .owner a').attr('href') + ')';
+            var tim = $('#question .owner .relativetime').attr('title');
+        }
+        var result = '[tag:cv-pls] ' + reason + ' ' + tit + (nam ? ' - ' + usr + ' ' + tim : ' - Community Wiki');
         sendRequest(result);
     });
 
