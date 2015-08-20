@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      1.4.7
+// @version      1.4.8
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @match        *://*.stackoverflow.com/questions/*
@@ -29,7 +29,16 @@ if(typeof StackExchange === "undefined")
         'r': 'no repro',
         's': 'superuser',
         'f': 'serverfault',
-        get: function(r) { return r.length === 1 && this[r] ? this[r] : r; }
+        get: function(r) {  
+            var a = r.split(' ');
+            a.forEach(function(v,i){ 
+                console.log(a[i]);
+                a[i] = reasons[v] && v !== 'get' ? reasons[v] : v; 
+                console.log(a[i]);
+                
+            });
+            return a.join(' '); 
+        }
     };
 
     var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
@@ -369,12 +378,10 @@ if(typeof StackExchange === "undefined")
 
     var combo;
     $(document).keydown(function(e) {
-        if(e.ctrlKey && e.shiftKey && e.which === 65) {
-            e.preventDefault();
+        if(e.ctrlKey && e.shiftKey && e.which === 65)
             combo = true;
-        }
     });
-    $(document).keyup(function() {
+    $(document).keyup(function(e) {
         if(combo) {
             combo = false;
             if($('div', CVRGUI.items.send).is(':hidden')) {
