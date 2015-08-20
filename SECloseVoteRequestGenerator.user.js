@@ -1,32 +1,25 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      1.4.6
+// @version      1.4.7
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
-// @match        http://*.stackoverflow.com/questions/*
-// @match        http://*.stackexchange.com/questions/*
-// @match        http://*.stackoverflow.com/questions/*
-// @match        http://*.serverfault.com/questions/*
-// @match        http://*.superuser.com/questions/*
-// @match        http://*.askubuntu.com/questions/*
-// @match        http://*.stackapps.com/questions/*
-// @match        http://*.mathoverflow.net/questions/*
-// @exclude      http://*.stackoverflow.com/questions/tagged/*
-// @exclude      http://*.stackexchange.com/questions/tagged/*
-// @exclude      http://*.stackoverflow.com/questions/tagged/*
-// @exclude      http://*.serverfault.com/questions/tagged/*
-// @exclude      http://*.superuser.com/questions/tagged/*
-// @exclude      http://*.askubuntu.com/questions/tagged/*
-// @exclude      http://*.stackapps.com/questions/tagged/*
-// @exclude      http://*.mathoverflow.net/questions/tagged/*
+// @match        *://*.stackoverflow.com/questions/*
+// @match        *://*.stackexchange.com/questions/*
+// @match        *://*.stackoverflow.com/questions/*
+// @match        *://*.serverfault.com/questions/*
+// @match        *://*.superuser.com/questions/*
+// @match        *://*.askubuntu.com/questions/*
+// @match        *://*.stackapps.com/questions/*
+// @match        *://*.mathoverflow.net/questions/*
 // @require      https://code.jquery.com/jquery-2.1.4.min.js
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
 
-(function(){
-    "use strict";
+if(typeof StackExchange === "undefined")
+    var StackExchange = unsafeWindow.StackExchange;
 
+(function(){
     var reasons = {
         't': 'too broad', 
         'u': 'unclear',
@@ -40,14 +33,22 @@
     };
 
     var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
-
-    function notify(m,p) {
-        StackExchange.notify.show(m,1);
-        if(!p) setTimeout(function(){
-            StackExchange.notify.close(1);
-        },1000);
+    var notifyint = 0;
+    function notify(m,t) {
+        var timeout;
+        (function(i){
+            var div = $('#notify-' + (i - 1));
+            if(div.length) {
+                clearTimeout(timeout);
+                if(i > 1)StackExchange.notify.close(i-1);
+            }
+            StackExchange.notify.show(m,i);
+            if(t) timeout = setTimeout(function(){
+                StackExchange.notify.close(i);
+            },t);
+        })(++notifyint);
     }
-    
+
     function isVersionNewer(proposed, current) {
         proposed = proposed.split(".");
         current = current.split(".");
@@ -66,13 +67,12 @@
         return false;
     }
 
-    function checkUpdates(force) {        
+    function checkUpdates(force) { 
         GM_xmlhttpRequest({
             method: 'GET',
             url: 'https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version',
             onload: function(response) {
                 var VERSION = response.responseText.trim();
-                //console.log(GM_info.script.version,VERSION);
                 if(isVersionNewer(VERSION,GM_info.script.version)) {
                     var lastAcknowledgedVersion = getStorage('LastAcknowledgedVersion');
                     if(lastAcknowledgedVersion != VERSION || force) {
@@ -81,61 +81,149 @@
                         else
                             setStorage('LastAcknowledgedVersion',VERSION);
                     }
-                } else if(force) notify('No new version available',true);
+                } else if(force) notify('No new version available');
             }
         });
-    }
-    
-    function hideMenu() {
-        $('div', cvList).hide();
-        cvList.hide();
     }
 
-    function sendRequest(roomURL,result) {            
-        GM_xmlhttpRequest({
-            method: 'GET',
-            url: roomURL[0] + '/rooms/' + roomURL[1],
-            onload: function(response) {
-                var fkey = response.responseText.match(/hidden" value="([\dabcdef]{32})/)[1];
-                if(!fkey) {
-                    notify('Failed retrieving key, is the room URL valid?');
-                    return false;
-                }
-                GM_xmlhttpRequest({
-                    synchronous: true,
-                    method: 'POST',
-                    url: roomURL[0] + '/chats/' + roomURL[1] + '/messages/new',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    data: 'text=' + encodeURIComponent(result) + '&fkey=' + fkey,
-                    onload: function() {
-                        notify('Close vote request sent.');
-                        spinner.remove();
-                        hideMenu();
-                    },
-                    onerror: function() {
-                        notify('Failed sending close vote request.',true);
-                        spinner.remove();
-                        hideMenu();
+    function hideMenu() {
+        closeTarget();
+        $('div', CVRGUI.items.send).hide();
+        CVRGUI.list.hide();
+    }
+
+    function sendRequest(result) {
+        RoomList.getRoom(function(room){
+            GM_xmlhttpRequest({
+                method: 'GET',
+                url: room.url,
+                onload: function(response) {
+                    var fkey = response.responseText.match(/hidden" value="([\dabcdef]{32})/)[1];
+                    if(!fkey) {
+                        notify('Failed retrieving key, is the room URL valid?');
+                        return false;
                     }
-                });
-            },
-            onerror: function() {
-                notify('Failed retrieving fkey from chat.',true);
-            }
+                    GM_xmlhttpRequest({
+                        method: 'POST',
+                        url: room.host + '/chats/' + room.id + '/messages/new',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        data: 'text=' + encodeURIComponent(result) + '&fkey=' + fkey,
+                        onload: function() {
+                            notify('Close vote request sent.',1000);
+                            hideMenu();
+                        },
+                        onerror: function() {
+                            notify('Failed sending close vote request.');
+                            hideMenu();
+                        }
+                    });
+                },
+                onerror: function() {
+                    notify('Failed retrieving fkey from chat.');
+                }
+            });
         });
     }
-    
+
     function appendInfo() {
         if(getStorage('appendInfo') === "1") return true;
         return false;
     }
 
-
-    function getRoom(room) {
-        var m = /(https?:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)\/rooms\/(.*)\/.*/.exec(room);
-        if(m) return [m[1],m[4]];
-        return false;
-    }
+    var RoomList = {};
+    RoomList.rooms = {};
+    RoomList.save = function() {
+        setStorage('rooms',JSON.stringify(this.rooms));
+        console.log(getStorage('rooms'));
+    };
+    RoomList.each = function(callback) {
+        for(var i in this.rooms)
+            callback(this.rooms[i],i);
+        return this;
+    };
+    RoomList.search = function(key,value) {
+        var success;
+        this.each(function(room){
+            if(room[key] === value)
+                success = room;
+        });
+        return success;
+    };
+    RoomList.count = function() {
+        return Object.keys(this.rooms).length;
+    };
+    RoomList.name = function(name)  { return this.search('name',name);  };
+    RoomList.index = function(name) { return this.search('index',name); };
+    RoomList.id = function(name)    { return this.search('id',name);    };
+    RoomList.url = function(name)   { return this.search('url',name);   };
+    RoomList.insert = function(room) {
+        if(!RoomList.url(room.url)) {
+            this.rooms[room.url] = room;
+            this.save();
+        }
+        return this.rooms[room.url];
+    };
+    RoomList.getRoom = function(callback,url) {
+        var rooms = this.rooms;
+        if(!url) 
+            url = getStorage(base + 'room');
+        var m = /(https?:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)\/rooms\/(.*)\/.*/.exec(url);
+        if(m) {
+            var room = RoomList.url(url);
+            if(room) {
+                if(callback) callback(room);
+                return false;
+            }
+            GM_xmlhttpRequest({
+                method: 'GET',
+                url: url,
+                onload: function(response){
+                    var name = /.*<title>(.*)\ \|.*/.exec(response.response);
+                    if(!name) {
+                        notify('Failed finding room name. Is it a valid room?');
+                        if(callback) callback(false);
+                    } else {
+                        if(callback) callback(RoomList.insert({ 
+                            host: m[1],
+                            url: url,
+                            id: m[4],
+                            name: name[1]
+                        }));
+                    }
+                },
+                onerror: function(){
+                    notify('Failed retrieving room name. Is it a valid room?');
+                    if(callback) callback(false);
+                }
+            });
+        } else {
+            console.log(url);
+            notify('The chat room URL you supplied is invalid.');
+            if(callback) callback(false);
+        }
+    };
+    RoomList.setRoom = function(url) {
+        var exists;
+        if(this.url(url))
+            exists = true;
+        RoomList.getRoom(function(room) {
+            if(room && getStorage(base + 'room') !== room.url) {
+                setStorage(base + 'room',room.url);
+                CVRGUI.roomList.find('[type="checkbox"]').prop('checked',false);
+                if(!exists)
+                    CVRGUI.roomList.append($('<dd><label><input type="radio" name="target-room" value="' + room.url + '" checked>' + room.name + '</label><form><button>-</button></form></dd>'));
+                else
+                    CVRGUI.roomList.find('[value="' + room.url + '"]').prop('checked', true);
+                closeTarget();
+            }
+        },url);
+    };
+    RoomList.init = function() {
+        if(!getStorage('rooms'))
+            RoomList.getRoom();
+        else
+            RoomList.rooms = JSON.parse(getStorage('rooms'));
+    };
 
     //Wrap local storage access so that we avoid collisions with other scripts
     var prefix = "SECloseVoteRequestGenerator_"; //prefix to avoid clashes in localstorage
@@ -147,127 +235,153 @@
     if(!getStorage(base + 'room'))
         setStorage(base + 'room', 'http://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers');
     
-    if(!getStorage('appendInfo'))
-        setStorage('appendInfo', 1);
-
-    var room = getStorage(base + 'room');
-    var roomURL = getRoom(room);
     
-    console.log(appendInfo(),getStorage('appendInfo'));
+    RoomList.init();
 
-    var spinner = $('<img src="http://i.imgur.com/vrjXpiS.gifv">');
-    var style      = $('<style>.cv-button { position:relative;display:inline-block } .cv-list { display:none;position:absolute;white-space:nowrap;border:1px solid #eee;padding: 7.5px;border-radius:3px;background:#FFF;box-shadow:0px 1px 5px -2px black } .cv-list dd { margin: 5px; } .cv-list-sep { border-bottom: 1px solid #eee;margin: 2.5px 0 } .cv-list a { display: block; } .cv-list input { display: inline-block; vertical-align: middle; } .cv-list input:first-child { margin-right: 5px; } .cv-list a div:focus { display: block }</style>');
-    var cvButton   = $('<a href="javascript:void(0)" class="cv-button">cv-pls</a>');
-    var cvList     = $('<dl class="cv-list" />');
-    var cvListRoom = $('<dd><a href="javascript:void(0)">Set target room</a><div style="display:none"><form><input type="text"/><input type="submit"></form></div></dd>');
-    var cvListSend = $('<dd><a href="javascript:void(0)">Send request</a><div style="display:none"><form><input type="text"/><input type="submit"></form></div></dd>');
-    var cvListUpdt = $('<dd><a href="javascript:void(0)">Check for updates</a></dd>');
-    var cvListAppd = $('<dd><label for="append-info"><input type="checkbox" id="append-info"' + (appendInfo() ? ' checked' : '') + '>Append user / time</label></dd>');
-    var cvListSep  = $('<dd class="cv-list-sep"/>');
+    var CVRGUI = {};
+    CVRGUI.wrp    = $('<span class="cvrgui" />');
+    CVRGUI.button = $('<a href="javascript:void(0)" class="cv-button">cv-pls</a>');
+    CVRGUI.list   = $('<dl class="cv-list" />');
+    CVRGUI.css    = $('<style>.post-menu > span > a{padding:0 3px 2px 3px;color:#888}.post-menu > span > a:hover{color:#444;text-decoration:none} .cvrgui { position:relative;display:inline-block } .cvrgui * { box-sizing: border-box } .cv-list { display: none; margin:0; z-index:1; position:absolute; white-space:nowrap; border:1px solid #ccc;border-radius:3px;background:#FFF;box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5) } .cv-list dd, .cv-list dl { margin: 0; padding: 0; } .cv-list dl dd { padding: 0px; margin: 0; width: 100%; display: table } .cv-list dl label, .cv-list dl form { display: table-cell } .cv-list dl button { margin: 2.5px 0; } .cv-list dl label { width: 100%; padding: 0px; }  .cv-list * { vertical-align: middle; } .cv-list dd > div { padding: 0px 15px; padding-bottom: 15px; } .cv-list dd > div > form { white-space: nowrap } .cv-list dd > div > form > input { display: inline-block; vertical-align: middle } .cv-list dd > div > form > input[type="text"] { width: 300px; margin-right: 5px; } .cv-list hr { margin:0 15px; border: 0px; border-bottom: 1px solid #ccc; } .cv-list a { display: block; padding: 10px 15px;}  .cv-list label { display: inline-block; padding: 10px 15px;} .cv-list label:last-child { padding-left: 0; }</style>');
+    CVRGUI.target = (function(){
+        var link = $('<a href="javascript:void(0)"></a>').on('click',function(){
+            var div = $('div', $(this).parent());
+            $('div', CVRGUI.list).not(div).hide();
+            if(div.is(':hidden')) {
+                div.show().find('[type="text"]').focus();
+                $(this).html('Set target room:');
+            } else closeTarget();
+        })
+        RoomList.getRoom(function(room){
+            link.html(room.name);
+        });
+        return link;
+    })();
+    function closeTarget() {
+        RoomList.getRoom(function(room){ $(CVRGUI.target).html(room.name); });
+        $('div', CVRGUI.items.room).hide();
+        $('div', CVRGUI.items.send).show();
+        $('input[type="text"]', CVRGUI.items.send).focus();
+    }
+    CVRGUI.items  = {
+        send:    $('<dd><a href="javascript:void(0)">Send request</a><div style="display:none"><form><input type="text"/><input type="submit" value="Send"></form></div><hr></dd>'),
+        room:    (function(){
+            var item = $('<dd></dd>');
+            var list = $('<dl>');
+            var div = $('<div style="display:none"/>');
+            RoomList.getRoom(function(r){
+                RoomList.each(function(room){
+                    list.append($('<dd><label><input type="radio" name="target-room" value="' + room.url + '"' + (r.url === room.url ? ' checked' : '' ) + '>' + room.name + '</label><form><button>-</button></form></form></dd>'));
+                });
+                list.on('change',function(e){
+                    RoomList.setRoom(e.target.value);
+                });
+                list.on('submit', function(e){
+                    e.preventDefault();
+                    var room = RoomList.url($('[name="target-room"]', $(e.target).parent()).val());
+                    if(room) {
+                        if(RoomList.count() === 1) {
+                            notify('Cannot remove last room');
+                            return false;
+                        }
+                        if($('[checked]', $(e.target).parent()).length) {
+                            RoomList.setRoom($('input[name="target-room"]:not([value="' + room.url + '"])', list).val());
+                        }
+                        delete RoomList.rooms[room.url];
+                        RoomList.save();
+                        $(e.target).parent().remove();
+                    }
+                });
+                div.append(list);
+                div.append($('<form><input type="text"/><input type="submit" value="Set"></form>').on('submit',function(e) {
+                    e.preventDefault();
+                    var response = $('input[type="text"]', this).val();
+                    if(!response) return false;
+                    RoomList.setRoom(response);
+                }));
+                item.append(CVRGUI.target);
+                item.append(div);
+                item.append($('<hr>'));
+                CVRGUI.roomList = list;
+            });
+            return item;
+        })(),
+        update:  $('<dd><a href="javascript:void(0)">Check for updates</a>   </dd>')
+    };
+    for(var item in CVRGUI.items) {
+        CVRGUI.list.append(CVRGUI.items[item]);
+    }
+    CVRGUI.wrp.append(CVRGUI.button);
+    CVRGUI.wrp.append(CVRGUI.list);
+    CVRGUI.wrp.append(CVRGUI.css);
 
-    cvList.append(style);
-    cvList.append(cvListRoom);
-    cvList.append(cvListSep.clone());
-    cvList.append(cvListSend);
-    cvList.append(cvListSep.clone());
-    cvList.append(cvListUpdt);
-    cvList.append(cvListSep.clone());
-    cvList.append(cvListAppd);
-    cvButton.append(cvList);
-    $('#question .post-menu').append(cvButton);
+    $('#question .post-menu').append(CVRGUI.wrp);
+
+
+    RoomList.getRoom(function(room) { CVRGUI.target.html(room.name) });
 
     $(document).on('click',function(){
-        if(cvList.is(':visible'))
+        if(CVRGUI.list.is(':visible'))
             hideMenu();
     });
 
-    $('a:not(.cv-button,.cv-button a)').on('click',function(){
-        if(cvList.is(':visible')) 
+    $('a:not(.cvrgui a)').on('click',function(){
+        if(CVRGUI.list.is(':visible')) 
             hideMenu();
     });
     $('.cv-list *:not(a)').on('click',function(e){
         e.stopPropagation();
     });
 
-    cvButton.on('click', function(e){ 
+    CVRGUI.button.on('click', function(e){ 
         e.stopPropagation();
-        $('div', cvList).hide();
-        cvList.toggle(); 
+        $('div', CVRGUI.list).hide();
+        CVRGUI.list.toggle(); 
     });
 
-    cvListRoom.on('click',function(e){
+    CVRGUI.items.send.on('click',function(e){
         e.stopPropagation();
-        var div = $('div', this).toggle();
-        $('div', cvList).not(div).hide();
-        $('input[type="text"]', this).val(getStorage(base + 'room'));
-        if(div.is(':visible')) $('input[type="text"]', div).focus();
+        if($('div', CVRGUI.items.send).is(':hidden'))
+            closeTarget();
+        else $('div', CVRGUI.items.send).hide();
     });
-    $('form', cvListRoom).on('submit',function(e) {
+
+    $('form', CVRGUI.items.send).on('submit',function(e){
         e.preventDefault();
-        var response = $('input[type="text"]', this).val();
-        console.log(response);
-        if(!response) return false;
-        var roomURLt = getRoom(response);
-        if(!roomURLt) {
-            notify('Invalid room URL. Please set a valid room.',true);
-            return false;
-        }
-        roomURL = roomURLt;
-        setStorage(base + 'room', room = response);
-        notify('Target room changed to ' + room);
-    });
-
-    cvListSend.on('click',function(e){
-        e.stopPropagation();
-        var div = $('div', this).toggle();
-        $('div', cvList).not(div).hide();
-        if(div.is(':visible')) $('input[type="text"]', div).focus();
-    });
-
-    $('form', cvListSend).on('submit',function(e){
-        e.preventDefault();
-        $('div', this).append(spinner);
-        if(!roomURL) {
-            notify('Invalid room URL. Please set a valid room.',true);
-            return false;
-        }
-        var reason = $('input[type="text"]', cvListSend).val();
+        var reason = $('input[type="text"]', CVRGUI.items.send).val();
         if(!reason) return false;
         reason = reasons.get(reason);
-        var tit = '[' + $('#question-header h1 a').text() + '](' + base + $('#question .short-link').attr('href') + ')'; 
-        var result = '[tag:cv-pls] ' + reason + ' ' + tit;
-        if(appendInfo()) {
-            var usr = '[' + $('#question .owner a').text() + '](' + base + $('#question .owner a').attr('href') + ')';
-            var tim = $('#question .owner .relativetime').html();
-            result += ' - ' + usr + ' ' + tim;
+        var tit = '[' + $('#question-header h1 a').text().replace(/\[(.*)\]/g, '($1)') + '](' + base + $('#question .short-link').attr('href') + ')'; 
+        var nam = $('#question .owner a').text();
+        if(nam) {
+            var usr = '[' + nam + '](' + base + $('#question .owner a').attr('href') + ')';
+            var tim = $('#question .owner .relativetime').attr('title');
         }
-        sendRequest(roomURL,result);
-    });
-    $('input[type="text"]', cvListRoom).on('focus', function(){
-        $(this).select();
+        var result = '[tag:cv-pls] ' + reason + ' ' + tit + (nam ? ' - ' + usr + ' ' + tim : ' - Community Wiki');
+        sendRequest(result);
     });
 
-    cvListUpdt.on('click',function(e){
+    CVRGUI.items.update.on('click',function(e){
         e.stopPropagation();
         hideMenu();
         checkUpdates(true);
     });
-    
-    cvListAppd.on('change','#append-info',function(e) {
-        e.stopPropagation();
-        setStorage('appendInfo',(e.target.checked ? 1 : 2));
-    });
 
-    $(document).keyup(function(e) {
-        if(e.ctrlKey && e.shiftKey && e.which === 65) {
-            if(cvList.is(':hidden')) {
-                cvList.show();
-                $('div', cvListSend).show().find('input[type="text"]').focus();
+    var combo;
+    $(document).keydown(function(e) {
+        if(e.ctrlKey && e.shiftKey && e.which === 65)
+            combo = true;
+    });
+    $(document).keyup(function() {
+        if(combo) {
+            combo = false;
+            if($('div', CVRGUI.items.send).is(':hidden')) {
+                CVRGUI.list.show();
+                $('div', CVRGUI.items.send).show().find('input[type="text"]').focus();
             } else {
                 hideMenu();
             }
         } 
     });
-
     setTimeout(checkUpdates);
 })();
