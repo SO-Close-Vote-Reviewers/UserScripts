@@ -369,10 +369,12 @@ if(typeof StackExchange === "undefined")
 
     var combo;
     $(document).keydown(function(e) {
+        e.preventDefault();
         if(e.ctrlKey && e.shiftKey && e.which === 65)
             combo = true;
     });
-    $(document).keyup(function() {
+    $(document).keyup(function(e) {
+        e.preventDefault();
         if(combo) {
             combo = false;
             if($('div', CVRGUI.items.send).is(':hidden')) {
