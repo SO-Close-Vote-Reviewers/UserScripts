@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      1.4.9
+// @version      1.5.0
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @match        *://*.stackoverflow.com/questions/*
@@ -324,9 +324,16 @@ if(typeof StackExchange === "undefined")
     CVRGUI.wrp.append(CVRGUI.css);
 
     $('#question .post-menu').append(CVRGUI.wrp);
-
-
-    RoomList.getRoom(function(room) { CVRGUI.target.html(room.name) });
+    
+    $('.question').on('click', '[type="submit"], .new-post-activity a', function(e){
+        var self = this;
+        var menuCheck = setInterval(function(){
+            if($('#question .post-menu').length === 1) {
+                clearInterval(menuCheck);
+                $('#question .post-menu').append(CVRGUI.wrp);
+            }
+        });
+    });
 
     $(document).on('click',function(){
         if(CVRGUI.list.is(':visible'))
