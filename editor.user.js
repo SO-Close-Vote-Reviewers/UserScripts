@@ -4,6 +4,7 @@
 // @developer      Jonathan Todd (jt0dd)
 // @developer      sathyabhat
 // @contributor    Unihedron
+// @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
 // @version        1.5.1
@@ -311,6 +312,8 @@ var main = function() {
     App.popFuncs = function() {
         // This is where the magic happens: this function takes a few pieces of information and applies edits to the post with a couple exceptions
         App.funcs.fixIt = function(input, expression, replacement, reasoning) {
+            // If there is nothing to search, exit
+            if(!input) return false;
             // Scan the post text using the expression to see if there are any matches
             var match = input.search(expression);
             // If so, increase the number of edits performed (used later for edit summary formation)
@@ -480,12 +483,12 @@ var main = function() {
 
         // Populate or refresh DOM selections
         App.funcs.popSelections = function() {
-            App.selections.redoButton = $('#wmd-redo-button-' + App.globals.questionNum);
-            App.selections.bodyBox = $("#wmd-input-" + App.globals.questionNum);
+            App.selections.redoButton = $('#wmd-redo-button-' + App.globals.targetID);
+            App.selections.bodyBox = $("#wmd-input-" + App.globals.targetID);
             App.selections.titleBox = $(".ask-title-field");
-            App.selections.summaryBox = $("#edit-comment-" + App.globals.questionNum);
+            App.selections.summaryBox = $("#edit-comment-" + App.globals.targetID);
             App.selections.tagField = $($(".tag-editor")[0]);
-            App.selections.submitButton = $("#submit-button-" + App.globals.questionNum);
+            App.selections.submitButton = $("#submit-button-" + App.globals.targetID);
         };
 
         // Populate edit item sets from DOM selections
@@ -565,7 +568,6 @@ var main = function() {
                 if (!App.globals.editsMade) {
                     // Refresh item population
                     App.funcs.popItems();
-
                     // Pipe data through editing modules
                     App.pipe(App.items, App.globals.pipeMods, App.globals.order);
                     App.globals.editsMade = true;
@@ -613,7 +615,6 @@ var main = function() {
                 $(".edit-comment")[0].focus();
                 $(".wmd-input")[0].focus();
             }
-
             window.scrollTo(0, App.globals.currentPos);
             App.globals.infoContent = App.globals.editCount + ' changes made';
             App.selections.buttonInfo.text(App.globals.editCount + ' changes made');
@@ -638,6 +639,7 @@ var main = function() {
         if (!targetID) {
             targetID = App.globals.questionNum;
         }
+        App.globals.targetID = targetID;
 
         App.popFuncs();
         App.funcs.dynamicDelay(function() {
@@ -706,7 +708,7 @@ var main = function() {
                 if (App.globals.lastSelectedElement) {
                     App.globals.lastSelectedElement.focus();
                 } else {
-                    window.scrollTo(0);
+                    window.scrollTo(0, App.globals.currentPos);
                 }
             }, 0);
         }
