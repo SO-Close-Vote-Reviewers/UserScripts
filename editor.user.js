@@ -30,6 +30,16 @@
 // @include        *://askubuntu.com/posts/*
 // @include        *://meta.askubuntu.com/posts/*
 // @include        *://stackapps.com/posts/*
+// @include        *://*.stackexchange.com/review/*
+// @include        *://stackoverflow.com/review/*
+// @include        *://meta.stackoverflow.com/review/*
+// @include        *://serverfault.com/review/*
+// @include        *://meta.serverfault.com/review/*
+// @include        *://superuser.com/review/*
+// @include        *://meta.superuser.com/review/*
+// @include        *://askubuntu.com/review/*
+// @include        *://meta.askubuntu.com/review/*
+// @include        *://stackapps.com/review/*
 // @exclude        *://*.stackexchange.com/questions/tagged/*
 // @exclude        *://stackoverflow.com/questions/tagged/*
 // @exclude        *://meta.stackoverflow.com/questions/tagged/*
@@ -743,20 +753,9 @@ var main = function() {
 
         return data;
     };
-    setTimeout(function() { // Allow post to load entirely
-        if ($(".edit-post")[0]) { // User has editing privileges; wait for button press
-            $(".edit-post").click(function(e) {
-                App.init(true, e.target.href.match(/\d/g).join("")); // If there are multiple posts, we need to pass the post ID
-            });
-        } else if ($(".reviewable-post")[0]) { // H&I review queue
-            App.globals.questionNum = $(".reviewable-post")[0].getAttribute("class").match(/\d/g).join("");
-            $($(".review-actions")[0].children[0]).click(function(e) {
-                App.init(true, App.globals.questionNum);
-            });
-        } else { // User does not have editing privileges or is editing on question page; start immediately
-            App.init(false);
-        }
-    }, 1000);
+    $(document).on('click','.edit-post, [value*="Edit"]', function(e) {
+        App.init(true, e.target.href ? e.target.href.match(/\d/g).join("") : $('.post-id').text()); // If there are multiple posts, we need to pass the post ID
+    });
 };
 
 // Inject the main script
