@@ -55,7 +55,7 @@
 // ==/UserScript==
 var main = function() {
     // Define app namespace
-    function EditorToolkit(inline, targetID) {
+    function EditorToolkit(targetID) {
         if (!(this instanceof EditorToolkit)) return false;
 
         var App = this;
@@ -86,7 +86,6 @@ var main = function() {
         // Check if there was an ID passed (if not, use question ID from URL);
         if (!targetID) targetID = window.location.href.match(/\/(\d+)\//g)[0].split("/").join("");
         App.globals.targetID = targetID;
-        App.globals.inline = inline;
 
         App.globals.spacerHTML = '<li class="wmd-spacer wmd-spacer3" id="wmd-spacer3-' + App.globals.targetID + '" style="left: 400px !important;"></li>';
 
@@ -532,25 +531,6 @@ var main = function() {
                 return str;
             };
 
-            // Eliminate duplicates in array (awesome method I found on SO, check it out!)
-            // From AstroCB: the original structure of the edit formation prevents duplicates.
-            // Unless you changed that structure somehow, this shouldn't be needed.
-            App.funcs.eliminateDuplicates = function(arr) {
-                var i, len = arr.length,
-                    out = [],
-                    obj = {};
-
-                for (i = 0; i < len; i++) {
-                    obj[arr[i]] = 0;
-                }
-                for (i in obj) {
-                    if (obj.hasOwnProperty(i)) { // Prevents messiness of for..in statements
-                        out.push(i);
-                    }
-                }
-                return out;
-            };
-
             App.funcs.applyListeners = function() { // Removes default Stack Exchange listeners; see https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit/issues/43
                 function removeEventListeners(e) {
                     if (e.which === 13) {
@@ -561,8 +541,7 @@ var main = function() {
                         } else {
                             // It's impossible to remove the event listeners, so we have to clone the element without any listeners
                             var elClone = this.cloneNode(true);
-                            this.parentNode.replaceChild(elClone,
-                                this);
+                            this.parentNode.replaceChild(elClone, this);
                             App.selections.submitButton.click();
                         }
                     }
@@ -577,29 +556,13 @@ var main = function() {
 
             // Wait for relevant dynamic content to finish loading
             App.funcs.dynamicDelay = function(callback) {
-                if (App.globals.inline) { // Inline editing
-                    setTimeout(function() {
-                        App.selections.buttonBar = $('#wmd-button-bar-' + App.globals.targetID);
-                        App.selections.buttonBar.unbind();
-                        setTimeout(function() {
-                            callback();
-                        }, 0);
-                    }, 500);
-                } else { // Question page editing
+                setTimeout(function() {
                     App.selections.buttonBar = $('#wmd-button-bar-' + App.globals.targetID);
-                    // When button bar updates, dynamic DOM is ready for selection
-                    App.selections.buttonBar.unbind().on('DOMSubtreeModified', function() {
-                        // Avoid running it more than once
-                        if (!App.globals.barReady) {
-                            App.globals.barReady = true;
-
-                            // Run asynchronously - this lets the bar finish updating before continuing
-                            setTimeout(function() {
-                                callback();
-                            }, 0);
-                        }
-                    });
-                }
+                    App.selections.buttonBar.unbind();
+                    setTimeout(function() {
+                        callback();
+                    }, 0);
+                }, 500);
             };
 
             // Populate or refresh DOM selections
@@ -619,9 +582,9 @@ var main = function() {
             // Populate edit item sets from DOM selections
             App.funcs.popItems = function() {
                 App.items[0] = {
-                    title: App.selections.titleBox.val().trim(),
-                    body: App.selections.bodyBox.val().trim(),
-                    summary: App.selections.summaryBox.val().trim()
+                    title: String(App.selections.titleBox.val()).trim(),
+                    body: String(App.selections.bodyBox.val()).trim(),
+                    summary: String(App.selections.summaryBox.val()).trim()
                 };
             };
 
@@ -688,7 +651,6 @@ var main = function() {
                     App.funcs.popItems();
                     // Pipe data through editing modules
                     App.pipe(App.items, App.globals.pipeMods, App.globals.order);
-                    App.globals.editsMade = true;
                 });
             };
 
@@ -808,10 +770,9 @@ var main = function() {
             
             // If there are no reasons, exit
             if(!App.globals.reasons.length) return false;
- 
-            // Eliminate duplicate reasons
-            App.globals.reasons = App.funcs.eliminateDuplicates(App.globals.reasons);
             
+            // We want to store the generated summary separately so we can check if any changes have been made to it.
+            // This is so we can click the button multiple times. I know, I know but it is a UX thing. 
             var tmpSummary = '';
             
             for (var z = App.globals.reasons.length - 1, x = 0; z >= 0; --z) {
@@ -831,7 +792,7 @@ var main = function() {
                 tmpSummary += App.globals.reasons[z] + (z === 0 ? "." : "; "); ++x;
             }
             
-            // If no reasons have been applied, exit.
+            // If no reasons have been applied, exit
             if (!tmpSummary) return false;
             
             // Store the summary for readability
@@ -840,28 +801,27 @@ var main = function() {
             // This whole ternary mess is for if the summary is not empty, and if this is the first time around or not
             data[0].summary = (summary ? (summary.substr(-1) !== -1 ? summary.substr(0,summary.length-1) : summary) + '; ' : '') + tmpSummary;
             
-            // Focus the summary field.
+            // Focus the summary field
             App.selections.summaryBox.focus();
 
             return data;
         };
 
-        App.init(inline, targetID);
+        App.init();
     }
     var Apps = [];
+    
+    // It will be this if you are in the queue
+    var targetID = $('.post-id').text();
+    
     var selector = '.edit-post, [value*="Edit"]:not([value="Save Edits"])';
     var clickables = $(selector);
     if (clickables.length) {
         clickables.click(function(e) {
-            try {
-                Apps.push(new EditorToolkit(true, e.target.href ? e.target.href.match(/\d/g).join("") : $('.post-id').text()));
-            } catch (e) {
-                console.log(e);
-            }
+            if(e.target.href) targetID = e.target.href.match(/\d/g).join("");
+            Apps[targetID] = new EditorToolkit(targetID);
         });
-    } else {
-        Apps.push(EditorToolkit(false));
-    }
+    } else Apps[$('#post-id').val()] = new EditorToolkit($('#post-id').val());
 };
 
 // Inject the main script
