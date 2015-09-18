@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.8
+// @version        1.5.2.9
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        *://*.stackexchange.com/questions/*
 // @include        *://stackoverflow.com/questions/*
@@ -77,27 +77,13 @@ var main = function() {
 
         SEETicon.src = '//i.imgur.com/d5ZL09o.png';
 
-        // Define variables for later use
-        App.globals.barReady = false;
-        App.globals.editsMade = false;
-        App.globals.editCount = 0;
-        App.globals.infoContent = '';
-
         // Check if there was an ID passed (if not, use question ID from URL);
         if (!targetID) targetID = window.location.href.match(/\/(\d+)\//g)[0].split("/").join("");
         App.globals.targetID = targetID;
-
+        
         App.globals.spacerHTML = '<li class="wmd-spacer wmd-spacer3" id="wmd-spacer3-' + App.globals.targetID + '" style="left: 400px !important;"></li>';
 
-        App.selections.buttonWrapper = $('<div class="ToolkitButtonWrapper"/>');
-        App.selections.buttonFix = $('<button class="wmd-button ToolkitFix" />');
-        App.selections.buttonInfo = $('<div class="ToolkitInfo">');
-
-        App.selections.buttonWrapper.append(App.selections.buttonFix);
-        App.selections.buttonWrapper.append(App.selections.buttonInfo);
-
         App.globals.reasons = [];
-        App.globals.numReasons = 0;
 
         App.globals.replacedStrings = {
             "block": [],
@@ -547,11 +533,9 @@ var main = function() {
                         if (e.metaKey || e.ctrlKey) {
                             // CTRL/CMD + Enter -> Activate the auto-editor
                             App.selections.buttonFix.click();
-                            this.focus();
                         } else {
-                            // It's impossible to remove the event listeners, so we have to clone the element without any listeners
-                            var elClone = this.cloneNode(true);
-                            this.parentNode.replaceChild(elClone, this);
+                            // It's possible to remove the event listeners, because of the way outerHTML works.
+                            this.outerHTML = this.outerHTML;
                             App.selections.submitButton.click();
                         }
                     }
@@ -583,6 +567,7 @@ var main = function() {
                 App.selections.summary = $('[id^="edit-comment"]', scope);
                 App.selections.tagField = $(".tag-editor", scope);
                 App.selections.submitButton = $('[id^="submit-button"]', scope);
+                App.selections.helpButton = $('[id^="wmd-help-button"]', scope);
             };
 
             // Populate edit item sets from DOM selections
@@ -600,24 +585,30 @@ var main = function() {
 
             // Insert editing button(s)
             App.funcs.createButton = function() {
+                App.selections.buttonWrapper = $('<div class="ToolkitButtonWrapper"/>');
+                App.selections.buttonFix = $('<button class="wmd-button ToolkitFix" title="Fix the content!" />');
+                App.selections.buttonInfo = $('<div class="ToolkitInfo">');
+                
+                // Build the button
+                App.selections.buttonWrapper.append(App.selections.buttonFix);
+                App.selections.buttonWrapper.append(App.selections.buttonInfo);
+                
                 // Insert button
                 App.selections.redoButton.after(App.selections.buttonWrapper);
                 // Insert spacer
                 App.selections.redoButton.after(App.globals.spacerHTML);
-            };
-
-            // Style button
-            App.funcs.styleButton = function() {
-                var buttonCSS = {
+                
+                // Attach the event listener to the button
+                App.selections.buttonFix.click(App.funcs.fixEvent);
+                
+                App.selections.helpButton.css({
+                    'padding': '0px'
+                });
+                App.selections.buttonWrapper.css({
                     'position': 'relative',
                     'left': '430px',
                     'padding-top': '2%'
-                };
-                $("#wmd-help-button-" + App.globals.targetID).css({
-                    'padding': '0px'
                 });
-                App.selections.buttonWrapper.css(buttonCSS);
-
                 App.selections.buttonFix.css({
                     'position': 'static',
                     'float': 'left',
@@ -638,31 +629,15 @@ var main = function() {
                     'color': '#424242',
                     'line-height': '19px'
                 });
-
-                App.selections.buttonFix.hover(function() {
-                    App.globals.infoContent = App.selections.buttonInfo.text();
-                    App.selections.buttonInfo.text('Fix the content!');
-                    App.selections.buttonFix.css({
-                        'background-image': 'url("//i.imgur.com/d5ZL09o.png")'
-                    });
-                }, function() {
-                    App.selections.buttonInfo.text(App.globals.infoContent);
-                    App.selections.buttonFix.css({
-                        'background-image': 'url("//i.imgur.com/79qYzkQ.png")'
-                    });
-                });
             };
-
-            // Listen to button click
-            App.funcs.listenButton = function() {
-                App.selections.buttonFix.click(function(e) {
-                    e.preventDefault();
-                    // Refresh item population
-                    App.funcs.popItems();
-                    // Pipe data through editing modules
-                    App.pipe(App.items, App.globals.pipeMods, App.globals.order);
-                });
-            };
+            
+            App.funcs.fixEvent = function(e) {
+                if(e) e.preventDefault();
+                // Refresh item population
+                App.funcs.popItems();
+                // Pipe data through editing modules
+                App.pipe(App.items, App.globals.pipeMods, App.globals.order);
+            }
 
             // Figure out the last selected element before pressing the button so we can return there after focusing the summary field
             App.funcs.setLastFocus = function() {
@@ -685,24 +660,14 @@ var main = function() {
 
             // Handle pipe output
             App.funcs.output = function(data) {
-                App.selections.title.val(data.title);
-                App.selections.body.val(data.body);
-                App.selections.summary.val(data.summary);
-
-                // Update the comment: focusing on the input field to remove placeholder text, but scroll back to the user's original location
-                App.globals.currentPos = document.body.scrollTop;
-                if ($("#wmd-input")) {
-                    $("#wmd-input").focus();
-                    $("#edit-comment").focus();
-                    $("#wmd-input").focus();
-                } else {
-                    $(".wmd-input")[0].focus();
-                    $(".edit-comment")[0].focus();
-                    $(".wmd-input")[0].focus();
+                if(data.summary) { 
+                    App.selections.title.val(data.title);
+                    App.selections.body.val(data.body);
+                    App.selections.summary.val(data.summary);
+                    App.selections.summary.focus();
                 }
-                window.scrollTo(0, App.globals.currentPos);
-                App.globals.infoContent = App.globals.reasons.length + ' changes made';
-                App.selections.buttonInfo.text(App.globals.infoContent);
+                
+                App.selections.buttonInfo.text(App.globals.reasons.length + ' changes made');
             };
         };
 
@@ -724,9 +689,7 @@ var main = function() {
             App.funcs.dynamicDelay(function() {
                 App.funcs.popSelections();
                 App.funcs.createButton();
-                App.funcs.styleButton();
                 App.funcs.popItems();
-                App.funcs.listenButton();
                 App.funcs.applyListeners();
                 App.funcs.setLastFocus();
             });
@@ -800,7 +763,7 @@ var main = function() {
             }
 
             // If no reasons have been applied, exit
-            if (!reasons.length) return false;
+            if (!reasons.length) return data;
 
             // Store the summary for readability
             var summary = data.summary;
