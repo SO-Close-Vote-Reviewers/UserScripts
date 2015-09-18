@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.6
+// @version        1.5.2.8
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        *://*.stackexchange.com/questions/*
 // @include        *://stackoverflow.com/questions/*
@@ -61,7 +61,7 @@ var main = function() {
         var App = this;
 
         // Place edit items here
-        App.items = [];
+        App.items = {};
 
         // Place selected jQuery items here
         App.selections = {};
@@ -342,22 +342,29 @@ var main = function() {
                 reason: "Facebook is the proper capitalization"
             },
             python: {
-                expr: /(^|\s)[Pp]ython(.|$)/gm,
+                expr: /(^|\s|\()[Pp]ython(.|$)/gm,
                 replacement: "$1Python$2",
                 reason: "'Python' is the proper capitalization"
             },
+            url_uri: {
+                expr: /(^|\s|\(|-)(ur[li])([s]|.|$)/gmi,
+                replacement: function(match, p1, p2, p3) {
+                    return p1 + p2.toUpperCase() + p3;
+                },
+                reason: "URL or URI is the proper capitalization"
+            },
             im: {
-                expr: /(^|\s|\()im(\s|,|\.|!|\?|;|\/|\)|'|$)/gm,
+                expr: /(^|\s|\()im(\s|,|\.|!|\?|;|\/|\)|'|$)/gmi,
                 replacement: "$1I'm$2",
                 reason: "in English, the personal pronoun is 'I'"
             },
             ive: {
-                expr: /(^|\s|\()ive(\s|,|\.|!|\?|;|\/|\)|'|$)/gm,
+                expr: /(^|\s|\()ive(\s|,|\.|!|\?|;|\/|\)|'|$)/gmi,
                 replacement: "$1I've$2",
                 reason: "in English, the personal pronoun is 'I'"
             },
             ur: {
-                expr: /(^|\s|\()ur(\s|,|\.|!|\?|;|\/|\)|'|$)/gm,
+                expr: /(^|\s|\()ur(\s|,|\.|!|\?|;|\/|\)|'|$)/gmi,
                 replacement: "$1you are$2",
                 reason: "de-text"
             },
@@ -383,7 +390,9 @@ var main = function() {
             },
             regex: {
                 expr: /regex(p)?/gmi,
-                replacement: function(match,p){ return "RegEx"+((p === undefined)?"":p).toLowerCase(); },
+                replacement: function(match, p) {
+                    return "RegEx" + ((p === undefined) ? "" : p).toLowerCase();
+                },
                 reason: "RegEx or RegExp are the correct capitalizations"
             },
             multiplesymbols: {
@@ -398,7 +407,8 @@ var main = function() {
                 reason: "One space at a time"
             },
             spacesbeforepunctuation: {
-                expr: / +([.,:;?!])/g,
+                //expr: / +([.,:;?!])/g,
+                expr: / +([.,:;?!])[^\w]/g,
                 replacement: "$1 ",
                 reason: "punctuation & spacing"
             },
@@ -551,18 +561,12 @@ var main = function() {
                 App.selections.tagField.keydown(removeEventListeners);
 
                 // Edit summary box
-                App.selections.summaryBox.keydown(removeEventListeners);
+                App.selections.summary.keydown(removeEventListeners);
             };
 
             // Wait for relevant dynamic content to finish loading
             App.funcs.dynamicDelay = function(callback) {
-                setTimeout(function() {
-                    App.selections.buttonBar = $('#wmd-button-bar-' + App.globals.targetID);
-                    App.selections.buttonBar.unbind();
-                    setTimeout(function() {
-                        callback();
-                    }, 0);
-                }, 500);
+                setTimeout(callback, 500);
             };
 
             // Populate or refresh DOM selections
@@ -570,22 +574,28 @@ var main = function() {
                 var targetID = App.globals.targetID;
                 var scope = $('div[data-questionid="' + targetID + '"]');
                 if (!scope.length) scope = $('div[data-answerid="' + targetID + '"]');
-                if (!scope.length) scope = $('body');
+                if (!scope.length) scope = '';
+                App.selections.buttonBar = $('[id^="wmd-button-bar"]', scope);
+                App.selections.buttonBar.unbind();
                 App.selections.redoButton = $('[id^="wmd-redo-button"]', scope);
-                App.selections.bodyBox = $('[id^="wmd-input"]', scope);
-                App.selections.titleBox = $('[class*="title-field"]', scope);
-                App.selections.summaryBox = $('[id^="edit-comment"]', scope);
+                App.selections.body = $('[id^="wmd-input"]', scope);
+                App.selections.title = $('[class*="title-field"]', scope);
+                App.selections.summary = $('[id^="edit-comment"]', scope);
                 App.selections.tagField = $(".tag-editor", scope);
                 App.selections.submitButton = $('[id^="submit-button"]', scope);
             };
 
             // Populate edit item sets from DOM selections
             App.funcs.popItems = function() {
-                App.items[0] = {
-                    title: String(App.selections.titleBox.val()).trim(),
-                    body: String(App.selections.bodyBox.val()).trim(),
-                    summary: String(App.selections.summaryBox.val()).trim()
-                };
+                try {
+                    var i = App.items,
+                        s = App.selections;
+                    ['title', 'body', 'summary'].forEach(function(v) {
+                        i[v] = String(s[v].val()).trim();
+                    });
+                } catch (e) {
+                    console.log(e)
+                }
             };
 
             // Insert editing button(s)
@@ -656,15 +666,15 @@ var main = function() {
 
             // Figure out the last selected element before pressing the button so we can return there after focusing the summary field
             App.funcs.setLastFocus = function() {
-                App.selections.titleBox.click(function() {
+                App.selections.title.click(function() {
                     App.globals.lastSelectedElement = $(this);
                 });
 
-                App.selections.bodyBox.click(function() {
+                App.selections.body.click(function() {
                     App.globals.lastSelectedElement = $(this);
                 });
 
-                App.selections.summaryBox.click(function() {
+                App.selections.summary.click(function() {
                     App.globals.lastSelectedElement = $(this);
                 });
 
@@ -675,9 +685,9 @@ var main = function() {
 
             // Handle pipe output
             App.funcs.output = function(data) {
-                App.selections.titleBox.val(data[0].title);
-                App.selections.bodyBox.val(data[0].body);
-                App.selections.summaryBox.val(data[0].summary);
+                App.selections.title.val(data.title);
+                App.selections.body.val(data.body);
+                App.selections.summary.val(data.summary);
 
                 // Update the comment: focusing on the input field to remove placeholder text, but scroll back to the user's original location
                 App.globals.currentPos = document.body.scrollTop;
@@ -723,43 +733,43 @@ var main = function() {
         };
 
         App.globals.pipeMods.omit = function(data) {
-            data[0].body = App.funcs.omitCode(data[0].body, "block");
-            data[0].body = App.funcs.omitCode(data[0].body, "inline");
+            data.body = App.funcs.omitCode(data.body, "block");
+            data.body = App.funcs.omitCode(data.body, "inline");
             return data;
         };
 
         App.globals.pipeMods.replace = function(data) {
-            data[0].body = App.funcs.replaceCode(data[0].body, "block");
-            data[0].body = App.funcs.replaceCode(data[0].body, "inline");
+            data.body = App.funcs.replaceCode(data.body, "block");
+            data.body = App.funcs.replaceCode(data.body, "inline");
             return data;
         };
 
         App.globals.pipeMods.edit = function(data) {
             // Visually confirm edit - SE makes it easy because the jQuery color animation plugin seems to be there by default
-            App.selections.bodyBox.animate({
+            App.selections.body.animate({
                 backgroundColor: '#c8ffa7'
             }, 10);
-            App.selections.bodyBox.animate({
+            App.selections.body.animate({
                 backgroundColor: '#fff'
             }, 1000);
-            
+
             // Loop through all editing rules
             for (var j in App.edits) {
                 if (App.edits.hasOwnProperty(j)) {
                     // Check body
-                    var fix = App.funcs.fixIt(data[0].body, App.edits[j].expr,
+                    var fix = App.funcs.fixIt(data.body, App.edits[j].expr,
                         App.edits[j].replacement, App.edits[j].reason);
                     if (fix) {
                         App.globals.reasons[App.globals.reasons.length] = fix.reason;
-                        data[0].body = fix.fixed;
+                        data.body = fix.fixed;
                         App.edits[j].fixed = true;
                     }
 
                     // Check title
-                    fix = App.funcs.fixIt(data[0].title, App.edits[j].expr,
+                    fix = App.funcs.fixIt(data.title, App.edits[j].expr,
                         App.edits[j].replacement, App.edits[j].reason);
                     if (fix) {
-                        data[0].title = fix.fixed;
+                        data.title = fix.fixed;
                         if (!App.edits[j].fixed) {
                             App.globals.reasons[App.globals.reasons.length] = fix.reason;
                             App.edits[j].fixed = true;
@@ -767,42 +777,39 @@ var main = function() {
                     }
                 }
             }
-            
+
             // If there are no reasons, exit
-            if(!App.globals.reasons.length) return false;
-            
-            // We want to store the generated summary separately so we can check if any changes have been made to it.
-            // This is so we can click the button multiple times. I know, I know but it is a UX thing. 
-            var tmpSummary = '';
-            
+            if (!App.globals.reasons.length) return false;
+
+            // We need a place to store the reasons being applied to the summary. 
+            var reasons = [];
+
             for (var z = App.globals.reasons.length - 1, x = 0; z >= 0; --z) {
                 // Check that summary is not getting too long
-                if (data[0].summary.length + tmpSummary.length + App.globals.reasons[z].length + 2 > 300) break;
-                
-                // If the reason already exists, skip it
-                if (data[0].summary.indexOf(App.globals.reasons[z]) !== -1) continue;
-                
-                // Capitalize first letter
-                if (x === 0) App.globals.reasons[z] = App.globals.reasons[z][0].toUpperCase() + App.globals.reasons[z].substring(1);
+                if (data.summary.length + reasons.join('; ').length + App.globals.reasons[z].length + 2 > 300) break;
 
-                // If the reason already exists, skip it
-                if (data[0].summary.indexOf(App.globals.reasons[z]) !== -1) continue;
-                
-                // Append the reason and a semicolon (or period if it is the last reason) to the summary
-                tmpSummary += App.globals.reasons[z] + (z === 0 ? "." : "; "); ++x;
+                // If the reason is already in the summary, or we've put it in the reasons array already, skip it.
+                if (data.summary.indexOf(App.globals.reasons[z].substr(1)) !== -1 || reasons.join('; ').indexOf(App.globals.reasons[z].substr(1)) !== -1) continue;
+
+                // Capitalize first letter
+                if (!data.summary && x === 0) App.globals.reasons[z] = App.globals.reasons[z][0].toUpperCase() + App.globals.reasons[z].substring(1);
+
+                // Append the reason to our temporary reason array
+                reasons.push(App.globals.reasons[z]);
+                ++x;
             }
-            
+
             // If no reasons have been applied, exit
-            if (!tmpSummary) return false;
-            
+            if (!reasons.length) return false;
+
             // Store the summary for readability
-            var summary = data[0].summary;
-            
-            // This whole ternary mess is for if the summary is not empty, and if this is the first time around or not
-            data[0].summary = (summary ? (summary.substr(-1) !== -1 ? summary.substr(0,summary.length-1) : summary) + '; ' : '') + tmpSummary;
-            
+            var summary = data.summary;
+
+            // This whole ternary mess is for if the summary is not empty, and if this is the first time around or not.                 vvv Join the reasons with a semicolon and append a period.
+            data.summary = (summary ? (summary.substr(-1) !== -1 ? summary.substr(0, summary.length - 1) : summary) + '; ' : '') + reasons.join('; ') + '.';
+
             // Focus the summary field
-            App.selections.summaryBox.focus();
+            App.selections.summary.focus();
 
             return data;
         };
@@ -810,17 +817,19 @@ var main = function() {
         App.init();
     }
     var Apps = [];
-    
+
     // It will be this if you are in the queue
     var targetID = $('.post-id').text();
-    
+
     var selector = '.edit-post, [value*="Edit"]:not([value="Save Edits"])';
     var clickables = $(selector);
     if (clickables.length) {
+        // ^^^ Inline editing.
         clickables.click(function(e) {
-            if(e.target.href) targetID = e.target.href.match(/\d/g).join("");
+            if (e.target.href) targetID = e.target.href.match(/\d/g).join("");
             console.log(Apps[targetID] = new EditorToolkit(targetID));
         });
+        // vvv On the edit page.
     } else Apps[$('#post-id').val()] = new EditorToolkit($('#post-id').val());
 };
 
