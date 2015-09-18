@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.4
+// @version        1.5.2.6
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        *://*.stackexchange.com/questions/*
 // @include        *://stackoverflow.com/questions/*
@@ -570,13 +570,13 @@ var main = function() {
                 var targetID = App.globals.targetID;
                 var scope = $('div[data-questionid="' + targetID + '"]');
                 if (!scope.length) scope = $('div[data-answerid="' + targetID + '"]');
-                if (!scope.length) scope = '';
-                App.selections.redoButton = $('#wmd-redo-button-' + targetID, scope);
-                App.selections.bodyBox = $("#wmd-input-" + targetID, scope);
+                if (!scope.length) scope = $('body');
+                App.selections.redoButton = $('[id^="wmd-redo-button"]', scope);
+                App.selections.bodyBox = $('[id^="wmd-input"]', scope);
                 App.selections.titleBox = $('[class*="title-field"]', scope);
-                App.selections.summaryBox = $("#edit-comment-" + targetID, scope);
-                App.selections.tagField = $($(".tag-editor")[0], scope);
-                App.selections.submitButton = $("#submit-button-" + targetID, scope);
+                App.selections.summaryBox = $('[id^="edit-comment"]', scope);
+                App.selections.tagField = $(".tag-editor", scope);
+                App.selections.submitButton = $('[id^="submit-button"]', scope);
             };
 
             // Populate edit item sets from DOM selections
@@ -819,7 +819,7 @@ var main = function() {
     if (clickables.length) {
         clickables.click(function(e) {
             if(e.target.href) targetID = e.target.href.match(/\d/g).join("");
-            Apps[targetID] = new EditorToolkit(targetID);
+            console.log(Apps[targetID] = new EditorToolkit(targetID));
         });
     } else Apps[$('#post-id').val()] = new EditorToolkit($('#post-id').val());
 };
