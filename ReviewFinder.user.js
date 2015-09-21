@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         find reviews
 // @namespace    http://stackoverflow.com/users/578411/rene
-// @version      0.2
+// @version      0.3
 // @description  find reviews from the history pages 
 // @author       rene
 // @match        *://stackoverflow.com/review/*/history
