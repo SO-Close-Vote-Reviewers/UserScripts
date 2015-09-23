@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      1.5.0
+// @version      1.5.1
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @match        *://*.stackoverflow.com/questions/*
@@ -401,4 +401,35 @@ if(typeof StackExchange === "undefined")
         } 
     });
     setTimeout(checkUpdates);
+    var closereasons = {
+        4: "General Computing",
+        7: "Serverfault.com",
+        16: "Request for Off-site Resource",
+        13: "No MCVE",
+        11: "Typo or Cannot Reproduce",
+        2: "Belongs on another site"
+    }
+    $('.close-question-link').click(function(){
+        var cpcheck = setInterval(function(){
+            var popup = $('#popup-close-question');
+            if(!popup.length) return false;
+            clearInterval(cpcheck);
+            var remainingvotes = $('.remaining-votes', popup);
+            if($('input', remainingvotes).length) return false;
+            var checkbox = $('<label><input type="checkbox" style="vertical-align:middle;margin-left: 5px;">Send cv-pls request</label>');
+            $('.remaining-votes', popup).append(checkbox);
+            $('.popup-submit').click(function() {
+                if(checkbox.find('input').is(':checked')) {
+                    var closereason = $('[name="close-reason"]:checked');
+                    if(closereason.length) {
+                        var reason = closereason.val();
+                        var offtopicreason = $('[name="close-as-off-topic-reason"]:checked');
+                        if(offtopicreason.length) reason = closereasons[offtopicreason.val()];
+                        $('input[type="text"]', CVRGUI.items.send).val(reason.replace(/(?!^)([A-Z])/g, ' $1'));
+                        $('form', CVRGUI.items.send).submit();
+                    }
+                }
+            });
+        }, 100);
+    })
 })();
