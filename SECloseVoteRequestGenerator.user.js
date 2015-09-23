@@ -404,7 +404,7 @@ if(typeof StackExchange === "undefined")
     var closereasons = {
         4: "General Computing",
         7: "Serverfault.com",
-        16: "Request for Off-site Resource",
+        16: "Request for Off-Site Resource",
         13: "No MCVE",
         11: "Typo or Cannot Reproduce",
         2: "Belongs on another site"
@@ -415,21 +415,22 @@ if(typeof StackExchange === "undefined")
             if(!popup.length) return false;
             clearInterval(cpcheck);
             var remainingvotes = $('.remaining-votes', popup);
+            
             if($('input', remainingvotes).length) return false;
+            
             var checkbox = $('<label><input type="checkbox" style="vertical-align:middle;margin-left: 5px;">Send cv-pls request</label>');
+            
             $('.remaining-votes', popup).append(checkbox);
+            $('[name="close-reason"]').change(function(){
+                if(this.checked) $('input[type="text"]', CVRGUI.items.send).val(this.value.replace(/(?!^)([A-Z])/g, ' $1'));
+            })
+            $('[name="close-as-off-topic-reason"]').change(function(){
+                if(this.checked) $('input[type="text"]', CVRGUI.items.send).val(closereasons[this.value]);
+            })
             $('.popup-submit').click(function() {
-                if(checkbox.find('input').is(':checked')) {
-                    var closereason = $('[name="close-reason"]:checked');
-                    if(closereason.length) {
-                        var reason = closereason.val();
-                        var offtopicreason = $('[name="close-as-off-topic-reason"]:checked');
-                        if(offtopicreason.length) reason = closereasons[offtopicreason.val()];
-                        $('input[type="text"]', CVRGUI.items.send).val(reason.replace(/(?!^)([A-Z])/g, ' $1'));
-                        $('form', CVRGUI.items.send).submit();
-                    }
-                }
+                if(checkbox.find('input').is(':checked')) $('form', CVRGUI.items.send).submit();
             });
+            
         }, 100);
     })
 })();
