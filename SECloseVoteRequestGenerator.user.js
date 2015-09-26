@@ -4,14 +4,7 @@
 // @version      1.5.1
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
-// @match        *://*.stackoverflow.com/questions/*
-// @match        *://*.stackexchange.com/questions/*
-// @match        *://*.stackoverflow.com/questions/*
-// @match        *://*.serverfault.com/questions/*
-// @match        *://*.superuser.com/questions/*
-// @match        *://*.askubuntu.com/questions/*
-// @match        *://*.stackapps.com/questions/*
-// @match        *://*.mathoverflow.net/questions/*
+// @include      /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/questions/[0-9]+.*/
 // @require      https://code.jquery.com/jquery-2.1.4.min.js
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
@@ -367,7 +360,7 @@ if(typeof StackExchange === "undefined")
         if(!reason) return false;
         reason = reasons.get(reason);
         var tit = '[' + $('#question-header h1 a').text().replace(/\[(.*)\]/g, '($1)') + '](' + base + $('#question .short-link').attr('href') + ')'; 
-        var nam = $('#question .owner a').text();
+        var nam = $('#question .owner a').text().trim();
         if(nam) {
             var usr = '[' + nam + '](' + base + $('#question .owner a').attr('href') + ')';
             var tim = $('#question .owner .relativetime').attr('title');
