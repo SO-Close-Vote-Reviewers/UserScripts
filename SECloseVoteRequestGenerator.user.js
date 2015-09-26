@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Stack Exchange CV Request Generator
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      1.5.1
+// @version      1.5.2
 // @description  This script generates formatted close vote requests and sends them to a specified chat room
 // @author       @TinyGiant
 // @include      /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/questions/[0-9]+.*/
@@ -360,12 +360,10 @@ if(typeof StackExchange === "undefined")
         if(!reason) return false;
         reason = reasons.get(reason);
         var tit = '[' + $('#question-header h1 a').text().replace(/\[(.*)\]/g, '($1)') + '](' + base + $('#question .short-link').attr('href') + ')'; 
-        var nam = $('#question .owner a').text().trim();
-        if(nam) {
-            var usr = '[' + nam + '](' + base + $('#question .owner a').attr('href') + ')';
-            var tim = $('#question .owner .relativetime').attr('title');
-        }
-        var result = '[tag:cv-pls] ' + reason + ' ' + tit + (nam ? ' - ' + usr + ' ' + tim : ' - Community Wiki');
+        var usr = $('.user-details').text().trim().match(/[\w ]+/)[0].trim(), tim;
+        if($('#question .owner a').length) usr = '[' + usr + '](' + base + $('#question .owner a').attr('href') + ')';
+        if($('#question .owner .relativetime').length) tim = $('#question .owner .relativetime').attr('title');
+        var result = '[tag:cv-pls] ' + reason + ' ' + tit + ' - ' + usr + (tim ? ' - ' + tim : '');
         sendRequest(result);
     });
 
@@ -401,7 +399,7 @@ if(typeof StackExchange === "undefined")
         13: "No MCVE",
         11: "Typo or Cannot Reproduce",
         2: "Belongs on another site"
-    }
+    };
     $('.close-question-link').click(function(){
         var cpcheck = setInterval(function(){
             var popup = $('#popup-close-question');
@@ -416,14 +414,13 @@ if(typeof StackExchange === "undefined")
             $('.remaining-votes', popup).append(checkbox);
             $('[name="close-reason"]').change(function(){
                 if(this.checked) $('input[type="text"]', CVRGUI.items.send).val(this.value.replace(/(?!^)([A-Z])/g, ' $1'));
-            })
+            });
             $('[name="close-as-off-topic-reason"]').change(function(){
                 if(this.checked) $('input[type="text"]', CVRGUI.items.send).val(closereasons[this.value]);
-            })
+            });
             $('.popup-submit').click(function() {
                 if(checkbox.find('input').is(':checked')) $('form', CVRGUI.items.send).submit();
             });
-            
         }, 100);
-    })
+    });
 })();
