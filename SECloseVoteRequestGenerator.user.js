@@ -1,12 +1,12 @@
 // ==UserScript==
-// @name         Stack Exchange CV Request Generator
-// @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      1.5.2
-// @description  This script generates formatted close vote requests and sends them to a specified chat room
-// @author       @TinyGiant
-// @include      /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/questions/[0-9]+.*/
-// @require      https://code.jquery.com/jquery-2.1.4.min.js
-// @grant        GM_xmlhttpRequest
+// @name           Stack Exchange CV Request Generator
+// @namespace      https://github.com/SO-Close-Vote-Reviewers/
+// @version        1.5.3
+// @description    This script generates formatted close vote requests and sends them to a specified chat room
+// @author         @TinyGiant
+// @include        /^https?://\w*.?(stackexchange.com|stackoverflow.com|serverfault.com|superuser.com|askubuntu.com|stackapps.com|mathoverflow.net)/q(uestions)?/\d+/
+// @require        https://code.jquery.com/jquery-2.1.4.min.js
+// @grant          GM_xmlhttpRequest
 // ==/UserScript==
 
 if(typeof StackExchange === "undefined")
@@ -360,7 +360,7 @@ if(typeof StackExchange === "undefined")
         if(!reason) return false;
         reason = reasons.get(reason);
         var tit = '[' + $('#question-header h1 a').text().replace(/\[(.*)\]/g, '($1)') + '](' + base + $('#question .short-link').attr('href') + ')'; 
-        var usr = $('.user-details').text().trim().match(/[\w ]+/)[0].trim(), tim;
+        var usr = $('.post-signature:not([align="right"]) .user-details').text().trim().match(/[\w ]+/)[0].trim(), tim;
         if($('#question .owner a').length) usr = '[' + usr + '](' + base + $('#question .owner a').attr('href') + ')';
         if($('#question .owner .relativetime').length) tim = $('#question .owner .relativetime').attr('title');
         var result = '[tag:cv-pls] ' + reason + ' ' + tit + ' - ' + usr + (tim ? ' - ' + tim : '');
@@ -398,12 +398,13 @@ if(typeof StackExchange === "undefined")
         16: "Request for Off-Site Resource",
         13: "No MCVE",
         11: "Typo or Cannot Reproduce",
+        3: "custom",
         2: "Belongs on another site"
     };
     $('.close-question-link').click(function(){
         var cpcheck = setInterval(function(){
-            var popup = $('#popup-close-question');
-            if(!popup.length) return false;
+            var popup = $('#popup-close-question'), selected;
+            if(!popup.length) return;
             clearInterval(cpcheck);
             var remainingvotes = $('.remaining-votes', popup);
             
@@ -413,13 +414,17 @@ if(typeof StackExchange === "undefined")
             
             $('.remaining-votes', popup).append(checkbox);
             $('[name="close-reason"]').change(function(){
-                if(this.checked) $('input[type="text"]', CVRGUI.items.send).val(this.value.replace(/(?!^)([A-Z])/g, ' $1'));
+                this.checked && (selected = $(this)) && $('input[type="text"]', CVRGUI.items.send).val(this.value.replace(/(?!^)([A-Z])/g, ' $1'));
             });
             $('[name="close-as-off-topic-reason"]').change(function(){
-                if(this.checked) $('input[type="text"]', CVRGUI.items.send).val(closereasons[this.value]);
+                this.checked && (selected = $(this)) && $('input[type="text"]', CVRGUI.items.send).val(closereasons[this.value]);
             });
             $('.popup-submit').click(function() {
-                if(checkbox.find('input').is(':checked')) $('form', CVRGUI.items.send).submit();
+                if(selected.val() === '3') {
+                    var parent = selected.parent().parent();
+                    $('input[type="text"]', CVRGUI.items.send).val($('textarea',parent).val().replace($('[type="hidden"]',parent).val(),''));
+                }
+                checkbox.find('input').is(':checked') && $('form', CVRGUI.items.send).submit();
             });
         }, 100);
     });
