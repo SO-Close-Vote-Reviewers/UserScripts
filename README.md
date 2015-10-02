@@ -4,7 +4,7 @@
 This repository contains various [Tampermonkey](http://tampermonkey.net/) user scripts that add features to the review queue or to the chat room.
 
 ## SO Close Vote Request Generator
-This script sends a `[tag:cv-pls]` message to the site's chatroom for the post you are currently viewing. It works on `*.stackexchange.com` and `*.stackoverflow.com` at the moment.
+This script sends a `[tag:cv-pls]` message to the site's chatroom for the post you are currently viewing. It should work on any Stack Exchange site, if it doesn't then please submit an issue.
 
 ###Use Case
 Close Vote requests should be used when a question meets any of the following criteria:
