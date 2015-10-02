@@ -1,6 +1,5 @@
 # User Scripts
 
-
 This repository contains various [Tampermonkey](http://tampermonkey.net/) user scripts that add features to the review queue or to the chat room.
 
 ## SO Close Vote Request Generator
@@ -17,7 +16,7 @@ Otherwise, you should wait to see if it gets closed naturally. If the question d
 
 Sending a close vote request does not obligate any user to contribute a close vote, it is a request for others to review your close vote decision. Any user contributing their own close votes to questions you've requested a vote review for is doing so of their own prerogative. If a user thinks that you've supplied an incorrect reason or that the question is on-topic or can be easily edit into shape, they should tell you why. This does not mean that person is inherently any more correct than you are, it is an opinion.
 
-**Please use the reason that you voted** You are submitting a request for review of *your* close vote decision. Users will reply to your review request based on the reason that you enter. If you don't have 3000 reputation yet (and don't have close votes) you should be submitting requests for the close reason that *you* flagged it to be closed for. This is an educational tool for all of us to learn exactly what is on-topic and what is off-topic.
+**Please use the reason that you voted or flagged!** You are submitting a request for review of *your* close vote decision. Users will reply to your review request based on the reason that you enter. If you don't have 3000 reputation yet (and don't have close votes) you should be submitting requests for the close reason that *you* flagged it to be closed for. This is an educational tool for all of us to learn exactly what is on-topic and what is off-topic.
 
 ###Installation
 To install this script [click here](https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js) or otherwise visit the following URL, and GreaseMonkey/TamperMonkey should ask you to install it.
