@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.5.4
+// @version        1.5.6
 // @description    This script generates formatted close vote requests and sends them to a specified chat room
 // @author         @TinyGiant
 // @include        /^https?://\w*.?(stackexchange.com|stackoverflow.com|serverfault.com|superuser.com|askubuntu.com|stackapps.com|mathoverflow.net)/q(uestions)?/\d+/
@@ -360,7 +360,7 @@ if(typeof StackExchange === "undefined")
         if(!reason) return false;
         reason = reasons.get(reason);
         var tit = '[' + $('#question-header h1 a').text().replace(/\[(.*)\]/g, '($1)') + '](' + base + $('#question .short-link').attr('href') + ')'; 
-        var usr = $('.post-signature:not([align="right"]) .user-details').text().trim().match(/[\w ]+/)[0].trim(), tim;
+        var usr = $('.post-signature:not([align="right"]) .user-details').text().trim().match(/[^\n]+/)[0].trim(), tim;
         if($('#question .owner a').length) usr = '[' + usr + '](' + base + $('#question .owner a').attr('href') + ')';
         if($('#question .owner .relativetime').length) tim = $('#question .owner .relativetime').attr('title');
         var result = '[tag:cv-pls] ' + reason + ' ' + tit + ' - ' + usr + (tim ? ' - ' + tim : '');
