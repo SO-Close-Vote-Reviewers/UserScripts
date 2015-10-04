@@ -279,7 +279,7 @@
                 replacement: "iOS $1",
                 reason: "trademark capitalization"
             },
-            ubunto: {
+            ubuntu: {
                 expr: /\b[uoa]*b[uoa]*[tn][oua]*[tnu][oua]*\b/gi,
                 replacement: "Ubuntu",
                 reason: "trademark capitalization"
@@ -295,9 +295,29 @@
                 reason: "trademark capitalization"
             },
             regex: {
-                expr: /\bregex(p)?/gi,
+                expr: /\bregex(p)?\b/gi,
                 replacement: "RegEx$1",
                 reason: "trademark capitalization"
+            },
+            postgresql: {
+                expr: /\bpostgres(ql|s)?\b/gi,
+                replacement: "PostgreSQL",
+                reason: "trademark capitalization"
+            },
+            paypal: {
+                expr: /\bpaypal\b/gi,
+                replacement: "PayPal",
+                reason: "trademark capitalization"
+            },
+            pdf: {
+                expr: /\bpdf(s)*/gi,
+                replacement: "PDF$1",
+                reason: "trademark capitalization"
+            },
+            api: {
+                expr: /\bapi(s)*\b/gi,
+                replacement: "API$1",
+                reason: "acronym capitalization"
             },
             // Noise reduction
             editupdate: {
@@ -328,6 +348,11 @@
             },
             salutations: {
                 expr: /[\r\n]*(regards|cheers?),?[\t\f ]*[\r\n]?\w*\.?/gi,
+                replacement: "",
+                reason: "noise reduction"
+            },
+            sorry4english: { // https://regex101.com/r/pG3oD6/1
+                expr: /(?:^|\s)[^.!\n\r]*(sorry).*?(english).*?(?:[.! \n\r])/gmi,
                 replacement: "",
                 reason: "noise reduction"
             },
