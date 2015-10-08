@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.25
+// @version        1.5.2.28
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -164,7 +164,7 @@
                 reason: "acronym capitalization"
             },
             ajax: {
-                expr: /\bajax\b/gi,
+                expr: /\bajax\b/g,     // Leave "Ajax" alone. See https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit/issues/45
                 replacement: "AJAX",
                 reason: "acronym capitalization"
             },
@@ -426,6 +426,337 @@
             allways: {
                 expr: /\b(a)llways\b/gi,
                 replacement: "$1lways",
+                reason: "grammar and spelling"
+            },
+            expect: {
+                expr: /\b(e)spect(s)?\b/gi,
+                replacement: "$1xpect$2",
+                reason: "grammar and spelling"
+            },
+            employe: {
+                expr: /\b(e)mploye\b/gi,
+                replacement: "$1mployee",
+                reason: "grammar and spelling"
+            },
+            retrieve: {
+                expr: /\b(r)etreive(d)?\b/gi,
+                replacement: "$1etrieve$2",
+                reason: "grammar and spelling"
+            },
+            firefox: {
+                expr: /\bfire?fox\b/gi,
+                replacement: "Firefox",
+                reason: "trademark capitalization"
+            },
+            success: { // https://regex101.com/r/hK2vG4/1
+                expr: /\b(s)ucc?ess?(ful|fully)?l?\b/gi,
+                replacement: "$1uccess$2",
+                reason: "grammar and spelling"
+            },
+            safari: {
+                expr: /\bsafari\b/g,
+                replacement: "Safari",
+                reason: "trademark capitalization"
+            },
+            chrome: {
+                expr: /\bchrome\b/g,
+                replacement: "Chrome",
+                reason: "trademark capitalization"
+            },
+            anyones: {
+                expr: /\b(a)nyones\b/g,
+                replacement: "$1nyone's",
+                reason: "grammar and spelling"
+            },
+            length: {
+                expr: /\b(l)en(?:gh?t|th)\b/g,
+                replacement: "$1ength",
+                reason: "grammar and spelling"
+            },
+            height: {
+                expr: /\b(h)(?:ei|i|ie)(?:gt|th|ghth|gth)\b/g,
+                replacement: "$1eight",
+                reason: "grammar and spelling"
+            },
+            width: {
+                expr: /\b(w)idh?t\b/g,
+                replacement: "$1idth",
+                reason: "grammar and spelling"
+            },
+            centered: {
+                expr: /\b(c)ent(?:red|erd)\b/g,
+                replacement: "$1entered",
+                reason: "grammar and spelling"
+            },
+            center: {
+                expr: /\b(c)entre\b/g,    // "Centre" is a word, however in most cases on SO "center" is meant
+                replacement: "$1enter",
+                reason: "grammar and spelling"
+            },
+            aint_isnt: {
+                expr: /\bain't\b/gi,
+                replacement: "isn't",
+                reason: "grammar and spelling"
+            },
+            coordinates: {
+                expr: /\b(c)ordinate(s|d)?\b/,
+                replacement: "$1oordinate$2",
+                reason: "grammar and spelling"
+            },
+            argument: {
+                expr: /\b(a)rguement(s)?\b/,
+                replacement: "$1rgument$2",
+                reason: "grammar and spelling"
+            },
+            gui: {
+                expr: /\bgui(s)?\b/gi,
+                replacement: "GUI$1",
+                reason: "acronym capitalization"
+            },
+            iterate: { // https://regex101.com/r/iL6bV3/1
+                expr: /\b(i)(?:tter|tar)at(e[ds]?|ing|ion|ions)\b/gi,
+                replacement: "$1terat$2",
+                reason: "grammar and spelling"
+            },
+            // From Peter Mortensen list (http://pvm-professionalengineering.blogspot.de/2011/04/word-list-for-editing-stack-exchange.html)
+            ie: {
+                expr: /\bie\b/g,   // Careful here; IE is Internet Explorer
+                replacement: "$1.e.",
+                reason: "grammar and spelling"
+            },
+            eg: {
+                expr: /\b(e)g\b/gi,
+                replacement: "$1.g.",
+                reason: "grammar and spelling"
+            },
+            unfortunately: {
+                expr: /\b(u)nfortu?na?tly\b/gi,
+                replacement: "$1nfortunately",
+                reason: "grammar and spelling"
+            },
+            whether: {
+                expr: /\b(w)h?eth?er\b/gi,
+                replacement: "$1hether",
+                reason: "grammar and spelling"
+            },
+            through: {  // https://regex101.com/r/gQ0dZ1/4
+                expr: /\b(t)(?:hru|rough|hroug)\b/gi,
+                replacement: "$1hrough",
+                reason: "grammar and spelling"
+            },
+            throughout: {
+                expr: /\b(t)(?:hruout|roughout)\b/gi,
+                replacement: "$1hroughout",
+                reason: "grammar and spelling"
+            },
+            breakthrough: {
+                expr: /\b(b)reak\s+through(s)?\b/gi,
+                replacement: "$1reakthrough$2",
+                reason: "grammar and spelling"
+            },
+            though: {
+                expr: /\b(t)(?:ho|hou|hogh)\b/gi,
+                replacement: "$1hough",
+                reason: "grammar and spelling"
+            },
+            although: {
+                expr: /\b(a)l(?:tho|thou|thogh|tough)\b/gi,
+                replacement: "$1lthough",
+                reason: "grammar and spelling"
+            },
+            thought: {
+                expr: /\b(t)r?ought(s)?\b/gi,
+                replacement: "$1hough$2",
+                reason: "grammar and spelling"
+            },
+            throwing: {
+                expr: /\b(t)hroughing\b/gi,       // Peter says this is "thoroughly", but a survey of SO questions indicates "throwing"
+                replacement: "$1hrowing",
+                reason: "grammar and spelling"
+            },
+            a_lot: {
+                expr: /\b(a)lot\b/gi,
+                replacement: "$1 lot",
+                reason: "grammar and spelling"
+            },
+            one_r_two_r: {
+                expr: /\b(refe|prefe|occu)r(ed|ing)\b/gi,
+                replacement: "$1rr$2",
+                reason: "grammar and spelling"
+            },
+            preferably: {
+                expr: /\b(p)referrably\b/gi,
+                replacement: "$1referably",
+                reason: "grammar and spelling"
+            },
+            command_line: {
+                expr: /\b(c)ommandline\b/gi,
+                replacement: "$1ommand-line",
+                reason: "grammar and spelling"
+            },
+            benefits: {
+                expr: /\b(b)enifits\b/gi,
+                replacement: "$1enefits",
+                reason: "grammar and spelling"
+            },
+            authorization: {
+                expr: /\b(a)uth\b/gi,           // This may be too ambiguous, could also mean "authentication"
+                replacement: "$1uthorization",
+                reason: "grammar and spelling"
+            },
+            persistent: {
+                expr: /\b(p)ersistan(t|ce)\b/gi,
+                replacement: "$1ersisten$2",
+                reason: "grammar and spelling"
+            },
+            _ibility: {
+                expr: /\b(comp|incomp|access)abilit(y|ies)\b/gi,
+                replacement: "$1ibilit$2",
+                reason: "grammar and spelling"
+            },
+            separate: {
+                expr: /\b(s)epe?rate?(d|ly|s)?\b/gi,
+                replacement: "$1eparate$2",
+                reason: "grammar and spelling"
+            },
+            separation: {
+                expr: /\b(s)eperation(s)?\b/gi,
+                replacement: "$1eparation$2",
+                reason: "grammar and spelling"
+            },
+            definite: {
+                expr: /\b(d)efin(?:ate?|ite?|al|te?)(ly)?\b/gi,  // Catches correct spelling, too.
+                replacement: "$1efinite$2",
+                reason: "grammar and spelling"
+            },
+            definitive: {
+                expr: /\b(d)efina?tive(ly)?\b/gi,
+                replacement: "$1efinitive$2",
+                reason: "grammar and spelling"
+            },
+            independent: {
+                expr: /\b(i)ndependant(ly)?\b/gi,
+                replacement: "$1ndependent$2",
+                reason: "grammar and spelling"
+            },
+            recommend: {
+                expr: /\b(r)ecomm?and(ation)?\b/gi,
+                replacement: "$1ecommend$2",
+                reason: "grammar and spelling"
+            },
+            compatibility: {
+                expr: /\b(c)ompatability\b/gi,
+                replacement: "$1ompatibility$2",
+                reason: "grammar and spelling"
+            },
+            ps: {
+                expr: /\bps\b/g,
+                replacement: "PS",
+                reason: "grammar and spelling"
+            },
+            ok: {
+                expr: /\bok\b/g,
+                replacement: "OK",
+                reason: "grammar and spelling"
+            },
+            etc: {
+                expr: /\betc\b/g,
+                replacement: "etc.",
+                reason: "grammar and spelling"
+            },
+            back_end: {  // Interesting fact: backend 3x more common than back-end
+                expr: /\b(b)ackend\b/g,
+                replacement: "$1ack-end",
+                reason: "grammar and spelling"
+            },
+            front_end: {
+                expr: /\b(f)rontend\b/g,
+                replacement: "$1ront-end",
+                reason: "grammar and spelling"
+            },
+            data_type: {
+                expr: /\b(d)atatype\b/g,
+                replacement: "$1ata type",
+                reason: "grammar and spelling"
+            },
+            allotted: {
+                expr: /\b(a)l+ot+ed\b/g,
+                replacement: "$1llotted",
+                reason: "grammar and spelling"
+            },
+            every_time: {
+                expr: /\b(e)ve?rytime\b/g,
+                replacement: "$1very time",
+                reason: "grammar and spelling"
+            },
+            straightforward: {
+                expr: /\b(s)traig?h?t[ -]forward\b/g,
+                replacement: "$1traightforward",
+                reason: "grammar and spelling"
+            },
+            preceding: {
+                expr: /\b(p)receeding\b/gi,
+                replacement: "$1receding",
+                reason: "grammar and spelling"
+            },
+            no_one: {
+                expr: /\b(n)o-?one\b/gi,
+                replacement: "$1o one",
+                reason: "grammar and spelling"
+            },
+            de_facto: {
+                expr: /\b(d)e-?facto\b/gi,
+                replacement: "$1e facto",
+                reason: "grammar and spelling"
+            },
+            accommodate: { // https://regex101.com/r/cL3mD9/1
+                expr: /\b(a)(?:c+om|com+)odate\b/gi,
+                replacement: "$1ccommodate",
+                reason: "grammar and spelling"
+            },
+            matlab: {
+                expr: /\bmath?lab\b/gi,
+                replacement: "MATLAB",
+                reason: "trademark capitalization"
+            },
+            internet: {
+                expr: /\binternet\b/g,
+                replacement: "Internet",
+                reason: "trademark capitalization"
+            },
+            web_services: {
+                expr: /\bweb services\b/g,
+                replacement: "Web services",
+                reason: "trademark capitalization"
+            },
+            kind_of: {
+                expr: /\b(k)inda\b/gi,
+                replacement: "$1ind of",
+                reason: "grammar and spelling"
+            },
+            want_to: {
+                expr: /\b(w)anna\b/gi,
+                replacement: "$1ant to",
+                reason: "grammar and spelling"
+            },
+            sort_of: {
+                expr: /\b(s)orta\b/gi,
+                replacement: "$1ort of",
+                reason: "grammar and spelling"
+            },
+            got_to: { // https://regex101.com/r/rK6xR5/1
+                expr: /\b(have\s+)?(g)otta\b/gi,
+                replacement: "$1$2ot to",
+                reason: "grammar and spelling"
+            },
+            dont_know: { // https://regex101.com/r/rK6xR5/1
+                expr: /\b(d)[uo]nn?o\b/gi,
+                replacement: "$1on't know",
+                reason: "grammar and spelling"
+            },
+            going_to: {
+                expr: /\b(g)[ou]nna\b/gi,
+                replacement: "$1oing to",
                 reason: "grammar and spelling"
             },
             // Punctuation & Spacing come last
