@@ -84,6 +84,12 @@
             //        tags and html comments  TODO: needs test 
             "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>/g
         };
+        App.globals.checksr = (function(o1){
+            var o2 = {};
+            var k= Object.keys(o1);
+            for(var i = k.length-1; i >= 0; --i) o2[k[i]] = o1[k[i]];
+            return o2;
+        })(App.globals.checks);
 
         // Assign modules here
         App.globals.pipeMods = {};
@@ -713,7 +719,7 @@
 
         App.globals.pipeMods.replace = function(data) {
             if (!data.body) return false;
-            for (var type in App.globals.checks) {
+            for (var type in App.globals.checksr) {
                 var i = 0;
                 data.body = data.body.replace(App.globals.placeHolderChecks[type], function(match) {
                     return App.globals.replacedStrings[type][i++];
