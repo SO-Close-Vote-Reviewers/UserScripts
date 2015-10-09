@@ -31,7 +31,7 @@
 
         // Place "helper" functions here
         App.funcs = {};
-        
+
         // True to display rule names in Edit Summary
         App.globals.showRules = false;
 
@@ -52,7 +52,7 @@
             "inline": [],
             "block":  [],
             "links":  [],
-            "tags":  []
+            "tags":   []
         };
         App.globals.placeHolders = {
             "auto":   "_xAutoxInsertxTextxPlacexHolder_",
@@ -64,7 +64,7 @@
         };
         App.globals.placeHolderChecks = {
             "auto":   /_xAutoxInsertxTextxPlacexHolder_/gi,
-            "quote": /_xBlockxQuotexPlacexHolderx_/gi,
+            "quote":  /_xBlockxQuotexPlacexHolderx_/gi,
             "inline": /_xCodexInlinexPlacexHolderx_/gi,
             "block":  /_xCodexBlockxPlacexHolderx_/gi,
             "links":  /_xLinkxPlacexHolderx_/gi,
@@ -92,10 +92,10 @@
         })(App.globals.checks);
 
         // Assign modules here
-        App.globals.pipeMods = {};
+        App.pipeMods = {};
 
         // Define order in which mods affect  here
-        App.globals.order = ["omit", "codefix", "edit", "replace"];
+        App.globals.order = ["omit", "codefix", "edit", "diff", "replace", "output"];
 
         // Define edit rules
         App.edits = {
@@ -399,7 +399,7 @@
                 reason: "grammar and spelling"
             },
             im: {
-                expr: /\bi ?m\b/gi,
+                expr: /\bim\b/gi,
                 replacement: "I'm",
                 reason: "grammar and spelling"
             },
@@ -766,15 +766,12 @@
                 //expr: /(?:(?!\n\n)[^\s.!?]+[ ]*)+([.!?])*[ ]*/g, 
                 expr: /((?!\n\n)(?:[^?.!])*([?.!]|\n\n)?\)*)/gm, 
                 replacement: function(str, endpunc) { 
-                    if (str === "undefined") return str;  // MUST match str, or gets counted as a change.
-                    //console.log('str('+str+')');
+                    if (str === "undefined") return '';
                     //                 https://regex101.com/r/bL9xD7/1 find and capitalize first letter
                     return str.replace(/^(\W*)([a-z])(.*)/g, function(sentence, pre, first, post) {
                         if (!pre) pre = '';
                         if (!post) post = '';
-                        //console.log('sentence ('+sentence+') pre ('+pre+') first ('+first+') post ('+post+') endpunc ('+endpunc+')');
-                        var update = pre + first.toUpperCase() + post// + (!endpunc && /\w/.test(post.substr(-1)) ? '.' : '');
-                        //console.log('update ('+update+')');
+                        var update = pre + first.toUpperCase() + post; // + (!endpunc && /\w/.test(post.substr(-1)) ? '.' : '');
                         return update;
                     });
                 },
@@ -786,8 +783,8 @@
                 replacement: "$1",
                 reason: "punctuation & spacing"
             },
-            spacesbeforesymbols: {  // https://regex101.com/r/vS3dS3/1
-                expr: /[ \t]+([.,!?;:])(?!\w)/g,
+            spacesbeforesymbols: {
+                expr: /\s+([.,!?;:])(?!\w)/g,
                 replacement: "$1",
                 reason: "punctuation & spacing"
             },
@@ -797,15 +794,14 @@
                 replacement: " ",
                 reason: "punctuation & spacing"
             },
-            blanklines: {
-                expr: /(?:\s*[\r\n]){3,}/gm,
-                replacement: "\n\n",
-                reason: "punctuation & spacing"
-            },
-            endblanklines: {
-                expr: /[\s\r\n]+$/g,
-                replacement: "",
-                reason: "punctuation & spacing"
+            // The title says it all
+            thetitlesaysitall: {
+                // https://regex101.com/r/bX1qB4/3
+                expr: /(?:the )?title says it all/gi,
+                replacement: function(){
+                    return '"' + App.selections.title.val() + '" says it all';
+                },
+                reason: "the title says it all"
             }
         };
 
@@ -816,7 +812,6 @@
             // Scan the post text using the expression to see if there are any matches
             var matches = input.match(expression);
             if (!matches) return false;
-            console.log(JSON.stringify(matches))
             var count = matches.length;  // # replacements to do
             var tmpinput = input;
             input = input.replace(expression, function() {
@@ -863,11 +858,22 @@
             App.selections.redoButton   = App.globals.root.find('[id^="wmd-redo-button"]');
             App.selections.body         = App.globals.root.find('[id^="wmd-input"]');
             App.selections.title        = App.globals.root.find('[class*="title-field"]');
-            App.selections.summary      = App.globals.root.find('[id^="edit-comment"]');
+            App.selections.summary      = App.globals.root.find('[id^="edit-comment"], .edit-comment');
             App.selections.tagField     = App.globals.root.find(".tag-editor");
             App.selections.submitButton = App.globals.root.find('[id^="submit-button"]');
             App.selections.helpButton   = App.globals.root.find('[id^="wmd-help-button"]');
             App.selections.editor       = App.globals.root.find('.post-editor');
+            App.selections.preview      = App.globals.root.find('.wmd-preview');
+            $('.hide-preview').off('click').attr('href','javascript:void(0)').click(function(){
+                if(/hide/.test(this.textContent)) return this.textContent = 'show preview', App.selections.preview.toggle(), true;
+                if(/show/.test(this.textContent)) return this.textContent = 'hide preview', App.selections.preview.toggle(), true;
+            });
+            var diffMenu = $('<div class="preview-options post-menu" style="margin-top:5px;margin-bottom:8px;"/>').appendTo(App.selections.editor);
+            var hideDiff = $('<a href="javascript:void(0)" class="hide-preview" style="margin-left:-2px;">hide diff</a>').click(function(){
+                if(/hide/.test(this.textContent)) return this.textContent = 'show diff', App.selections.diff.toggle(), true;
+                if(/show/.test(this.textContent)) return this.textContent = 'hide diff', App.selections.diff.toggle(), true;
+            }).appendTo(diffMenu);
+            App.selections.diff         = $('<div class="wmd-preview"/>').appendTo(App.selections.editor);
         };
 
         // Populate edit item sets from DOM selections
@@ -880,12 +886,12 @@
 
         // Populate original item sets from DOM selections
         App.funcs.popOriginals = function() {
-            var i = App.originals, s = App.selections;
+            var i = App.originals, s = App.items;
             ['title', 'body', 'summary'].forEach(function(v) {
-                i[v] = String(s[v].val()).trim();
+                i[v] = s[v];
             });
-        };
-
+        }
+        
         // Insert editing button(s)
         App.funcs.createButton = function() {
             if (!App.selections.redoButton.length) return false;
@@ -936,59 +942,42 @@
             });
         };
 
-        App.funcs.makeDiffTable = function() {
-            App.selections.diffTable = $('<table class="diffTable"/>');
-            App.selections.editor.append(App.selections.diffTable);
-        };
-
         App.funcs.fixEvent = function(e) {
             if (e) e.preventDefault();
             // Refresh item population
-            App.funcs.popOriginals();
             App.funcs.popItems();
             // Pipe data through editing modules
-            App.pipe(App.items, App.globals.pipeMods, App.globals.order);
+            App.pipe(App.items, App.pipeMods, App.globals.order);
         };
 
-        App.funcs.diff = function() {
-            App.selections.diffTable.empty();
-
-            function maakRij(x, y, type, rij) {
-
-                var tr = $('<tr/>');
-
-                if (type === '+') tr.addClass('add');
-                if (type === '-') tr.addClass('del');
-
-                tr.append($('<td class="codekolom">' + y + '</td>'));
-                tr.append($('<td class="codekolom">' + x + '</td>'));
-                tr.append($('<td class="bredecode">' + type + ' ' + rij.replace(/\</g, '&lt;') + '</td>'));
-
-                App.selections.diffTable.append(tr);
+        App.funcs.diff = function(a1, a2, title) {
+            var strings = [];
+            function maakRij(type, rij) {
+                if (!type) return strings.push(rij.replace(/\</g, '&lt;')), true;
+                if (type === '+') return strings.push('<span class="add">' + rij.replace(/\</g, '&lt;') + '</span>'), true;
+                if (type === '-') return strings.push('<span class="del">' + rij.replace(/\</g, '&lt;') + '</span>'), true;
             }
 
             function getDiff(matrix, a1, a2, x, y) {
                 if (x > 0 && y > 0 && a1[y - 1] === a2[x - 1]) {
                     getDiff(matrix, a1, a2, x - 1, y - 1);
-                    maakRij(x, y, ' ', a1[y - 1]);
+                    maakRij(false, a1[y - 1]);
                 } else {
                     if (x > 0 && (y === 0 || matrix[y][x - 1] >= matrix[y - 1][x])) {
                         getDiff(matrix, a1, a2, x - 1, y);
-                        maakRij(x, '', '+', a2[x - 1]);
+                        maakRij('+', a2[x - 1]);
                     } else if (y > 0 && (x === 0 || matrix[y][x - 1] < matrix[y - 1][x])) {
                         getDiff(matrix, a1, a2, x, y - 1);
-                        maakRij('', y, '-', a1[y - 1], '');
+                        maakRij('-', a1[y - 1]);
                     } else {
                         return;
                     }
                 }
-
             }
+            
+            a1 = a1.split(' ');
+            a2 = a2.split(' ');
 
-            
-            var a1 = App.originals.body.split('\n');
-            var a2 = App.items.body.split('\n');
-            
             var matrix = new Array(a1.length + 1);
             var x, y;
             for (y = 0; y < matrix.length; y++) {
@@ -1011,20 +1000,10 @@
 
             try {
                 getDiff(matrix, a1, a2, x - 1, y - 1);
+                return title ? '<div class="difftitle">' + strings.join(' ') + '</div>' : strings.join(' ');
             } catch (e) {
-                alert(e);
+                console.log(e);
             }
-        };
-
-        // Handle pipe output
-        App.funcs.output = function(data) {
-            App.selections.title.val(data.title);
-            App.selections.body.val(data.body);
-            App.selections.summary.val(data.summary);
-            App.selections.summary.focus();
-            App.selections.editor.append(App.funcs.diff());
-            StackExchange.MarkdownEditor.refreshAllPreviews();
-            App.selections.buttonInfo.text(App.globals.changes + (App.globals.changes>1 ? ' changes' : ' change')+' made');
         };
 
         // Pipe data through modules in proper order, returning the result
@@ -1036,10 +1015,9 @@
                     mods[modName](data);
                 }
             }
-            App.funcs.output(data);
         };
 
-        App.globals.pipeMods.omit = function(data) {
+        App.pipeMods.omit = function(data) {
             if (!data.body) return false;
             for (var type in App.globals.checks) {
                 data.body = data.body.replace(App.globals.checks[type], function(match) {
@@ -1050,26 +1028,16 @@
             return data;
         };
 
-        App.globals.pipeMods.codefix = function() {
+        App.pipeMods.codefix = function() {
             var replaced = App.globals.replacedStrings.block, str;
             for (var i in replaced) {
-                // https://regex101.com/r/tX9pM3/1       https://regex101.com/r/tX9pM3/2                 https://regex101.com/r/tX9pM3/3
+                // https://regex101.com/r/tX9pM3/1              https://regex101.com/r/tX9pM3/2                 https://regex101.com/r/tX9pM3/3
                 if (/^`[^]+`$/.test(replaced[i])) replaced[i] = /(?!`)((?!`)[^])+/.exec(replaced[i])[1].replace(/(.+)/g, '    $1');
             }
         };
 
-        App.globals.pipeMods.replace = function(data) {
-            if (!data.body) return false;
-            for (var type in App.globals.checksr) {
-                var i = 0;
-                data.body = data.body.replace(App.globals.placeHolderChecks[type], function(match) {
-                    return App.globals.replacedStrings[type][i++];
-                });
-            }
-            return data;
-        };
-
-        App.globals.pipeMods.edit = function(data) {
+        App.pipeMods.edit = function(data) {
+            App.funcs.popOriginals();
             // Visually confirm edit - SE makes it easy because the jQuery color animation plugin seems to be there by default
             App.selections.body.animate({
                 backgroundColor: '#c8ffa7'
@@ -1109,7 +1077,7 @@
             // We need a place to store the reasons being applied to the summary. 
             var reasons = [];
             App.globals.changes = 0;
-          
+
             for (var z in App.globals.reasons) {
                 // For each type of change made, add a reason string with the reason text,
                 // optionally the rule ID, and the number of repeats if 2 or more.
@@ -1118,33 +1086,63 @@
                              + ((App.globals.reasons[z].count > 1) ? ' ('+App.globals.reasons[z].count+')' : '') );
                 App.globals.changes += App.globals.reasons[z].count;
             }
-          
+
             var reasonStr = reasons.join('; ')+'.';  // Unique reasons separated by ; and terminated by .
             reasonStr = reasonStr.charAt(0).toUpperCase() + reasonStr.slice(1);  // Cap first letter.
 
             if (!data.summaryOrig) data.summaryOrig = data.summary.trim(); // Remember original summary
             if (data.summaryOrig.length) data.summaryOrig = data.summaryOrig + ' ';
-          
+
             data.summary = data.summaryOrig + reasonStr;
             // Limit summary to 300 chars
             if (data.summary.length > 300) data.summary = data.summary.substr(0,300-3) + '...';
 
             return data;
+        };   
+        
+        // Populate the diff
+        App.pipeMods.diff = function() {
+            App.selections.diff.empty();
+            App.selections.diff.append(App.funcs.diff(App.originals.title, App.items.title, true));
+            var beforelines = App.originals.body.split('\n');
+            var afterlines = App.items.body.split('\n');
+            while(beforelines.length < afterlines.length) beforelines.push('');
+            while(beforelines.length > afterlines.length) afterlines.push('');
+            for(var i in beforelines) afterlines[i] = App.funcs.diff(beforelines[i], afterlines[i]);
+            App.selections.diff.append('<div class="diffbody">' + App.pipeMods.replace({body:afterlines.join('\n')}).body + '</div>');
+        }
+
+        // Replace the previously omitted code
+        App.pipeMods.replace = function(data) {
+            if (!data.body) return false;
+            for (var type in App.globals.checksr) {
+                var i = 0;
+                data.body = data.body.replace(App.globals.placeHolderChecks[type], function(match) {
+                    return App.globals.replacedStrings[type][i++];
+                });
+            }
+            return data;
+        };
+        
+        // Handle pipe output
+        App.pipeMods.output = function(data) {
+            App.selections.title.val(data.title);
+            App.selections.body.val(data.body);
+            App.selections.summary.val(data.summary);
+            App.selections.buttonInfo.text(App.globals.changes + (App.globals.changes>1 ? ' changes' : ' change')+' made');
+            StackExchange.MarkdownEditor.refreshAllPreviews();
         };
 
         // Init app
         App.init = function() {
             var count = 0;
             var toolbarchk = setInterval(function(){
-                //console.log('waiting for toolbar');
                 if(++count === 10) clearInterval(toolbarchk)
                 if(!App.globals.root.find('.wmd-button-row').length) return;
                 clearInterval(toolbarchk);
-                //console.log('found toolbar');
                 App.funcs.popSelections();
                 App.funcs.createButton();
                 App.funcs.applyListeners();
-                App.funcs.makeDiffTable();
             }, 100);
             return App;
         };
@@ -1166,7 +1164,27 @@
         });
         if($('#post-form').length) extendEditor($('#post-form'));
         // This is the styling for the diff output.
-        $('body').append('<style>.diff { max-width: 100%; overflow: auto; } td.bredecode, td.codekolom { padding: 1px 2px; } td.bredecode { width: 100%; padding-left: 4px; white-space: pre-wrap; word-wrap: break-word; } td.codekolom { text-align: right; min-width: 3em; background-color: #ECECEC; border-right: 1px solid #DDD; color: #AAA; } tr.add { background: #DFD; } tr.del { background: #FDD; }</style>');
+        $('body').append('<style>' +
+                         '.difftitle {' +
+                         '    color: rgb(34, 34, 34);' +
+                         '    font-size: 24px;' +
+                         '    font-weight: normal;' +
+                         '    line-height: 36px;' +
+                         '    margin-bottom: 12px;' +
+                         '}' +
+                         '.diffbody {' +
+                         '    white-space: pre-wrap;' +
+                         '    font-family: "courier new", "lucida sans typewriter", mono, monospace' + 
+                         '}' +
+                         '.add {' +
+                         '    padding: 0 3px;' +
+                         '    background: #CFC;' +
+                         '}' +
+                         '.del {' +
+                         '    padding: 0 3px;' +
+                         '    background: #FCC;' +
+                         '}' +
+                         '</style>');
     } catch (e) {
         console.log(e);
     }
