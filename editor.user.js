@@ -399,7 +399,7 @@
                 reason: "grammar and spelling"
             },
             im: {
-                expr: /\bim\b/gi,
+                expr: /\bi ?m\b/gi,
                 replacement: "I'm",
                 reason: "grammar and spelling"
             },
@@ -766,15 +766,15 @@
                 //expr: /(?:(?!\n\n)[^\s.!?]+[ ]*)+([.!?])*[ ]*/g, 
                 expr: /((?!\n\n)(?:[^?.!])*([?.!]|\n\n)?\)*)/gm, 
                 replacement: function(str, endpunc) { 
-                    if (str === "undefined") return '';
-                    console.log('str: '+str);
+                    if (str === "undefined") return str;  // MUST match str, or gets counted as a change.
+                    //console.log('str('+str+')');
                     //                 https://regex101.com/r/bL9xD7/1 find and capitalize first letter
                     return str.replace(/^(\W*)([a-z])(.*)/g, function(sentence, pre, first, post) {
                         if (!pre) pre = '';
                         if (!post) post = '';
-                        console.log('sentence ('+sentence+') pre ('+pre+') first ('+first+') post ('+post+') endpunc ('+endpunc+')');
+                        //console.log('sentence ('+sentence+') pre ('+pre+') first ('+first+') post ('+post+') endpunc ('+endpunc+')');
                         var update = pre + first.toUpperCase() + post// + (!endpunc && /\w/.test(post.substr(-1)) ? '.' : '');
-                        console.log('update ('+update+')');
+                        //console.log('update ('+update+')');
                         return update;
                     });
                 },
@@ -786,8 +786,8 @@
                 replacement: "$1",
                 reason: "punctuation & spacing"
             },
-            spacesbeforesymbols: {
-                expr: /\s+([.,!?;:])(?!\w)/g,
+            spacesbeforesymbols: {  // https://regex101.com/r/vS3dS3/1
+                expr: /[ \t]+([.,!?;:])(?!\w)/g,
                 replacement: "$1",
                 reason: "punctuation & spacing"
             },
@@ -795,6 +795,16 @@
                 // https://regex101.com/r/hY9hQ3/1
                 expr: /[ ]{2,}(?!$)/g,
                 replacement: " ",
+                reason: "punctuation & spacing"
+            },
+            blanklines: {
+                expr: /(?:\s*[\r\n]){3,}/gm,
+                replacement: "\n\n",
+                reason: "punctuation & spacing"
+            },
+            endblanklines: {
+                expr: /[\s\r\n]+$/g,
+                replacement: "",
                 reason: "punctuation & spacing"
             }
         };
