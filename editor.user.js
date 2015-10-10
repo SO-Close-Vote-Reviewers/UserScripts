@@ -80,7 +80,7 @@
             //        https://regex101.com/r/eC7mF7/1 code blocks and multiline inline code.
             "block":  /`[^`]+`|(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ ]+\n)*)+)+/g,
             //        https://regex101.com/r/tZ4eY3/5 links and link-sections
-            "links":  /\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])|(?:  (?:\[\d\]): \w*:+\/\/.*\n*)+|(?!.net)(?:\/\w+|.:\\|\.[^ \n\r.]+|\w+:\/\/)[^\s)]*/g,
+            "links":  /\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])|(?:  (?:\[\d\]): \w*:+\/\/.*\n*)+|(?!.net)(?:\/.+\/\w*|.:\\|\w*:\/\/)(?:\S)*/g,
             //        tags and html comments  TODO: needs test 
             "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>/g
         };
@@ -1109,16 +1109,19 @@
             while(beforelines.length < afterlines.length) beforelines.push('');
             while(beforelines.length > afterlines.length) afterlines.push('');
             for(var i in beforelines) afterlines[i] = App.funcs.diff(beforelines[i], afterlines[i]);
-            App.selections.diff.append('<div class="diffbody">' + App.pipeMods.replace({body:afterlines.join('\n')}).body + '</div>');
+            App.selections.diff.append('<div class="diffbody">' + App.pipeMods.replace({body:afterlines.join('\n')}, true).body + '</div>');
         }
 
         // Replace the previously omitted code
-        App.pipeMods.replace = function(data) {
+        App.pipeMods.replace = function(data, literal) {
             if (!data.body) return false;
             for (var type in App.globals.checksr) {
                 var i = 0;
                 data.body = data.body.replace(App.globals.placeHolderChecks[type], function(match) {
-                    return App.globals.replacedStrings[type][i++];
+                    var replace = App.globals.replacedStrings[type][i++];
+                    if(literal && type === 'block')  return '<pre><code>' + replace.replace(/</g,'&lt;').replace(/^    /gm,'') + '</code></pre>';
+                    if(literal) return '<code>' + replace.replace(/</g,'&lt;') + '</code><sup>(' + type + ')</sup>';
+                    return replace;
                 });
             }
             return data;
