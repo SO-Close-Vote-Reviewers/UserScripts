@@ -657,8 +657,46 @@
             },
             rss: {
                 expr: /\brss?\b/gi,
-                replacement: "RSS",
+                replacement: String.toUpperCase,
+                // replacement: "RSS",
                 reason: "acronym capitalization"
+            },
+            mvc: {
+                expr: /\bmvc\b/gi,
+                replacement: String.toUpperCase,
+                reason: "acronym capitalization"
+            },
+            mvn: {
+                expr: /\bmvn\b/gi,
+                replacement: String.toUpperCase,
+                reason: "trademark capitalization"
+            },
+            maven: {
+                expr: /\bmaven\b/gi,
+                replacement: "Maven",
+                reason: "trademark capitalization"
+            },
+            youtube: {
+                expr: /\byoutube\b/gi,
+                replacement: "YouTube",
+                reason: "trademark capitalization"
+            },
+            amazon: {
+                // https://regex101.com/r/dR0pJ7/1
+                expr: /\b(amazon(?: )?(?:redshift|web services|cloudfront|console)?)((?: )?(?:ec2|aws|s3|rds|sqs|iam|elb|emr|vpc))?\b/gi,
+                replacement: function(str,titlecase,uppercase) {
+                    var fixed = titlecase.toTitleCase() + (uppercase ? uppercase.toUpperCase() : '');
+                    return fixed;
+                },
+                reason: "trademark capitalization"
+            },
+            zend: {
+                expr: /\bzend((?: )?(?:framework|studio|guard))?\b/gi,
+                //replacement: String.toTitleCase,  // Doesn't work like built-in toUpperCase, returns 'undefined'. Load order?
+                replacement: function(str,prod) {
+                    return str.toTitleCase();
+                },
+               reason: "trademark capitalization"
             },
             // From Peter Mortensen list (http://pvm-professionalengineering.blogspot.de/2011/04/word-list-for-editing-stack-exchange.html)
             ie: {  // http://english.stackexchange.com/questions/30106/can-i-start-a-sentence-with-i-e
@@ -926,9 +964,7 @@
                 reason: "punctuation & spacing"
             },
             spacesbeforesymbols: {
-         // MERGE CONFLICT - both changed regex, test and select one.
-                expr: /[ ]*(?:([,!?;:])(?!\))[ ]*(?!\n))/g,
-                // expr: /[ \t]+([.,!?;:])(?!\w)/g,  // https://regex101.com/r/vS3dS3/2, for Issue #8
+                expr: /[ \t]*(?:([,!?;:](?!\)|\d)|[ \t](\.))(?=\s))[ \t]*/g,  // https://regex101.com/r/vS3dS3/6
                 replacement: "$1 ",
                 reason: "punctuation & spacing"
             },
@@ -1247,7 +1283,7 @@
             var reasonStr = reasons.join('; ')+'.';  // Unique reasons separated by ; and terminated by .
             reasonStr = reasonStr.charAt(0).toUpperCase() + reasonStr.slice(1);  // Cap first letter.
 
-            if (!data.summaryOrig) data.summaryOrig = data.summary.trim(); // Remember original summary
+            if (!data.hasOwnProperty('summaryOrig')) data.summaryOrig = data.summary.trim(); // Remember original summary
             if (data.summaryOrig.length) data.summaryOrig = data.summaryOrig + ' ';
 
             data.summary = data.summaryOrig + reasonStr;
@@ -1354,3 +1390,26 @@
     }
 })();
 
+/* 
+  * To Title Case 2.1 – http://individed.com/code/to-title-case/
+  * Copyright © 2008–2013 David Gouch. Licensed under the MIT License.
+ */
+
+String.prototype.toTitleCase = function(){
+  var smallWords = /^(a|an|and|as|at|but|by|en|for|if|in|nor|of|on|or|per|the|to|vs?\.?|via)$/i;
+
+  return this.replace(/[A-Za-z0-9\u00C0-\u00FF]+[^\s-]*/g, function(match, index, title){
+    if (index > 0 && index + match.length !== title.length &&
+      match.search(smallWords) > -1 && title.charAt(index - 2) !== ":" &&
+      (title.charAt(index + match.length) !== '-' || title.charAt(index - 1) === '-') &&
+      title.charAt(index - 1).search(/[^\s-]/) < 0) {
+      return match.toLowerCase();
+    }
+
+    if (match.substr(1).search(/[A-Z]|\../) > -1) {
+      return match;
+    }
+
+    return match.charAt(0).toUpperCase() + match.substr(1);
+  });
+};
