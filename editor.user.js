@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name           Stack-Exchange-Editor-Toolkit
+// @name           Stack-Exchange-Editor
 // @author         Cameron Bernhardt (AstroCB)
 // @developer      Jonathan Todd (jt0dd)
 // @developer      sathyabhat
@@ -413,7 +413,7 @@
                 reason: "noise reduction"
             },
             badwords: {
-                expr: /[^\n.!?:]*\b(?:th?anks?|th(?:an)?x|tanx|folks?|ki?nd(??:est|ly)|first\s*question)\b[^,.!?\n]*[,.!?]*/gi,
+                expr: /[^\n.!?:]*\b(?:th?anks?|th(?:an)?x|tanx|folks?|ki‌nd(‌?:est|ly)|first\s*question)\b[^,.!?\n]*[,.!?]*/gi,
                 replacement: "",
                 reason: "noise reduction"
             },
