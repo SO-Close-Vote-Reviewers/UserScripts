@@ -385,6 +385,11 @@
                 replacement: "NGINX",
                 reason: "trademark capitalization"
             },
+            dll: {
+                expr: /\bdll\b/g,
+                replacement: "DLL",
+                reason: "acronym capitalization"
+            },
             // Noise reduction
             editupdate: {
                 // https://regex101.com/r/tT2pK6/2
@@ -459,7 +464,7 @@
                 reason: "grammar and spelling"
             },
             im: {
-                expr: /\bim\b/gi,
+                expr: /\bi ?m\b/gi,
                 replacement: "I'm",
                 reason: "grammar and spelling"
             },
@@ -893,25 +898,28 @@
                 //expr: /(?:(?!\n\n)[^\s.!?]+[ ]*)+([.!?])*[ ]*/g, 
                 expr: /((?!\n\n)(?:[^?.!])*([?.!]|\n\n)?\)*)/gm, 
                 replacement: function(str, endpunc) { 
-                    if (str === "undefined") return '';
+                    if (str === "undefined") return str;  // MUST match str, or gets counted as a change.
+                    //console.log('str('+str+')');
                     //                 https://regex101.com/r/bL9xD7/1 find and capitalize first letter
                     return str.replace(/^(\W*)([a-z])(.*)/g, function(sentence, pre, first, post) {
                         if (!pre) pre = '';
                         if (!post) post = '';
-                        var update = pre + first.toUpperCase() + post; // + (!endpunc && /\w/.test(post.substr(-1)) ? '.' : '');
+                        //console.log('sentence ('+sentence+') pre ('+pre+') first ('+first+') post ('+post+') endpunc ('+endpunc+')');
+                        var update = pre + first.toUpperCase() + post// + (!endpunc && /\w/.test(post.substr(-1)) ? '.' : '');
+                        //console.log('update ('+update+')');
                         return update;
                     });
                 },
-                reason: "Caps at start of sentences"
-            },
-            multiplesymbols: {
+                reason: "caps at start of sentences"
+            },            multiplesymbols: {
                 //    https://regex101.com/r/bE9zM6/1
                 expr: /([^\w\s*#.\-_])\1{1,}/g,
                 replacement: "$1",
                 reason: "punctuation & spacing"
             },
             spacesbeforesymbols: {
-                expr: /\s+([.,!?;:])(?!\w)/g,
+                expr: /[ \t]+([.,!?;:])(?!\w)/g,  // https://regex101.com/r/vS3dS3/2, for Issue #8
+                //expr: /\s+([.,!?;:])(?!\w)/g,   // This is too greedy, it removes newlines before lines starting with symbols
                 replacement: "$1",
                 reason: "punctuation & spacing"
             },
@@ -919,6 +927,16 @@
                 // https://regex101.com/r/hY9hQ3/1
                 expr: /[ ]{2,}(?!$)/g,
                 replacement: " ",
+                reason: "punctuation & spacing"
+            },
+            blanklines: {
+                expr: /(?:\s*[\r\n]){3,}/gm,
+                replacement: "\n\n",
+                reason: "punctuation & spacing"
+            },
+            endblanklines: {
+                expr: /[\s\r\n]+$/g,
+                replacement: "",
                 reason: "punctuation & spacing"
             },
             // The title says it all
