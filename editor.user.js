@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name           Stack-Exchange-Editor
+// @name           Stack-Exchange-Editor-Toolkit
 // @author         Cameron Bernhardt (AstroCB)
 // @developer      Jonathan Todd (jt0dd)
 // @developer      sathyabhat
@@ -1056,7 +1056,7 @@
         App.funcs.popItems = function() {
             var i = App.items, s = App.selections;
             ['title', 'body', 'summary'].forEach(function(v) {
-                i[v] = String(s[v].val()).trim();
+                i[v] = s[v].length ? s[v].val().trim() : '';
             });
         };
 
