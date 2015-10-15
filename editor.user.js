@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.30
+// @version        1.5.2.31
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -84,8 +84,8 @@
             "block":  /`[^`]+`|(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ ]+\n)*)+)+/g,
             //        https://regex101.com/r/tZ4eY3/7 link-sections 
             "lsec":   /(?:  (?:\[\d\]): \w*:+\/\/.*\n*)+/g,
-            //        https://regex101.com/r/tZ4eY3/14 links and pathnames
-            "links":  /\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/\S+)\S*/g,
+            //        https://regex101.com/r/tZ4eY3/17 links and pathnames
+            "links":  /\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d]*/g,
             //        tags and html comments  TODO: needs test 
             "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>/g
         };
@@ -133,7 +133,7 @@
                 reason: "'Stack Exchange' is the legal name"
             },
             javascript: {
-                expr: /([^\b\w.]|^)(javascript|js)\b/gi,
+                expr: /([^\b\w.]|^)(javascript|js|java script)\b/gi,
                 replacement: "$1JavaScript",
                 reason: "trademark capitalization"
             },
@@ -351,11 +351,6 @@
                 replacement: "NPM$1",
                 reason: "acronym capitalization"
             },
-            nodejs: {
-                expr: /\bnode.?js/gi,
-                replacement: "Node.js",
-                reason: "trademark capitalization"
-            },
             succeed: {
                 expr: /\b(s)ucc?ee?d(ed|s)?\b/gi,
                 replacement: "$1ucceed$2",
@@ -399,6 +394,36 @@
                 expr: /\bdll\b/g,
                 replacement: "DLL",
                 reason: "acronym capitalization"
+            },
+            source: {
+                expr: /\b(s)orce(s|d)?\b/gi,
+                replacement: "$1ource$2",
+                reason: "grammar and spelling"
+            },
+            standardize: {  // https://regex101.com/r/vN7pM0/1
+                expr: /\b(s)tandari([sz](?:e|es|ed|ation))\b/gi,
+                replacement: "$1tandardi$2",
+                reason: "grammar and spelling"
+            },
+            different: {  // https://regex101.com/r/vN7pM0/1
+                expr: /\b(d)iff?e?ren(t|ce)\b/gi,
+                replacement: "$1ifferen$2",
+                reason: "grammar and spelling"
+            },
+            personally: { // https://regex101.com/r/oL9aM1/1
+                expr: /\b(p)ersona?l?(ly)?\b/gi,
+                replacement: "$1ersonal$2",
+                reason: "grammar and spelling"
+            },
+            problem: {
+                expr: /\b(p)orblem(s)?\b/gi,
+                replacement: "$1roblem$2",
+                reason: "grammar and spelling"
+            },
+            maybe: {
+                expr: /\b(m)aby\b/gi,
+                replacement: "$1aybe",
+                reason: "grammar and spelling"
             },
             // Noise reduction
             editupdate: {
@@ -463,9 +488,19 @@
                 replacement: "$1'$2",
                 reason: "grammar and spelling"
             },
+            doesn_t: {
+                expr: /\b(d)ose?nt\b/gi,
+                replacement: "$1oesn't",
+                reason: "grammar and spelling"
+            },
             prolly: {
-                expr: /\bproll?y\b/gi,
-                replacement: "probably",
+                expr: /\b(p)roll?y\b/gi,
+                replacement: "$1robably",
+                reason: "grammar and spelling"
+            },
+            keyboard: {
+                expr: /\b(k)ey?boa?rd\b/gi,
+                replacement: "$1eyboard",
                 reason: "grammar and spelling"
             },
             i: {
@@ -935,7 +970,7 @@
                 reason: "grammar and spelling"
             },
             going_to: {
-                expr: /\b(g)[ou]nna\b/gi,
+                expr: /\b(g)[ou]nn?a\b/gi,
                 replacement: "$1oing to",
                 reason: "grammar and spelling"
             },
