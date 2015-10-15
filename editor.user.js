@@ -84,9 +84,9 @@
             "block":  /`[^`]+`|(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ ]+\n)*)+)+/g,
             //        https://regex101.com/r/tZ4eY3/7 link-sections 
             "lsec":   /(?:  (?:\[\d\]): \w*:+\/\/.*\n*)+/g,
-            //        https://regex101.com/r/tZ4eY3/17 links and pathnames
-            "links":  /\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d]*/g,
-            //        tags and html comments  TODO: needs test 
+            //        https://regex101.com/r/tZ4eY3/19 links and pathnames
+            "links":  /\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d:/?#\[\]@!$&'()*+,;=\-~%]*/g,
+            //        https://regex101.com/r/bF0iQ0/1   tags and html comments 
             "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>/g
         };
         App.globals.checksr = (function(o1){
@@ -153,20 +153,18 @@
                 reason: "trademark capitalization"
             },
             x_html: {
-                expr: /\b(g|ht|x|xht)ml\b/gi,
-                replacement: function(match) {
-                    return match.toUpperCase();
-                },
+                expr: /(?:[^\b\w.]|^)(g|ht|x|xht)ml\b/gi,
+                replacement: String.toUpperCase,
                 reason: "trademark capitalization"
             },
             css: {
-                expr: /([^\b\w.]|^)css\b/gi,
-                replacement: "$1CSS",
+                expr: /(?:[^\b\w.]|^)css\b/gi,
+                replacement: String.toUpperCase,
                 reason: "trademark capitalization"
             },
             json: {
-                expr: /\bjson\b/gi,
-                replacement: "JSON",
+                expr: /(?:[^\b\w.]|^)json\b/gi,
+                replacement: String.toUpperCase,
                 reason: "acronym capitalization"
             },
             ajax: {
@@ -175,8 +173,8 @@
                 reason: "acronym capitalization"
             },
             php: {
-                expr: /([^\b\w.]|^)php\b/gi,
-                replacement: "$1PHP",
+                expr: /(?:[^\b\w.]|^)php\b/gi,
+                replacement: String.toUpperCase,
                 reason: "trademark capitalization"
             },
             voting: {
@@ -185,18 +183,18 @@
                 reason: "the proper spelling (despite the tag name) is '$1vote' (one word)"
             },
             c: {
-                expr: /\bc\b([#+]+)?/gi,
-                replacement: "C$1",
+                expr: /(?:[^\b\w.]|^)c\b(?:#|\+\+)?/gi,
+                replacement: String.toUpperCase,
                 reason: "trademark capitalization"
             },
             java: {
-                expr: /\bjava\b/gi,
-                replacement: "Java",
+                expr: /([^\b\w.]|^)java\b/gi,
+                replacement: "$1Java",
                 reason: "trademark capitalization"
             },
             sql: {
-                expr: /([^\b\w.]|^)sql\b/gi,
-                replacement: "$1SQL",
+                expr: /(?:[^\b\w.]|^)sql\b/gi,
+                replacement: String.toUpperCase,
                 reason: "trademark capitalization"
             },
             sqlite: {
@@ -260,8 +258,8 @@
                 reason: "trademark capitalization"
             },
             git: {
-                expr: /\bgit\b/gi,
-                replacement: "Git",
+                expr: /([^\b\w.]|^)git\b/gi,
+                replacement: "$1Git",
                 reason: "trademark capitalization"
             },
             github: {
@@ -327,18 +325,18 @@
                 reason: "trademark capitalization"
             },
             pdf: {
-                expr: /\bpdf(s)?/gi,
-                replacement: "PDF$1",
+                expr: /([^\b\w.]|^)pdf(s)?/gi,
+                replacement: "$1PDF$2",
                 reason: "trademark capitalization"
             },
             api: {
-                expr: /\bapi(s)?\b/gi,
-                replacement: "API$1",
+                expr: /([^\b\w.]|^)api(s)?\b/gi,
+                replacement: "$1API$2",
                 reason: "acronym capitalization"
             },
             ssl: {
-                expr: /\bssl\b/g,
-                replacement: "SSL",
+                expr: /(?:[^\b\w.]|^)ssl\b/g,
+                replacement: String.toUpperCase,
                 reason: "acronym capitalization"
             },
             tomcat: {
@@ -352,25 +350,23 @@
                 reason: "acronym capitalization"
             },
             succeed: {
-                expr: /\b(s)ucc?ee?d(ed|s)?\b/gi,
+                expr: /\b(s)uc[cs]?ee?d(ed|s)?\b/gi,
                 replacement: "$1ucceed$2",
                 reason: "grammar and spelling"
             },
             ftp: {
-                expr: /\b[st]?ftps?\b/g,
-                replacement: function(str) {
-                    return str.toUpperCase();
-                },
+                expr: /(?:[^\b\w.]|^)[st]?ftps?\b/g,
+                replacement: String.toUpperCase,
                 reason: "acronym capitalization"
             },
             ipa: {
-                expr: /\bipa\b/g,
-                replacement: "IPA",
+                expr: /(?:[^\b\w.]|^)ipa\b/g,
+                replacement: String.toUpperCase,
                 reason: "acronym capitalization"
             },
             avl: {
-                expr: /\bavl\b/g,
-                replacement: "AVL",
+                expr: /(?:[^\b\w.]|^)avl\b/g,
+                replacement: String.toUpperCase,
                 reason: "acronym capitalization"
             },
             netbeans: {
@@ -379,20 +375,18 @@
                 reason: "trademark capitalization"
             },
             cli_cgi: {
-                expr: /\bc[lg]i\b/g,
-                replacement: function(str) {
-                    return str.toUpperCase();
-                },
+                expr: /(?:[^\b\w.]|^)c[lg]i\b/g,
+                replacement: String.toUpperCase,
                 reason: "acronym capitalization"
             },
             nginx: {
                 expr: /\bnginx\b/g,
-                replacement: "NGINX",
+                replacement: String.toUpperCase,
                 reason: "trademark capitalization"
             },
             dll: {
-                expr: /\bdll\b/g,
-                replacement: "DLL",
+                expr: /(?:[^\b\w.]|^)dll\b/g,
+                replacement: String.toUpperCase,
                 reason: "acronym capitalization"
             },
             source: {
@@ -619,8 +613,8 @@
                 reason: "grammar and spelling"
             },
             gui: {
-                expr: /\bgui(s)?\b/gi,
-                replacement: "GUI$1",
+                expr: /([^\b\w.]|^)gui(s)?\b/gi,
+                replacement: "$1GUI$2",
                 reason: "acronym capitalization"
             },
             iterate: { // https://regex101.com/r/iL6bV3/1
@@ -640,22 +634,22 @@
             },
             gnu: {
                 expr: /\bgnu\b/g,
-                replacement: "GNU",
+                replacement: String.toUpperCase,
                 reason: "trademark capitalization"
             },
             gcc: {
-                expr: /\bgcc\b/g,
-                replacement: "GCC",
+                expr: /(?:[^\b\w.]|^)gcc\b/g,
+                replacement: String.toUpperCase,
                 reason: "trademark capitalization"
             },
             stp: {
-                expr: /\bstp\b/gi,
-                replacement: "STP",
+                expr: /(?:[^\b\w.]|^)stp\b/gi,
+                replacement: String.toUpperCase,
                 reason: "acronym capitalization"
             },
             tcp: {
-                expr: /\btcp\b/gi,
-                replacement: "TCP",
+                expr: /(?:[^\b\w.]|^)tcp\b/gi,
+                replacement: String.toUpperCase,
                 reason: "acronym capitalization"
             },
             ipv_n: {
@@ -664,25 +658,23 @@
                 reason: "acronym capitalization"
             },
             fq_dn_s: {  // FQDN, DN, DNS
-                expr: /\b(fq)?dns?\b/gi,
-                replacement: function(str) {
-                    return str.toUpperCase();
-                },
+                expr: /(?:[^\b\w.]|^)(?:fq)?dns?\b/gi,
+                replacement: String.toUpperCase,
                 reason: "acronym capitalization"
             },
             icmp: {
                 expr: /\bicmp\b/gi,
-                replacement: "ICMP",
+                replacement: String.toUpperCase,
                 reason: "acronym capitalization"
             },
             rsvp: {
                 expr: /\brsvp\b/gi,
-                replacement: "RSVP",
+                replacement: String.toUpperCase,
                 reason: "acronym capitalization"
             },
             snmp: {
                 expr: /\bsnmp\b/gi,
-                replacement: "SNMP",
+                replacement: String.toUpperCase,
                 reason: "acronym capitalization"
             },
             cpu: {
@@ -691,20 +683,24 @@
                 reason: "acronym capitalization"
             },
             rss: {
-                expr: /\brss?\b/gi,
+                expr: /(?:[^\b\w.]|^)rss?\b/gi,
                 replacement: String.toUpperCase,
-                // replacement: "RSS",
                 reason: "acronym capitalization"
             },
             mvc: {
-                expr: /\bmvc\b/gi,
+                expr: /(?:[^\b\w.]|^)mvc\b/gi,
                 replacement: String.toUpperCase,
                 reason: "acronym capitalization"
             },
             mvn: {
-                expr: /\bmvn\b/gi,
+                expr: /(?:[^\b\w.]|^)mvn\b/gi,
                 replacement: String.toUpperCase,
                 reason: "trademark capitalization"
+            },
+            ascii: {
+                expr: /([^\b\w.]|^)ascii?\b/gi,
+                replacement: "$1ASCII",
+                reason: "acronym capitalization"
             },
             maven: {
                 expr: /\bmaven\b/gi,
@@ -930,8 +926,8 @@
                 reason: "grammar and spelling"
             },
             matlab: {
-                expr: /\bmath?lab\b/gi,
-                replacement: "MATLAB",
+                expr: /([^\b\w.]|^)math?lab\b/gi,
+                replacement: "$1MATLAB",
                 reason: "trademark capitalization"
             },
             internet: {
@@ -950,7 +946,7 @@
                 reason: "grammar and spelling"
             },
             want_to: {
-                expr: /\b(w)anna\b/gi,
+                expr: /\b(w)ann?a\b/gi,
                 replacement: "$1ant to",
                 reason: "grammar and spelling"
             },
