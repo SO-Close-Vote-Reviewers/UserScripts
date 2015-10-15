@@ -1193,8 +1193,8 @@
             var strings = [];
             function maakRij(type, rij) {
                 if (!type) return strings.push(rij.replace(/\</g, '&lt;')), true;
-                if (type === '+') return strings.push('<span class="add">' + rij.replace(/\</g, '&lt;') + '</span>'), true;
-                if (type === '-') return strings.push('<span class="del">' + rij.replace(/\</g, '&lt;') + '</span>'), true;
+                if (type === '+') return strings.push('<span class="add">' + rij.replace(/\</g, '&lt;').replace(/(?=\n)/g,'↵') + '</span>'), true;
+                if (type === '-') return strings.push('<span class="del">' + rij.replace(/\</g, '&lt;').replace(/(?=\n)/g,'↵') + '</span>'), true;
             }
 
             function getDiff(matrix, a1, a2, x, y) {
@@ -1408,11 +1408,9 @@
                          '    font-family: "courier new", "lucida sans typewriter", mono, monospace' + 
                          '}' +
                          '.add {' +
-                         '    padding: 0 3px;' +
                          '    background: #CFC;' +
                          '}' +
                          '.del {' +
-                         '    padding: 0 3px;' +
                          '    background: #FCC;' +
                          '}' +
                          '</style>');
