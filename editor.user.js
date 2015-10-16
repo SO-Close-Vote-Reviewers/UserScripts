@@ -32,7 +32,8 @@
         // Place "helper" functions here
         App.funcs = {};
 
-        // True to display rule names in Edit Summary
+        // True to display counts and / or rule names in Edit Summary
+        App.globals.showCounts = false;
         App.globals.showRules = false;
 
         //Preload icon alt
@@ -84,7 +85,7 @@
             "block":  /`[^`]+`|(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ ]+\n)*)+)+/g,
             //        https://regex101.com/r/tZ4eY3/7 link-sections 
             "lsec":   /(?:  (?:\[\d\]): \w*:+\/\/.*\n*)+/g,
-            //        https://regex101.com/r/tZ4eY3/19 links and pathnames
+            //        https://regex101.com/r/tZ4eY3/20 links and pathnames
             "links":  /\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d:/?#\[\]@!$&'()*+,;=\-~%]*/g,
             //        https://regex101.com/r/bF0iQ0/1   tags and html comments 
             "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>/g
@@ -154,17 +155,17 @@
             },
             x_html: {
                 expr: /(?:[^\b\w.]|^)(g|ht|x|xht)ml\b/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "trademark capitalization"
             },
             css: {
                 expr: /(?:[^\b\w.]|^)css\b/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "trademark capitalization"
             },
             json: {
                 expr: /(?:[^\b\w.]|^)json\b/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             ajax: {
@@ -174,7 +175,7 @@
             },
             php: {
                 expr: /(?:[^\b\w.]|^)php\b/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "trademark capitalization"
             },
             voting: {
@@ -184,7 +185,7 @@
             },
             c: {
                 expr: /(?:[^\b\w.]|^)c\b(?:#|\+\+)?/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "trademark capitalization"
             },
             java: {
@@ -194,7 +195,7 @@
             },
             sql: {
                 expr: /(?:[^\b\w.]|^)sql\b/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "trademark capitalization"
             },
             sqlite: {
@@ -279,9 +280,7 @@
             },
             urli: {
                 expr: /\b(ur[li])\b/gi,
-                replacement: function(match) {
-                    return match.toUpperCase();
-                },
+                replacement: function(match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             ios: {
@@ -299,7 +298,7 @@
                 replacement: "Ubuntu",
                 reason: "trademark capitalization"
             },
-            vbnet: {
+            vbnet: {  // https://regex101.com/r/bB9pP3/1
                 expr: /(?:vb|\s+)(?:\.net|\s*[0-9]+)\s*(?:framework|core)?/gi,
                 replacement: function(str) {
                     return str.replace(/vb/i, 'VB')
@@ -336,7 +335,7 @@
             },
             ssl: {
                 expr: /(?:[^\b\w.]|^)ssl\b/g,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             tomcat: {
@@ -356,17 +355,17 @@
             },
             ftp: {
                 expr: /(?:[^\b\w.]|^)[st]?ftps?\b/g,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             ipa: {
                 expr: /(?:[^\b\w.]|^)ipa\b/g,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             avl: {
                 expr: /(?:[^\b\w.]|^)avl\b/g,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             netbeans: {
@@ -376,17 +375,17 @@
             },
             cli_cgi: {
                 expr: /(?:[^\b\w.]|^)c[lg]i\b/g,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             nginx: {
                 expr: /\bnginx\b/g,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "trademark capitalization"
             },
             dll: {
                 expr: /(?:[^\b\w.]|^)dll\b/g,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             source: {
@@ -634,22 +633,22 @@
             },
             gnu: {
                 expr: /\bgnu\b/g,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "trademark capitalization"
             },
             gcc: {
                 expr: /(?:[^\b\w.]|^)gcc\b/g,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "trademark capitalization"
             },
             stp: {
                 expr: /(?:[^\b\w.]|^)stp\b/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             tcp: {
                 expr: /(?:[^\b\w.]|^)tcp\b/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             ipv_n: {
@@ -659,22 +658,22 @@
             },
             fq_dn_s: {  // FQDN, DN, DNS
                 expr: /(?:[^\b\w.]|^)(?:fq)?dns?\b/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             icmp: {
                 expr: /\bicmp\b/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             rsvp: {
                 expr: /\brsvp\b/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             snmp: {
                 expr: /\bsnmp\b/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             cpu: {
@@ -684,17 +683,17 @@
             },
             rss: {
                 expr: /(?:[^\b\w.]|^)rss?\b/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             mvc: {
                 expr: /(?:[^\b\w.]|^)mvc\b/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
             mvn: {
                 expr: /(?:[^\b\w.]|^)mvn\b/gi,
-                replacement: String.toUpperCase,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "trademark capitalization"
             },
             ascii: {
@@ -728,6 +727,16 @@
                     return str.toTitleCase();
                 },
                reason: "trademark capitalization"
+            },
+            formatting: {
+                expr: /\b(f)ormating\b/gi,
+                replacement: "$1ormatting",
+                reason: "grammar and spelling"
+            },
+            process: {
+                expr: /\b(p)roces(es|ed)?\b/gi,
+                replacement: "$1rocess$2",
+                reason: "grammar and spelling"
             },
             // From Peter Mortensen list (http://pvm-professionalengineering.blogspot.de/2011/04/word-list-for-editing-stack-exchange.html)
             ie: {  // http://english.stackexchange.com/questions/30106/can-i-start-a-sentence-with-i-e
@@ -1307,7 +1316,7 @@
                 // optionally the rule ID, and the number of repeats if 2 or more.
                 reasons.push(App.globals.reasons[z].reason
                              + (App.globals.showRules ? ' ['+ App.globals.reasons[z].editId +']' : '')
-                             + ((App.globals.reasons[z].count > 1) ? ' ('+App.globals.reasons[z].count+')' : '') );
+                             + (App.globals.showCounts ? ((App.globals.reasons[z].count > 1) ? ' ('+App.globals.reasons[z].count+')' : '') : '') );
                 App.globals.changes += App.globals.reasons[z].count;
             }
 
