@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.31
+// @version        1.5.2.32
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -738,6 +738,36 @@
                 replacement: "$1rocess$2",
                 reason: "grammar and spelling"
             },
+            programming: {
+                expr: /\b(p)rogram(ing|ed|er)\b/gi,
+                replacement: "$1rogramm$2",
+                reason: "grammar and spelling"
+            },
+            twitter: {
+                expr: /\btwitter\b/gi,
+                replacement: "Twitter",
+                reason: "trademark capitalization"
+            },
+            bootstrap: {     // "bootstrap" is also a general computing term, so expect some false positives
+                expr: /\bbootst?r?ap\b/gi,
+                replacement: "Bootstrap",
+                reason: "trademark capitalization"
+            },
+            apple: {
+                expr: /\bapple\b/g,
+                replacement: "Apple",
+                reason: "trademark capitalization"
+            },
+            iphone: {
+                expr: /\biph?one?\b/gi,
+                replacement: "iPhone",
+                reason: "trademark capitalization"
+            },
+            google_apps_script: {
+                expr: /\bgoogle ?(?:apps?)? ?script\b/gi,
+                replacement: "Google Apps Script",
+                reason: "trademark capitalization"
+            },
             // From Peter Mortensen list (http://pvm-professionalengineering.blogspot.de/2011/04/word-list-for-editing-stack-exchange.html)
             ie: {  // http://english.stackexchange.com/questions/30106/can-i-start-a-sentence-with-i-e
                 expr: /\b(i|I)e\b/g,   // Careful here; IE is Internet Explorer
@@ -981,10 +1011,10 @@
             },
             // Punctuation & Spacing come last
             firstcaps: {
-                //    https://regex101.com/r/qR5fO9/14
+                //    https://regex101.com/r/qR5fO9/18
                 // This doesn't work quite right, because is finds all sentences, not just ones needing caps.
                 //expr: /(?:(?!\n\n)[^\s.!?]+[ ]*)+([.!?])*[ ]*/g, 
-                expr: /((?!\n\n)[A-z\d](?:(?!\n\n)[^?.!A-Z])+(?:\.[A-z\d][^?.!A-Z]+)?([?.!])?)/gm, 
+                expr: /((?!\n\n)[A-z](?:(?!\n\n)[^?.!A-Z])+(?:\.[A-z][^?.!A-Z]+)*([?.!])?)/gm, 
                 replacement: function(str, endpunc) { 
                     if (str === "undefined") return str;  // MUST match str, or gets counted as a change.
                     //                 https://regex101.com/r/bL9xD7/1 find and capitalize first letter
