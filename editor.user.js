@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.32
+// @version        1.5.2.33
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -144,7 +144,7 @@
                 reason: "trademark capitalization"
             },
             jquery: {
-                expr: /\bjquery\b/gi,
+                expr: /\bjque?rr?y\b/gi,  // jqury, jquerry, jqurry... ~600 spelling mistakes
                 replacement: "jQuery",
                 reason: "trademark capitalization"
             },
@@ -298,14 +298,20 @@
                 replacement: "Ubuntu",
                 reason: "trademark capitalization"
             },
-            vbnet: {  // https://regex101.com/r/bB9pP3/1
-                expr: /(?:vb|\s+)(?:\.net|\s*[0-9]+)\s*(?:framework|core)?/gi,
+            vbnet: {  // https://regex101.com/r/bB9pP3/4
+                expr: /(?:vb|asp|\s+|\()(?:\.net|\s*[0-9]+)\s*(?:framework|core)?/gi,
                 replacement: function(str) {
                     return str.replace(/vb/i, 'VB')
+                    .replace(/asp/i, 'ASP')
                     .replace(/net/i, 'NET')
                     .replace(/framework/i, 'Framework')
                     .replace(/core/i, 'Core');
                 },
+                reason: "trademark capitalization"
+            },
+            asp: {
+                expr: /([^\b\w.]|^)asp/gi,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: "trademark capitalization"
             },
             regex: {
@@ -403,19 +409,29 @@
                 replacement: "$1ifferen$2",
                 reason: "grammar and spelling"
             },
-            personally: { // https://regex101.com/r/oL9aM1/1
-                expr: /\b(p)ersona?l?(ly)?\b/gi,
+            personally: { // https://regex101.com/r/oL9aM1/2
+                expr: /\b(p)erso(?:nl|nl|nal)(ly)?\b/gi,
                 replacement: "$1ersonal$2",
                 reason: "grammar and spelling"
             },
-            problem: {
-                expr: /\b(p)orblem(s)?\b/gi,
+            problem: { // https://regex101.com/r/yA8jM7/1
+                expr: /\b(p)(?:or|ro)b(?:le|el)m(s)?\b/gi,
                 replacement: "$1roblem$2",
+                reason: "grammar and spelling"
+            },
+            written: {
+                expr: /\b(w)riten\b/gi,
+                replacement: "$1ritten",
                 reason: "grammar and spelling"
             },
             maybe: {
                 expr: /\b(m)aby\b/gi,
                 replacement: "$1aybe",
+                reason: "grammar and spelling"
+            },
+            pseudo: {
+                expr: /\b(p)suedo\b/gi,
+                replacement: "$1seudo",
                 reason: "grammar and spelling"
             },
             // Noise reduction
@@ -481,9 +497,14 @@
                 replacement: "$1'$2",
                 reason: "grammar and spelling"
             },
-            doesn_t: {
-                expr: /\b(d)ose?nt\b/gi,
+            doesn_t: { // https://regex101.com/r/sL0uO9/1
+                expr: /\b(d)ose?n'?t\b/gi,
                 replacement: "$1oesn't",
+                reason: "grammar and spelling"
+            },
+            doesn_t_work: {  // >4K instances of this (Oct 2015)
+                expr: /\b(d)oesn\'t (work|like|think|want|put|save|load|get|help|make)s\b/gi,
+                replacement: "$1oesn't $2",
                 reason: "grammar and spelling"
             },
             prolly: {
@@ -496,8 +517,8 @@
                 replacement: "$1eyboard",
                 reason: "grammar and spelling"
             },
-            i: {
-                expr: /\bi('|\b)/g,  // i or i-apostrophe
+            i: { // https://regex101.com/r/uO7qG0/1
+                expr: /\bi('|\b)(?!.e.)/g,  // i or i-apostrophe
                 replacement: "I",
                 reason: "grammar and spelling"
             },
@@ -651,6 +672,26 @@
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: "acronym capitalization"
             },
+            wpf: {
+                expr: /(?:[^\b\w.]|^)wpf\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: "acronym capitalization"
+            },
+            http: {
+                expr: /(?:[^\b\w.]|^)https?\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: "acronym capitalization"
+            },
+            woff: {
+                expr: /(?:[^\b\w.]|^)woff\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: "acronym capitalization"
+            },
+            ttf: {
+                expr: /(?:[^\b\w.]|^)ttf\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: "acronym capitalization"
+            },
             ipv_n: {
                 expr: /\bip(v[46])?\b/gi,
                 replacement: "IP$1",
@@ -741,6 +782,31 @@
             programming: {
                 expr: /\b(p)rogram(ing|ed|er)\b/gi,
                 replacement: "$1rogramm$2",
+                reason: "grammar and spelling"
+            },
+            bear_with_me: {
+                expr: /\b(b)are (with me|it|in mind)\b/gi,
+                replacement: "$1ear $2",
+                reason: "grammar and spelling"
+            },
+            weird: {
+                expr: /\b(w)ierd(ness|ly)\b/gi,
+                replacement: "$1eird$2",
+                reason: "grammar and spelling"
+            },
+            believe: {
+                expr: /\b(b)eleive(r|s|d)?\b/gi,
+                replacement: "$1elieve$2",
+                reason: "grammar and spelling"
+            },
+            piece: {
+                expr: /\b(p)eice(s|d)?\b/gi,
+                replacement: "$1iece$2",
+                reason: "grammar and spelling"
+            },
+            sample: {
+                expr: /\b(s)maple(s|d)?\b/gi,
+                replacement: "$1ample$2",
                 reason: "grammar and spelling"
             },
             twitter: {
@@ -889,8 +955,8 @@
                 replacement: "$1ndependent$2",
                 reason: "grammar and spelling"
             },
-            recommend: {
-                expr: /\b(r)ecomm?and(ation)?\b/gi,
+            recommend: { // https://regex101.com/r/pP9lB7/1
+                expr: /\b(r)ecomm?[ao]nd(ation)?\b/gi,
                 replacement: "$1ecommend$2",
                 reason: "grammar and spelling"
             },
