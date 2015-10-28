@@ -1158,7 +1158,7 @@
             }
         };
 
-        // This is where the magic happens: this function takes a few pieces of information and applies edits to the post with a couple exceptions
+        // This is where the magic happens: this function takes a few pieces of information and applies edits to the post
         App.funcs.fixIt = function(input, expression, replacement, reasoning) {
             // If there is nothing to search, exit
             if (!input) return false;
@@ -1255,7 +1255,7 @@
         App.funcs.popItems = function() {
             var i = App.items, s = App.selections;
             ['title', 'body', 'summary'].forEach(function(v) {
-                i[v] = s[v].length ? s[v].val().trim() : '';
+                i[v] = s[v].length ? s[v].val() : '';
             });
         };
 
@@ -1443,7 +1443,7 @@
                 App.globals.changes += App.globals.reasons[z].count;
             }
 
-            var reasonStr = reasons.join('; ')+'.';  // Unique reasons separated by ; and terminated by .
+            var reasonStr = reasons.length ? reasons.join('; ')+'.' : '';  // Unique reasons separated by ; and terminated by .
             reasonStr = reasonStr.charAt(0).toUpperCase() + reasonStr.slice(1);  // Cap first letter.
 
             if (!data.hasOwnProperty('summaryOrig')) data.summaryOrig = data.summary.trim(); // Remember original summary
