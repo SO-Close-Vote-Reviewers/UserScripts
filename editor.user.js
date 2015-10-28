@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.33
+// @version        1.5.2.34
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -238,11 +238,6 @@
                 replacement: "WordPress",
                 reason: "trademark capitalization"
             },
-            google: {
-                expr: /\bgoogle\b/gi,
-                replacement: "Google",
-                reason: "trademark capitalization"
-            },
             mysql: {
                 expr: /\bmysql\b/gi,
                 replacement: "MySQL",
@@ -414,8 +409,8 @@
                 replacement: "$1ersonal$2",
                 reason: "grammar and spelling"
             },
-            problem: { // https://regex101.com/r/yA8jM7/3
-                expr: /\b(p)(?:or|ro)b(?:le|el|e)m(s)?\b/gi,
+            problem: { // https://regex101.com/r/yA8jM7/5
+                expr: /\b(p)(?:or?|ro|rο|r0)b(?:le|el|e|re|l|[|]e)m(s)?\b/gi,
                 replacement: "$1roblem$2",
                 reason: "grammar and spelling"
             },
@@ -433,6 +428,26 @@
                 expr: /\b(p)suedo\b/gi,
                 replacement: "$1seudo",
                 reason: "grammar and spelling"
+            },
+            application: {
+                expr: /\b(a)pp?l[ia]ca(?:ti|it)on\b/gi,
+                replacement: "$1pplication",
+                reason: "grammar and spelling"
+            },
+            calendar: {
+                expr: /\b(c)al[ea]nd[ae]r\b/gi,
+                replacement: "$1alendar",
+                reason: "grammar and spelling"
+            },
+            commit: {  // https://regex101.com/r/kY6sN8/1
+                expr: /\b(c)omm?it?(s|ted|ters?|ting)?\b/gi,
+                replacement: "$1ommit$2",
+                reason: "grammar and spelling"
+            },
+            mp3: {
+                expr: /([^\b\w.]|^)mp3(s)?\b/gi,
+                replacement: "$1MP3$2",
+                reason: "acronym capitalization"
             },
             // Noise reduction
             editupdate: {
@@ -533,7 +548,7 @@
                 reason: "grammar and spelling"
             },
             ive: {
-                expr: /\bive\b/gi,
+                expr: /\biv'?e\b/gi,
                 replacement: "I've",
                 reason: "grammar and spelling"
             },
@@ -832,6 +847,13 @@
             iphone: {
                 expr: /\biph?one?\b/gi,
                 replacement: "iPhone",
+                reason: "trademark capitalization"
+            },
+            google: {
+                expr: /\bgoogle[ \t]+(?:maps?|sheets?|docs?|drive)?\b/gi,
+                replacement: function(str) {
+                    return str.toTitleCase();
+                },
                 reason: "trademark capitalization"
             },
             google_apps_script: {
