@@ -293,8 +293,8 @@
                 replacement: "Ubuntu",
                 reason: "trademark capitalization"
             },
-            vbnet: {  // https://regex101.com/r/bB9pP3/4
-                expr: /(?:vb|asp|\s+|\()(?:\.net|\s*[0-9]+)\s*(?:framework|core)?/gi,
+            vbnet: {  // https://regex101.com/r/bB9pP3/7
+                expr: /(?:vb\.net|\bvb|\.net)\b(?:\s*[0-9]+)?\s*(?:framework|core)?/gi,
                 replacement: function(str) {
                     return str.replace(/vb/i, 'VB')
                     .replace(/asp/i, 'ASP')
@@ -302,6 +302,16 @@
                     .replace(/framework/i, 'Framework')
                     .replace(/core/i, 'Core');
                 },
+                reason: "trademark capitalization"
+            },
+            vba_related: {
+                expr: /(?:[^\b\w.]|^)(?:vba|vbs|vbc|evb|vbo|vbp|vbide)\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: "trademark capitalization"
+            },
+            vbscript: {
+                expr: /\bvbscript/gi,
+                replacement: "VBScript",
                 reason: "trademark capitalization"
             },
             asp: {
