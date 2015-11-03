@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.34
+// @version        1.5.2.36
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -28,6 +28,9 @@
 
         // Place "global" app data here
         App.globals = {};
+
+        // Place "const" app data here
+        App.consts = {};
 
         // Place "helper" functions here
         App.funcs = {};
@@ -102,6 +105,21 @@
 
         // Define order in which mods affect  here
         App.globals.order = ["omit", "codefix", "edit", "diff", "replace", "output"];
+        
+        // Define reason constant strings
+        App.consts.reasons = {
+            legalSO:       "'Stack Overflow' is the legal name",
+            legalSE:       "'Stack Exchange' is the legal name",
+            allCaps:       'no need to yell',
+            trademark:     "trademark capitalization",
+            acronym:       "acronym capitalization",
+            spelling:      "spelling",
+            grammar:       "grammar",
+            noise:         "noise reduction",
+            punctuation:   "punctuation",
+            spacing:       "spacing",
+            titleSaysAll:  "replicated title in body"
+        };
 
         // Define edit rules
         App.edits = {
@@ -111,111 +129,84 @@
                 replacement: function(input) {
                     return input.trim().substr(0, 1).toUpperCase() + input.trim().substr(1).toLowerCase();
                 },
-                reason: 'no need to yell'
+                reason: App.consts.reasons.allCaps
             },
             so: {
                 expr: /\bstack\s*overflow\b/gi,
                 replacement: "Stack Overflow",
-                reason: "'Stack Overflow' is the legal name"
+                reason: App.consts.reasons.legalSO
             },
             se: {
                 expr: /\bstack\s*exchange\b/gi,
                 replacement: "Stack Exchange",
-                reason: "'Stack Exchange' is the legal name"
+                reason: App.consts.reasons.legalSE
             },
             expansionSO: {
                 expr: /([^\b\w.]|^)SO\b/g,
                 replacement: "$1Stack Overflow",
-                reason: "'Stack Overflow' is the legal name"
+                reason: App.consts.reasons.legalSO
             },
             expansionSE: {
                 expr: /([^\b\w.]|^)SE\b/g,
                 replacement: "$1Stack Exchange",
-                reason: "'Stack Exchange' is the legal name"
+                reason: App.consts.reasons.legalSE
+            },
+            /*
+            ** Trademark names
+            **/
+            jsfiddle: {
+                expr: /\bjs ?fiddle\b/gi,
+                replacement: "JSFiddle",
+                reason: App.consts.reasons.trademark
             },
             javascript: {
                 expr: /([^\b\w.]|^)(javascript|js|java script)\b/gi,
                 replacement: "$1JavaScript",
-                reason: "trademark capitalization"
-            },
-            jsfiddle: {
-                expr: /\bjsfiddle\b/gi,
-                replacement: "JSFiddle",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             jquery: {
                 expr: /\bjque?rr?y\b/gi,  // jqury, jquerry, jqurry... ~600 spelling mistakes
                 replacement: "jQuery",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             angular: {
                 expr: /\bangular(?:js)?\b/gi,
                 replacement: "AngularJS",
-                reason: "trademark capitalization"
-            },
-            x_html: {
-                expr: /(?:[^\b\w.]|^)(g|ht|x|xht)ml\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "trademark capitalization"
-            },
-            css: {
-                expr: /(?:[^\b\w.]|^)css\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "trademark capitalization"
-            },
-            json: {
-                expr: /(?:[^\b\w.]|^)json\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            ajax: {
-                expr: /\bajax\b/g,     // Leave "Ajax" alone. See https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit/issues/45
-                replacement: "AJAX",
-                reason: "acronym capitalization"
+                reason: App.consts.reasons.trademark
             },
             php: {
                 expr: /(?:[^\b\w.]|^)php\b/gi,
                 replacement: function (match) { return match.toUpperCase(); },
-                reason: "trademark capitalization"
-            },
-            voting: {
-                expr: /\b(down|up)\Wvot/gi,
-                replacement: "$1vote",
-                reason: "the proper spelling (despite the tag name) is '$1vote' (one word)"
+                reason: App.consts.reasons.trademark
             },
             c: {
                 expr: /(?:[^\b\w.]|^)c\b(?:#|\+\+)?/gi,
                 replacement: function (match) { return match.toUpperCase(); },
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             java: {
                 expr: /([^\b\w.]|^)java\b/gi,
                 replacement: "$1Java",
-                reason: "trademark capitalization"
-            },
-            sql: {
-                expr: /(?:[^\b\w.]|^)sql\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             sqlite: {
-                expr: /\bsqlite\s*([0-9]*)\b/gi,
-                replacement: "SQLite $2",
-                reason: "trademark capitalization"
+                expr: /\bsqlite(\s*[0-9]*)\b/gi,
+                replacement: "SQLite$1",
+                reason: App.consts.reasons.trademark
             },
             android: {
                 expr: /\bandroid\b/gi,
                 replacement: "Android",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             oracle: {
                 expr: /\boracle\b/gi,
                 replacement: "Oracle",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             windows: {
-                // https://regex101.com/r/jF9zK1/6
-                expr: /\b(?:win|windows)(?:\s+(2k|[0-9.]+|ce|me|nt|xp|vista|server))?\b/gi,
+                // https://regex101.com/r/jF9zK1/8
+                expr: /\b(?:win(?=(?:\s+(?:2k|[0-9.]+|ce|me|nt|xp|vista|server)))|windows)(?:\s+(2k|[0-9.]+|ce|me|nt|xp|vista|server))?\b/gi,
                 replacement: function(match, ver) {
                     ver = !ver ? '' : ver.replace(/ce/i, ' CE')
                     .replace(/me/i, ' ME')
@@ -226,72 +217,67 @@
                     .replace(/server/i, ' Server');
                     return 'Windows' + ver;
                 },
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             linux: {
                 expr: /\blinux\b/gi,
                 replacement: "Linux",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             wordpress: {
-                expr: /\bwordpress\b/gi,
+                expr: /\bword ?press\b/gi,
                 replacement: "WordPress",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             mysql: {
                 expr: /\bmysql\b/gi,
                 replacement: "MySQL",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             nodejs: {
                 expr: /\bnode\.?js\b/gi,
                 replacement: "Node.js",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             apache: {
                 expr: /\bapache\b/gi,
                 replacement: "Apache",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             git: {
                 expr: /([^\b\w.]|^)git\b/gi,
                 replacement: "$1Git",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             github: {
                 expr: /\bgithub\b/gi,
                 replacement: "GitHub",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             facebook: {
                 expr: /\bfacebook\b/gi,
                 replacement: "Facebook",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             python: {
                 expr: /\bpython\b/gi,
                 replacement: "Python",
-                reason: "trademark capitalization"
-            },
-            urli: {
-                expr: /\b(ur[li])\b/gi,
-                replacement: function(match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
+                reason: App.consts.reasons.trademark
             },
             ios: {
                 expr: /\bios\b/gi,
                 replacement: "iOS",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             iosnum: {
                 expr: /\bios([0-9])\b/gi,
                 replacement: "iOS $1",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             ubuntu: {
                 expr: /\b[uoa]*b[uoa]*[tn][oua]*[tnu][oua]*\b/gi,
                 replacement: "Ubuntu",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             vbnet: {  // https://regex101.com/r/bB9pP3/7
                 expr: /(?:vb\.net|\bvb|\.net)\b(?:\s*[0-9]+)?\s*(?:framework|core)?/gi,
@@ -302,485 +288,82 @@
                     .replace(/framework/i, 'Framework')
                     .replace(/core/i, 'Core');
                 },
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             vba_related: {
                 expr: /(?:[^\b\w.]|^)(?:vba|vbs|vbc|evb|vbo|vbp|vbide)\b/gi,
                 replacement: function (match) { return match.toUpperCase(); },
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             vbscript: {
                 expr: /\bvbscript/gi,
                 replacement: "VBScript",
-                reason: "trademark capitalization"
-            },
-            asp: {
-                expr: /([^\b\w.]|^)asp/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             regex: {
-                expr: /\bregex(p)?\b/gi,
+                expr: /\bregg?[ea]?x(p)?\b/gi,
                 replacement: "RegEx$1",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             postgresql: {
                 expr: /\bpostgres(ql|s)?\b/gi,
                 replacement: "PostgreSQL",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             paypal: {
                 expr: /\bpaypal\b/gi,
                 replacement: "PayPal",
-                reason: "trademark capitalization"
-            },
-            pdf: {
-                expr: /([^\b\w.]|^)pdf(s)?/gi,
-                replacement: "$1PDF$2",
-                reason: "trademark capitalization"
-            },
-            api: {
-                expr: /([^\b\w.]|^)api(s)?\b/gi,
-                replacement: "$1API$2",
-                reason: "acronym capitalization"
-            },
-            ssl: {
-                expr: /(?:[^\b\w.]|^)ssl\b/g,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
+                reason: App.consts.reasons.trademark
             },
             tomcat: {
                 expr: /\btomcat([0-9.]*)/gi,
                 replacement: "Tomcat$1",
-                reason: "trademark capitalization"
-            },
-            npm: {
-                expr: /\bnpm(s)?\b/g,
-                replacement: "NPM$1",
-                reason: "acronym capitalization"
-            },
-            succeed: {
-                expr: /\b(s)uc[cs]?ee?d(ed|s)?\b/gi,
-                replacement: "$1ucceed$2",
-                reason: "grammar and spelling"
-            },
-            ftp: {
-                expr: /(?:[^\b\w.]|^)[st]?ftps?\b/g,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            ipa: {
-                expr: /(?:[^\b\w.]|^)ipa\b/g,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            avl: {
-                expr: /(?:[^\b\w.]|^)avl\b/g,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
+                reason: App.consts.reasons.trademark
             },
             netbeans: {
                 expr: /\b(netbeans|net-beans|net beans)\b/gi,
                 replacement: "NetBeans",
-                reason: "trademark capitalization"
-            },
-            cli_cgi: {
-                expr: /(?:[^\b\w.]|^)c[lg]i\b/g,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
+                reason: App.consts.reasons.trademark
             },
             nginx: {
                 expr: /\bnginx\b/g,
                 replacement: function (match) { return match.toUpperCase(); },
-                reason: "trademark capitalization"
-            },
-            dll: {
-                expr: /(?:[^\b\w.]|^)dll\b/g,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            source: {
-                expr: /\b(s)orce(s|d)?\b/gi,
-                replacement: "$1ource$2",
-                reason: "grammar and spelling"
-            },
-            standardize: {  // https://regex101.com/r/vN7pM0/1
-                expr: /\b(s)tandari([sz](?:e|es|ed|ation))\b/gi,
-                replacement: "$1tandardi$2",
-                reason: "grammar and spelling"
-            },
-            different: {  // https://regex101.com/r/vN7pM0/1
-                expr: /\b(d)iff?e?ren(t|ce)\b/gi,
-                replacement: "$1ifferen$2",
-                reason: "grammar and spelling"
-            },
-            personally: { // https://regex101.com/r/oL9aM1/2
-                expr: /\b(p)erso(?:nl|nl|nal)(ly)?\b/gi,
-                replacement: "$1ersonal$2",
-                reason: "grammar and spelling"
-            },
-            problem: { // https://regex101.com/r/yA8jM7/5
-                expr: /\b(p)(?:or?|ro|rο|r0)b(?:le|el|e|re|l|[|]e)m(s)?\b/gi,
-                replacement: "$1roblem$2",
-                reason: "grammar and spelling"
-            },
-            written: {
-                expr: /\b(w)riten\b/gi,
-                replacement: "$1ritten",
-                reason: "grammar and spelling"
-            },
-            maybe: {
-                expr: /\b(m)aby\b/gi,
-                replacement: "$1aybe",
-                reason: "grammar and spelling"
-            },
-            pseudo: {
-                expr: /\b(p)suedo\b/gi,
-                replacement: "$1seudo",
-                reason: "grammar and spelling"
-            },
-            application: {
-                expr: /\b(a)pp?l[ia]ca(?:ti|it)on\b/gi,
-                replacement: "$1pplication",
-                reason: "grammar and spelling"
-            },
-            calendar: {
-                expr: /\b(c)al[ea]nd[ae]r\b/gi,
-                replacement: "$1alendar",
-                reason: "grammar and spelling"
-            },
-            commit: {  // https://regex101.com/r/kY6sN8/1
-                expr: /\b(c)omm?it?(s|ted|ters?|ting)?\b/gi,
-                replacement: "$1ommit$2",
-                reason: "grammar and spelling"
-            },
-            mp3: {
-                expr: /([^\b\w.]|^)mp3(s)?\b/gi,
-                replacement: "$1MP3$2",
-                reason: "acronym capitalization"
-            },
-            // Noise reduction
-            editupdate: {
-                // https://regex101.com/r/tT2pK6/2
-                expr: /(?!(?:edit|update)\w*\s*[^:]*$)(?:^\**)(edit|update)\w*(\s*#?[0-9]+)?:?(?:\**):?/gmi,
-                replacement: "",
-                reason: "noise reduction"
-            },
-            hello: { // TODO: Update badphrases (new) to catch everything hello and thanks (old) did.
-                expr: /(?:^|\s)(hi\s+guys|hi|hello|good\s(?:evening|morning|day|afternoon))(?:\.|!|\ )/gmi,
-                replacement: "",
-                reason: "noise reduction"
-            },
-            thanks: { // https://regex101.com/r/tV6uM4/2
-                expr: /[^\n.!?:]*\b(?:thanks|pl(?:ease|z|s)\s+h[ea]lp|cheers|regards|tanx|thx|thank\s+you|my\s+first\s+question|kind(?:ly)\shelp).*$/gmi,
-                replacement: "",
-                reason: "noise reduction"
-            },
-            badwords: {
-                expr: /[^\n.!?:]*\b(?:th?anks?|th(?:an)?x|tanx|folks?|ki‌nd(‌?:est|ly)|first\s*question)\b[^,.!?\n]*[,.!?]*/gi,
-                replacement: "",
-                reason: "noise reduction"
-            },
-            badphrases: {
-                expr: /[^\n.!?:]*(?:h[ea]lp|hope|appreciate|pl(?:ease|z|s))[^.!?\n]*(?:helps?|appreciated?)[^,.!?\n]*[,.!?]*/gi,
-                replacement: "",
-                reason: "noise reduction"
-            },
-            imnew: {
-                expr: /(?! )[\w\s]*\bi[' ]?a?m +(?:kinda|really) *new\w* +(?:to|in) *\w* *(?:and|[;,.!?])? */gi,
-                replacement: "",
-                reason: "noise reduction"
-            },
-            salutations: {
-                expr: /[\r\n]*(regards|cheers?),?[\t\f ]*[\r\n]?\w*\.?/gi,
-                replacement: "",
-                reason: "noise reduction"
-            },
-            sorry4english: { // https://regex101.com/r/pG3oD6/1
-                expr: /(?:^|\s)[^.!\n\r]*(sorry).*?(english).*?(?:[.! \n\r])/gmi,
-                replacement: "",
-                reason: "noise reduction"
-            },
-            // Grammar and spelling
-            apostrophe_d: {
-                expr: /\b(he|she|who|you)[^\w']*(d)\b/gi,
-                replacement: "$1'$2",
-                reason: "grammar and spelling"
-            },
-            apostrophe_ll: {
-                expr: /\b(they|what|who|you)[^\w']*(ll)\b/gi,
-                replacement: "$1'$2",
-                reason: "grammar and spelling"
-            },
-            apostrophe_re: {
-                expr: /\b(they|what|you)[^\w']*(re)\b/gi,
-                replacement: "$1'$2",
-                reason: "grammar and spelling"
-            },
-            apostrophe_s: {
-                expr: /\b(he|she|that|there|what|where)[^\w']*(s)\b/gi,
-                replacement: "$1'$2",
-                reason: "grammar and spelling"
-            },
-            apostrophe_t: {
-                expr: /\b(aren|can|didn|doesn|don|hasn|haven|isn|mightn|mustn|shan|shouldn|won|wouldn)[^\w']*(t)\b/gi,
-                replacement: "$1'$2",
-                reason: "grammar and spelling"
-            },
-            doesn_t: { // https://regex101.com/r/sL0uO9/1
-                expr: /\b(d)ose?n'?t\b/gi,
-                replacement: "$1oesn't",
-                reason: "grammar and spelling"
-            },
-            doesn_t_work: {  // >4K instances of this (Oct 2015)
-                expr: /\b(d)oesn\'t (work|like|think|want|put|save|load|get|help|make)s\b/gi,
-                replacement: "$1oesn't $2",
-                reason: "grammar and spelling"
-            },
-            prolly: {
-                expr: /\b(p)roll?y\b/gi,
-                replacement: "$1robably",
-                reason: "grammar and spelling"
-            },
-            keyboard: {
-                expr: /\b(k)ey?boa?rd\b/gi,
-                replacement: "$1eyboard",
-                reason: "grammar and spelling"
-            },
-            i: { // https://regex101.com/r/uO7qG0/1
-                expr: /\bi('|\b)(?!.e.)/g,  // i or i-apostrophe
-                replacement: "I",
-                reason: "grammar and spelling"
-            },
-            im: {
-                expr: /\bi ?m\b/gi,
-                replacement: "I'm",
-                reason: "grammar and spelling"
-            },
-            ive: {
-                expr: /\biv'?e\b/gi,
-                replacement: "I've",
-                reason: "grammar and spelling"
-            },
-            ur: {
-                expr: /\bur\b/gi,
-                replacement: "your", // May also be "you are", but less common on SO
-                reason: "grammar and spelling"
-            },
-            u: {
-                expr: /\bu\b/gi,
-                replacement: "you",
-                reason: "grammar and spelling"
-            },
-            gr8: {
-                expr: /\bgr8\b/gi,
-                replacement: "great",
-                reason: "grammar and spelling"
-            },
-            allways: {
-                expr: /\b(a)llways\b/gi,
-                replacement: "$1lways",
-                reason: "grammar and spelling"
-            },
-            expect: {
-                expr: /\b(e)spect(s)?\b/gi,
-                replacement: "$1xpect$2",
-                reason: "grammar and spelling"
-            },
-            employee: {
-                expr: /\b(e)mploye\b/gi,
-                replacement: "$1mployee",
-                reason: "grammar and spelling"
-            },
-            retrieve: {
-                expr: /\b(r)etreive(d)?\b/gi,
-                replacement: "$1etrieve$2",
-                reason: "grammar and spelling"
+                reason: App.consts.reasons.trademark
             },
             firefox: {
                 expr: /\bfire?fox\b/gi,
                 replacement: "Firefox",
-                reason: "trademark capitalization"
-            },
-            success: { // https://regex101.com/r/hK2vG4/1
-                expr: /\b(s)ucc?ess?(ful|fully)?l?\b/gi,
-                replacement: "$1uccess$2",
-                reason: "grammar and spelling"
+                reason: App.consts.reasons.trademark
             },
             safari: {
                 expr: /\bsafari\b/gi,
                 replacement: "Safari",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             chrome: {
                 expr: /\bchrome\b/gi,
                 replacement: "Chrome",
-                reason: "trademark capitalization"
-            },
-            anyones: {
-                expr: /\b(a)nyones\b/gi,
-                replacement: "$1nyone's",
-                reason: "grammar and spelling"
-            },
-            length: {
-                expr: /\b(l)en(?:gh?t|th)\b/gi,
-                replacement: "$1ength",
-                reason: "grammar and spelling"
-            },
-            height: {
-                expr: /\b(h)(?:ei|i|ie)(?:gt|th|ghth|gth)\b/gi,
-                replacement: "$1eight",
-                reason: "grammar and spelling"
-            },
-            width: {
-                expr: /\b(w)idh?t\b/gi,
-                replacement: "$1idth",
-                reason: "grammar and spelling"
-            },
-            centered: {
-                expr: /\b(c)ent(?:red|erd)\b/gi,
-                replacement: "$1entered",
-                reason: "grammar and spelling"
-            },
-            center: {
-                expr: /\b(c)entre\b/gi,    // "Centre" is a word, however in most cases on SO "center" is meant
-                replacement: "$1enter",
-                reason: "grammar and spelling"
-            },
-            aint_isnt: {
-                expr: /\bain't\b/gi,
-                replacement: "isn't",
-                reason: "grammar and spelling"
-            },
-            coordinates: {
-                expr: /\b(c)ordinate(s|d)?\b/gi,
-                replacement: "$1oordinate$2",
-                reason: "grammar and spelling"
-            },
-            argument: {
-                expr: /\b(a)rguement(s)?\b/gi,
-                replacement: "$1rgument$2",
-                reason: "grammar and spelling"
-            },
-            gui: {
-                expr: /([^\b\w.]|^)gui(s)?\b/gi,
-                replacement: "$1GUI$2",
-                reason: "acronym capitalization"
-            },
-            iterate: { // https://regex101.com/r/iL6bV3/1
-                expr: /\b(i)(?:tter|tar)at(e[ds]?|ing|ion|ions)\b/gi,
-                replacement: "$1terat$2",
-                reason: "grammar and spelling"
-            },
-            below: {
-                expr: /\b(b)ellow\b/gi,          // "Bellow" is a word, but extremely uncommon on StackOverflow.com.
-                replacement: "$1elow",
-                reason: "grammar and spelling"
-            },
-            encrypt: {
-                expr: /\b(en|de)cript(s|ing)?\b/gi,
-                replacement: "$1crypt$2",
-                reason: "grammar and spelling"
+                reason: App.consts.reasons.trademark
             },
             gnu: {
                 expr: /\bgnu\b/g,
                 replacement: function (match) { return match.toUpperCase(); },
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             gcc: {
                 expr: /(?:[^\b\w.]|^)gcc\b/g,
                 replacement: function (match) { return match.toUpperCase(); },
-                reason: "trademark capitalization"
-            },
-            stp: {
-                expr: /(?:[^\b\w.]|^)stp\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            tcp: {
-                expr: /(?:[^\b\w.]|^)tcp\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            wpf: {
-                expr: /(?:[^\b\w.]|^)wpf\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            http: {
-                expr: /(?:[^\b\w.]|^)https?\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            woff: {
-                expr: /(?:[^\b\w.]|^)woff\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            ttf: {
-                expr: /(?:[^\b\w.]|^)ttf\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            ipv_n: {
-                expr: /\bip(v[46])?\b/gi,
-                replacement: "IP$1",
-                reason: "acronym capitalization"
-            },
-            fq_dn_s: {  // FQDN, DN, DNS
-                expr: /(?:[^\b\w.]|^)(?:fq)?dns?\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            icmp: {
-                expr: /\bicmp\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            rsvp: {
-                expr: /\brsvp\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            snmp: {
-                expr: /\bsnmp\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            cpu: {
-                expr: /\bcpu(s)?\b/gi,
-                replacement: "CPU$1",
-                reason: "acronym capitalization"
-            },
-            rss: {
-                expr: /(?:[^\b\w.]|^)rss?\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            mvc: {
-                expr: /(?:[^\b\w.]|^)mvc\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "acronym capitalization"
-            },
-            mvn: {
-                expr: /(?:[^\b\w.]|^)mvn\b/gi,
-                replacement: function (match) { return match.toUpperCase(); },
-                reason: "trademark capitalization"
-            },
-            ascii: {
-                expr: /([^\b\w.]|^)ascii?\b/gi,
-                replacement: "$1ASCII",
-                reason: "acronym capitalization"
+                reason: App.consts.reasons.trademark
             },
             maven: {
                 expr: /\bmaven\b/gi,
                 replacement: "Maven",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             youtube: {
                 expr: /\byoutube\b/gi,
                 replacement: "YouTube",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             amazon: {
                 // https://regex101.com/r/dR0pJ7/1
@@ -789,7 +372,7 @@
                     var fixed = titlecase.toTitleCase() + (uppercase ? uppercase.toUpperCase() : '');
                     return fixed;
                 },
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             zend: {
                 expr: /\bzend((?: )?(?:framework|studio|guard))?\b/gi,
@@ -797,322 +380,767 @@
                 replacement: function(str,prod) {
                     return str.toTitleCase();
                 },
-               reason: "trademark capitalization"
-            },
-            formatting: {
-                expr: /\b(f)ormating\b/gi,
-                replacement: "$1ormatting",
-                reason: "grammar and spelling"
-            },
-            process: {
-                expr: /\b(p)roces(es|ed)?\b/gi,
-                replacement: "$1rocess$2",
-                reason: "grammar and spelling"
-            },
-            programming: {
-                expr: /\b(p)rogram(ing|ed|er)\b/gi,
-                replacement: "$1rogramm$2",
-                reason: "grammar and spelling"
-            },
-            bear_with_me: {
-                expr: /\b(b)are (with me|it|in mind)\b/gi,
-                replacement: "$1ear $2",
-                reason: "grammar and spelling"
-            },
-            weird: {
-                expr: /\b(w)ierd(ness|ly)\b/gi,
-                replacement: "$1eird$2",
-                reason: "grammar and spelling"
-            },
-            believe: {
-                expr: /\b(b)eleive(r|s|d)?\b/gi,
-                replacement: "$1elieve$2",
-                reason: "grammar and spelling"
-            },
-            piece: {
-                expr: /\b(p)eice(s|d)?\b/gi,
-                replacement: "$1iece$2",
-                reason: "grammar and spelling"
-            },
-            sample: {
-                expr: /\b(s)maple(s|d)?\b/gi,
-                replacement: "$1ample$2",
-                reason: "grammar and spelling"
+               reason: App.consts.reasons.trademark
             },
             twitter: {
                 expr: /\btwitter\b/gi,
                 replacement: "Twitter",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             bootstrap: {     // "bootstrap" is also a general computing term, so expect some false positives
                 expr: /\bbootst?r?ap\b/gi,
                 replacement: "Bootstrap",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             apple: {
                 expr: /\bapple\b/g,
                 replacement: "Apple",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             iphone: {
                 expr: /\biph?one?\b/gi,
                 replacement: "iPhone",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
-            google: {
-                expr: /\bgoogle[ \t]+(?:maps?|sheets?|docs?|drive)?\b/gi,
+            google: { // https://regex101.com/r/iS5fO1/1
+                expr: /\bgoogle\b[ \t]*(?:maps?|sheets?|docs?|drive|sites?)?\b/gi,
                 replacement: function(str) {
                     return str.toTitleCase();
                 },
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             google_apps_script: {
-                expr: /\bgoogle ?(?:apps?)? ?script\b/gi,
+                expr: /\bgoogle[- ]?(?:apps?)?[- ]?script\b/gi,
                 replacement: "Google Apps Script",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
-            // From Peter Mortensen list (http://pvm-professionalengineering.blogspot.de/2011/04/word-list-for-editing-stack-exchange.html)
-            ie: {  // http://english.stackexchange.com/questions/30106/can-i-start-a-sentence-with-i-e
-                expr: /\b(i|I)e[.\s]+/g,   // Careful here; IE is Internet Explorer
-                replacement: "$1.e. ",
-                reason: "grammar and spelling"
+            bluetooth: {
+                expr: /\bbl(?:ue|oo)too?th?\b/gi,
+                replacement: "Bluetooth",
+                reason: App.consts.reasons.trademark
             },
-            eg: { // https://regex101.com/r/qH2oT0/2
-                expr: /\b(e)g[.\s]+/gi,
-                replacement: "$1.g. ",
-                reason: "grammar and spelling"
-            },
-            unfortunately: {
-                expr: /\b(u)nfortu?na?tly\b/gi,
-                replacement: "$1nfortunately",
-                reason: "grammar and spelling"
-            },
-            whether: {
-                expr: /\b(w)h?eth?er\b/gi,
-                replacement: "$1hether",
-                reason: "grammar and spelling"
-            },
-            through: {  // https://regex101.com/r/gQ0dZ1/4
-                expr: /\b(t)(?:hru|rough|hroug)\b/gi,
-                replacement: "$1hrough",
-                reason: "grammar and spelling"
-            },
-            throughout: {
-                expr: /\b(t)(?:hruout|roughout)\b/gi,
-                replacement: "$1hroughout",
-                reason: "grammar and spelling"
-            },
-            breakthrough: {
-                expr: /\b(b)reak\s+through(s)?\b/gi,
-                replacement: "$1reakthrough$2",
-                reason: "grammar and spelling"
-            },
-            though: {
-                expr: /\b(t)(?:ho|hou|hogh)\b/gi,
-                replacement: "$1hough",
-                reason: "grammar and spelling"
-            },
-            although: {
-                expr: /\b(a)l(?:tho|thou|thogh|tough)\b/gi,
-                replacement: "$1lthough",
-                reason: "grammar and spelling"
-            },
-            thought: {
-                expr: /\b(t)r?ought(s)?\b/gi,
-                replacement: "$1hough$2",
-                reason: "grammar and spelling"
-            },
-            throwing: {
-                expr: /\b(t)hroughing\b/gi,       // Peter says this is "thoroughly", but a survey of SO questions indicates "throwing"
-                replacement: "$1hrowing",
-                reason: "grammar and spelling"
-            },
-            a_lot: {
-                expr: /\b(a)lot\b/gi,
-                replacement: "$1 lot",
-                reason: "grammar and spelling"
-            },
-            one_r_two_r: {
-                expr: /\b(refe|prefe|occu)r(ed|ing)\b/gi,
-                replacement: "$1rr$2",
-                reason: "grammar and spelling"
-            },
-            preferably: {
-                expr: /\b(p)referrably\b/gi,
-                replacement: "$1referably",
-                reason: "grammar and spelling"
-            },
-            command_line: {
-                expr: /\b(c)ommandline\b/gi,
-                replacement: "$1ommand-line",
-                reason: "grammar and spelling"
-            },
-            benefits: {
-                expr: /\b(b)enifits\b/gi,
-                replacement: "$1enefits",
-                reason: "grammar and spelling"
-            },
-            authorization: {
-                expr: /\b(a)uth\b/gi,           // This may be too ambiguous, could also mean "authentication"
-                replacement: "$1uthorization",
-                reason: "grammar and spelling"
-            },
-            persistent: {
-                expr: /\b(p)ersistan(t|ce)\b/gi,
-                replacement: "$1ersisten$2",
-                reason: "grammar and spelling"
-            },
-            _ibility: {
-                expr: /\b(comp|incomp|access)abilit(y|ies)\b/gi,
-                replacement: "$1ibilit$2",
-                reason: "grammar and spelling"
-            },
-            separate: {
-                expr: /\b(s)epe?rate?(d|ly|s)?\b/gi,
-                replacement: "$1eparate$2",
-                reason: "grammar and spelling"
-            },
-            separation: {
-                expr: /\b(s)eperation(s)?\b/gi,
-                replacement: "$1eparation$2",
-                reason: "grammar and spelling"
-            },
-            definite: {
-                expr: /\b(d)efin(?:ate?|ite?|al|te?)(ly)?\b/gi,  // Catches correct spelling, too.
-                replacement: "$1efinite$2",
-                reason: "grammar and spelling"
-            },
-            definitive: {
-                expr: /\b(d)efina?tive(ly)?\b/gi,
-                replacement: "$1efinitive$2",
-                reason: "grammar and spelling"
-            },
-            independent: {
-                expr: /\b(i)ndependant(ly)?\b/gi,
-                replacement: "$1ndependent$2",
-                reason: "grammar and spelling"
-            },
-            recommend: { // https://regex101.com/r/pP9lB7/1
-                expr: /\b(r)ecomm?[ao]nd(ation)?\b/gi,
-                replacement: "$1ecommend$2",
-                reason: "grammar and spelling"
-            },
-            compatibility: {
-                expr: /\b(c)ompatability\b/gi,
-                replacement: "$1ompatibility$2",
-                reason: "grammar and spelling"
-            },
-            ps: {
-                expr: /\bps\b/g,
-                replacement: "PS",
-                reason: "grammar and spelling"
-            },
-            ok: {
-                expr: /\bok\b/g,
-                replacement: "OK",
-                reason: "grammar and spelling"
-            },
-            etc: {  // https://regex101.com/r/dE7cV1/3
-                expr: /\betc(?!\.)/g,
-                replacement: "etc.",
-                reason: "grammar and spelling"
-            },
-            back_end: {  // Interesting fact: backend 3x more common than back-end
-                expr: /\b(b)ackend\b/g,
-                replacement: "$1ack-end",
-                reason: "grammar and spelling"
-            },
-            front_end: {
-                expr: /\b(f)rontend\b/g,
-                replacement: "$1ront-end",
-                reason: "grammar and spelling"
-            },
-            data_type: {
-                expr: /\b(d)atatype\b/g,
-                replacement: "$1ata type",
-                reason: "grammar and spelling"
-            },
-            allotted: {
-                expr: /\b(a)l+ot+ed\b/g,
-                replacement: "$1llotted",
-                reason: "grammar and spelling"
-            },
-            every_time: {
-                expr: /\b(e)ve?rytime\b/g,
-                replacement: "$1very time",
-                reason: "grammar and spelling"
-            },
-            straightforward: {
-                expr: /\b(s)traig?h?t[ -]forward\b/g,
-                replacement: "$1traightforward",
-                reason: "grammar and spelling"
-            },
-            preceding: {
-                expr: /\b(p)receeding\b/gi,
-                replacement: "$1receding",
-                reason: "grammar and spelling"
-            },
-            no_one: {
-                expr: /\b(n)o-?one\b/gi,
-                replacement: "$1o one",
-                reason: "grammar and spelling"
-            },
-            de_facto: {
-                expr: /\b(d)e-?facto\b/gi,
-                replacement: "$1e facto",
-                reason: "grammar and spelling"
-            },
-            accommodate: { // https://regex101.com/r/cL3mD9/1
-                expr: /\b(a)(?:c+om|com+)odate\b/gi,
-                replacement: "$1ccommodate",
-                reason: "grammar and spelling"
+            lenovo: {
+                expr: /\bleno?vo\b/gi,
+                replacement: "Lenovo",
+                reason: App.consts.reasons.trademark
             },
             matlab: {
                 expr: /([^\b\w.]|^)math?lab\b/gi,
                 replacement: "$1MATLAB",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
             internet: {
                 expr: /\binternet\b/g,
                 replacement: "Internet",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
             },
+            /*
+            ** Acronyms - to be capitalized (except sometimes when part of a file name)
+            **/
             web_services: {
                 expr: /\bweb services\b/g,
                 replacement: "Web services",
-                reason: "trademark capitalization"
+                reason: App.consts.reasons.trademark
+            },
+            x_html: {
+                expr: /(?:[^\b\w.]|^)(g|ht|x|xht)ml\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            css: {
+                expr: /(?:[^\b\w.]|^)css\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            json: {
+                expr: /(?:[^\b\w.]|^)json\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            ajax: {
+                expr: /\bajax\b/g,     // Leave "Ajax" alone. See https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit/issues/45
+                replacement: "AJAX",
+                reason: App.consts.reasons.acronym
+            },
+            sql: {
+                expr: /(?:[^\b\w.]|^)sql\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            urli: {
+                expr: /\b(ur[li])\b/gi,
+                replacement: function(match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            asp: {
+                expr: /([^\b\w.]|^)asp/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            pdf: {
+                expr: /([^\b\w.]|^)pdf(s)?/gi,
+                replacement: "$1PDF$2",
+                reason: App.consts.reasons.acronym
+            },
+            api: {
+                expr: /([^\b\w.]|^)api(s)?\b/gi,
+                replacement: "$1API$2",
+                reason: App.consts.reasons.acronym
+            },
+            ssl: {
+                expr: /(?:[^\b\w.]|^)ssl\b/g,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            npm: {
+                expr: /\bnpm(s)?\b/g,
+                replacement: "NPM$1",
+                reason: App.consts.reasons.acronym
+            },
+            ftp: {
+                expr: /(?:[^\b\w.]|^)[st]?ftps?\b/g,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            ipa: {
+                expr: /(?:[^\b\w.]|^)ipa\b/g,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            avl: {
+                expr: /(?:[^\b\w.]|^)avl\b/g,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            cli_cgi: {
+                expr: /(?:[^\b\w.]|^)c[lg]i\b/g,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            dll: {
+                expr: /(?:[^\b\w.]|^)dll\b/g,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            mp3: {
+                expr: /([^\b\w.]|^)mp3(s)?\b/gi,
+                replacement: "$1MP3$2",
+                reason: App.consts.reasons.acronym
+            },
+            gui: {
+                expr: /([^\b\w.]|^)gui(s)?\b/gi,
+                replacement: "$1GUI$2",
+                reason: App.consts.reasons.acronym
+            },
+            stp: {
+                expr: /(?:[^\b\w.]|^)stp\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            tcp: {
+                expr: /(?:[^\b\w.]|^)tcp\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            wpf: {
+                expr: /(?:[^\b\w.]|^)wpf\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            http: {
+                expr: /(?:[^\b\w.]|^)https?\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            woff: {
+                expr: /(?:[^\b\w.]|^)woff\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            ttf: {
+                expr: /(?:[^\b\w.]|^)ttf\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            ipv_n: {
+                expr: /\bip(v[46])?\b/gi,
+                replacement: "IP$1",
+                reason: App.consts.reasons.acronym
+            },
+            fq_dn_s: {  // FQDN, DN, DNS
+                expr: /(?:[^\b\w.]|^)(?:fq)?dns?\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            icmp: {
+                expr: /\bicmp\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            rsvp: {
+                expr: /\brsvp\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            snmp: {
+                expr: /\bsnmp\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            cpu: {
+                expr: /\bcpu(s)?\b/gi,
+                replacement: "CPU$1",
+                reason: App.consts.reasons.acronym
+            },
+            rss: {
+                expr: /(?:[^\b\w.]|^)rss?\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            mvc: {
+                expr: /(?:[^\b\w.]|^)mvc\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            mvn: {
+                expr: /(?:[^\b\w.]|^)mvn\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            ascii: {
+                expr: /([^\b\w.]|^)ascii?\b/gi,
+                replacement: "$1ASCII",
+                reason: App.consts.reasons.acronym
+            },
+            /*
+            ** Spelling - Correct common spelling errors. (Including apostrophes, which are really grammar.)
+            ** Acknowledgement: A subset of terms were adapted from Peter Mortensen's list
+            ** (http://pvm-professionalengineering.blogspot.de/2011/04/word-list-for-editing-stack-exchange.html)
+            **/
+            voting: {
+                expr: /\b(down|up)\Wvot/gi,
+                replacement: "$1vote",
+                reason: App.consts.reasons.spelling
+            },
+            succeed: {
+                expr: /\b(s)uc[cs]?ee?d(ed|s)?\b/gi,
+                replacement: "$1ucceed$2",
+                reason: App.consts.reasons.spelling
+            },
+            source: {
+                expr: /\b(s)orce(s|d)?\b/gi,
+                replacement: "$1ource$2",
+                reason: App.consts.reasons.spelling
+            },
+            standardize: {  // https://regex101.com/r/vN7pM0/1
+                expr: /\b(s)tandari([sz](?:e|es|ed|ation))\b/gi,
+                replacement: "$1tandardi$2",
+                reason: App.consts.reasons.spelling
+            },
+            different: {  // https://regex101.com/r/vN7pM0/1
+                expr: /\b(d)iff?e?ren(t|ce)\b/gi,
+                replacement: "$1ifferen$2",
+                reason: App.consts.reasons.spelling
+            },
+            personally: { // https://regex101.com/r/oL9aM1/2
+                expr: /\b(p)erso(?:nl|nl|nal)(ly)?\b/gi,
+                replacement: "$1ersonal$2",
+                reason: App.consts.reasons.spelling
+            },
+            problem: { // https://regex101.com/r/yA8jM7/5
+                expr: /\b(p)(?:or?|ro|rο|r0)b(?:le|el|e|re|l|[|]e)m(s)?\b/gi,
+                replacement: "$1roblem$2",
+                reason: App.consts.reasons.spelling
+            },
+            written: {
+                expr: /\b(w)riten\b/gi,
+                replacement: "$1ritten",
+                reason: App.consts.reasons.spelling
+            },
+            maybe: {
+                expr: /\b(m)(?:aby|yabe)\b/gi,
+                replacement: "$1aybe",
+                reason: App.consts.reasons.spelling
+            },
+            pseudo: {
+                expr: /\b(p)suedo\b/gi,
+                replacement: "$1seudo",
+                reason: App.consts.reasons.spelling
+            },
+            application: {
+                expr: /\b(a)pp?l[ia]ca(?:ti|it)on\b/gi,
+                replacement: "$1pplication",
+                reason: App.consts.reasons.spelling
+            },
+            calendar: {
+                expr: /\b(c)al[ea]nd[ae]r\b/gi,
+                replacement: "$1alendar",
+                reason: App.consts.reasons.spelling
+            },
+            commit: {  // https://regex101.com/r/kY6sN8/1
+                expr: /\b(c)omm?it?(s|ted|ters?|ting)?\b/gi,
+                replacement: "$1ommit$2",
+                reason: App.consts.reasons.spelling
+            },
+            autocomplete: { // https://regex101.com/r/rZ9gW5/1
+                expr: /\b(a)uto?[ -]?co?m?p?l?ete?(s)?\b/gi,
+                replacement: "$1utocomplete$2",
+                reason: App.consts.reasons.spelling
+            },
+            apostrophe_d: {
+                expr: /\b(he|she|who|you)[^\w']*(d)\b/gi,
+                replacement: "$1'$2",
+                reason: App.consts.reasons.spelling
+            },
+            apostrophe_ll: {
+                expr: /\b(they|what|who|you)[^\w']*(ll)\b/gi,
+                replacement: "$1'$2",
+                reason: App.consts.reasons.spelling
+            },
+            apostrophe_re: {
+                expr: /\b(they|what|you)[^\w']*(re)\b/gi,
+                replacement: "$1'$2",
+                reason: App.consts.reasons.spelling
+            },
+            apostrophe_s: {
+                expr: /\b(he|she|that|there|what|where)[^\w']*(s)\b/gi,
+                replacement: "$1'$2",
+                reason: App.consts.reasons.spelling
+            },
+            apostrophe_t: {
+                expr: /\b(aren|can|couldn|didn|doesn|don|hasn|haven|isn|mightn|mustn|shan|shouldn|won|wouldn)[^\w']*(t)\b/gi,
+                replacement: "$1'$2",
+                reason: App.consts.reasons.spelling
+            },
+            doesn_t: { // https://regex101.com/r/sL0uO9/1
+                expr: /\b(d)ose?n'?t\b/gi,
+                replacement: "$1oesn't",
+                reason: App.consts.reasons.spelling
+            },
+            doesn_t_work: {  // >4K instances of this (Oct 2015)
+                expr: /\b(d)oesn\'t (work|like|think|want|put|save|load|get|help|make)s\b/gi,
+                replacement: "$1oesn't $2",
+                reason: App.consts.reasons.spelling
+            },
+            prolly: {
+                expr: /\b(p)roll?y\b/gi,
+                replacement: "$1robably",
+                reason: App.consts.reasons.spelling
+            },
+            keyboard: {
+                expr: /\b(k)ey?boa?rd\b/gi,
+                replacement: "$1eyboard",
+                reason: App.consts.reasons.spelling
+            },
+            ur: {
+                expr: /\bur\b/gi,
+                replacement: "your", // May also be "you are", but less common on SO
+                reason: App.consts.reasons.spelling
+            },
+            u: {
+                expr: /\bu\b/gi,
+                replacement: "you",
+                reason: App.consts.reasons.spelling
+            },
+            gr8: {
+                expr: /\bgr8\b/gi,
+                replacement: "great",
+                reason: App.consts.reasons.spelling
+            },
+            allways: {
+                expr: /\b(a)llways\b/gi,
+                replacement: "$1lways",
+                reason: App.consts.reasons.spelling
+            },
+            expect: {
+                expr: /\b(e)spect(s)?\b/gi,
+                replacement: "$1xpect$2",
+                reason: App.consts.reasons.spelling
+            },
+            employee: {
+                expr: /\b(e)mploye\b/gi,
+                replacement: "$1mployee",
+                reason: App.consts.reasons.spelling
+            },
+            retrieve: {
+                expr: /\b(r)etreive(d)?\b/gi,
+                replacement: "$1etrieve$2",
+                reason: App.consts.reasons.spelling
+            },
+            success: { // https://regex101.com/r/hK2vG4/1
+                expr: /\b(s)ucc?ess?(ful|fully)?l?\b/gi,
+                replacement: "$1uccess$2",
+                reason: App.consts.reasons.spelling
+            },
+            anyones: {
+                expr: /\b(a)nyones\b/gi,
+                replacement: "$1nyone's",
+                reason: App.consts.reasons.spelling
+            },
+            length: {
+                expr: /\b(l)en(?:gh?t|th)\b/gi,
+                replacement: "$1ength",
+                reason: App.consts.reasons.spelling
+            },
+            height: {
+                expr: /\b(h)(?:ei|i|ie)(?:gt|th|ghth|gth)\b/gi,
+                replacement: "$1eight",
+                reason: App.consts.reasons.spelling
+            },
+            width: {
+                expr: /\b(w)idh?t\b/gi,
+                replacement: "$1idth",
+                reason: App.consts.reasons.spelling
+            },
+            centered: {
+                expr: /\b(c)ent(?:red|erd)\b/gi,
+                replacement: "$1entered",
+                reason: App.consts.reasons.spelling
+            },
+            center: {
+                expr: /\b(c)entre\b/gi,    // "Centre" is a word, however in most cases on SO "center" is meant
+                replacement: "$1enter",
+                reason: App.consts.reasons.spelling
+            },
+            aint_isnt: {
+                expr: /\bain'?t\b/gi,
+                replacement: "isn't",
+                reason: App.consts.reasons.spelling
+            },
+            coordinates: {
+                expr: /\b(c)ordinate(s|d)?\b/gi,
+                replacement: "$1oordinate$2",
+                reason: App.consts.reasons.spelling
+            },
+            argument: {
+                expr: /\b(a)rguement(s)?\b/gi,
+                replacement: "$1rgument$2",
+                reason: App.consts.reasons.spelling
+            },
+            iterate: { // https://regex101.com/r/iL6bV3/1
+                expr: /\b(i)(?:tter|tar)at(e[ds]?|ing|ion|ions)\b/gi,
+                replacement: "$1terat$2",
+                reason: App.consts.reasons.spelling
+            },
+            below: {
+                expr: /\b(b)ellow\b/gi,          // "Bellow" is a word, but extremely uncommon on StackOverflow.com.
+                replacement: "$1elow",
+                reason: App.consts.reasons.spelling
+            },
+            encrypt: {
+                expr: /\b(en|de)cript(s|ing)?\b/gi,
+                replacement: "$1crypt$2",
+                reason: App.consts.reasons.spelling
+            },
+            formatting: {
+                expr: /\b(f)ormating\b/gi,
+                replacement: "$1ormatting",
+                reason: App.consts.reasons.spelling
+            },
+            process: {
+                expr: /\b(p)roces(es|ed)?\b/gi,
+                replacement: "$1rocess$2",
+                reason: App.consts.reasons.spelling
+            },
+            program: {
+                expr: /\b(p)rogr?amm?\b/gi,
+                replacement: "$1rogram",
+                reason: App.consts.reasons.spelling
+            },
+            programming: {
+                expr: /\b(p)rogram(ing|ed|er)\b/gi,
+                replacement: "$1rogramm$2",
+                reason: App.consts.reasons.spelling
+            },
+            bear_with_me: {
+                expr: /\b(b)are (with me|it|in mind)\b/gi,
+                replacement: "$1ear $2",
+                reason: App.consts.reasons.spelling
+            },
+            weird: {
+                expr: /\b(w)ierd(ness|ly)\b/gi,
+                replacement: "$1eird$2",
+                reason: App.consts.reasons.spelling
+            },
+            believe: {
+                expr: /\b(b)eleive(r|s|d)?\b/gi,
+                replacement: "$1elieve$2",
+                reason: App.consts.reasons.spelling
+            },
+            piece: {
+                expr: /\b(p)eice(s|d)?\b/gi,
+                replacement: "$1iece$2",
+                reason: App.consts.reasons.spelling
+            },
+            sample: {
+                expr: /\b(s)maple(s|d)?\b/gi,
+                replacement: "$1ample$2",
+                reason: App.consts.reasons.spelling
+            },
+            really: {
+                expr: /\b(r)ea?ll?y\b/gi,
+                replacement: "$1eally",
+                reason: App.consts.reasons.spelling
+            },
+            finally_: {
+                expr: /\b(f)inall?y\b/gi,
+                replacement: "$1inally",
+                reason: App.consts.reasons.spelling
+            },
+            behaviour: { // https://regex101.com/r/rU1eB7/1
+                expr: /\b(b)eha?i?vi?o(r|ur|rs|urs)\b/gi,
+                replacement: "$1ehavio$2",
+                reason: App.consts.reasons.spelling
+            },
+            unfortunately: {
+                expr: /\b(u)nfortu?na?tly\b/gi,
+                replacement: "$1nfortunately",
+                reason: App.consts.reasons.spelling
+            },
+            whether: {
+                expr: /\b(w)h?eth?er\b/gi,
+                replacement: "$1hether",
+                reason: App.consts.reasons.spelling
+            },
+            through: {  // https://regex101.com/r/gQ0dZ1/4
+                expr: /\b(t)(?:hru|rough|hroug)\b/gi,
+                replacement: "$1hrough",
+                reason: App.consts.reasons.spelling
+            },
+            throughout: {
+                expr: /\b(t)(?:hruout|roughout)\b/gi,
+                replacement: "$1hroughout",
+                reason: App.consts.reasons.spelling
+            },
+            breakthrough: {
+                expr: /\b(b)reak\s+through(s)?\b/gi,
+                replacement: "$1reakthrough$2",
+                reason: App.consts.reasons.spelling
+            },
+            though: {
+                expr: /\b(t)(?:ho|hou|hogh)\b/gi,
+                replacement: "$1hough",
+                reason: App.consts.reasons.spelling
+            },
+            although: {
+                expr: /\b(a)l(?:tho|thou|thogh|tough)\b/gi,
+                replacement: "$1lthough",
+                reason: App.consts.reasons.spelling
+            },
+            thought: {
+                expr: /\b(t)r?ought(s)?\b/gi,
+                replacement: "$1hough$2",
+                reason: App.consts.reasons.spelling
+            },
+            throwing: {
+                expr: /\b(t)hroughing\b/gi,       // Peter says this is "thoroughly", but a survey of SO questions indicates "throwing"
+                replacement: "$1hrowing",
+                reason: App.consts.reasons.spelling
+            },
+            a_lot: {
+                expr: /\b(a)lot\b/gi,
+                replacement: "$1 lot",
+                reason: App.consts.reasons.spelling
+            },
+            one_r_two_r: {
+                expr: /\b(refe|prefe|occu)r(ed|ing)\b/gi,
+                replacement: "$1rr$2",
+                reason: App.consts.reasons.spelling
+            },
+            preferably: {
+                expr: /\b(p)referrably\b/gi,
+                replacement: "$1referably",
+                reason: App.consts.reasons.spelling
+            },
+            command_line: {
+                expr: /\b(c)ommandline\b/gi,
+                replacement: "$1ommand-line",
+                reason: App.consts.reasons.spelling
+            },
+            benefits: {
+                expr: /\b(b)enifits\b/gi,
+                replacement: "$1enefits",
+                reason: App.consts.reasons.spelling
+            },
+            authorization: {
+                expr: /\b(a)uth\b/gi,           // This may be too ambiguous, could also mean "authentication"
+                replacement: "$1uthorization",
+                reason: App.consts.reasons.spelling
+            },
+            persistent: {
+                expr: /\b(p)ersistan(t|ce)\b/gi,
+                replacement: "$1ersisten$2",
+                reason: App.consts.reasons.spelling
+            },
+            _ibility: {
+                expr: /\b(comp|incomp|access)abilit(y|ies)\b/gi,
+                replacement: "$1ibilit$2",
+                reason: App.consts.reasons.spelling
+            },
+            separate: {
+                expr: /\b(s)epe?rate?(d|ly|s)?\b/gi,
+                replacement: "$1eparate$2",
+                reason: App.consts.reasons.spelling
+            },
+            separation: {
+                expr: /\b(s)eperation(s)?\b/gi,
+                replacement: "$1eparation$2",
+                reason: App.consts.reasons.spelling
+            },
+            definite: {
+                expr: /\b(d)efin(?:ate?|ite?|al|te?)(ly)?\b/gi,  // Catches correct spelling, too.
+                replacement: "$1efinite$2",
+                reason: App.consts.reasons.spelling
+            },
+            definitive: {
+                expr: /\b(d)efina?tive(ly)?\b/gi,
+                replacement: "$1efinitive$2",
+                reason: App.consts.reasons.spelling
+            },
+            independent: {
+                expr: /\b(i)ndependant(ly)?\b/gi,
+                replacement: "$1ndependent$2",
+                reason: App.consts.reasons.spelling
+            },
+            recommend: { // https://regex101.com/r/pP9lB7/1
+                expr: /\b(r)ecomm?[ao]nd(ation)?\b/gi,
+                replacement: "$1ecommend$2",
+                reason: App.consts.reasons.spelling
+            },
+            compatibility: {
+                expr: /\b(c)ompatability\b/gi,
+                replacement: "$1ompatibility$2",
+                reason: App.consts.reasons.spelling
+            },
+            ps: {
+                expr: /\bps\b/g,
+                replacement: "PS",
+                reason: App.consts.reasons.spelling
+            },
+            ok: {
+                expr: /\bok\b/g,
+                replacement: "OK",
+                reason: App.consts.reasons.spelling
+            },
+            back_end: {  // Interesting fact: backend 3x more common than back-end
+                expr: /\b(b)ackend\b/g,
+                replacement: "$1ack-end",
+                reason: App.consts.reasons.spelling
+            },
+            front_end: {
+                expr: /\b(f)rontend\b/g,
+                replacement: "$1ront-end",
+                reason: App.consts.reasons.spelling
+            },
+            data_type: {
+                expr: /\b(d)atatype\b/g,
+                replacement: "$1ata type",
+                reason: App.consts.reasons.spelling
+            },
+            allotted: {
+                expr: /\b(a)l+ot+ed\b/g,
+                replacement: "$1llotted",
+                reason: App.consts.reasons.spelling
+            },
+            every_time: {
+                expr: /\b(e)ve?rytime\b/g,
+                replacement: "$1very time",
+                reason: App.consts.reasons.spelling
+            },
+            straight: {
+                expr: /\b(s)traig?h?t\b/g,
+                replacement: "$1traight",
+                reason: App.consts.reasons.spelling
+            },
+            straightforward: {
+                expr: /\b(s)traig?h?t[ -]?for?ward\b/g,
+                replacement: "$1traightforward",
+                reason: App.consts.reasons.spelling
+            },
+            preceding: {
+                expr: /\b(p)receeding\b/gi,
+                replacement: "$1receding",
+                reason: App.consts.reasons.spelling
+            },
+            no_one: {
+                expr: /\b(n)o-?one\b/gi,
+                replacement: "$1o one",
+                reason: App.consts.reasons.spelling
+            },
+            de_facto: {
+                expr: /\b(d)e-?facto\b/gi,
+                replacement: "$1e facto",
+                reason: App.consts.reasons.spelling
+            },
+            accommodate: { // https://regex101.com/r/cL3mD9/1
+                expr: /\b(a)(?:c+om|com+)odate\b/gi,
+                replacement: "$1ccommodate",
+                reason: App.consts.reasons.spelling
             },
             kind_of: {
                 expr: /\b(k)inda\b/gi,
                 replacement: "$1ind of",
-                reason: "grammar and spelling"
+                reason: App.consts.reasons.spelling
             },
             want_to: {
                 expr: /\b(w)ann?a\b/gi,
                 replacement: "$1ant to",
-                reason: "grammar and spelling"
+                reason: App.consts.reasons.spelling
             },
             sort_of: {
                 expr: /\b(s)orta\b/gi,
                 replacement: "$1ort of",
-                reason: "grammar and spelling"
+                reason: App.consts.reasons.spelling
             },
             got_to: { // https://regex101.com/r/rK6xR5/1
                 expr: /\b(have\s+)?(g)otta\b/gi,
                 replacement: "$1$2ot to",
-                reason: "grammar and spelling"
+                reason: App.consts.reasons.spelling
             },
             dont_know: { // https://regex101.com/r/rK6xR5/1
                 expr: /\b(d)[uo]nn?o\b/gi,
                 replacement: "$1on't know",
-                reason: "grammar and spelling"
+                reason: App.consts.reasons.spelling
             },
             going_to: {
                 expr: /\b(g)[ou]nn?a\b/gi,
                 replacement: "$1oing to",
-                reason: "grammar and spelling"
+                reason: App.consts.reasons.spelling
             },
-            // Punctuation & Spacing come last
+            crashes: {
+                expr: /\b(c)rashs\b/gi,
+                replacement: "$1rashes",
+                reason: App.consts.reasons.spelling
+            },
+            pattern: {
+                expr: /\b(p)at?(?:trn|tren|tern)(s)?\b/gi,
+                replacement: "$1attern$2",
+                reason: App.consts.reasons.spelling
+            },
+            function_: {
+                //expr: /\b(f)un?c?ti?on(s)?\b/gi,
+                expr: /\b(f)u(?:cti|nti|nct)on(s)?\b/gi,
+                replacement: "$1unction$2",
+                reason: App.consts.reasons.spelling
+            },
+            syntax: {
+                expr: /\b(s)[yi]nt[ae]?x\b/g,
+                replacement: "$1yntax",
+                reason: App.consts.reasons.spelling
+            },
+            correct: {
+                expr: /\b(c)orr?ec[ty]\b/g,
+                replacement: "$1orrect",
+                reason: App.consts.reasons.spelling
+            },
+            correctly: {
+                expr: /\b(c)orr?ec(?:lt?|t?l)y\b/g,
+                replacement: "$1orrectly",
+                reason: App.consts.reasons.spelling
+            },
+            /*
+            ** Grammar - Correct common grammatical errors.
+            **/
             firstcaps: {
                 //    https://regex101.com/r/qR5fO9/18
                 // This doesn't work quite right, because is finds all sentences, not just ones needing caps.
@@ -1128,43 +1156,121 @@
                         return update;
                     });
                 },
-                reason: "caps at start of sentences"
+                reason: App.consts.reasons.grammar
+            },
+            spacesbeforesymbols: {
+                expr: /[ \t]*(?:([,!?;:](?!\)|\d)|[ \t](\.))(?=\s))[ \t]*/g,  // https://regex101.com/r/vS3dS3/6
+                replacement: "$1 ",
+                reason: App.consts.reasons.grammar
+            },
+            i: { // https://regex101.com/r/uO7qG0/1
+                expr: /\bi('|\b)(?!.e.)/g,  // i or i-apostrophe
+                replacement: "I",
+                reason: App.consts.reasons.grammar
+            },
+            im: {
+                expr: /\bi ?m\b/gi,
+                replacement: "I'm",
+                reason: App.consts.reasons.grammar
+            },
+            ive: {
+                expr: /\biv'?e\b/gi,
+                replacement: "I've",
+                reason: App.consts.reasons.grammar
+            },
+            ie: {  // http://english.stackexchange.com/questions/30106/can-i-start-a-sentence-with-i-e
+                expr: /\b(i|I)e[.\s]+/g,   // Careful here; IE is Internet Explorer
+                replacement: "$1.e. ",
+                reason: App.consts.reasons.grammar
+            },
+            eg: { // https://regex101.com/r/qH2oT0/2
+                expr: /\b(e)g[.\s]+/gi,
+                replacement: "$1.g. ",
+                reason: App.consts.reasons.grammar
+            },
+            etc: {  // https://regex101.com/r/dE7cV1/3
+                expr: /\betc(?!\.)/g,
+                replacement: "etc.",
+                reason: App.consts.reasons.grammar
             },
             multiplesymbols: {
                 //    https://regex101.com/r/bE9zM6/1
                 expr: /([^\w\s*#.\-_+])\1{1,}/g,
                 replacement: "$1",
-                reason: "punctuation & spacing"
+                reason: App.consts.reasons.grammar
             },
-            spacesbeforesymbols: {
-                expr: /[ \t]*(?:([,!?;:](?!\)|\d)|[ \t](\.))(?=\s))[ \t]*/g,  // https://regex101.com/r/vS3dS3/6
-                replacement: "$1 ",
-                reason: "punctuation & spacing"
+            /*
+            ** Noise reduction - Remove fluff that adds nothing of technical value to posts.
+            **/
+            editupdate: {
+                // https://regex101.com/r/tT2pK6/2
+                expr: /(?!(?:edit|update)\w*\s*[^:]*$)(?:^\**)(edit|update)\w*(\s*#?[0-9]+)?:?(?:\**):?/gmi,
+                replacement: "",
+                reason: App.consts.reasons.noise
             },
+            hello: { // TODO: Update badphrases (new) to catch everything hello and thanks (old) did.
+                expr: /(?:^|\s)(hi\s+guys|hi|hello|good\s(?:evening|morning|day|afternoon))(?:\.|!|\ )/gmi,
+                replacement: "",
+                reason: App.consts.reasons.noise
+            },
+            thanks: { // https://regex101.com/r/tV6uM4/2
+                expr: /[^\n.!?:]*\b(?:thanks|pl(?:ease|z|s)\s+h[ea]lp|cheers|regards|tanx|thx|thank\s+you|my\s+first\s+question|kind(?:ly)\shelp).*$/gmi,
+                replacement: "",
+                reason: App.consts.reasons.noise
+            },
+            badwords: {
+                expr: /[^\n.!?:]*\b(?:th?anks?|th(?:an)?x|tanx|folks?|ki‌nd(‌?:est|ly)|first\s*question)\b[^,.!?\n]*[,.!?]*/gi,
+                replacement: "",
+                reason: App.consts.reasons.noise
+            },
+            badphrases: {
+                expr: /[^\n.!?:]*(?:h[ea]lp|hope|appreciate|pl(?:ease|z|s))[^.!?\n]*(?:helps?|appreciated?)[^,.!?\n]*[,.!?]*/gi,
+                replacement: "",
+                reason: App.consts.reasons.noise
+            },
+            imnew: {
+                expr: /(?! )[\w\s]*\bi[' ]?a?m +(?:kinda|really) *new\w* +(?:to|in) *\w* *(?:and|[;,.!?])? */gi,
+                replacement: "",
+                reason: App.consts.reasons.noise
+            },
+            salutations: {
+                expr: /[\r\n]*(regards|cheers?),?[\t\f ]*[\r\n]?\w*\.?/gi,
+                replacement: "",
+                reason: App.consts.reasons.noise
+            },
+            sorry4english: { // https://regex101.com/r/pG3oD6/1
+                expr: /(?:^|\s)[^.!\n\r]*(sorry).*?(english).*?(?:[.! \n\r])/gmi,
+                replacement: "",
+                reason: App.consts.reasons.noise
+            },
+            /*
+            ** Spacing - Minimize whitespace (which is compressed by markup).
+            **           Must follow noise reduction.
+            **/
             multiplespaces: {
                 // https://regex101.com/r/hY9hQ3/1
                 expr: /[ ]{2,}(?!\n)/g,
                 replacement: " ",
-                reason: "punctuation & spacing"
+                reason: App.consts.reasons.spacing
             },
             blanklines: {
                 expr: /(?:\s*[\r\n]){3,}/gm,
                 replacement: "\n\n",
-                reason: "punctuation & spacing"
+                reason: App.consts.reasons.spacing
             },
             endblanklines: {
                 expr: /[\s\r\n]+$/g,
                 replacement: "",
-                reason: "punctuation & spacing"
+                reason: App.consts.reasons.spacing
             },
             // The title says it all
             thetitlesaysitall: {
                 // https://regex101.com/r/bX1qB4/3
                 expr: /(?:the )?title says it all/gi,
                 replacement: function(){
-                    return '"' + App.selections.title.val() + '" says it all';
+                    return '"' + App.selections.title.val() + '" says it all.\n\n';
                 },
-                reason: "the title says it all"
+                reason: App.consts.reasons.titleSaysAll
             }
         };
 
