@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.36
+// @version        1.5.2.37
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -160,7 +160,7 @@
                 reason: App.consts.reasons.trademark
             },
             javascript: {
-                expr: /([^\b\w.]|^)(javascript|js|java script)\b/gi,
+                expr: /([^\b\w.]|^)(javascr?ipt|js|java script)\b/gi,
                 replacement: "$1JavaScript",
                 reason: App.consts.reasons.trademark
             },
@@ -274,8 +274,8 @@
                 replacement: "iOS $1",
                 reason: App.consts.reasons.trademark
             },
-            ubuntu: {
-                expr: /\b[uoa]*b[uoa]*[tn][oua]*[tnu][oua]*\b/gi,
+            ubuntu: {  // https://regex101.com/r/sT8wV5/1
+                expr: /\b[uoa]+b[uoa]*[tn][oua]*[tnu][oua]*\b/gi,
                 replacement: "Ubuntu",
                 reason: App.consts.reasons.trademark
             },
@@ -403,7 +403,7 @@
                 reason: App.consts.reasons.trademark
             },
             google: { // https://regex101.com/r/iS5fO1/1
-                expr: /\bgoogle\b[ \t]*(?:maps?|sheets?|docs?|drive|sites?)?\b/gi,
+                expr: /\bgoogle\b[ \t]*(?:maps?|sheets?|docs?|drive|sites?|forms?)?\b/gi,
                 replacement: function(str) {
                     return str.toTitleCase();
                 },
@@ -713,7 +713,7 @@
                 reason: App.consts.reasons.spelling
             },
             doesn_t: { // https://regex101.com/r/sL0uO9/1
-                expr: /\b(d)ose?n'?t\b/gi,
+                expr: /\b(d)(?:ose?n'?t|oens'?t)\b/gi,
                 replacement: "$1oesn't",
                 reason: App.consts.reasons.spelling
             },
@@ -1158,6 +1158,26 @@
                 replacement: "$1omebody",
                 reason: App.consts.reasons.spelling
             },
+            everything: {
+                expr: /\b(e)ve?r[yi]?thing\b/gi,
+                replacement: "$1verything",
+                reason: App.consts.reasons.spelling
+            },
+            button: {
+                expr: /\b(b)[uo]+tt?[ou]n\b/gi,
+                replacement: "$1utton",
+                reason: App.consts.reasons.spelling
+            },
+            before: {
+                expr: /\b(b)e?fo?re?\b/gi,
+                replacement: "$1efore",
+                reason: App.consts.reasons.spelling
+            },
+            example: {
+                expr: /\b(e)(?:xsample|xamle|x?ample?)\b/gi,
+                replacement: "$1xample",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -1178,9 +1198,14 @@
                 },
                 reason: App.consts.reasons.grammar
             },
-            spacesbeforesymbols: {
-                expr: /[ \t]*(?:([,!?;:](?!\)|\d)|[ \t](\.))(?=\s))[ \t]*/g,  // https://regex101.com/r/vS3dS3/6
-                replacement: "$1 ",
+            spacesbeforesymbols: {  // https://regex101.com/r/fN6lL7/2
+                expr: /(?:[ \t]([(&])[ \t]+|[ \t]*([(&])(?=[a-z]|$))/gim,
+                replacement: " $1$2",
+                reason: App.consts.reasons.grammar
+            },
+            spacesaftersymbols: {  // https://regex101.com/r/jB5aN0/2
+                expr: /(?:[ \t]([.,!?;:])[ \t]+|[ \t]*([.,!?;:])(?=[a-z]|$))/gim,
+                replacement: "$1$2 ",
                 reason: App.consts.reasons.grammar
             },
             i: { // https://regex101.com/r/uO7qG0/1
@@ -1267,6 +1292,11 @@
             ** Spacing - Minimize whitespace (which is compressed by markup).
             **           Must follow noise reduction.
             **/
+            trailingspaces: {
+                expr: /[ \t]*$/gm,
+                replacement: "",
+                reason: App.consts.reasons.spacing
+            },
             multiplespaces: {
                 // https://regex101.com/r/hY9hQ3/1
                 expr: /[ ]{2,}(?!\n)/g,
