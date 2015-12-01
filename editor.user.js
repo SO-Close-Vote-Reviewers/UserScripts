@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.40
+// @version        1.5.2.41
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -308,7 +308,7 @@
                 reason: App.consts.reasons.trademark
             },
             postgresql: {
-                expr: /\bpost?gres?(q?l|s)?\b/gi,
+                expr: /\bpost?gres*(q?l|s)?\b/gi,
                 replacement: "PostgreSQL",
                 reason: App.consts.reasons.trademark
             },
@@ -537,7 +537,7 @@
                 reason: App.consts.reasons.trademark
             },
             xampp: {
-                expr: /([^\b\w.]|^)xampp?\b/gi,
+                expr: /([^\b\w.]|^)xam+pp?\b/gi,
                 replacement: "$1XAMPP",
                 reason: App.consts.reasons.trademark
             },
@@ -552,7 +552,7 @@
                 reason: App.consts.reasons.trademark
             },
             galaxy: {
-                expr: /([^\b\w.]|^)galaxy/gi,
+                expr: /([^\b\w.]|^)galaxy\b/gi,
                 replacement: "$1Galaxy",
                 reason: App.consts.reasons.trademark
             },
@@ -564,11 +564,31 @@
                 },
                 reason: App.consts.reasons.trademark
             },
+            pymongo: {
+                expr: /([^\b\w.]|^)pymongo\b/gi,
+                replacement: "$1PyMongo",
+                reason: App.consts.reasons.trademark
+            },
+            scala: {
+                expr: /([^\b\w.]|^)scala\b/gi,
+                replacement: "$1Scala",
+                reason: App.consts.reasons.trademark
+            },
+            microsoft: { // https://regex101.com/r/dJ5tE3/1
+                expr: /\b([mM]icrosoft?|[mM]ircosoft|M[Ss]oft)\b/g,
+                replacement: "Microsoft",
+                reason: App.consts.reasons.trademark
+            },
+            intellisense: {
+                expr: /\bintell?isen[sc]e?\b/gi,
+                replacement: "IntelliSense",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
             x_html: {
-                expr: /(?:[^\b\w.]|^)(:?g|ht|x|xht|sf)ml[\d.]*\b/gi,
+                expr: /(?:[^\b\w.]|^)(:?g|ht|x|xht|sf|csht)ml[\d.]*\b/gi,
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.acronym
             },
@@ -593,8 +613,8 @@
                 reason: App.consts.reasons.acronym
             },
             urli: {
-                expr: /\b(ur[li])\b/gi,
-                replacement: function(match) { return match.toUpperCase(); },
+                expr: /\b(ur[li])(s)?\b/gi,
+                replacement: function(match,upper,lower) { return upper.toUpperCase() + (lower?lower.toLowerCase():''); },
                 reason: App.consts.reasons.acronym
             },
             asp: {
@@ -772,6 +792,11 @@
                 replacement: "$1phpMyAdmin",
                 reason: App.consts.reasons.acronym
             },
+            phpunit: {
+                expr: /([^\b\w.]|^)phpunit\b/gi,
+                replacement: "$1PHPUnit",
+                reason: App.consts.reasons.acronym
+            },
             mkl: {
                 expr: /([^\b\w.]|^)mkl\b/gi,
                 replacement: function (match) { return match.toUpperCase(); },
@@ -789,6 +814,16 @@
             },
             jvm: {
                 expr: /(?:[^\b\w.]|^)jvm\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            linq: {
+                expr: /(?:[^\b\w.]|^)linq\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            md5: {
+                expr: /(?:[^\b\w.]|^)md5\b/gi,
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.acronym
             },
@@ -900,6 +935,16 @@
             doesn_t: { // https://regex101.com/r/sL0uO9/3
                 expr: /\b(d)(?:ose?n.?t|oens.?t|oesn[ `]t)\b/gi,
                 replacement: "$1oesn't",
+                reason: App.consts.reasons.spelling
+            },
+            didn_t: {
+                expr: /\b(d)(id[ '`´]t)\b/gi,
+                replacement: "$1idn't",
+                reason: App.consts.reasons.spelling
+            },
+            apostrophe_nt: {
+                expr: /['`´]nt\b/gi,
+                replacement: "n't",
                 reason: App.consts.reasons.spelling
             },
             doesn_t_work: {  // >4K instances of this (Oct 2015)
@@ -1137,6 +1182,11 @@
                 replacement: "$1rr$2",
                 reason: App.consts.reasons.spelling
             },
+            occur: {
+                expr: /\b(o)ccure(s)?\b/gi,
+                replacement: "$1ccur$2",
+                reason: App.consts.reasons.spelling
+            },
             preferably: {
                 expr: /\b(p)referrably\b/gi,
                 replacement: "$1referably",
@@ -1167,8 +1217,13 @@
                 replacement: "$1ccess$2",
                 reason: App.consts.reasons.spelling
             },
+            _ible: {
+                expr: /\b(compat|incompat|access)able\b/gi,
+                replacement: "$1ible",
+                reason: App.consts.reasons.spelling
+            },
             _ibility: {
-                expr: /\b(comp|incomp|access)abili?t(y|ies)\b/gi,
+                expr: /\b(compat|incompat|access)abili?t(y|ies)\b/gi,
                 replacement: "$1ibilit$2",
                 reason: App.consts.reasons.spelling
             },
@@ -1507,6 +1562,16 @@
                 replacement: "$1ulfill",
                 reason: App.consts.reasons.spelling
             },
+            coming: {
+                expr: /\b(c)omming\b/gi,
+                replacement: "$1oming",
+                reason: App.consts.reasons.spelling
+            },
+            tried: {  // 8,540 of these!
+                expr: /\b(t)rye(d|s)\b/gi,
+                replacement: "$1rie$2",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -1553,7 +1618,7 @@
                 reason: App.consts.reasons.grammar
             },
             im: {
-                expr: /\bi *m\b/gi,
+                expr: /\b(?:i *m|i'am)\b/gi,
                 replacement: "I'm",
                 reason: App.consts.reasons.grammar
             },
@@ -1572,8 +1637,8 @@
                 replacement: "$1.g. ",
                 reason: App.consts.reasons.grammar
             },
-            etc: {  // https://regex101.com/r/dE7cV1/3
-                expr: /\betc(?!\.)/g,
+            etc: {  // https://regex101.com/r/dE7cV1/4
+                expr: /\betc(?:\.+)?/g,
                 replacement: "etc.",
                 reason: App.consts.reasons.grammar
             },
