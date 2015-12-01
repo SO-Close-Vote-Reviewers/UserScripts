@@ -1665,6 +1665,11 @@
                 replacement: "I want",
                 reason: App.consts.reasons.grammar
             },
+            oxford_comma: { // https://regex101.com/r/xN0mF6/6
+                expr: /((?:[\w'-]+,\s+)+(?:[\w'-]+\s){0,2}[\w'-]+)(\s+(and|or)\s+[\w'-]+)/g,
+                replacement: "$1,$2",
+                reason: App.consts.reasons.grammar
+            },
             /*
             ** Noise reduction - Remove fluff that adds nothing of technical value to posts.
             **/
