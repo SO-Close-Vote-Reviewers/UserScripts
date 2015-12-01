@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.41
+// @version        1.5.2.42
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -158,6 +158,14 @@
             jsfiddle: {
                 expr: /\bjs ?fiddle\b/gi,
                 replacement: "JSFiddle",
+                reason: App.consts.reasons.trademark
+            },
+            meteor: {  // must appear before "javascript"
+                expr: /([^\b\w.]|^)meteor *(js)?\b/gi,
+                replacement: function (str,pre,uppercase) {
+                    var fixed = pre + "Meteor" + (uppercase ? uppercase.toUpperCase() : '');
+                    return fixed;
+                },
                 reason: App.consts.reasons.trademark
             },
             javascript: {
@@ -537,18 +545,8 @@
                 reason: App.consts.reasons.trademark
             },
             xampp: {
-                expr: /([^\b\w.]|^)xam+pp?\b/gi,
+                expr: /([^\b\w.]|^)xam+p+\b/gi,
                 replacement: "$1XAMPP",
-                reason: App.consts.reasons.trademark
-            },
-            meteor: {
-                expr: /([^\b\w.]|^)meteor\b/gi,
-                replacement: "$1Meteor",
-                reason: App.consts.reasons.trademark
-            },
-            meteorjs: {
-                expr: /([^\b\w.]|^)meteorjs\b/gi,
-                replacement: "$1MeteorJS",
                 reason: App.consts.reasons.trademark
             },
             galaxy: {
@@ -584,6 +582,16 @@
                 replacement: "IntelliSense",
                 reason: App.consts.reasons.trademark
             },
+            sass: {  // Syntactically Awesome Style Sheets
+                expr: /\bsass\b/gi,
+                replacement: "Sass",
+                reason: App.consts.reasons.trademark
+            },
+            heroku: {
+                expr: /\bheroku\b/gi,
+                replacement: "Heroku",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
@@ -593,7 +601,7 @@
                 reason: App.consts.reasons.acronym
             },
             css: {
-                expr: /(?:[^\b\w.]|^)css\b/gi,
+                expr: /(?:[^\b\w.]|^)s?css\b/gi,
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.acronym
             },
@@ -824,6 +832,11 @@
             },
             md5: {
                 expr: /(?:[^\b\w.]|^)md5\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            xfa: {  // XML Forms Architecture
+                expr: /(?:[^\b\w.]|^)xfa\b/gi,
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.acronym
             },
@@ -2023,7 +2036,8 @@
             var reasonStr = reasons.length ? reasons.join('; ')+'.' : '';  // Unique reasons separated by ; and terminated by .
             reasonStr = reasonStr.charAt(0).toUpperCase() + reasonStr.slice(1);  // Cap first letter.
 
-            if (!data.hasOwnProperty('summaryOrig')) data.summaryOrig = data.summary.trim(); // Remember original summary
+            if (!data.hasOwnProperty('summaryOrig')) data.summaryOrig = data.summary.trim() // Remember original summary
+                                                                            .replace(/[^.;]$/,";");
             if (data.summaryOrig.length) data.summaryOrig = data.summaryOrig + ' ';
 
             data.summary = data.summaryOrig + reasonStr;
