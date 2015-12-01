@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.42
+// @version        1.5.2.43
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -2034,11 +2034,13 @@
             }
 
             var reasonStr = reasons.length ? reasons.join('; ')+'.' : '';  // Unique reasons separated by ; and terminated by .
-            reasonStr = reasonStr.charAt(0).toUpperCase() + reasonStr.slice(1);  // Cap first letter.
 
             if (!data.hasOwnProperty('summaryOrig')) data.summaryOrig = data.summary.trim() // Remember original summary
-                                                                            .replace(/[^.;]$/,";");
-            if (data.summaryOrig.length) data.summaryOrig = data.summaryOrig + ' ';
+                                                                            .replace(/([^.;])$/,"$1;");
+            if (data.summaryOrig.length)
+                data.summaryOrig = data.summaryOrig + ' ';
+            else
+                reasonStr = reasonStr.charAt(0).toUpperCase() + reasonStr.slice(1);  // Cap first letter.
 
             data.summary = data.summaryOrig + reasonStr;
             // Limit summary to 300 chars
