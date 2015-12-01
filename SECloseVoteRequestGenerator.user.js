@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.5.6
+// @version        1.5.7
 // @description    This script generates formatted close vote requests and sends them to a specified chat room
 // @author         @TinyGiant
-// @include        /^https?://\w*.?(stackexchange.com|stackoverflow.com|serverfault.com|superuser.com|askubuntu.com|stackapps.com|mathoverflow.net)/q(uestions)?/\d+/
+// @include        /^https?:\/\/\w*.?(stackexchange.com|stackoverflow.com|serverfault.com|superuser.com|askubuntu.com|stackapps.com|mathoverflow.net)\/q(uestions)?\/\d+/
 // @require        https://code.jquery.com/jquery-2.1.4.min.js
 // @grant          GM_xmlhttpRequest
 // ==/UserScript==
