@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.43
+// @version        1.5.2.44
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -184,7 +184,7 @@
                 reason: App.consts.reasons.trademark
             },
             php: {
-                expr: /(?:[^\b\w.]|^)php[\d]?\b/gi,
+                expr: /(?:[^\b\w.]|^)php[\d]?\b(?!\.ini)/gi,
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.trademark
             },
@@ -250,8 +250,8 @@
                 reason: App.consts.reasons.trademark
             },
             apache: {
-                expr: /\bapache[\d]?\b/gi,
-                replacement: "Apache",
+                expr: /\bapache([\d])?\b/gi,
+                replacement: "Apache$1",
                 reason: App.consts.reasons.trademark
             },
             git: {
@@ -592,6 +592,16 @@
                 replacement: "Heroku",
                 reason: App.consts.reasons.trademark
             },
+            os_x: {
+                expr: /\bos ?x\b/gi,
+                replacement: "OS X",
+                reason: App.consts.reasons.trademark
+            },
+            el_capitan: {
+                expr: /\bel ?capi?tan\b/gi,
+                replacement: "El Capitan",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
@@ -875,8 +885,8 @@
                 replacement: "$1ersonal$2",
                 reason: App.consts.reasons.spelling
             },
-            problem: { // https://regex101.com/r/yA8jM7/5
-                expr: /\b(p)(?:or?|ro|rο|r0)b(?:le|el|e|re|l|[|]e)m(s)?\b/gi,
+            problem: { // https://regex101.com/r/yA8jM7/6
+                expr: /\b(p)(?:or?|ro|rο|r0)b(?:le|el|e|re|l|[|]e)me?(s)?\b/gi,
                 replacement: "$1roblem$2",
                 reason: App.consts.reasons.spelling
             },
@@ -1585,6 +1595,21 @@
                 replacement: "$1rie$2",
                 reason: App.consts.reasons.spelling
             },
+            basically: {  // 7,924 of these!
+                expr: /\b(b)asica?l+y\b/gi,
+                replacement: "$1asically",
+                reason: App.consts.reasons.spelling
+            },
+            completely: {  // 4,793 examples!   https://regex101.com/r/oG7nH6/2
+                expr: /\b(c)ompl?ete?l?e?y\b/gi,
+                replacement: "$1ompletely",
+                reason: App.consts.reasons.spelling
+            },
+            misread: {
+                expr: /\b(m)is+[ -]?rea?d\b/gi,
+                replacement: "$1isread",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -1775,11 +1800,10 @@
                 if (e.which === 13) {
                     if (e.metaKey || e.ctrlKey) {
                         // CTRL/CMD + Enter -> Activate the auto-editor
-                        App.selections.buttonFix.click();
+                        App.funcs.fixEvent();
                     } else {
                         // It's possible to remove the event listeners, because of the way outerHTML works.
                         this.outerHTML = this.outerHTML;
-                        App.funcs.fixEvent();
                     }
                 }
             }
