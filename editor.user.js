@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.44
+// @version        1.5.2.45
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -956,13 +956,18 @@
                 reason: App.consts.reasons.spelling
             },
             doesn_t: { // https://regex101.com/r/sL0uO9/3
-                expr: /\b(d)(?:ose?n.?t|oens.?t|oesn[ `]t)\b/gi,
+                expr: /\b(d)(?:ose?n.?t|oens.?t|oesn[ `]t|oest)\b/gi,
                 replacement: "$1oesn't",
                 reason: App.consts.reasons.spelling
             },
             didn_t: {
                 expr: /\b(d)(id[ '`´]t)\b/gi,
                 replacement: "$1idn't",
+                reason: App.consts.reasons.spelling
+            },
+            don_t: {
+                expr: /\b(d)(on[ '`´]no?t)\b/gi,
+                replacement: "$1on't",
                 reason: App.consts.reasons.spelling
             },
             apostrophe_nt: {
@@ -1656,7 +1661,7 @@
                 reason: App.consts.reasons.grammar
             },
             im: {
-                expr: /\b(?:i *m|i'am)\b/gi,
+                expr: /\b(?:i *m(?: am)?|i'am)\b/gi,
                 replacement: "I'm",
                 reason: App.consts.reasons.grammar
             },
@@ -1709,18 +1714,18 @@
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
-            thanks: { // https://regex101.com/r/tV6uM4/2
-                expr: /[^\n.!?:]*\b(?:thanks|pl(?:ease|z|s)\s+h[ea]lp|cheers|regards|tanx|thx|thank\s+you|my\s+first\s+question|kind(?:ly)\shelp).*$/gmi,
-                replacement: "",
-                reason: App.consts.reasons.noise
-            },
-            badwords: {
-                expr: /[^\n.!?:]*\b(?:th?anks?|th(?:an)?x|tanx|folks?|ki‌nd(‌?:est|ly)|first\s*question)\b[^,.!?\n]*[,.!?]*/gi,
-                replacement: "",
-                reason: App.consts.reasons.noise
-            },
-            badphrases: {
-                expr: /[^\n.!?:]*(?:h[ea]lp|hope|appreciate|pl(?:ease|z|s))[^.!?\n]*(?:helps?|appreciated?)[^,.!?\n]*[,.!?]*/gi,
+//            thanks: { // https://regex101.com/r/tV6uM4/2
+//                expr: /[^\n.!?:]*\b(?:thanks|pl(?:ease|z|s)\s+h[ea]lp|cheers|regards|tanx|thx|thank\s+you|my\s+first\s+question|kind(?:ly)\shelp).*$/gmi,
+//                replacement: "",
+//                reason: App.consts.reasons.noise
+//            },
+//            badwords: {
+//                expr: /[^\n.!?:]*\b(?:th?anks?|th(?:an)?x|tanx|folks?|kind(?:est|ly)|first\s*question)\b[^,.!?\n]*[,.!?]*/gi,
+//                replacement: "",
+//                reason: App.consts.reasons.noise
+//            },
+            badphrases: { // https://regex101.com/r/gE2hH6/4
+                expr: /[^\n.!?:]*(?:please|plz|help|suggest(?:ions)|th?anks|thx|tanx)\b[^\n.!?:]*\b(?:h[ea]lp|ap+reciat\w*|me|advan\w*)\b[^\n.!?:]*[.!?]*[ ]*/gi,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
