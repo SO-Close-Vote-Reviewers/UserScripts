@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.45
+// @version        1.5.2.46
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -292,8 +292,8 @@
             vbnet: {  // https://regex101.com/r/bB9pP3/8
                 expr: /(?:vb\.net|\bvb|(?:[^\b\w.]|^)\.net)\b(?:\s*[0-9]+)?\s*(?:framework|core)?/gi,
                 replacement: function(str) {
-                    return str.replace(/vb/i, 'VB')
-                    .replace(/asp/i, 'ASP')
+                    return str.replace(/([^.])vb/i, '$1VB')
+                    .replace(/([^.])asp/i, '$1ASP')
                     .replace(/net/i, 'NET')
                     .replace(/framework/i, 'Framework')
                     .replace(/core/i, 'Core');
@@ -956,7 +956,7 @@
                 reason: App.consts.reasons.spelling
             },
             doesn_t: { // https://regex101.com/r/sL0uO9/3
-                expr: /\b(d)(?:ose?n.?t|oens.?t|oesn[ `]t|oest)\b/gi,
+                expr: /\b(d)(?:ose?[ '`]?n?.?t|oens.?t|oesn[ `]t|oest)\b/gi,
                 replacement: "$1oesn't",
                 reason: App.consts.reasons.spelling
             },
@@ -1615,6 +1615,11 @@
                 replacement: "$1isread",
                 reason: App.consts.reasons.spelling
             },
+            database: {
+                expr: /\b(d)atabaes?\b/gi,
+                replacement: "$1atabase",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -1703,6 +1708,21 @@
             /*
             ** Noise reduction - Remove fluff that adds nothing of technical value to posts.
             **/
+            help: {
+                expr: /\b(h)(?:[ea]l?p)(?![-])\b/gi,
+                replacement: "$1elp",
+                reason: App.consts.reasons.silent
+            },
+            thanks: {
+                expr: /\b(t)(?:anks|hx|anx)\b/gi,
+                replacement: "$1hanks",
+                reason: App.consts.reasons.silent
+            },
+            please: {
+                expr: /\b(p)(?:lz|lse?|l?ease?)\b/gi,
+                replacement: "$1lease",
+                reason: App.consts.reasons.silent
+            },
             editupdate: {
                 // https://regex101.com/r/tT2pK6/2
                 expr: /(?!(?:edit|update)\w*\s*[^:]*$)(?:^\**)(edit|update)\w*(\s*#?[0-9]+)?:?(?:\**):?/gmi,
@@ -1724,8 +1744,8 @@
 //                replacement: "",
 //                reason: App.consts.reasons.noise
 //            },
-            badphrases: { // https://regex101.com/r/gE2hH6/4
-                expr: /[^\n.!?:]*(?:please|plz|help|suggest(?:ions)|th?anks|thx|tanx)\b[^\n.!?:]*\b(?:h[ea]lp|ap+reciat\w*|me|advan\w*)\b[^\n.!?:]*[.!?]*[ ]*/gi,
+            badphrases: { // https://regex101.com/r/gE2hH6/11
+                expr: /[^\n.!?:]*(?:thanks[ .?!]*$|thank[ -]you[ .?!]*$|(?:please|help|suggest(?:ions)|thanks)\b[^\n.!?:]*\b(?:help|ap+reciat\w*|me|advan\w*|a ?lot)\b[^\n.!?:]*)[.!?_*]*[ ]*/gi,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
