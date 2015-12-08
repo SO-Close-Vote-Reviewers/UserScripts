@@ -1744,8 +1744,8 @@
 //                replacement: "",
 //                reason: App.consts.reasons.noise
 //            },
-            badphrases: { // https://regex101.com/r/gE2hH6/11
-                expr: /[^\n.!?:]*(?:thanks[ .?!]*$|thank[ -]you[ .?!]*$|(?:please|help|suggest(?:ions)|thanks)\b[^\n.!?:]*\b(?:help|ap+reciat\w*|me|advan\w*|a ?lot)\b[^\n.!?:]*)[.!?_*]*[ ]*/gi,
+            badphrases: { // https://regex101.com/r/gE2hH6/12
+                expr: /[^\n.!?:]*(?:thanks[ .?!]*$|thank[ -]you[ .?!]*$|help[ .?!]*$|(?:please|help|suggest(?:ions)|thanks)\b[^\n.!?:]*\b(?:help|ap+reciat\w*|me|advan\w*|a ?lot)\b[^\n.!?:]*)[.!?_*]*[ ]*/gi,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
