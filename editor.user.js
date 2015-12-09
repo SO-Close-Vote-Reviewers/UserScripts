@@ -1640,6 +1640,11 @@
                 replacement: "$1atabase",
                 reason: App.consts.reasons.spelling
             },
+            output: {  //6,594 "out put"
+                expr: /\b(o)ut put\b/gi,
+                replacement: "$1utput",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -1686,7 +1691,7 @@
                 reason: App.consts.reasons.grammar
             },
             im: {
-                expr: /\b(?:i *m(?: am)?|i'am)\b/gi,
+                expr: /\b(?:i *m(?: am)?|i'am|iam)\b/gi,
                 replacement: "I'm",
                 reason: App.consts.reasons.grammar
             },
@@ -1750,13 +1755,13 @@
                 reason: App.consts.reasons.noise
             },
             // http://meta.stackexchange.com/questions/2950/should-hi-thanks-taglines-and-salutations-be-removed-from-posts/93989#93989
-            salutation: { // https://regex101.com/r/yS9lN8/3
-                expr: /^\s*(?:(?:hi(?:ya)*|hel+o+|heya?|hai|g'?day|good\s(?:evening|morning|day|afternoon))[,\s]*(?:\s+(?:all|guys|folks|friends?|there|everyone|people|bud+(y|ies))*))(?:[,.!?: ]*|$)/gmi,
+            salutation: { // https://regex101.com/r/yS9lN8/4
+                expr: /^\s*(?:dear\b.*$|(?:hi(?:ya)*|hel+o+|heya?|hai|g'?day|good\s(?:evening|morning|day|afternoon))[,\s]*(?:\s+(?:all|guys|folks|friends?|there|everyone|people|bud+(y|ies))*))(?:[,.!?: ]*|$)/gmi,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
-            badphrases: { // https://regex101.com/r/gE2hH6/11
-                expr: /[^\n.!?:]*(?:thanks[ .?!]*$|thank[ -]you[ .?!]*$|(?:please|help|suggest(?:ions)|thanks)\b[^\n.!?:]*\b(?:help|ap+reciat\w*|me|advan\w*|a ?lot)\b[^\n.!?:]*)[.!?_*]*[ ]*/gi,
+            badphrases: { // https://regex101.com/r/gE2hH6/13
+                expr: /[^\n.!?:]*(?:thanks|thank[ -]you|please|help|suggest(?:ions))\b(?:[ .?!]*$|[^\n.!?:]*\b(?:help|ap+reciat\w*|me|advan\w*|a ?lot)\b[^\n.!?:]*)[.!?_*]*[ ]*/gim,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
