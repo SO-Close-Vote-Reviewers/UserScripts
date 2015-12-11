@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.47
+// @version        1.5.2.49
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -166,6 +166,11 @@
                     var fixed = pre + "Meteor" + (uppercase ? uppercase.toUpperCase() : '');
                     return fixed;
                 },
+                reason: App.consts.reasons.trademark
+            },
+            knockout_js: {  // must appear before "javascript"
+                expr: /\bknockout[. ]?js\b/gi,
+                replacement: "Knockout.js",
                 reason: App.consts.reasons.trademark
             },
             javascript: {
@@ -965,13 +970,18 @@
                 replacement: "$1oesn't",
                 reason: App.consts.reasons.spelling
             },
+            couldn_t_wouldn_t_shouldn_t: {
+                expr: /\b(c|w|sh)o?ul?dn[ '`´]?t\b/gi,
+                replacement: "$1ouldn't",
+                reason: App.consts.reasons.spelling
+            },
             didn_t: {
-                expr: /\b(d)(id[ '`´]t)\b/gi,
+                expr: /\b(d)id[ '`´]t\b/gi,
                 replacement: "$1idn't",
                 reason: App.consts.reasons.spelling
             },
             don_t: {
-                expr: /\b(d)(on[ '`´]no?t)\b/gi,
+                expr: /\b(d)(?:on[ '`´]no?t|ont)\b/gi,
                 replacement: "$1on't",
                 reason: App.consts.reasons.spelling
             },
@@ -1028,6 +1038,11 @@
             btw: {
                 expr: /\b(b)tw\b/gi,
                 replacement: "$1y the way",
+                reason: App.consts.reasons.spelling
+            },
+            sry: {
+                expr: /\b(s)o?r+y\b/gi,
+                replacement: "$1orry",
                 reason: App.consts.reasons.spelling
             },
             allways: {
@@ -1480,9 +1495,14 @@
                 replacement: "$1omewhere",
                 reason: App.consts.reasons.spelling
             },
-            with_or_without_you: {
-                expr: /\b(w)hith(out)\b/gi,
-                replacement: "$1ith$2",
+            with: {
+                expr: /\b(w)h?ith?/gi,
+                replacement: "$1ith",
+                reason: App.consts.reasons.spelling
+            },
+            without: {  // After 'with' rule, only need to check 'out'
+                expr: /\b(w)ithou?t\b/gi,
+                replacement: "$1ithout",
                 reason: App.consts.reasons.spelling
             },
             reproducible: {
@@ -1645,6 +1665,31 @@
                 replacement: "$1utput",
                 reason: App.consts.reasons.spelling
             },
+            useful: {  // 11,542  "usefull"
+                expr: /\b(u)se(?:full| ful)\b/gi,
+                replacement: "$1seful",
+                reason: App.consts.reasons.spelling
+            },
+            classes: {
+                expr: /\b(c)la(se|ss)s\b/gi,
+                replacement: "$1lasses",
+                reason: App.consts.reasons.spelling
+            },
+            english: {
+                expr: /\benglisc?h?\b/gi,
+                replacement: "English",
+                reason: App.consts.reasons.spelling
+            },
+            inheritance: {  // 1700 x inheritence
+                expr: /\b(i)nherit[ae]n[cs]e?\b/gi,
+                replacement: "$1nheritance",
+                reason: App.consts.reasons.spelling
+            },
+            advice: {  // 9000 x advices
+                expr: /\b(a)dvices\b/gi,
+                replacement: "$1dvice",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -1705,8 +1750,8 @@
                 replacement: "$1.e. ",
                 reason: App.consts.reasons.grammar
             },
-            eg: { // https://regex101.com/r/qH2oT0/3
-                expr: /\b(e)g[.\s:]+/gi,
+            eg: { // https://regex101.com/r/qH2oT0/5
+                expr: /\b(e)\.?g[.\s:]+/gi,
                 replacement: "$1.g. ",
                 reason: App.consts.reasons.grammar
             },
@@ -1721,7 +1766,7 @@
                 reason: App.consts.reasons.grammar
             },
             i_want: { //https://regex101.com/r/iD2tU0/1
-                expr: /\bI['a ]*m wanting\b/g,
+                expr: /\bI['a ]*m wanting\b/gi,
                 replacement: "I want",
                 reason: App.consts.reasons.grammar
             },
@@ -1742,6 +1787,11 @@
                 expr: /\b(t)(?:anks|hx|anx)\b/gi,
                 replacement: "$1hanks",
                 reason: App.consts.reasons.silent
+            },
+            tia: {  // common acronym; should only remove "thanks in advance" at end of post
+                expr: /\btia$/gi,
+                replacement: "",
+                reason: App.consts.reasons.noise
             },
             please: {
                 expr: /\b(p)(?:lz|lse?|l?ease?)\b/gi,
@@ -1770,13 +1820,18 @@
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
-            complimentaryClose: {  // https://regex101.com/r/hL3kT5/1
-                expr: /^\s*(?:(?:kind(?:est)* )*regards?|cheers?|greetings?)\b,?[\t\f ]*[\r\n]*.*(?:[.!?: ]*|$)/gim,
+            complimentaryClose: {  // https://regex101.com/r/hL3kT5/2
+                expr: /^\s*(?:(?:kind(?:est)* )*regards?|cheers?|greetings?|thanks)\b,?[\t\f ]*[\r\n]*.*(?:[.!?: ]*|$)/gim,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
-            sorry4english: { // https://regex101.com/r/pG3oD6/1
-                expr: /(?:^|\s)[^.!\n\r]*(sorry).*?(english).*?(?:[.! \n\r])/gmi,
+            sorry4english: { // https://regex101.com/r/pG3oD6/6
+                expr: /[^\n.!?]*((sorry|ap+olog.*)\b[^.!?:\n\r]+\b((bad|my|poor) english)|(english[^.!?:\n\r]+)\b(tongue|language))\b[^.!?:\n\r]*(?:[.!?:_*])*/gi,
+                replacement: "",
+                reason: App.consts.reasons.noise
+            },
+            hope_this_helps: {  // https://regex101.com/r/yF1uY0/1
+                expr: /^\s*i? ?\bhope\b[^\n.!?:]*helps?[^\n.!?:]*[,.!?: ()^-]*$/gmi,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
