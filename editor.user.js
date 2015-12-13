@@ -1,4 +1,4 @@
-// ==UserScript==
+﻿// ==UserScript==
 // @name           Stack-Exchange-Editor-Toolkit
 // @author         Cameron Bernhardt (AstroCB)
 // @developer      Jonathan Todd (jt0dd)
@@ -39,14 +39,7 @@
         App.globals.showCounts = false;
         App.globals.showRules = false;
 
-        //Preload icon alt
-        var SEETicon = new Image();
-
-        SEETicon.src = '//i.imgur.com/d5ZL09o.png';
-
         App.globals.root = root;
-
-        App.globals.spacerHTML = '<li class="wmd-spacer wmd-spacer3" id="wmd-spacer3" style="left: 400px !important;"></li>';
 
         App.globals.reasons = {};
 
@@ -1891,26 +1884,6 @@
             } : false;
         };
 
-        App.funcs.applyListeners = function() { // Removes default Stack Exchange listeners; see https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit/issues/43
-            function removeEventListeners(e) {
-                if (e.which === 13) {
-                    if (e.metaKey || e.ctrlKey) {
-                        // CTRL/CMD + Enter -> Activate the auto-editor
-                        App.funcs.fixEvent();
-                    } else {
-                        // It's possible to remove the event listeners, because of the way outerHTML works.
-                        this.outerHTML = this.outerHTML;
-                    }
-                }
-            }
-
-            // Tags box
-            App.selections.tagField.keydown(removeEventListeners);
-
-            // Edit summary box
-            App.selections.summary.keydown(removeEventListeners);
-        };
-
         // Populate or refresh DOM selections
         App.funcs.popSelections = function() {
             App.selections.redoButton     = App.globals.root.find('[id^="wmd-redo-button"]');
@@ -1983,8 +1956,8 @@
         App.funcs.createButton = function() {
             if (!App.selections.redoButton.length) return false;
 
-            App.selections.buttonWrapper = $('<div class="ToolkitButtonWrapper"/>');
-            App.selections.buttonFix = $('<button class="wmd-button ToolkitFix" title="Fix the content!" onclick="return false;" />');
+            App.selections.buttonWrapper = $('<li class="wmd-magic-edit"/>');
+            App.selections.buttonFix = $('<img src="//i.stack.imgur.com/Om5pL.png" class="wmd-button ToolkitFix" title="Fix the content!" />');
             App.selections.buttonInfo = $('<div class="ToolkitInfo">');
 
             // Build the button
@@ -1993,40 +1966,35 @@
 
             // Insert button
             App.selections.redoButton.after(App.selections.buttonWrapper);
-            // Insert spacer
-            App.selections.redoButton.after(App.globals.spacerHTML);
 
             // Attach the event listener to the button
             App.selections.buttonFix.click(App.funcs.fixEvent);
-
-            App.selections.helpButton.css({
-                'padding': '0px'
-            });
+            
             App.selections.buttonWrapper.css({
                 'position': 'relative',
-                'left': '430px',
-                'padding-top': '2%'
+                'left': '410px',
+                'display': 'inline-block',
+                'overflow': 'visible',
+                'height': '55%',
+                'white-space': 'nowrap'
             });
             App.selections.buttonFix.css({
                 'position': 'static',
-                'float': 'left',
-                'border-width': '0px',
-                'background-color': 'white',
-                'background-image': 'url("//i.imgur.com/79qYzkQ.png")',
-                'background-size': '100% 100%',
-                'width': '18px',
-                'height': '18px',
-                'outline': 'none',
-                'box-shadow': 'none'
+                'display': 'inline-block',
+                'width': 'auto',
+                'height': '100%'
             });
             App.selections.buttonInfo.css({
                 'position': 'static',
-                'float': 'left',
+                'display': 'inline-block',
+                'vertical-align': 'bottom',
                 'margin-left': '5px',
                 'font-size': '12px',
                 'color': '#424242',
-                'line-height': '19px'
-            });
+                'background': '#eee',
+                'border-radius': '3px',
+                'padding': '3px 6px'
+            }).hide();
         };
 
         App.funcs.fixEvent = function() {
@@ -2210,7 +2178,7 @@
             App.selections.summary.val(data.summary);
             App.globals.root.find('.actual-edit-overlay').remove();
             App.selections.summary.css({opacity:1});
-            App.selections.buttonInfo.text(App.globals.changes + (App.globals.changes != 1 ? ' changes' : ' change')+' made');
+            App.selections.buttonInfo.text(App.globals.changes).show();
             StackExchange.MarkdownEditor.refreshAllPreviews();
         };
 
@@ -2223,7 +2191,6 @@
                 clearInterval(toolbarchk);
                 App.funcs.popSelections();
                 App.funcs.createButton();
-                App.funcs.applyListeners();
             }, 100);
             return App;
         };
