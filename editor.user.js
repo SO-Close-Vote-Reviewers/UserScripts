@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.49
+// @version        1.5.2.50
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -928,38 +928,8 @@
                 replacement: "$1utocomplete$2",
                 reason: App.consts.reasons.spelling
             },
-            apostrophe_d: {
-                expr: /\b(he|she|who|you)[^\w']*(d)\b/gi,
-                replacement: "$1'$2",
-                reason: App.consts.reasons.spelling
-            },
-            apostrophe_ll: {
-                expr: /\b(they|what|who|you)[^\w']*(ll)\b/gi,
-                replacement: "$1'$2",
-                reason: App.consts.reasons.spelling
-            },
-            apostrophe_re: {
-                expr: /\b(they|what|you)[^\w']*(re)\b/gi,
-                replacement: "$1'$2",
-                reason: App.consts.reasons.spelling
-            },
-            apostrophe_s: { // https://regex101.com/r/bN5pA3/1
-                expr: /\b(he|she|that|there|what|where|here)[^\w']*(s)\b/gi,
-                replacement: "$1'$2",
-                reason: App.consts.reasons.spelling
-            },
-            it_s: {
-                expr: /\b(it)[^\w'](s)\b/gi,
-                replacement: "$1'$2",
-                reason: App.consts.reasons.spelling
-            },
-            apostrophe_t: {
-                expr: /\b(aren|can|couldn|didn|doesn|don|hasn|haven|isn|mightn|mustn|shan|shouldn|won|wouldn)[^\w']*(t)\b/gi,
-                replacement: "$1'$2",
-                reason: App.consts.reasons.spelling
-            },
             doesn_t: { // https://regex101.com/r/sL0uO9/3
-                expr: /\b(d)(?:ose?[ '`]?n?.?t|oens.?t|oesn[ `]t|oest)\b/gi,
+                expr: /\b(d)(?:ose?[^\w]?n?.?t|oens.?t|oesn[^\w]t|oest)\b/gi,
                 replacement: "$1oesn't",
                 reason: App.consts.reasons.spelling
             },
@@ -969,13 +939,43 @@
                 reason: App.consts.reasons.spelling
             },
             didn_t: {
-                expr: /\b(d)id[ '`´]t\b/gi,
+                expr: /\b(d)id[^\w]n?t\b/gi,
                 replacement: "$1idn't",
                 reason: App.consts.reasons.spelling
             },
             don_t: {
-                expr: /\b(d)(?:on[ '`´]no?t|ont)\b/gi,
+                expr: /\b(d)(?:on[^\w]no?t|ont?)\b/gi,
                 replacement: "$1on't",
+                reason: App.consts.reasons.spelling
+            },
+            apostrophe_d: {
+                expr: /\b(he|she|who|you)[^\w]*(d)\b/gi,
+                replacement: "$1'$2",
+                reason: App.consts.reasons.spelling
+            },
+            apostrophe_ll: {
+                expr: /\b(they|what|who|you)[^\w]*(ll)\b/gi,
+                replacement: "$1'$2",
+                reason: App.consts.reasons.spelling
+            },
+            apostrophe_re: {
+                expr: /\b(they|what|you)[^\w]*(re)\b/gi,
+                replacement: "$1'$2",
+                reason: App.consts.reasons.spelling
+            },
+            apostrophe_s: { // https://regex101.com/r/bN5pA3/1
+                expr: /\b(he|she|that|there|what|where|here)[^\w]*(s)\b/gi,
+                replacement: "$1'$2",
+                reason: App.consts.reasons.spelling
+            },
+            it_s: {
+                expr: /\b(it)[^\w](s)\b/gi,
+                replacement: "$1'$2",
+                reason: App.consts.reasons.spelling
+            },
+            apostrophe_t: {
+                expr: /\b(aren|can|couldn|didn|doesn|don|hasn|haven|isn|mightn|mustn|shan|shouldn|won|wouldn)[^\w]*(t)(?:[^\w]t)*\b/gi,
+                replacement: "$1'$2",
                 reason: App.consts.reasons.spelling
             },
             apostrophe_nt: {
@@ -984,7 +984,7 @@
                 reason: App.consts.reasons.spelling
             },
             doesn_t_work: {  // >4K instances of this (Oct 2015)
-                expr: /\b(d)oesn\'t (work|like|think|want|put|save|load|get|help|make)s\b/gi,
+                expr: /\b(d)oesn[^\w]t (work|like|think|want|put|save|load|get|help|make)s\b/gi,
                 replacement: "$1oesn't $2",
                 reason: App.consts.reasons.spelling
             },
@@ -1488,8 +1488,8 @@
                 replacement: "$1omewhere",
                 reason: App.consts.reasons.spelling
             },
-            with: {
-                expr: /\b(w)h?ith?/gi,
+            with: { // https://regex101.com/r/xO5dP3/1
+                expr: /\b(w)h?ith?(?=(ou?t|in)?\b)/gi,
                 replacement: "$1ith",
                 reason: App.consts.reasons.spelling
             },
@@ -1708,8 +1708,8 @@
                 },
                 reason: App.consts.reasons.grammar
             },
-            space_then_symbol: {  // https://regex101.com/r/fN6lL7/2
-                expr: /(?:[ \t]([(&])[ \t]+|[ \t]*([(&])(?=[a-z]|$))/gim,
+            space_then_symbol: {  // https://regex101.com/r/fN6lL7/3
+                expr: /(?:[ \t]([(&][ \t]+)|[ \t]*([(&])(?=[a-z]|$))/gim,
                 replacement: " $1$2",
                 reason: App.consts.reasons.grammar
             },
@@ -1743,8 +1743,8 @@
                 replacement: "$1.e. ",
                 reason: App.consts.reasons.grammar
             },
-            eg: { // https://regex101.com/r/qH2oT0/5
-                expr: /\b(e)\.?g[.\s:]+/gi,
+            eg: { // https://regex101.com/r/qH2oT0/6
+                expr: /\b(e)\.?g[.. :]+/gi,
                 replacement: "$1.g. ",
                 reason: App.consts.reasons.grammar
             },
