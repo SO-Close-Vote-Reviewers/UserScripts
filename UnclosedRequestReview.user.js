@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      1.0.0.5
+// @version      1.0.0.6
 // @description  Adds a button to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request query, then it scans the results  for closed or deleted requests, or false positives and hides them.
 // @author       @TinyGiant
 // @match        *://chat.stackoverflow.com/rooms/41570/*
@@ -12,13 +12,12 @@
 
 if (window.location.pathname === '/search') {
     var regexes = [
-        /.a href="(?:https?:)?..stackoverflow.com.questions.tagged.cv-pl(?:ease|s|z).+https?:..stackoverflow.com.(?:q[^\/]*|posts)\/(\d+)/,
-        /https?:..stackoverflow.com.(?:q[^\/]*|posts)\/(\d+).+a href="(?:https?:)?..stackoverflow.com.questions.tagged.cv-pl(?:ease|s|z)/,
+        /(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts)\/(\d+)/,
+        /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\])/,
     ], post, message, id, rlen;
     var requests = [];
     var closed = [];
     var open = [];
-    
         
     function appendInfo(scope, info) {
         var node = document.createElement('span');
@@ -127,6 +126,9 @@ if (window.location.pathname === '/search') {
         '    padding: 6px 10px;',
         '    width: auto;',
         '    border-left: 5px solid #ff7b18;',
+        '}',
+        '.content a:visited {',
+        '    color: #0480DE;',
         '}'
     ].join('\n');
     scope.appendChild(style);
@@ -138,19 +140,28 @@ if (window.location.pathname === '/search') {
     for(var i in Object.keys(messages)) {
         message = (messages[i].querySelector('.content').innerHTML||'').trim();
         if (!message) continue;
+        var isreq = false;
         for(var j in regexes) {
-            post = (regexes[j].exec(message)||[false,false])[1];
-            if(!!post) break;
+            if(regexes[j].test(message)) {
+                isreq = true;
+                break;
+            }
         }
-        if (!post) {
+        if (!isreq) {
             var parent = messages[i].parentNode.parentNode;
             messages[i].remove();
             if(!parent.querySelector('.message')) parent.remove();
             continue;
         }
-        requests.push({ msg: messages[i], post: post});
+        var matches = /http.*?(?:q[^\/]*|posts)\/(\d+)/g.exec(message);
+        matches.shift();
+        var posts = [];
+        for(var k in Object.keys(matches)) {
+            if(!matches[k]) continue;
+            posts.push(matches[k]);
+        }
+        for(var l in posts) requests.push({ msg: messages[i], post: posts[l]});
     }
-
     rlen = requests.length;
     requests = chunkArray(requests, 100);
 
