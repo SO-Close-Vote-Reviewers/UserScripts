@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      1.0.0.4
+// @version      1.0.0.5
 // @description  Adds a button to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request query, then it scans the results  for closed or deleted requests, or false positives and hides them.
 // @author       @TinyGiant
 // @match        *://chat.stackoverflow.com/rooms/41570/*
@@ -19,50 +19,51 @@ if (window.location.pathname === '/search') {
     var closed = [];
     var open = [];
     
-    
-    var scope = document.body;
-    
-    var style = document.createElement('style');
-    style.type = 'text/css';
-    style.textContent = [
-        '.request-info {',
-        '    display: inline-block;',
-        '    position: absolute;',
-        '    top: -6px;',
-        '    left: 100%;',
-        '    white-space: nowrap;',
-        '    padding: 6px 10px;',
-        '    width: auto;',
-        '    border-left: 5px solid #ff7b18;',
-        '}'
-    ].join('\n');
-    scope.appendChild(style);
-
-    var me = (/\d+/.exec(document.querySelector('.topbar-menu-links a[href^="/users"]').href)||[false])[0];
-
-    var messages = document.querySelectorAll('.message');
-
-    for(var i in Object.keys(messages)) {
-        message = (messages[i].querySelector('.content').innerHTML||'').trim();
-        if (!message) continue;
-        for(var j in regexes) {
-            post = (regexes[j].exec(message)||[false,false])[1];
-            if(!!post) break;
-        }
-        if (!post) {
-            var parent = messages[i].parentNode.parentNode;
-            messages[i].remove();
-            if(!parent.querySelector('.message')) parent.remove();
-            continue;
-        }
-        requests.push({ msg: messages[i], post: post});
+        
+    function appendInfo(scope, info) {
+        var node = document.createElement('span');
+        node.className = 'request-info messages';
+        node.textContent = info.score + ' (+' + info.up_vote_count + '/-' + info.down_vote_count + ') c:(' + info.close_vote_count + ') v:(' + info.view_count + ')';
+        scope.appendChild(node);
     }
 
-    rlen = requests.length;
-    requests = chunkArray(requests, 100);
+    function checkDone() {
+        for(var i in open) {
+            var parent = open[i].msg.parentNode.parentNode;
+            if((/\d+/.exec(parent.querySelector('.username a[href^="/user"]').href)||[false])[0] === me) {
+                parent.remove();
+                continue;
+            }
+            appendInfo(open[i].msg, open[i].info);
+        }
+        for(var j in closed) {
+            var message = closed[j].msg;
+            var parent = message.parentNode.parentNode;
+            message.remove();
+            if(!parent.querySelector('.message')) parent.remove();
+        }
+    }
 
-    checkRequests();
+    function formatPosts(arr) {
+        var tmp = [];
+        for(var i in arr) tmp.push(arr[i].post);
+        return tmp.join(';');
+    }
 
+    function chunkArray(arr, len) {
+        var tmp = [];
+        var num = Math.ceil(arr.length / len);
+        for(var i = 0; i < num; ++i) {
+            tmp.push([]);
+        }
+        var ind = 0;
+        for(var j in arr) {
+            if(j > 0 && !(j % len)) ++ind;
+            tmp[ind].push(arr[j]);
+        }
+        return tmp;
+    }
+    
     function checkRequests() {
         var currentreq = requests.pop();
 
@@ -112,49 +113,48 @@ if (window.location.pathname === '/search') {
         xhr.send();
     }
     
-    function appendInfo(scope, info) {
-        var node = document.createElement('span');
-        node.className = 'request-info messages';
-        node.textContent = info.score + ' (+' + info.up_vote_count + '/-' + info.down_vote_count + ') c:(' + info.close_vote_count + ') v:(' + info.view_count + ')';
-        scope.appendChild(node);
-    }
+    var scope = document.body;
+    
+    var style = document.createElement('style');
+    style.type = 'text/css';
+    style.textContent = [
+        '.request-info {',
+        '    display: inline-block;',
+        '    position: absolute;',
+        '    top: -6px;',
+        '    left: 100%;',
+        '    white-space: nowrap;',
+        '    padding: 6px 10px;',
+        '    width: auto;',
+        '    border-left: 5px solid #ff7b18;',
+        '}'
+    ].join('\n');
+    scope.appendChild(style);
 
-    function checkDone() {
-        for(var i in open) {
-            var parent = open[i].msg.parentNode.parentNode;
-            if((/\d+/.exec(parent.querySelector('.username a[href^="/user"]').href)||[false])[0] === me) {
-                parent.remove();
-                continue;
-            }
-            appendInfo(open[i].msg, open[i].info);
+    var me = (/\d+/.exec(document.querySelector('.topbar-menu-links a[href^="/users"]').href)||[false])[0];
+
+    var messages = document.querySelectorAll('.message');
+
+    for(var i in Object.keys(messages)) {
+        message = (messages[i].querySelector('.content').innerHTML||'').trim();
+        if (!message) continue;
+        for(var j in regexes) {
+            post = (regexes[j].exec(message)||[false,false])[1];
+            if(!!post) break;
         }
-        for(var j in closed) {
-            var message = closed[j].msg;
-            var parent = message.parentNode.parentNode;
-            message.remove();
+        if (!post) {
+            var parent = messages[i].parentNode.parentNode;
+            messages[i].remove();
             if(!parent.querySelector('.message')) parent.remove();
+            continue;
         }
+        requests.push({ msg: messages[i], post: post});
     }
 
-    function formatPosts(arr) {
-        var tmp = [];
-        for(var i in arr) tmp.push(arr[i].post);
-        return tmp.join(';');
-    }
+    rlen = requests.length;
+    requests = chunkArray(requests, 100);
 
-    function chunkArray(arr, len) {
-        var tmp = [];
-        var num = Math.ceil(arr.length / len);
-        for(var i = 0; i < num; ++i) {
-            tmp.push([]);
-        }
-        var ind = 0;
-        for(var j in arr) {
-            if(j > 0 && !(j % len)) ++ind;
-            tmp[ind].push(arr[j]);
-        }
-        return tmp;
-    }
+    checkRequests();
 } else {
     var nodes = {};
 
