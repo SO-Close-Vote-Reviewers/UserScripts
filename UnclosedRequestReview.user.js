@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      1.0.0.2
+// @version      1.0.0.3
 // @description  Adds a button to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request query, then it scans the results  for closed or deleted requests, or false positives and hides them.
 // @author       @TinyGiant
 // @match        *://chat.stackoverflow.com/rooms/41570/*
@@ -18,14 +18,32 @@ if (window.location.pathname === '/search') {
     ], post, message, id, rlen;
     var requests = [];
     var closed = [];
+    var open = [];
+    
+    
+    var scope = document.body;
+    
+    var style = document.createElement('style');
+    style.type = 'text/css';
+    style.textContent = [
+        '.request-info {',
+        '    display: inline-block;',
+        '    position: absolute;',
+        '    top: -6px;',
+        '    left: 100%;',
+        '    white-space: nowrap;',
+        '    padding: 6px 10px;',
+        '    width: auto;',
+        '    border-left: 5px solid #ff7b18;',
+        '}'
+    ].join('\n');
+    scope.appendChild(style);
 
     var me = (/\d+/.exec(document.querySelector('.topbar-menu-links a[href^="/users"]').href)||[false])[0];
 
     var messages = document.querySelectorAll('.message');
 
     for(var i in Object.keys(messages)) {
-        id = (/\d+/.exec(messages[i].id)||[false])[0];
-        if (!id) continue;
         message = (messages[i].querySelector('.content').innerHTML||'').trim();
         if (!message) continue;
         for(var j in regexes) {
@@ -33,10 +51,12 @@ if (window.location.pathname === '/search') {
             if(!!post) break;
         }
         if (!post) {
+            var parent = messages[i].parentNode.parentNode;
             messages[i].remove();
+            if(!parent.querySelector('.message')) parent.remove();
             continue;
         }
-        requests.push({ msg: id, post: post});
+        requests.push({ msg: messages[i], post: post});
     }
 
     rlen = requests.length;
@@ -62,7 +82,11 @@ if (window.location.pathname === '/search') {
             for(var i in items) {
                 if(!items[i].closed_date) {
                     for(var j in currentreq) {
-                        if(currentreq[j].post == items[i].question_id) delete currentreq[j];
+                        if(currentreq[j].post == items[i].question_id) {
+                            open.push({ msg: currentreq[j].msg, info: items[i] });
+                            delete currentreq[j];
+                            break;
+                        }
                     }
                 }
             }
@@ -81,20 +105,35 @@ if (window.location.pathname === '/search') {
             'pagesize=100',
             'site=stackoverflow',
             'key=YvvkfBc3LOSK*mwaTPkUVQ((',
-            'filter=!-MOiNm40DvA6mK_CVSV2rixF80rE7Pnkz'
+            'filter=!*1SgQGDMA8qLEtv8iqQCAvh1tX2WDEre5g0fErdQn'
         ].join('&');
 
         xhr.open("GET", url);
 
         xhr.send();
     }
+    
+    function appendInfo(scope, info) {
+        var node = document.createElement('span');
+        node.className = 'request-info messages';
+        node.textContent = info.score + ' (+' + info.up_vote_count + '/-' + info.down_vote_count + ') c:(' + info.close_vote_count + ') v:(' + info.view_count + ')';
+        scope.appendChild(node);
+    }
 
     function checkDone() {
-        for(var i in closed) document.querySelector('#message-' + closed[i].msg).remove();
-        var monologues = document.querySelectorAll('.monologue');
-        for(var i in Object.keys(monologues)) {
-            if(!monologues[i].querySelector('.message')) monologues[i].remove();
-            if((/\d+/.exec(monologues[i].querySelector('.username a[href^="/user"]').href)||[false])[0] === me) monologues[i].remove();
+        for(var i in open) {
+            var parent = open[i].msg.parentNode.parentNode;
+            if((/\d+/.exec(parent.querySelector('.username a[href^="/user"]').href)||[false])[0] === me) {
+                parent.remove();
+                continue;
+            }
+            appendInfo(open[i].msg, open[i].info);
+        }
+        for(var j in closed) {
+            var message = closed[j].msg;
+            var parent = message.parentNode.parentNode;
+            message.remove();
+            if(!parent.querySelector('.message')) parent.remove();
         }
     }
 
@@ -135,3 +174,4 @@ if (window.location.pathname === '/search') {
         window.open(window.location.origin + '/search?q=tagged%2Fcv-pls&Room=41570&page=1&pagesize=50&sort=newest');
     }, false);
 }
+
