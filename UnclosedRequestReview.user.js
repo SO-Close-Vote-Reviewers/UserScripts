@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      1.0.1.0
+// @version      1.0.1.1
 // @description  Adds a button to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request query, then it scans the results  for closed or deleted requests, or false positives and hides them.
 // @author       @TinyGiant
 // @match        *://chat.stackoverflow.com/rooms/41570/*
@@ -20,15 +20,18 @@ if (window.location.pathname === '/search') {
     var open = [];
         
     function appendInfo(scope, info) {
+        var text = info.score + ' (+' + info.up_vote_count + '/-' + info.down_vote_count + ') c:(' + info.close_vote_count + ') v:(' + info.view_count + ')';
+        var existing = scope.querySelector('.request-info');
+        if(existing) {
+            existing.appendChild(document.createElement('br'));
+            existing.appendChild(document.createTextNode(text));
+            scope.parentNode.parentNode.style.minHeight = existing.clientHeight + 'px';
+            return;
+        }
         var node = document.createElement('span');
         node.className = 'request-info messages';
-        var existing = scope.querySelectorAll('.request-info');
-        if(existing.length) {
-            var height = existing[0].clientHeight;
-            node.style.top = ((height * existing.length) - (6 * existing.length)) + 'px';
-            scope.parentNode.style.minHeight = ((height * (existing.length + 1)) - (6 * existing.length + 1)) + 'px';
-        }
-        node.textContent = info.score + ' (+' + info.up_vote_count + '/-' + info.down_vote_count + ') c:(' + info.close_vote_count + ') v:(' + info.view_count + ')';
+        node.appendChild(document.createTextNode(text));
+        node.textContent = text;
         scope.appendChild(node);
     }
 
