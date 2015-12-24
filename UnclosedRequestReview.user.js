@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      1.0.0.7
+// @version      1.0.0.8
 // @description  Adds a button to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request query, then it scans the results  for closed or deleted requests, or false positives and hides them.
 // @author       @TinyGiant
 // @match        *://chat.stackoverflow.com/rooms/41570/*
@@ -155,12 +155,10 @@ if (window.location.pathname === '/search') {
             if(!parent.querySelector('.message')) parent.remove();
             continue;
         }
-        var matches = /http.*?(?:q[^\/]*|posts)\/(\d+)/g.exec(message);
-        matches.shift();
+        var matches = message.match(/http.*?(?:q[^\/]*|posts)\/(\d+)/g);
         var posts = [];
         for(var k in Object.keys(matches)) {
-            if(!matches[k]) continue;
-            posts.push(matches[k]);
+            posts.push(/(?:q[^\/]*|posts)\/(\d+)/.exec(matches[k])[1]);
         }
         for(var l in posts) requests.push({ msg: messages[i], post: posts[l]});
     }
