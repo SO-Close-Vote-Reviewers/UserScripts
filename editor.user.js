@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.55
+// @version        1.5.2.56
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -77,8 +77,8 @@
             "quote":  /^\>(?:(?!\n\n)[^])+/gm,
             //        https://regex101.com/r/lL6fH3/1 single-line inline code
             "inline": /`[^`\n]+`/g,
-            //        https://regex101.com/r/eC7mF7/1 code blocks and multiline inline code.
-            "block":  /`[^`]+`|(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ ]+\n)*)+)+/g,
+            //        https://regex101.com/r/eC7mF7/2 code blocks and multiline inline code.
+            "block":  /`[^`]+`|^(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ ]+\n)*)+)+/gm,
             //        https://regex101.com/r/tZ4eY3/7 link-sections 
             "lsec":   /(?:  (?:\[\d\]): \w*:+\/\/.*\n*)+/g,
             //        https://regex101.com/r/tZ4eY3/20 links and pathnames
@@ -110,7 +110,7 @@
             grammar:       "grammar",
             noise:         "noise reduction",
             punctuation:   "punctuation",
-            spacing:       "spacing",
+            layout:        "layout",
             silent:        "",                              // Unreported / uncounted
             titleSaysAll:  "replicated title in body"
         };
@@ -118,8 +118,11 @@
         
         // Get the original post tags
         App.globals.taglist = [];
-        $('.post-taglist .post-tag').each( function(){
-            App.globals.taglist.push( $(this).text() );
+        $('a.post-tag').each( function(){
+            var newtag = $(this).text();
+            if (App.globals.taglist.indexOf(newtag) === -1) {
+                App.globals.taglist.push(newtag);                
+            }
         });
 
         // Define edit rules
@@ -132,8 +135,8 @@
                 },
                 reason: App.consts.reasons.tidyTitle
             },
-            taglist: {  // https://regex101.com/r/wH4oA3/16
-                expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?:and|[ ,.&+/-])*)+[:. \)-]*|(?:[:. \(-]|in|with|using)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
+            taglist: {  // https://regex101.com/r/wH4oA3/18
+                expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?:and|[ ,.&+/-])*)+[:. \)-]*|(?:[:. \(-]|in|with|using|by)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
                                  .replace(/_xTagsx_/g,App.globals.taglist.map(escapeTag).join("|")),
                                  //.replace(/\\(?=[bsSdDwW])/g,"\\"), // https://regex101.com/r/pY1hI2/1 - WBN to figure this out.
                                  'gi'),
@@ -621,6 +624,11 @@
                 replacement: "Hadoop",
                 reason: App.consts.reasons.trademark
             },
+            django: {
+                expr: /\bdjango\b/gi,
+                replacement: "Django",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
@@ -944,6 +952,11 @@
                 replacement: "$1utocomplete$2",
                 reason: App.consts.reasons.spelling
             },
+            you: {
+                expr: /\b(y)o+u?\b/gi,
+                replacement: "$1ou",
+                reason: App.consts.reasons.spelling
+            },
             doesn_t: { // https://regex101.com/r/sL0uO9/3
                 expr: /\b(d)(?:ose?[^\w]?n?.?t|oens.?t|oesn[^\w]t|oest)\b/gi,
                 replacement: "$1oesn't",
@@ -1189,8 +1202,8 @@
                 replacement: "$1ample$2",
                 reason: App.consts.reasons.spelling
             },
-            really: {
-                expr: /\b(r)ea?ll?y\b/gi,
+            really: {  // https://regex101.com/r/sO4zD9/1
+                expr: /\b(r)(?:elly|ealy)\b/gi,
                 replacement: "$1eally",
                 reason: App.consts.reasons.spelling
             },
@@ -1509,8 +1522,8 @@
                 replacement: "$1omewhere",
                 reason: App.consts.reasons.spelling
             },
-            with: { // https://regex101.com/r/xO5dP3/1
-                expr: /\b(w)h?ith?(?=(ou?t|in)?\b)/gi,
+            with: { // https://regex101.com/r/xO5dP3/2
+                expr: /\b(w)(?:hith|iht)(?=(ou?t|in)?\b)/gi,
                 replacement: "$1ith",
                 reason: App.consts.reasons.spelling
             },
@@ -1580,7 +1593,7 @@
                 reason: App.consts.reasons.spelling
             },
             algorithm: {
-                expr: /\b(a)lgo?r[iy]?th?[iy]?m(s)?\b/gi,
+                expr: /\b(a)lgo?r[iy]?th?[iya]?m(s)?\b/gi,
                 replacement: "$1lgorithm$2",
                 reason: App.consts.reasons.spelling
             },
@@ -1714,6 +1727,28 @@
                 replacement: "$1nd then",
                 reason: App.consts.reasons.spelling
             },
+            un_initialize: { // >4K instances https://regex101.com/r/lY2hY1/1
+                expr: /\b((?:un-?|re-?)?i)n?i?t[ia]+li?[zs](e|ed|[eo]r|es|ing)\b/gi,
+                replacement: function(match, prefix, suffix) {
+                    return (prefix+'nitializ'+suffix).replace("-","");
+                },
+                reason: App.consts.reasons.spelling
+            },
+            character: { // 3500+ instances, https://regex101.com/r/lG1qH0/1
+                expr: /\b(c)(?:har|h?arac?h?ter)(s|istics?|i[zs]e)?\b/gi,
+                replacement: "$1haracter$2",
+                reason: App.consts.reasons.spelling
+            },
+            found: {
+                expr: /\b(f)inded\b/gi,
+                replacement: "$1ound",
+                reason: App.consts.reasons.spelling
+            },
+            tuple: {  // https://regex101.com/r/zP7zM2/1
+                expr: /\b(t)o?up+e?le?(s)?\b/gi,
+                replacement: "$1uple$2",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -1726,9 +1761,19 @@
                 expr: /\b(a|an) ([\(\"'“‘-]*\w*)\b/gim,   // https://regex101.com/r/nE1yA4/4
                 replacement: function( match, article, following ) {
                     var input = following.replace(/^[\s\(\"'“‘-]+|\s+$/g, "");//strip initial punctuation symbols
-                    var res = AvsAnSimple.query(input);
+                    var res = AvsAnOverride_(input) || AvsAnSimple.query(input);
                     var newArticle = res;
                     return newArticle+' '+following;
+                    
+                    // Hack alert: Due to the technical nature of SO subjects, many common terms
+                    // are not well-represented in the data used by AvsAnSimple, so we need to
+                    // provide a way to override it.
+                    function AvsAnOverride_(fword) {
+                        var exeptionsA_ = /^(?:uis?)/i;
+                        var exeptionsAn_ = /(?:^[lr]value)/i;
+                        return (exeptionsA_.test(fword) ? "a" :
+                                exeptionsAn_.test(fword) ? "an" : false);
+                    }
                 },
                 reason: App.consts.reasons.grammar
             },
@@ -1755,16 +1800,6 @@
                         return update;
                     });
                 },
-                reason: App.consts.reasons.grammar
-            },
-            space_then_symbol: {  // https://regex101.com/r/fN6lL7/3
-                expr: /(?:[ \t]([(&][ \t]+)|[ \t]*([(&])(?=[a-z]|$))/gim,
-                replacement: " $1$2",
-                reason: App.consts.reasons.grammar
-            },
-            symbol_then_space: {  // https://regex101.com/r/jB5aN0/4
-                expr: /(?:[ \t]+([.,!?;:])(?:[ \t]+|$)|[ \t]+([,!?;:])(?=\w)|([a-z][,!?;:])(?=\w))/gim,
-                replacement: "$1$2 ",
                 reason: App.consts.reasons.grammar
             },
             i: { // https://regex101.com/r/uO7qG0/2
@@ -1797,8 +1832,8 @@
                 replacement: "$1.e. ",
                 reason: App.consts.reasons.grammar
             },
-            eg: { // https://regex101.com/r/qH2oT0/6
-                expr: /\b(e)\.?g[.. :]+/gi,
+            eg: { // https://regex101.com/r/qH2oT0/7
+                expr: /\b(e)\.?g[.,; :]+/gi,
                 replacement: "$1.g. ",
                 reason: App.consts.reasons.grammar
             },
@@ -1820,6 +1855,11 @@
             oxford_comma: { // https://regex101.com/r/xN0mF6/6
                 expr: /((?:[\w'-]+,\s+)+(?:[\w'-]+\s){0,2}[\w'-]+)(\s+(and|or)\s+[\w'-]+)/g,
                 replacement: "$1,$2",
+                reason: App.consts.reasons.grammar
+            },
+            i_have_find: {
+                expr: /\b(I|you) have find\b(?![(]|\.\w)/gi,
+                replacement: "$1 have found",
                 reason: App.consts.reasons.grammar
             },
             /*
@@ -1846,14 +1886,14 @@
                 reason: App.consts.reasons.silent
             },
             editupdate: {
-                // https://regex101.com/r/tT2pK6/8
-                expr: /([-*]+[\t ]*\b(edit|update)\b([\t ]*#?[0-9]+)?[\t ]*:*[\t ]*[-*]+|[\t ]*\b(edit|update)\b([\t ]*#?[0-9]+)?\s*:+[\t ]*)/gmi,
+                // https://regex101.com/r/tT2pK6/9
+                expr: /([-_*]+[\t ]*\b(edit|update)\b([\t ]*#?[0-9]+)?[\t ]*:*[\t ]*[-_*]+:*|[\t ]*\b(edit|update)\b([\t ]*#?[0-9]+)?\s*:+[\t ]*)/gi,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
             // http://meta.stackexchange.com/questions/2950/should-hi-thanks-taglines-and-salutations-be-removed-from-posts/93989#93989
-            salutation: { // https://regex101.com/r/yS9lN8/4
-                expr: /^\s*(?:dear\b.*$|(?:hi(?:ya)*|hel+o+|heya?|hai|g'?day|good\s(?:evening|morning|day|afternoon))[,\s]*(?:\s+(?:all|guys|folks|friends?|there|everyone|people|bud+(y|ies))*))(?:[,.!?: ]*|$)/gmi,
+            salutation: { // https://regex101.com/r/yS9lN8/5
+                expr: /^\s*(?:dear\b.*$|(?:hi(?:ya)*|hel+o+|heya?|hai|g'?day|good\s?(?:evening|morning|day|afternoon))[,\s]*(?:\s+(?:all|guys|folks|friends?|there|everyone|people|mates?|bud+(y|ies))*))(?:[,.!?: ]*|$)/gmi,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
@@ -1882,32 +1922,57 @@
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
-            /*
-            ** Spacing - Minimize whitespace (which is compressed by markup).
-            **           Must follow noise reduction.
-            **/
-            multiplespaces: {
-                // https://regex101.com/r/hY9hQ3/1
-                expr: /[ ]{2,}(?!\n)/g,
-                replacement: " ",
-                reason: App.consts.reasons.spacing
-            },
-            blanklines: {
-                expr: /(?:\s*[\r\n]){3,}/gm,
-                replacement: "\n\n",
-                reason: App.consts.reasons.spacing
-            },
-            endblanklines: {
-                expr: /[\s\r\n]+$/g,
+            enter_code_here: {
+                expr: /\benter (?:code|image description|link description) here\b/gi,
                 replacement: "",
-                reason: App.consts.reasons.spacing
+                reason: App.consts.reasons.noise
+            },
+            /*
+            ** Layout  - Minimize whitespace (which is compressed by markup).
+            **           Must follow noise reduction.
+            **           Leading and trailing spaces are part of Markdown formatting; leave them.
+            **/
+            space_then_symbol: {  // https://regex101.com/r/fN6lL7/4
+                expr: /(?!^|[ \t]+)([(])/gm,
+                replacement: " $1",
+                debug: false,
+                reason: App.consts.reasons.layout
+            },
+            symbol_then_space: {  // https://regex101.com/r/iD9aS1/4
+                expr: /(?:\b| +)([,?!:)]+)(?: |\b|$)(?![\d])/gm,
+                replacement: "$1 ",
+                debug: false,
+                reason: App.consts.reasons.layout
+            },
+            space_symbol_space: {
+                expr: /(?:\b| +)([&])(?: |\b)(?![\d])/g,
+                replacement: " $1 ",
+                debug: false,
+                reason: App.consts.reasons.layout
+            },
+            multiplespaces: { // https://regex101.com/r/hY9hQ3/3
+                expr: /(?!^)[ ]{2,}(?! ?$)/gm,
+                replacement: " ",
+                debug: false,
+                reason: App.consts.reasons.layout
+            },
+            blanklines: {  // https://regex101.com/r/eA5hA2/1
+                expr: /(?:^(?:\s*[\n\r])*|(?:\s*[\r\n])(?=(?:\s*[\r\n]|$){2}))/g,
+                replacement: "",
+                reason: App.consts.reasons.layout
+            },
+            trailing_space: {  // https://regex101.com/r/iQ0yR8/1
+                expr: /([^ ])[ ]{1}$/gm,
+                replacement: "$1",
+                debug: false,
+                reason: App.consts.reasons.silent
             },
             // The title says it all
             thetitlesaysitall: {
                 // https://regex101.com/r/bX1qB4/3
-                expr: /(?:the )?title says it all/gi,
+                expr: /(?:the )?title says (?:it all|everything)[.?!]*/gi,
                 replacement: function(){
-                    return '"' + App.selections.title.val() + '" says it all.\n\n';
+                    return App.selections.title.val().replace(/[.?!]*$/,"? \n\n");
                 },
                 reason: App.consts.reasons.titleSaysAll
             }
@@ -1923,6 +1988,7 @@
             if (debug) {
                 console.log(input);
                 console.log(expression.toString());
+                console.log("replacement: '"+replacement+"'");
             }
             // If there is nothing to search, exit
             if (!input) return false;
@@ -1937,6 +2003,18 @@
                 if (debug) console.log(before, after, after !== before, count);
                 return after;
             });
+            if (!count) {
+                // Seems like no replacements, check.
+                // In some cases, the expression matches on the initial input, but
+                // fails to on the individual matches. In that case, we can't count
+                // the total changes accurately, but we can still complete the
+                // replacement on the initial input.
+                var after = input.replace(expression, replacement);
+                if(after !== input) {
+                    ++count; 
+                    input = after;
+                }
+            }
             return count > 0 ? {
                 reason: reasoning,
                 fixed: String(input),
@@ -2191,7 +2269,7 @@
             var reasonStr = reasons.length ? reasons.join('; ')+'.' : '';  // Unique reasons separated by ; and terminated by .
 
             if (!data.hasOwnProperty('summaryOrig')) data.summaryOrig = data.summary.trim() // Remember original summary
-                                                                            .replace(/([^.;])$/,"$1;");
+                                                                            .replace(/([^;])[.?!:]?$/,"$1;");
             if (data.summaryOrig.length)
                 data.summaryOrig = data.summaryOrig + ' ';
             else
