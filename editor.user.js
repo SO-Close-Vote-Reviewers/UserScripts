@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.56
+// @version        1.5.2.57
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -184,6 +184,11 @@
                 expr: /\bknockout[. ]?js\b/gi,
                 replacement: "Knockout.js",
                 reason: App.consts.reasons.trademark
+            },
+            script: {  // Spelling rule out-of-order, must run before javascript & google_apps_script
+                expr: /(s)c[ri]+pt?(ing|s)?\b/gi,
+                replacement: "$1cript$2",
+                reason: App.consts.reasons.spelling
             },
             javascript: {
                 expr: /([^\b\w.]|^)(java?scr?ipt?|js|java script?)\b/gi,
@@ -629,11 +634,21 @@
                 replacement: "Django",
                 reason: App.consts.reasons.trademark
             },
+            tcl: {
+                expr: /([^\b\w.]|^)tcl\b/gi,
+                replacement: "$1Tcl",
+                reason: App.consts.reasons.trademark
+            },
+            flickr: {
+                expr: /([^\b\w.]|^)flickr(?!\.\w)/gi,
+                replacement: "$1Flickr",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
             x_html: {
-                expr: /(?:[^\b\w.]|^)(:?g|ht|x|xht|sf|csht)ml[\d.]*\b/gi,
+                expr: /(?:[^\b\w.]|^)(:?g|ht|xa?|xht|sf|csht)ml[\d.]*\b/gi,
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.acronym
             },
@@ -872,8 +887,13 @@
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.acronym
             },
-            xfa: {  // XML Forms Architecture
-                expr: /(?:[^\b\w.]|^)xfa\b/gi,
+            xfa_xsd: {  // XML Forms Architecture
+                expr: /(?:[^\b\w.]|^)xfa|xsd\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            wsdl: {
+                expr: /(?:[^\b\w.]|^)wsdl\b/gi,
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.acronym
             },
@@ -958,28 +978,33 @@
                 reason: App.consts.reasons.spelling
             },
             doesn_t: { // https://regex101.com/r/sL0uO9/3
-                expr: /\b(d)(?:ose?[^\w]?n?.?t|oens.?t|oesn[^\w]t|oest)\b/gi,
+                expr: /\b(d)(?:ose?[^\w]*n?.?t|oens.?t|oesn[^\w]*t|oest)\b/gi,
                 replacement: "$1oesn't",
                 reason: App.consts.reasons.spelling
             },
             couldn_t_wouldn_t_shouldn_t: {
-                expr: /\b(c|w|sh)o?ul?dn[ '`´]?t\b/gi,
+                expr: /\b(c|w|sh)o?ul?dn[ '`´]*t\b/gi,
                 replacement: "$1ouldn't",
                 reason: App.consts.reasons.spelling
             },
             didn_t: {
-                expr: /\b(d)id[^\w]n?t\b/gi,
+                expr: /\b(d)id[^\w]*n?t\b/gi,
                 replacement: "$1idn't",
                 reason: App.consts.reasons.spelling
             },
             don_t: {
-                expr: /\b(d)(?:on[^\w]no?t|ont?)\b/gi,
+                expr: /\b(d)(?:on[^\w]*no?t|ont?)\b/gi,
                 replacement: "$1on't",
                 reason: App.consts.reasons.spelling
             },
             haven_t: {
-                expr: /\b(h)(?:avent|av[^\w]t|ave[^\w]t)\b/gi,
+                expr: /\b(h)(?:avent|av[^\w]*t|ave[^\w]?t)\b/gi,
                 replacement: "$1aven't",
+                reason: App.consts.reasons.spelling
+            },
+            wasn_t: {
+                expr: /\b(w)as[^\w]*n?t\b/gi,
+                replacement: "$1asn't",
                 reason: App.consts.reasons.spelling
             },
             //apostrophe_d: {   // Too many false positives
@@ -1137,8 +1162,8 @@
                 replacement: "$1oordinate$2",
                 reason: App.consts.reasons.spelling
             },
-            argument: {
-                expr: /\b(a)rguement(s)?\b/gi,
+            argument: {  // https://regex101.com/r/iU2vK9/1
+                expr: /\b(a)rg?[ue]+ment(s)?\b/gi,
                 replacement: "$1rgument$2",
                 reason: App.consts.reasons.spelling
             },
@@ -1178,7 +1203,7 @@
                 reason: App.consts.reasons.spelling
             },
             bear_with_me: {
-                expr: /\b(b)are (with me|it|in mind)\b/gi,
+                expr: /\b(b)are (with m[ey]|it|in mind)\b/gi,
                 replacement: "$1ear $2",
                 reason: App.consts.reasons.spelling
             },
@@ -1608,7 +1633,7 @@
                 reason: App.consts.reasons.spelling
             },
             disappear: {
-                expr: /\b(d)isapea?r(ing|ed|s)?\b/gi,
+                expr: /\b(d)is?apea?r(ing|ed|s)?\b/gi,
                 replacement: "$1isappear$2",
                 reason: App.consts.reasons.spelling
             },
@@ -1749,6 +1774,121 @@
                 replacement: "$1uple$2",
                 reason: App.consts.reasons.spelling
             },
+            i_read: {
+                expr: /\b(I|I've|we|they) red\b/gi,
+                replacement: "$1 read",
+                reason: App.consts.reasons.spelling
+            },
+            customize: {  // http://grammarist.com/spelling/customise-customize/
+                expr: /\b(c)u[st]+[oui]mi[zs](e)?/gi,
+                replacement: "$1ustomiz$2",
+                reason: App.consts.reasons.spelling
+            },
+            customizable: {  // Common errors are to retain 'e', and/or to use ible, not able
+                expr: /\b(c)ustomiz[ea]+(tions?|ble|bility|bilities)/gi,
+                replacement: "$1ustomiza$2",
+                reason: App.consts.reasons.spelling
+            },
+            across: {  // http://www.oxforddictionaries.com/words/common-misspellings
+                expr: /\b(a)c+ros+\b/gi,
+                replacement: "$1cross",
+                reason: App.consts.reasons.spelling
+            },
+            immediate: {  // http://www.oxforddictionaries.com/words/common-misspellings
+                expr: /\b(i)m+ed[ia]+te?l?(ly)?\b/gi,
+                replacement: "$1mmediate$2",
+                reason: App.consts.reasons.spelling
+            },
+            every_time: {  // https://regex101.com/r/dB6jC2/1
+                expr: /\b(e)v[ery]+time?\b/gi,
+                replacement: "$1very time",
+                reason: App.consts.reasons.spelling
+            },
+            achieve: {  // http://www.oxforddictionaries.com/words/common-misspellings https://regex101.com/r/bZ2qJ1/1
+                expr: /\b(a)ch[ei]+ve?(s|d|ment)?\b/gi,
+                replacement: "$1chieve$2",
+                reason: App.consts.reasons.spelling
+            },
+            apparent: {  // http://www.oxforddictionaries.com/words/common-misspellings https://regex101.com/r/dO3aH4/2
+                expr: /\b(a)p+ar[ae]nt?(ly)?\b/gi,
+                replacement: "$1pparent$2",
+                reason: App.consts.reasons.spelling
+            },
+            appear: {  // https://regex101.com/r/oL8lI1/1
+                expr: /\b(a)p+[ea]+re?(s|ed|ing)?\b/gi,
+                replacement: "$1ppear$2",
+                reason: App.consts.reasons.spelling
+            },
+            appearance: {  // http://www.oxforddictionaries.com/words/common-misspellings https://regex101.com/r/eP2bF9/1
+                expr: /\b(a)p+[ea]+r[ea]+nce(s)?\b/gi,
+                replacement: "$1ppearance$2",
+                reason: App.consts.reasons.spelling
+            },
+            beginning: {  // http://www.oxforddictionaries.com/words/common-misspellings https://regex101.com/r/sT4gQ0/1
+                expr: /\b(b)egining/gi,
+                replacement: "$1eginning",
+                reason: App.consts.reasons.spelling
+            },
+            believe: {  // http://www.oxforddictionaries.com/words/common-misspellings https://regex101.com/r/pM1cC6/1
+                expr: /\b(b)e?l[ei]+v(e|ing|able)/gi,
+                replacement: "$1eliev$2",
+                reason: App.consts.reasons.spelling
+            },
+            colleague: {  // http://www.oxforddictionaries.com/words/common-misspellings https://regex101.com/r/xN8qD9/1
+                expr: /\b(c)ol+[ea]+gue(s)?\b/gi,
+                replacement: "$1olleague$2",
+                reason: App.consts.reasons.spelling
+            },
+            implement: {  // https://regex101.com/r/zW1aS5/1
+                expr: /\b(i)mpl?[ei]?ment/gi,
+                replacement: "$1mplement",
+                reason: App.consts.reasons.spelling
+            },
+            simultaneous: {  // https://regex101.com/r/iB0mE7/1
+                expr: /\b(s)imu[lt]+an[ieou]+se?/gi,
+                replacement: "$1imultaneous",
+                reason: App.consts.reasons.spelling
+            },
+            environment: {  // http://www.oxforddictionaries.com/words/common-misspellings https://regex101.com/r/qD5zU6/1
+                expr: /\b(e)nvi?ro?[nm]+ent/gi,
+                replacement: "$1nvironment",
+                reason: App.consts.reasons.spelling
+            },
+            existence: {  // http://www.oxforddictionaries.com/words/common-misspellings https://regex101.com/r/mH7hA6/1
+                expr: /\b(e)xist[ae]n[cs]e/gi,
+                replacement: "$1xistence",
+                reason: App.consts.reasons.spelling
+            },
+            further: {  // http://www.oxforddictionaries.com/words/common-misspellings https://regex101.com/r/sE6nY3/1
+                expr: /\b(f)(?:u|[au]r)th?er/gi,
+                replacement: "$1urther",
+                reason: App.consts.reasons.spelling
+            },
+            jist: {  // http://www.oxforddictionaries.com/words/common-misspellings
+                expr: /\bjist of\b/gi,
+                replacement: "gist of",
+                reason: App.consts.reasons.spelling
+            },
+            noticeable: {  // http://www.oxforddictionaries.com/words/common-misspellings
+                expr: /\b(n)oticabl(e|y)\b/gi,
+                replacement: "$1oticeabl$2",
+                reason: App.consts.reasons.spelling
+            },
+            publicly: {  // http://www.oxforddictionaries.com/words/common-misspellings
+                expr: /\b(p)ublica?l*y\b/gi,
+                replacement: "$1ublicly",
+                reason: App.consts.reasons.spelling
+            },
+            receive: {  // http://www.oxforddictionaries.com/words/common-misspellings
+                expr: /\b(r)eciev(e[rds]?|ing)/gi,
+                replacement: "$1eceiv$2",
+                reason: App.consts.reasons.spelling
+            },
+            referred: {  // http://www.oxforddictionaries.com/words/common-misspellings  https://regex101.com/r/kE0oZ5/3
+                expr: /\b(r)efer(?!s|ence)(?=\w)/gi,
+                replacement: "$1eferr",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -1762,17 +1902,17 @@
                 replacement: function( match, article, following ) {
                     var input = following.replace(/^[\s\(\"'“‘-]+|\s+$/g, "");//strip initial punctuation symbols
                     var res = AvsAnOverride_(input) || AvsAnSimple.query(input);
-                    var newArticle = res;
+                    var newArticle = article[0] + res.substr(1);  // Preserve existing capitalization
                     return newArticle+' '+following;
                     
                     // Hack alert: Due to the technical nature of SO subjects, many common terms
                     // are not well-represented in the data used by AvsAnSimple, so we need to
                     // provide a way to override it.
                     function AvsAnOverride_(fword) {
-                        var exeptionsA_ = /^(?:uis?)/i;
-                        var exeptionsAn_ = /(?:^[lr]value)/i;
-                        return (exeptionsA_.test(fword) ? "a" :
-                                exeptionsAn_.test(fword) ? "an" : false);
+                        var exeptionsA_ = /^(?:uis?|co\w)/i;
+                        var exeptionsAn_ = /(?:^[lr]value|a\b)/i;
+                        return (exeptionsA_.test(fword) ? article[0] :
+                                exeptionsAn_.test(fword) ? article[0]+"n" : false);
                     }
                 },
                 reason: App.consts.reasons.grammar
@@ -1842,8 +1982,13 @@
                 replacement: "etc.",
                 reason: App.consts.reasons.grammar
             },
-            multiplesymbols: {  //    https://regex101.com/r/bE9zM6/2
-                expr: /([^\w\s*#.\-_+:])\1{1,}/g,
+            pysanky: {
+                expr: /([^\!])[!]{5}(?!\!)/g,
+                replacement: "$1!",
+                reason: window.atob('IkZpdmUgZXhjbGFtYXRpb24gbWFya3MsIHRoZSBzdXJlIHNpZ24gb2YgYW4gaW5zYW5lIG1pbmQi')
+            },
+            multiplesymbols: {  //    https://regex101.com/r/bE9zM6/3
+                expr: /([^\w\s*#.\-_:\[\]\</>])\1{1,}/g,
                 replacement: "$1",
                 reason: App.consts.reasons.grammar
             },
@@ -1860,6 +2005,11 @@
             i_have_find: {
                 expr: /\b(I|you) have find\b(?![(]|\.\w)/gi,
                 replacement: "$1 have found",
+                reason: App.consts.reasons.grammar
+            },
+            let_s_say: {  // 60K!
+                expr: /\b(l)ets (say|see|look|just|put|have|leave|give|write)\b/gi,
+                replacement: "$1et's $2",
                 reason: App.consts.reasons.grammar
             },
             /*
@@ -1892,8 +2042,8 @@
                 reason: App.consts.reasons.noise
             },
             // http://meta.stackexchange.com/questions/2950/should-hi-thanks-taglines-and-salutations-be-removed-from-posts/93989#93989
-            salutation: { // https://regex101.com/r/yS9lN8/5
-                expr: /^\s*(?:dear\b.*$|(?:hi(?:ya)*|hel+o+|heya?|hai|g'?day|good\s?(?:evening|morning|day|afternoon))[,\s]*(?:\s+(?:all|guys|folks|friends?|there|everyone|people|mates?|bud+(y|ies))*))(?:[,.!?: ]*|$)/gmi,
+            salutation: { // https://regex101.com/r/yS9lN8/9
+                expr: /^\s*(?:dears?\b.*$|greetings?\b.*$|(?:hi(?:ya)*|hel+o+|heya?|hai|g'?day|good\s?(?:evening|morning|day|afternoon)|ahoy)[,\s]*(?:\s+(?:all|guys|folks|friends?|there|everyone|people|matey?s?|bud+(y|ies))*))(?:[,.!?: ]*|$)/gmi,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
@@ -1907,13 +2057,13 @@
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
-            complimentaryClose: {  // https://regex101.com/r/hL3kT5/2
-                expr: /^\s*(?:(?:kind(?:est)* )*regards?|cheers?|greetings?|thanks)\b,?[\t\f ]*[\r\n]*.*(?:[.!?: ]*|$)/gim,
+            complimentaryClose: {  // https://regex101.com/r/hL3kT5/4
+                expr: /^\s*(?:(?:kind(?:est)* )*regards?|cheers?|greetings?|thanks|thank you)\b,?.*[\r\n]{0,2}.*(?:[.!?: ]*|$)/gim,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
-            sorry4english: { // https://regex101.com/r/pG3oD6/7
-                expr: /[^\n.!?]*((sorry|ap+olog.*)\b[^.!?:\n\r]+\b((bad|my|poor) english)|(english[^.!?:\n\r]+)\b(tongue|language))\b[^.!?:\n\r]*(?:[.!?:_*])*/gi,
+            sorry4english: { // https://regex101.com/r/pG3oD6/8
+                expr: /[^\n.!?]*((sorry|ap+olog.*|forgive)\b[^.!?:\n\r]+\b((bad|my|poor) english)|(english[^.!?:\n\r]+)\b(tongue|language))\b[^.!?:\n\r]*(?:[.!?:_*])*/gi,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
@@ -1932,14 +2082,20 @@
             **           Must follow noise reduction.
             **           Leading and trailing spaces are part of Markdown formatting; leave them.
             **/
-            space_then_symbol: {  // https://regex101.com/r/fN6lL7/4
-                expr: /(?!^|[ \t]+)([(])/gm,
-                replacement: " $1",
+            space_then_symbol: {  // https://regex101.com/r/fN6lL7/5
+                expr: /([^ \n\r\[\)])([(])/gm,
+                replacement: "$1 $2",
                 debug: false,
                 reason: App.consts.reasons.layout
             },
-            symbol_then_space: {  // https://regex101.com/r/iD9aS1/4
-                expr: /(?:\b| +)([,?!:)]+)(?: |\b|$)(?![\d])/gm,
+            no_space_before_symbol: {  // https://regex101.com/r/qB9lS0/2
+                expr: /(?:(^ +)|[ ]+?([,?!:)]+|[.]+(?![\S])))/gm,
+                replacement: "$1$2",
+                debug: false,
+                reason: App.consts.reasons.layout
+            },
+            symbol_then_space: {  // https://regex101.com/r/iD9aS1/6
+                expr: /(?:\b)([,?!:)]+|[.]{3})(?:\b)(?![\d])/gm,
                 replacement: "$1 ",
                 debug: false,
                 reason: App.consts.reasons.layout
@@ -1956,11 +2112,13 @@
                 debug: false,
                 reason: App.consts.reasons.layout
             },
-            blanklines: {  // https://regex101.com/r/eA5hA2/1
-                expr: /(?:^(?:\s*[\n\r])*|(?:\s*[\r\n])(?=(?:\s*[\r\n]|$){2}))/g,
-                replacement: "",
-                reason: App.consts.reasons.layout
-            },
+            // DISABLED temporarily - see Issue #115
+            //blanklines: {  // https://regex101.com/r/eA5hA2/2
+            //    expr: /^(?: *[\n\r\f])+|(?: *[\n\r\f])+$|((?: *[\n\r\f]){2})(?:(?: *[\n\r\f]))+/g,
+            //    replacement: "$1",
+            //    debug: false,
+            //    reason: App.consts.reasons.layout
+            //},
             trailing_space: {  // https://regex101.com/r/iQ0yR8/1
                 expr: /([^ ])[ ]{1}$/gm,
                 replacement: "$1",
@@ -2010,6 +2168,7 @@
                 // the total changes accurately, but we can still complete the
                 // replacement on the initial input.
                 var after = input.replace(expression, replacement);
+                if (debug) console.log("zero-count: ", input, after, after !== input);
                 if(after !== input) {
                     ++count; 
                     input = after;
