@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/AstroCB
-// @version        1.5.2.57
+// @version        1.5.2.58
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
 // ==/UserScript==
@@ -83,8 +83,8 @@
             "lsec":   /(?:  (?:\[\d\]): \w*:+\/\/.*\n*)+/g,
             //        https://regex101.com/r/tZ4eY3/20 links and pathnames
             "links":  /\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d:/?#\[\]@!$&'()*+,;=\-~%]*/g,
-            //        https://regex101.com/r/bF0iQ0/1   tags and html comments 
-            "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>/g
+            //        https://regex101.com/r/bF0iQ0/2   tags and html comments 
+            "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>|\[tag:[\w.-]+\]/gi
         };
         App.globals.checksr = (function(o1){
             var o2 = {};
@@ -135,8 +135,8 @@
                 },
                 reason: App.consts.reasons.tidyTitle
             },
-            taglist: {  // https://regex101.com/r/wH4oA3/18
-                expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?:and|[ ,.&+/-])*)+[:. \)-]*|(?:[:. \(-]|in|with|using|by)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
+            taglist: {  // https://regex101.com/r/wH4oA3/19
+                expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?:and|[ ,.&+/-])*)+[:. \)-]*|(?:[:. \(-]|in|with|using|by|for)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
                                  .replace(/_xTagsx_/g,App.globals.taglist.map(escapeTag).join("|")),
                                  //.replace(/\\(?=[bsSdDwW])/g,"\\"), // https://regex101.com/r/pY1hI2/1 - WBN to figure this out.
                                  'gi'),
@@ -286,9 +286,11 @@
                 replacement: "GitHub",
                 reason: App.consts.reasons.trademark
             },
-            facebook: {
-                expr: /\bfacebook\b/gi,
-                replacement: "Facebook",
+            facebook: {  // https://regex101.com/r/rO1tH4/2
+                expr: /\bf(?:a[cs]e?)?be?o+k?(s)?/gi,
+                replacement: function(str,s) {
+                    return "Facebook" + (s ? "'s" : "");
+                },
                 reason: App.consts.reasons.trademark
             },
             python: {
@@ -330,6 +332,11 @@
             vbscript: {
                 expr: /\bvbscript/gi,
                 replacement: "VBScript",
+                reason: App.consts.reasons.trademark
+            },
+            excel: {
+                expr: /\bexcel\b(?!\-|\.\w)/gi,
+                replacement: "Excel",
                 reason: App.consts.reasons.trademark
             },
             regex: {
@@ -524,7 +531,7 @@
                 reason: App.consts.reasons.trademark
             },
             silverlight: {
-                expr: /\bsilverl(?:ight|ite)\b/gi,
+                expr: /\bsilv?erl(?:ight|ite)\b/gi,
                 replacement: "Silverlight",
                 reason: App.consts.reasons.trademark
             },
@@ -640,8 +647,13 @@
                 reason: App.consts.reasons.trademark
             },
             flickr: {
-                expr: /([^\b\w.]|^)flickr(?!\.\w)/gi,
-                replacement: "$1Flickr",
+                expr: /(?:[^\b\w.]|^)flickr(?!\.\w)/gi,
+                replacement: "Flickr",
+                reason: App.consts.reasons.trademark
+            },
+            poi: {
+                expr: /(?:[^\b\w.]|^)poi\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.trademark
             },
             /*
@@ -1088,13 +1100,18 @@
                 reason: App.consts.reasons.spelling
             },
             btw: {
-                expr: /\b(b)tw\b/gi,
-                replacement: "$1y the way",
+                expr: /\b(b)tw,?\b/gi,
+                replacement: "$1y the way,",
                 reason: App.consts.reasons.spelling
             },
             sry: {
                 expr: /\b(s)o?r+y\b/gi,
                 replacement: "$1orry",
+                reason: App.consts.reasons.spelling
+            },
+            any1: {
+                expr: /\b(a)ny1\b/gi,
+                replacement: "$1nyone",
                 reason: App.consts.reasons.spelling
             },
             allways: {
@@ -1200,6 +1217,11 @@
             programming: {
                 expr: /\b(p)rogram(ing|ed|er)\b/gi,
                 replacement: "$1rogramm$2",
+                reason: App.consts.reasons.spelling
+            },
+            programmatically: {  // 40K+   https://regex101.com/r/vF2jQ8/2
+                expr: /\b(p)rogram+at+ica?l+y\b/gi,
+                replacement: "$1rogrammatically",
                 reason: App.consts.reasons.spelling
             },
             bear_with_me: {
@@ -1824,8 +1846,8 @@
                 replacement: "$1ppearance$2",
                 reason: App.consts.reasons.spelling
             },
-            beginning: {  // http://www.oxforddictionaries.com/words/common-misspellings https://regex101.com/r/sT4gQ0/1
-                expr: /\b(b)egining/gi,
+            beginning: {  // http://www.oxforddictionaries.com/words/common-misspellings https://regex101.com/r/sT4gQ0/2
+                expr: /\b(b)egi?n+in?g/gi,
                 replacement: "$1eginning",
                 reason: App.consts.reasons.spelling
             },
@@ -1884,23 +1906,73 @@
                 replacement: "$1eceiv$2",
                 reason: App.consts.reasons.spelling
             },
-            referred: {  // http://www.oxforddictionaries.com/words/common-misspellings  https://regex101.com/r/kE0oZ5/3
-                expr: /\b(r)efer(?!s|ence)(?=\w)/gi,
+            referred: {  // http://www.oxforddictionaries.com/words/common-misspellings  https://regex101.com/r/kE0oZ5/5
+                expr: /\b(r)efer(?!s|enc\w*|r\w*)(?=\w)/gi,
                 replacement: "$1eferr",
+                reason: App.consts.reasons.spelling
+            },
+            remember: {  // http://www.oxforddictionaries.com/words/common-misspellings
+                expr: /\b(r)e(?:mber|meber|memer)/gi,
+                replacement: "$1emember",
+                reason: App.consts.reasons.spelling
+            },
+            sense: {  // http://www.oxforddictionaries.com/words/common-misspellings
+                expr: /\b(s)ence/gi,
+                replacement: "$1ense",
+                reason: App.consts.reasons.spelling
+            },
+            supersede: {  // http://www.oxforddictionaries.com/words/common-misspellings  https://regex101.com/r/mA5nC1/1
+                expr: /(s)uperced(e[sd]?|ing)\b/gi,
+                replacement: "$1upersed$2",
+                reason: App.consts.reasons.spelling
+            },
+            surprise: {  // http://www.oxforddictionaries.com/words/common-misspellings  https://regex101.com/r/uS8oS4/1
+                expr: /\b(s)ur?pri[scz](e[ds]?|ing(?:ly)?)\b/gi,
+                replacement: "$1urpris$2",
+                reason: App.consts.reasons.spelling
+            },
+            connection: {  // https://regex101.com/r/rO2wH0/1
+                expr: /\b(c)on+e[ctx]+i?on(s)?/gi,
+                replacement: "$1onnection$2",
+                reason: App.consts.reasons.spelling
+            },
+            additional: {  // https://regex101.com/r/iM4xV5/2
+                expr: /\b(a)d+i.?tio?n[al]+?(ly)?\b/gi,
+                replacement: "$1dditional$2",
+                reason: App.consts.reasons.spelling
+            },
+            automatic: {  // https://regex101.com/r/fU2hF1/2
+                expr: /\b(a)(?:uto[ma]+[tic]+|tomatic)(?!e|[io]+n)/gi,
+                replacement: "$1utomatic",
+                reason: App.consts.reasons.spelling
+            },
+            automatically: {  // 6K+
+                expr: /\b(a)utomatic[aly]+\b/gi,
+                replacement: "$1utomatically",
+                reason: App.consts.reasons.spelling
+            },
+            running: {  // 2K+
+                expr: /\b(r)un+in?g\b/gi,
+                replacement: "$1unning",
+                reason: App.consts.reasons.spelling
+            },
+            even_though: {  // 2.7K+
+                expr: /\b(e)venth?ou?[gh]+\b/gi,
+                replacement: "$1ven though",
                 reason: App.consts.reasons.spelling
             },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
-            start_with_so: {
-                expr: /^so[,-\s]+/gi,
+            start_with_so: {  // https://regex101.com/r/gP1xA2/2
+                expr: /^(?:okay\b|ok\b|so\b|[ \t,-])+/gi,
                 replacement: "",
                 reason: App.consts.reasons.grammar
             },
             a_vs_an: {  // See http://stackoverflow.com/q/34440307/1677912
-                expr: /\b(a|an) ([\(\"'“‘-]*\w*)\b/gim,   // https://regex101.com/r/nE1yA4/4
+                expr: /\b(a|an) ([\(\"'“‘`<-]*\w*)\b/gim,   // https://regex101.com/r/nE1yA4/5
                 replacement: function( match, article, following ) {
-                    var input = following.replace(/^[\s\(\"'“‘-]+|\s+$/g, "");//strip initial punctuation symbols
+                    var input = following.replace(/^[\s\(\"'“‘`<-]+|\s+$/g, "");//strip initial punctuation symbols
                     var res = AvsAnOverride_(input) || AvsAnSimple.query(input);
                     var newArticle = article[0] + res.substr(1);  // Preserve existing capitalization
                     return newArticle+' '+following;
@@ -1909,8 +1981,9 @@
                     // are not well-represented in the data used by AvsAnSimple, so we need to
                     // provide a way to override it.
                     function AvsAnOverride_(fword) {
-                        var exeptionsA_ = /^(?:uis?|co\w)/i;
-                        var exeptionsAn_ = /(?:^[lr]value|a\b)/i;
+                        //var exeptionsA_ = /^(?:uis?|co\w|form|v|data|media)/i;
+                        var exeptionsA_ = /^(?:uis?|data)/i;
+                        var exeptionsAn_ = /(?:^[lr]value|a\b|sql)/i;
                         return (exeptionsA_.test(fword) ? article[0] :
                                 exeptionsAn_.test(fword) ? article[0]+"n" : false);
                     }
@@ -1918,28 +1991,25 @@
                 reason: App.consts.reasons.grammar
             },
             firstcaps: {
-                //    https://regex101.com/r/qR5fO9/19
-                // This doesn't work quite right, because is finds all sentences, not just ones needing caps.
-                //expr: /(?:(?!\n\n)[^\s.!?]+[ ]*)+([.!?])*[ ]*/g, 
-                expr: /((?!\n\n)[A-z](?:(?!\n\n)[^?.!])+(?:\.[A-z\d)][^?.!A-Z]+)*([?.!])*)/gm, 
-                replacement: function(str, endpunc) { 
-                    if (str === "undefined") return str;  // MUST match str, or gets counted as a change.
-                    //                 https://regex101.com/r/bL9xD7/3 find and capitalize first letter
-                    return str.replace(/^(\W*)*(([a-zA-Z])[\w\d]*(?:[._\-]+[\w\d]+)?)(.*)/g, function(sentence, pre, fWord, fLetter, post) {
-                        if (!pre) pre = '';
-                        if (!post) post = '';
-                        if (!fWord) fWord = '';
-                        var fWordChars = fWord.split('');
-                        // Leave some words alone: filenames, camelCase
-                        for (var i=0; i<fWordChars.length; i++) {
-                            if (fWordChars[i] == '.' ||
-                                fWordChars[i] == fWordChars[i].toUpperCase())
-                                return sentence;
-                        }
-                        var update = pre + fLetter.toUpperCase() + fWord.slice(1) + post; // + (!endpunc && /\w/.test(post.substr(-1)) ? '.' : '');
-                        return update;
-                    });
+                //    https://regex101.com/r/qR5fO9/31
+                // Regex finds all sentences; replacement must determine whether it needs to capitalize.
+                expr: /(([A-Z_a-z]|\d)([\w]*))((?:(?:etc\.|i\.e\.|e\.g\.|\.\.|\w+\.(?! )|[*-]+|\n(?!\n| *(?:[*-]|\d+\.))|[\w '",()\[\];:%&\-/]))+(?:([.?!])(?=[ )\n"]|\n|$)|\n\n|\n(?= *[*-])|\n(?= *\d+\.)|$))/gi, 
+                replacement: function(sentence, fWord, fChar, fWordPost, sentencePost, endpunc) { 
+                    console.log("bbep");
+                    var capChar = fChar.toUpperCase();
+                    if (sentence === "undefined"||capChar == fChar) return sentence;  // MUST match sentence, or gets counted as a change.
+                    if (!fWord) fWord = '';
+                    var fWordChars = fWord.split('');
+                    // Leave some words alone: filenames, camelCase
+                    for (var i=0; i<fWordChars.length; i++) {
+                        if (fWordChars[i].search(/[._/]/g) !== -1 ||
+                            fWordChars[i] == fWordChars[i].toUpperCase())
+                            return sentence;
+                    }
+                    var update = capChar + fWordPost + sentencePost;
+                    return update;
                 },
+                debug: true,
                 reason: App.consts.reasons.grammar
             },
             i: { // https://regex101.com/r/uO7qG0/2
@@ -1948,7 +2018,7 @@
                 reason: App.consts.reasons.grammar
             },
             i_apostrophe: {
-                expr: /\bi['`´]/gi,  // i-apostrophe only
+                expr: /\bi['`´’]/gi,  // i-apostrophe only
                 replacement: "I'",
                 reason: App.consts.reasons.grammar
             },
@@ -1963,7 +2033,7 @@
                 reason: App.consts.reasons.grammar
             },
             ive: {
-                expr: /\bi['`´]*v['`´]*e\b/gi,
+                expr: /\bi['`´’]*v['`´’]*e\b/gi,
                 replacement: "I've",
                 reason: App.consts.reasons.grammar
             },
@@ -1987,9 +2057,9 @@
                 replacement: "$1!",
                 reason: window.atob('IkZpdmUgZXhjbGFtYXRpb24gbWFya3MsIHRoZSBzdXJlIHNpZ24gb2YgYW4gaW5zYW5lIG1pbmQi')
             },
-            multiplesymbols: {  //    https://regex101.com/r/bE9zM6/3
-                expr: /([^\w\s*#.\-_:\[\]\</>])\1{1,}/g,
-                replacement: "$1",
+            multiplesymbols: {  //    https://regex101.com/r/bE9zM6/6
+                expr: /(\b[cC]\+\+|={1,3}(?!=))|([^\w\s*#.\-_:\[\]\</>])\2{1,}/g,
+                replacement: "$1$2",
                 reason: App.consts.reasons.grammar
             },
             i_want: { //https://regex101.com/r/iD2tU0/1
@@ -2010,6 +2080,11 @@
             let_s_say: {  // 60K!
                 expr: /\b(l)ets (say|see|look|just|put|have|leave|give|write)\b/gi,
                 replacement: "$1et's $2",
+                reason: App.consts.reasons.grammar
+            },
+            suggest_me: {  // 36K
+                expr: /\b(s)u[gj]+est(s)? me/gi,
+                replacement: "$1uggest$2",
                 reason: App.consts.reasons.grammar
             },
             /*
@@ -2042,13 +2117,13 @@
                 reason: App.consts.reasons.noise
             },
             // http://meta.stackexchange.com/questions/2950/should-hi-thanks-taglines-and-salutations-be-removed-from-posts/93989#93989
-            salutation: { // https://regex101.com/r/yS9lN8/9
-                expr: /^\s*(?:dears?\b.*$|greetings?\b.*$|(?:hi(?:ya)*|hel+o+|heya?|hai|g'?day|good\s?(?:evening|morning|day|afternoon)|ahoy)[,\s]*(?:\s+(?:all|guys|folks|friends?|there|everyone|people|matey?s?|bud+(y|ies))*))(?:[,.!?: ]*|$)/gmi,
+            salutation: { // https://regex101.com/r/yS9lN8/10
+                expr: /^\s*(?:dears?\b.*$|greetings?\b.*$|(?:hi(?:ya)*|hel+o+|heya?|hai|g'?day|good\s?(?:evening|morning|day|afternoon)|ahoy|folks|guys)[,\s]*(?:\s+(?:all|guys|folks|friends?|there|everyone|people|matey?s?|bud+(y|ies))*))(?:[,.!?: ]*|$)/gmi,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
-            badphrases: { // https://regex101.com/r/gE2hH6/13
-                expr: /[^\n.!?:]*(?:thanks|thank[ -]you|please|help|suggest(?:ions))\b(?:[ .?!]*$|[^\n.!?:]*\b(?:help|ap+reciat\w*|me|advan\w*|a ?lot)\b[^\n.!?:]*)[.!?_*]*[ ]*/gim,
+            badphrases: { // https://regex101.com/r/gE2hH6/16
+                expr: /[^\n.!?:]*(?:thanks|thank[ -]you|please|help|suggest(?:ions))\b(?:[ .?!]*$|[^\n.!?:]*\b(?:help|ap+reciat\w*|me|advan\w*|a ?lot)\b[^\n.!?:]*)[.!?_*]*/gim,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
@@ -2057,8 +2132,8 @@
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
-            complimentaryClose: {  // https://regex101.com/r/hL3kT5/4
-                expr: /^\s*(?:(?:kind(?:est)* )*regards?|cheers?|greetings?|thanks|thank you)\b,?.*[\r\n]{0,2}.*(?:[.!?: ]*|$)/gim,
+            complimentaryClose: {  // https://regex101.com/r/hL3kT5/5
+                expr: /^\s*(?:(?:kind(?:est)* |best )*regards?|cheers?|greetings?|thanks|thank you)\b,?.*[\r\n]{0,2}.*(?:[.!?: ]*|$)/gim,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
@@ -2082,8 +2157,8 @@
             **           Must follow noise reduction.
             **           Leading and trailing spaces are part of Markdown formatting; leave them.
             **/
-            space_then_symbol: {  // https://regex101.com/r/fN6lL7/5
-                expr: /([^ \n\r\[\)])([(])/gm,
+            space_then_symbol: {  // https://regex101.com/r/fN6lL7/6
+                expr: /([^ \n\r\[\)])(\((?!\)))/gm,
                 replacement: "$1 $2",
                 debug: false,
                 reason: App.consts.reasons.layout
