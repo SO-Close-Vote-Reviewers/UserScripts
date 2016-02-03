@@ -1130,8 +1130,8 @@
                 reason: App.consts.reasons.spelling
             },
             retrieve: {
-                expr: /\b(r)etreive(d)?\b/gi,
-                replacement: "$1etrieve$2",
+                expr: /\b(r)etreiv(e|ed|es|ing|al|able)\b/gi,
+                replacement: "$1etriev$2",
                 reason: App.consts.reasons.spelling
             },
             success: { // https://regex101.com/r/hK2vG4/1
@@ -1991,11 +1991,10 @@
                 reason: App.consts.reasons.grammar
             },
             firstcaps: {
-                //    https://regex101.com/r/qR5fO9/31
+                //    https://regex101.com/r/qR5fO9/39
                 // Regex finds all sentences; replacement must determine whether it needs to capitalize.
-                expr: /(([A-Z_a-z]|\d)([\w]*))((?:(?:etc\.|i\.e\.|e\.g\.|\.\.|\w+\.(?! )|[*-]+|\n(?!\n| *(?:[*-]|\d+\.))|[\w '",()\[\];:%&\-/]))+(?:([.?!])(?=[ )\n"]|\n|$)|\n\n|\n(?= *[*-])|\n(?= *\d+\.)|$))/gi, 
+                expr: /(([A-Z_a-z]|\d(?!\d*\. ))(\S*))((?:(?:etc\.|i\.e\.|e\.g\.|\.\.\.|\w+\.(?![\s")])|[*-]+|\n(?![ \t]*\n| *(?:[*-]|\d+\.))|[^.?!\n]?))+(?:([.?!])(?=[\s")]|$)|\n\n|\n(?= *[*-])|\n(?= *\d+\.)|$))/gi,
                 replacement: function(sentence, fWord, fChar, fWordPost, sentencePost, endpunc) { 
-                    console.log("bbep");
                     var capChar = fChar.toUpperCase();
                     if (sentence === "undefined"||capChar == fChar) return sentence;  // MUST match sentence, or gets counted as a change.
                     if (!fWord) fWord = '';
@@ -2009,7 +2008,6 @@
                     var update = capChar + fWordPost + sentencePost;
                     return update;
                 },
-                debug: true,
                 reason: App.consts.reasons.grammar
             },
             i: { // https://regex101.com/r/uO7qG0/2
