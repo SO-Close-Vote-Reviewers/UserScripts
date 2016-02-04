@@ -1,6 +1,6 @@
 # User Scripts
 
-This repository contains various [Tampermonkey](http://tampermonkey.net/) user scripts that add features to the review queue or to the chat room.
+This repository contains various [Tampermonkey](http://tampermonkey.net/) (Chrome, Opera Next, Safari, Firefox) / [Greasemonkey](http://www.greasespot.net/) (Firefox) user scripts that add features to Stack Exchange web interfaces, such as the review queues, the chat room, and the Markdown editor.
 
 ## SO Close Vote Request Generator
 This script sends a `[tag:cv-pls]` message to the site's chatroom for the post you are currently viewing. It should work on any Stack Exchange site, if it doesn't then please submit an issue.
@@ -27,6 +27,14 @@ To install this script [click here](https://rawgit.com/SO-Close-Vote-Reviewers/U
 This script has an auto-update feature. It will check for a new version every time the script is run, don't worry it is a very lightweight request. If there is an update available, the script will ask you if you want to install it automatically or not. If not, it will not remind you for that version.
 
 To update manually you can visit the above URL again, or select <kbd>Check for updates</kbd> from the <kbd>cv-pls</kbd> menu.
+
+###Issues & enhancement requests
+Before raising new issues, please review the [currently known issue list](https://github.com/SO-Close-Vote-Reviewers/UserScripts/issues?q=is%3Aissue+is%3Aopen+label%3Ascript%3ASOCloseVoteRequestGenerator).
+
+<!-- I used http://meyerweb.com/eric/tools/dencoder/ to encode the issue report template -->
+To report a new issue or request an enhancement, create a GitHub Issue Report using [this template](https://github.com/SO-Close-Vote-Reviewers/UserScripts/issues/new?labels=script%3ASOCloseVoteRequestGenerator&body=**Script%3A**%20Close%20Vote%20Request%20Generator%0A**Issue%20type%3A**%20Bug%20%2F%20Enhancement%20%2F%20Question%20(pick%20one)%0A**Link%20to%20example%20post%3A**%20(where%20can%20the%20problem%20be%20reliably%20replicated%3F)%0A%0AProblem%20description...) (requires a GitHub account).
+
+As an alternative, you may send a Pull request for your own fixes or enhancements.
 
 ###Target Chat Room
 The default chat room is [SO Close Vote Reviewers](http://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers).
@@ -63,3 +71,45 @@ This script has a short reason replacement feature. The script will split the re
 * `f: serverfault`
 * `l: library/tool/resource`
 * `g: gimme-teh-codez`
+
+## Magic™ Editor
+
+This is our own fork of the [Stack Exchange Editor Toolkit](http://stackapps.com/questions/4899/stack-exchange-editor-toolkit).
+
+The Magic™ Editor _helps_ you make substantial edits to posts, by identifying and correcting many common mistakes. Ultimately, _you are responsible_ for your edits, so a key feature of the Magic™ Editor is a Diff Viewer, which is engaged automatically when you Invoke the Magic™.
+
+###Installation
+To install this script [click here](https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/Magic%E2%84%A2Editor.user.js) or otherwise visit the following URL, and GreaseMonkey/TamperMonkey should ask you to install it.
+
+     https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/Magic%E2%84%A2Editor.user.js
+     
+###Updates
+This script uses the auto-update features of TamperMonkey / GreaseMonkey. Your monkey will notify you usually within a couple of days when a new version becomes available.
+
+To update manually you can visit the above URL again, or check for updates in TamperMonkey or GreaseMonkey.
+
+###Issues & enhancement requests
+Before raising new issues, please review the [currently known issue list](https://github.com/SO-Close-Vote-Reviewers/UserScripts/labels/script%3AMagic%E2%84%A2%20Editor).
+
+<!-- I used http://meyerweb.com/eric/tools/dencoder/ to encode the issue report template -->
+To report a new issue or request an enhancement, create a GitHub Issue Report using [this template](https://github.com/SO-Close-Vote-Reviewers/UserScripts/issues/new?labels=script%3AMagic™%20Editor&body=**Script%3A**%20Magic%E2%84%A2%20Editor%0A**Issue%20type%3A**%20Bug%20%2F%20Enhancement%20%2F%20Auto-fix%20term%20request%20(pick%20one)%0A**Link%20to%20example%20post%3A**%20(where%20can%20the%20problem%20be%20reliably%20replicated%3F)%0A%0AIf%20you%20are%20requesting%20support%20for%20a%20new%20auto-correction%20term%2C%20explain%20why%20the%20rule%20should%20be%20supported.%20How%20prevalent%20is%20the%20mistake%3F%20For%20example%2C%20https%3A%2F%2Fregex101.com%2Fr%2FxN8qD9%2F1%20clearly%20shows%20what%20incorrect%20terms%20are%20expected%20to%20be%20addressed%2C%20and%20anticipates%20possible%20conflicts%2C%20as%20well%20as%20reporting%20on%20the%20number%20of%20existing%20posts%20containing%20the%20errors.) (requires a GitHub account).
+
+As an alternative, you may send a Pull request for your own fixes or enhancements.
+
+###User's guide
+
+**REMEMBER:** Magic™ Editor is an editing aid, but **you** are responsible for your edits. Don't just click-and-go; always review your edits.
+
+![Magic™ button](http://i.stack.imgur.com/jB5bR.png)
+
+![After the Magic™](http://i.stack.imgur.com/2x6n7.png)
+
+###Supported Corrections
+
+At this time (4 Feb 2016), Magic™ Editor has:
+
+- Rules for tidying question titles; tags are removed from the beginning and end, all caps titles are converted to Sentence case.
+- 89 Trademark spelling & capitalization rules (e.g. "JavaScript", "MySQL", and "WordPress").
+- 210 Spelling rules, many of which can fix multiple words.
+- 17 Grammar rules addressing sentence capitalization, proper use of "a" vs. "an", spacing, comma usage, improperly formatted contractions ("Im", "ie", "eg", "etc", etc.), and common broken English (e.g. "I am wanting...").
+- 9 Noise-reduction rules to remove fluff that adds nothing of technical value to posts.
