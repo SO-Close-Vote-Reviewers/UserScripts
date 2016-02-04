@@ -2,6 +2,10 @@
 
 This repository contains various [Tampermonkey](http://tampermonkey.net/) (Chrome, Opera Next, Safari, Firefox) / [Greasemonkey](http://www.greasespot.net/) (Firefox) user scripts that add features to Stack Exchange web interfaces, such as the review queues, the chat room, and the Markdown editor.
 
+Jump to:
+- [SO Close Vote Request Generator](#so-close-vote-request-generator)
+- [Magic™ Editor](#magic-editor)
+
 ## SO Close Vote Request Generator
 This script sends a `[tag:cv-pls]` message to the site's chatroom for the post you are currently viewing. It should work on any Stack Exchange site, if it doesn't then please submit an issue.
 
@@ -100,9 +104,28 @@ As an alternative, you may send a Pull request for your own fixes or enhancement
 
 **REMEMBER:** Magic™ Editor is an editing aid, but **you** are responsible for your edits. Don't just click-and-go; always review your edits.
 
-![Magic™ button](http://i.stack.imgur.com/jB5bR.png)
+Rather than 2,000 words, here are two pictures to explain basic use.
 
-![After the Magic™](http://i.stack.imgur.com/2x6n7.png)
+The Magic™ wand appears on the editor tool bar when the Magic™ Editor is available for use.
+
+![Magic™ wand](http://i.stack.imgur.com/jB5bR.png)
+
+When you click the Magic™ wand, the display changes to show the applied updates in a diff view.
+
+![After the Magic™](http://i.stack.imgur.com/2x6n7.png) 
+
+####Usage tips
+
+**Before invoking the Magic™**, you should:
+- Check that any code in the question is properly indented, so Magic™ Editor treats it as code, not prose.
+- Likewise with any in-line code statements, which are best enclosed in backticks (`).
+
+**Afterwards**, you should:
+- _Review_ the results in the Diff view.
+- Manually revert any automatic changes that were inappropriate for the current post. Consider these examples:
+ - If [removal of tags from the title](http://meta.stackexchange.com/questions/19190/should-questions-include-tags-in-their-titles) made the title too short, you will need to [replace the entire title with a good one](http://meta.stackexchange.com/questions/10647/how-do-i-write-a-good-title).
+ - Watch for undesired case changes, especially when the original post included any words in all-caps. (All Magic™ Editor spelling corrections are in lower case, except for the first character which remains as-is.)
+- Note any mistakes that were missed; if they are common enough, you could report them as outlined earlier. (Rule of thumb: a "common" error will appear in at least a thousand posts on Stack Overflow, which is about 0.005% of them, OR occur daily.)
 
 ###Supported Corrections
 
