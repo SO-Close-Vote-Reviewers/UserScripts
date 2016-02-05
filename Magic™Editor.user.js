@@ -2229,6 +2229,11 @@
                 debug: false,
                 reason: App.consts.reasons.layout
             },
+            numbered_list: { // https://regex101.com/r/mI1aV3/2
+                expr: /[\n\r]+([ \t]*[\d]+)[).] */gm,
+                replacement: "\n\n$1. ",
+                reason: App.consts.reasons.layout
+            },
             // DISABLED temporarily - see Issue #115
             //blanklines: {  // https://regex101.com/r/eA5hA2/2
             //    expr: /^(?: *[\n\r\f])+|(?: *[\n\r\f])+$|((?: *[\n\r\f]){2})(?:(?: *[\n\r\f]))+/g,
