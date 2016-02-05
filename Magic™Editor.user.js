@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.5.2.59
+// @version        1.5.2.60
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
@@ -1735,8 +1735,8 @@
                 replacement: "$1atabase",
                 reason: App.consts.reasons.spelling
             },
-            output: {  //6,594 "out put"
-                expr: /\b(o)ut put\b/gi,
+            output: {  // https://regex101.com/r/bP9kY2/1
+                expr: /\b(o)ut ?put+(?:ed)?\b/gi,
                 replacement: "$1utput",
                 reason: App.consts.reasons.spelling
             },
@@ -1962,6 +1962,34 @@
                 replacement: "$1ven though",
                 reason: App.consts.reasons.spelling
             },
+            tomorrow: {  // http://www.oxforddictionaries.com/words/common-misspellings
+                expr: /\b(t)om+or+ow\b/gi,
+                replacement: "$1omorrow",
+                reason: App.consts.reasons.spelling
+            },
+            truly: {  // http://www.oxforddictionaries.com/words/common-misspellings  https://regex101.com/r/yV4rZ9/1
+                expr: /\b(t)rue?l+e?y\b/gi,
+                replacement: "$1ruly",
+                reason: App.consts.reasons.spelling
+            },
+            until: {  // http://www.oxforddictionaries.com/words/common-misspellings  https://regex101.com/r/tK8rV5/2
+                expr: /\b(?:(u)nti?l+|(t)il+)\b/gi,
+                replacement: function (match,f1,f2) {
+                    var fchar = f1||f2;
+                    return ((fchar.toUpperCase() == fchar) ? "U" : "u") + "ntil";
+                },
+                reason: App.consts.reasons.spelling
+            },
+            where: {  // Must precede "wherever"
+                expr: /\b(w)her\b/gi,
+                replacement: "$1here",
+                reason: App.consts.reasons.spelling
+            },
+            wherever: {  // http://www.oxforddictionaries.com/words/common-misspellings  https://regex101.com/r/iJ4bG1/1
+                expr: /\b(w)here ?ever\b/gi,
+                replacement: "$1herever",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -1984,7 +2012,7 @@
                     function AvsAnOverride_(fword) {
                         //var exeptionsA_ = /^(?:uis?|co\w|form|v|data|media)/i;
                         var exeptionsA_ = /^(?:uis?|data)/i;
-                        var exeptionsAn_ = /(?:^[lr]value|a\b|sql)/i;
+                        var exeptionsAn_ = /(?:^[lr]value|a\b|sql|empty|attribute)/i;
                         return (exeptionsA_.test(fword) ? article[0] :
                                 exeptionsAn_.test(fword) ? article[0]+"n" : false);
                     }
