@@ -4,7 +4,7 @@
 // @version      1.0.2
 // @description  A script to add keyboard shortcuts to StackOverflow's close votes review queue
 // @author       Albireo, rene
-// @match        http://stackoverflow.com/review/close*
+// @match        *://stackoverflow.com/review/close*
 // @grant        none
 // ==/UserScript==
 
@@ -219,6 +219,11 @@
 
                 if ((e.target.tagName === 'INPUT' && e.target.type === 'text') || e.target.tagName === 'TEXTAREA') {
                     return;
+                }
+                
+                // numpad handling
+                if ((e.keyCode > 95) && (e.keyCode < 106)) {
+                    e.keyCode = e.keyCode - 48; 
                 }
 
                 keyHandler(e.keyCode);
