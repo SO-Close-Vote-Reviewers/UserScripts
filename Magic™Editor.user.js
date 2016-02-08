@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.5.2.60
+// @version        1.5.2.61
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
@@ -2019,10 +2019,13 @@
                     // Hack alert: Due to the technical nature of SO subjects, many common terms
                     // are not well-represented in the data used by AvsAnSimple, so we need to
                     // provide a way to override it.
+                    // NOTE: AvsAnSimple is susceptible to unicode mess-up; if you suddenly see many
+                    // words starting with vowels being incorrectly treated, check that the script
+                    // has not had a unicode substitution error. (Git did this do me, once.)
                     function AvsAnOverride_(fword) {
                         //var exceptionsA_ = /^(?:uis?|co\w|form|v|data|media)/i;
                         var exceptionsA_ = /^(?:uis?|data)/i;
-                        var exceptionsAn_ = /(?:^[lr]value|a\b|sql|emp|attr|alte|orc|err|amb|ext|iss|arr|obj)/i;
+                        var exceptionsAn_ = /(?:^[lr]value|a\b|sql)/i;
                         return (exceptionsA_.test(fword) ? article[0] :
                                 exceptionsAn_.test(fword) ? article[0]+"n" : false);
                     }
