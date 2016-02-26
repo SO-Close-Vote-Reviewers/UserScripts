@@ -9,10 +9,10 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.5.2.61
+// @version        1.5.2.62
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
-// @include        /^https?://\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com/(questions|posts|review)/(?!tagged|new).*/
+// @include        /^https?:\/\/\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com\/(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
 // ==/UserScript==
 
 (function() {
@@ -250,6 +250,11 @@
                     .replace(/server/i, 'Server');
                     return 'Windows' + ver;
                 },
+                reason: App.consts.reasons.trademark
+            },
+            unix: {
+                expr: /\bunix\b/gi,
+                replacement: "Unix",
                 reason: App.consts.reasons.trademark
             },
             linux: {
@@ -562,9 +567,9 @@
                 reason: App.consts.reasons.trademark
             },
             gwt: {
-                expr: /([^\b\w.]|^)gwt[- ](mosaic|designer)\b/gi,
+                expr: /([^\b\w.]|^)gwt[- ](mosaic|designer)?\b/gi,
                 replacement: function (str,pre,titlecase) {
-                    var fixed = pre + "GWT" + (titlecase? ' '+titlecase.toTitleCase() : '');
+                    var fixed = pre + "GWT" + (titlecase? ' '+titlecase.toTitleCase() : ' ');
                     return fixed;
                 },
                 reason: App.consts.reasons.trademark
@@ -633,7 +638,7 @@
                 reason: App.consts.reasons.trademark
             },
             hadoop: {
-                expr: /\bhadoop\b/gi,
+                expr: /\bhad+o+p+\b/gi,
                 replacement: "Hadoop",
                 reason: App.consts.reasons.trademark
             },
@@ -660,6 +665,24 @@
             vmware: {
                 expr: /\bvmware?\b/gi,
                 replacement: "VMware",
+                reason: App.consts.reasons.trademark
+            },
+            hortonworks: {
+                expr: /([^\b\w.]|^)horton ?works[- ](sandbox|data platform|phoenix|hive)?\b/gi,
+                replacement: function (str,pre,titlecase) {
+                    var fixed = pre + "Hortonworks" + (titlecase? ' '+titlecase.toTitleCase() : ' ');
+                    return fixed;
+                },
+                reason: App.consts.reasons.trademark
+            },
+            ambari: {
+                expr: /\bambari\b/gi,
+                replacement: "Ambari",
+                reason: App.consts.reasons.trademark
+            },
+            eclipse: {
+                expr: /\becli[ps]+e\b/gi,
+                replacement: "Eclipse",
                 reason: App.consts.reasons.trademark
             },
             /*
@@ -912,6 +935,11 @@
             },
             wsdl: {
                 expr: /(?:[^\b\w.]|^)wsdl\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            hdp: {  // Hadoop related acronyms
+                expr: /(?:[^\b\w.]|^)h(?:dp|dfs|sm)\b/gi,
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.acronym
             },
@@ -1878,7 +1906,7 @@
                 reason: App.consts.reasons.spelling
             },
             environment: {  // http://www.oxforddictionaries.com/words/common-misspellings https://regex101.com/r/qD5zU6/1
-                expr: /\b(e)nvi?ro?[nm]+ent/gi,
+                expr: /\b(e)nvi?ro?[nmt]+ent/gi,
                 replacement: "$1nvironment",
                 reason: App.consts.reasons.spelling
             },
@@ -2000,6 +2028,21 @@
                 replacement: "$1eset",
                 reason: App.consts.reasons.spelling
             },
+            begin: {  // https://regex101.com/r/xZ9iC3/1
+                expr: /\b(b)eg+in?(ning|ner)?\b/gi,
+                replacement: "$1egin$2",
+                reason: App.consts.reasons.spelling
+            },
+            update: {  // https://regex101.com/r/rF6fZ2/1
+                expr: /\b(u)[pd]+at(e|ed|er|es|ing)\b/gi,
+                replacement: "$1pdat$2",
+                reason: App.consts.reasons.spelling
+            },
+            question: {  // https://regex101.com/r/tC5yN8/2
+                expr: /\b(q)[ues]+t[io]+ne?/gi,
+                replacement: "$1uestion",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -2024,7 +2067,7 @@
                     // has not had a unicode substitution error. (Git did this do me, once.)
                     function AvsAnOverride_(fword) {
                         //var exceptionsA_ = /^(?:uis?|co\w|form|v|data|media)/i;
-                        var exceptionsA_ = /^(?:uis?|data)/i;
+                        var exceptionsA_ = /^(?:uis?|data|java)/i;
                         var exceptionsAn_ = /(?:^[lr]value|a\b|sql)/i;
                         return (exceptionsA_.test(fword) ? article[0] :
                                 exceptionsAn_.test(fword) ? article[0]+"n" : false);
@@ -2073,7 +2116,7 @@
                 reason: App.consts.reasons.grammar
             },
             ive: {
-                expr: /\bi['`´’]*v['`´’]*e\b/gi,
+                expr: /\bi['`´’ ]*v['`´’ ]*e\b/gi,
                 replacement: "I've",
                 reason: App.consts.reasons.grammar
             },
