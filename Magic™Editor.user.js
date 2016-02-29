@@ -1023,8 +1023,8 @@
                 replacement: "$1ou",
                 reason: App.consts.reasons.spelling
             },
-            doesn_t: { // https://regex101.com/r/sL0uO9/3
-                expr: /\b(d)(?:ose?[^\w]*n?.?t|oens.?t|oesn[^\w]*t|oest)\b/gi,
+            doesn_t: { // https://regex101.com/r/sL0uO9/5
+                expr: /\b(d)(?:ose?[^\w]*n?.?t|oens.?t|oesn?[^\w]*t|oest)\b/gi,
                 replacement: "$1oesn't",
                 reason: App.consts.reasons.spelling
             },
@@ -2178,6 +2178,11 @@
             works_perfectly: {  // 13K+ posts
                 expr: /\b(w)ork(s)? p[er]+fect\b/gi,
                 replacement: "$1ork$2 perfectly",
+                reason: App.consts.reasons.grammar
+            },
+            doesnt_work: {  // 900+ posts
+                expr: /\b(d)on't works/gi,
+                replacement: "$1oesn't work",
                 reason: App.consts.reasons.grammar
             },
             /*
