@@ -1038,8 +1038,8 @@
                 replacement: "$1idn't",
                 reason: App.consts.reasons.spelling
             },
-            don_t: {
-                expr: /\b(d)(?:on[^\w]*no?t|ont?)\b/gi,
+            don_t: {  // https://regex101.com/r/nT2jV6/1
+                expr: /\b(d)(?:on[^\w']*t|o[n']+o?t)\b/gi,
                 replacement: "$1on't",
                 reason: App.consts.reasons.spelling
             },
@@ -2087,7 +2087,7 @@
                     // Leave some words alone: filenames, camelCase
                     for (var i=0; i<fWordChars.length; i++) {
                         if (fWordChars[i].search(/[._/]/g) !== -1 ||
-                            fWordChars[i] == fWordChars[i].toUpperCase())
+                            (fWordChars[i].search(/[a-z]/gi) !==-1 && fWordChars[i] == fWordChars[i].toUpperCase()))
                             return sentence;
                     }
                     var update = capChar + fWordPost + sentencePost;
