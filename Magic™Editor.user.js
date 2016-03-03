@@ -202,7 +202,7 @@
                 reason: App.consts.reasons.trademark
             },
             angular: {
-                expr: /\bangular(?:js)?\b/gi,
+                expr: /\bangular(?:js)?\b(?!-)/gi,
                 replacement: "AngularJS",
                 reason: App.consts.reasons.trademark
             },
@@ -447,6 +447,13 @@
                 replacement: "iPhone",
                 reason: App.consts.reasons.trademark
             },
+            google: {  // https://regex101.com/r/qW8fI8/1
+                expr: /\bgo+(?:g+le|lge?|gel)([drs]|ing|\b)/gi,
+                replacement: function(str,suffix) {
+                    return "Googl" + ((suffix.search(/ing/) == -1 ) ? "e" : "") + suffix;
+                },
+                reason: App.consts.reasons.trademark
+            },
             google_verbed: {
                 expr: /\bgoogl(?:ed|ing|er)\b/gi,
                 replacement: function(str) {
@@ -454,8 +461,13 @@
                 },
                 reason: App.consts.reasons.trademark
             },
-            google: { // https://regex101.com/r/iS5fO1/1
-                expr: /\bgoogle\b[ \t]*(?:maps?|sheets?|docs?|drive|sites?|forms?|documents?|spreadsheets?|images?|presentations?)?\b/gi,
+            spreadsheet: {  // https://regex101.com/r/oK4uW3/1 - must appear before google_things
+                expr: /\b(s)[pr]+[ea]+dsh?e+t(?:ing)?(s)?\b/gi,
+                replacement: "$1preadsheet$2",
+                reason: App.consts.reasons.spelling
+            },
+            google_things: { // https://regex101.com/r/iS5fO1/1
+                expr: /\bgoogle\b[ \t]*(?:maps?|sheets?|docs?|drive|sites?|forms?|documents?|spreadsheets?|images?|presentations?|play)?\b/gi,
                 replacement: function(str) {
                     return str.toTitleCase();
                 },
@@ -1373,9 +1385,9 @@
                 replacement: "$1enefits",
                 reason: App.consts.reasons.spelling
             },
-            authorization: {
-                expr: /\b(a)uth\b/gi,           // This may be too ambiguous, could also mean "authentication"
-                replacement: "$1uthorization",
+            authorization: {  // https://regex101.com/r/pQ8mD9/1
+                expr: /([^\b\w.-])(a)uth\b/gi,           // This may be too ambiguous, could also mean "authentication"
+                replacement: "$1$2uthorization",
                 reason: App.consts.reasons.spelling
             },
             persistent: {
@@ -1598,8 +1610,8 @@
                 replacement: "$1xample",
                 reason: App.consts.reasons.spelling
             },
-            somewhere: {
-                expr: /\b(s)ome ?wh?[ea]re?\b/gi,
+            somewhere: {  // https://regex101.com/r/aU2nP5/1
+                expr: /\b(s)ome?(?: ?where?|w[ea]+re?)\b/gi,
                 replacement: "$1omewhere",
                 reason: App.consts.reasons.spelling
             },
