@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.5.2.62
+// @version        1.5.2.63
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com\/(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
@@ -202,7 +202,7 @@
                 reason: App.consts.reasons.trademark
             },
             angular: {
-                expr: /\bangular(?:js)?\b/gi,
+                expr: /\bangular(?:js)?\b(?!-)/gi,
                 replacement: "AngularJS",
                 reason: App.consts.reasons.trademark
             },
@@ -447,6 +447,13 @@
                 replacement: "iPhone",
                 reason: App.consts.reasons.trademark
             },
+            google: {  // https://regex101.com/r/qW8fI8/1
+                expr: /\bgo+(?:g+le|lge?|gel)([drs]|ing|\b)/gi,
+                replacement: function(str,suffix) {
+                    return "Googl" + ((suffix.search(/ing/) == -1 ) ? "e" : "") + suffix;
+                },
+                reason: App.consts.reasons.trademark
+            },
             google_verbed: {
                 expr: /\bgoogl(?:ed|ing|er)\b/gi,
                 replacement: function(str) {
@@ -454,8 +461,13 @@
                 },
                 reason: App.consts.reasons.trademark
             },
-            google: { // https://regex101.com/r/iS5fO1/1
-                expr: /\bgoogle\b[ \t]*(?:maps?|sheets?|docs?|drive|sites?|forms?|documents?|spreadsheets?|images?|presentations?)?\b/gi,
+            spreadsheet: {  // https://regex101.com/r/oK4uW3/1 - must appear before google_things
+                expr: /\b(s)[pr]+[ea]+dsh?e+t(?:ing)?(s)?\b/gi,
+                replacement: "$1preadsheet$2",
+                reason: App.consts.reasons.spelling
+            },
+            google_things: { // https://regex101.com/r/iS5fO1/1
+                expr: /\bgoogle\b[ \t]*(?:maps?|sheets?|docs?|drive|sites?|forms?|documents?|spreadsheets?|images?|presentations?|play)?\b/gi,
                 replacement: function(str) {
                     return str.toTitleCase();
                 },
@@ -1023,8 +1035,8 @@
                 replacement: "$1ou",
                 reason: App.consts.reasons.spelling
             },
-            doesn_t: { // https://regex101.com/r/sL0uO9/3
-                expr: /\b(d)(?:ose?[^\w]*n?.?t|oens.?t|oesn[^\w]*t|oest)\b/gi,
+            doesn_t: { // https://regex101.com/r/sL0uO9/5
+                expr: /\b(d)(?:ose?[^\w]*n?.?t|oens.?t|oesn?[^\w]*t|oest)\b/gi,
                 replacement: "$1oesn't",
                 reason: App.consts.reasons.spelling
             },
@@ -1038,8 +1050,8 @@
                 replacement: "$1idn't",
                 reason: App.consts.reasons.spelling
             },
-            don_t: {
-                expr: /\b(d)(?:on[^\w]*no?t|ont?)\b/gi,
+            don_t: {  // https://regex101.com/r/nT2jV6/1
+                expr: /\b(d)(?:on[^\w']*t|o[n']+o?t)\b/gi,
                 replacement: "$1on't",
                 reason: App.consts.reasons.spelling
             },
@@ -1373,9 +1385,9 @@
                 replacement: "$1enefits",
                 reason: App.consts.reasons.spelling
             },
-            authorization: {
-                expr: /\b(a)uth\b/gi,           // This may be too ambiguous, could also mean "authentication"
-                replacement: "$1uthorization",
+            authorization: {  // https://regex101.com/r/pQ8mD9/1
+                expr: /([^\b\w.-])(a)uth\b/gi,           // This may be too ambiguous, could also mean "authentication"
+                replacement: "$1$2uthorization",
                 reason: App.consts.reasons.spelling
             },
             persistent: {
@@ -1598,8 +1610,8 @@
                 replacement: "$1xample",
                 reason: App.consts.reasons.spelling
             },
-            somewhere: {
-                expr: /\b(s)ome ?wh?[ea]re?\b/gi,
+            somewhere: {  // https://regex101.com/r/aU2nP5/1
+                expr: /\b(s)ome?(?: ?where?|w[ea]+re?)\b/gi,
                 replacement: "$1omewhere",
                 reason: App.consts.reasons.spelling
             },
@@ -2066,8 +2078,7 @@
                     // words starting with vowels being incorrectly treated, check that the script
                     // has not had a unicode substitution error. (Git did this do me, once.)
                     function AvsAnOverride_(fword) {
-                        //var exceptionsA_ = /^(?:uis?|co\w|form|v|data|media)/i;
-                        var exceptionsA_ = /^(?:uis?|data|java)/i;
+                        var exceptionsA_ = /^(?:uis?|data|java|form\w*)/i;
                         var exceptionsAn_ = /(?:^[lr]value|a\b|sql)/i;
                         return (exceptionsA_.test(fword) ? article[0] :
                                 exceptionsAn_.test(fword) ? article[0]+"n" : false);
@@ -2087,7 +2098,7 @@
                     // Leave some words alone: filenames, camelCase
                     for (var i=0; i<fWordChars.length; i++) {
                         if (fWordChars[i].search(/[._/]/g) !== -1 ||
-                            fWordChars[i] == fWordChars[i].toUpperCase())
+                            (fWordChars[i].search(/[a-z]/gi) !==-1 && fWordChars[i] == fWordChars[i].toUpperCase()))
                             return sentence;
                     }
                     var update = capChar + fWordPost + sentencePost;
@@ -2178,6 +2189,11 @@
             works_perfectly: {  // 13K+ posts
                 expr: /\b(w)ork(s)? p[er]+fect\b/gi,
                 replacement: "$1ork$2 perfectly",
+                reason: App.consts.reasons.grammar
+            },
+            doesnt_work: {  // 900+ posts
+                expr: /\b(d)on't works/gi,
+                replacement: "$1oesn't work",
                 reason: App.consts.reasons.grammar
             },
             /*
