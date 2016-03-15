@@ -2055,6 +2055,18 @@
                 replacement: "$1uestion",
                 reason: App.consts.reasons.spelling
             },
+            variable: {  // hhttps://regex101.com/r/sI3lT5/1
+                //thanks Kyll - http://chat.stackoverflow.com/transcript/message/29352137#29352137
+                expr: /\b(v)[ai]+r[ia]+b[le]+(s)?\b/gi,
+                replacement: "$1ariable$2",
+                reason: App.consts.reasons.spelling
+            },
+            function_: {  // hhttps://regex101.com/r/sI3lT5/1
+                //thanks Kyll - http://chat.stackoverflow.com/transcript/message/29352203#29352203
+                expr: /\b(f)[un]+ct[io]+n?/gi,
+                replacement: "$1unction",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
