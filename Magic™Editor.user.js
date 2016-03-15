@@ -2067,6 +2067,11 @@
                 replacement: "$1unction",
                 reason: App.consts.reasons.spelling
             },
+            being: {  // 4,600+
+                expr: /\b(b)eeing\b/gi,
+                replacement: "$1eing",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -2308,9 +2313,9 @@
                 debug: false,
                 reason: App.consts.reasons.layout
             },
-            numbered_list: { // https://regex101.com/r/mI1aV3/2
-                expr: /[\n\r]+([ \t]*[\d]+)[).] */gm,
-                replacement: "\n\n$1. ",
+            numbered_list: { // https://regex101.com/r/mI1aV3/3
+                expr: /([\n\r]|^)+\(?([ \t]*[\d]+)[).:-] */gm,
+                replacement: "$1$1$2. ",
                 reason: App.consts.reasons.layout
             },
             // DISABLED temporarily - see Issue #115
