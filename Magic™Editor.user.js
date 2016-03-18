@@ -2072,6 +2072,14 @@
                 replacement: "$1eing",
                 reason: App.consts.reasons.spelling
             },
+            happen: {  // https://regex101.com/r/jH8rE5/2
+                // thanks Praveen - http://chat.stackoverflow.com/transcript/message/29427717#29427717
+                expr: /\b(h)ap+e?n(e?d|s|ing)?\b/gi,
+                replacement: function (match,fChar,suffix) {
+                    return fChar+"appen"+suffix.replace(/^d/,'ed');
+                },
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
