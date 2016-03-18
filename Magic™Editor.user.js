@@ -136,8 +136,8 @@
                 },
                 reason: App.consts.reasons.tidyTitle
             },
-            taglist: {  // https://regex101.com/r/wH4oA3/19
-                expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?:and|[ ,.&+/-])*)+[:. \)-]*|(?:[:. \(-]|in|with|using|by|for)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
+            taglist: {  // https://regex101.com/r/wH4oA3/21
+                expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?:and|[ ,.&+/-])*)+[:. \)-]*|\b(?:[:. \(-]|in|with|using|by|for)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
                                  .replace(/_xTagsx_/g,App.globals.taglist.map(escapeTag).join("|")),
                                  //.replace(/\\(?=[bsSdDwW])/g,"\\"), // https://regex101.com/r/pY1hI2/1 - WBN to figure this out.
                                  'gi'),
