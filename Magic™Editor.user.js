@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.5.2.63
+// @version        1.5.2.64
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com\/(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
@@ -136,8 +136,8 @@
                 },
                 reason: App.consts.reasons.tidyTitle
             },
-            taglist: {  // https://regex101.com/r/wH4oA3/19
-                expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?:and|[ ,.&+/-])*)+[:. \)-]*|(?:[:. \(-]|in|with|using|by|for)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
+            taglist: {  // https://regex101.com/r/wH4oA3/21
+                expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?:and|[ ,.&+/-])*)+[:. \)-]*|\b(?:[:. \(-]|in|with|using|by|for)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
                                  .replace(/_xTagsx_/g,App.globals.taglist.map(escapeTag).join("|")),
                                  //.replace(/\\(?=[bsSdDwW])/g,"\\"), // https://regex101.com/r/pY1hI2/1 - WBN to figure this out.
                                  'gi'),
@@ -2055,6 +2055,31 @@
                 replacement: "$1uestion",
                 reason: App.consts.reasons.spelling
             },
+            variable: {  // hhttps://regex101.com/r/sI3lT5/1
+                //thanks Kyll - http://chat.stackoverflow.com/transcript/message/29352137#29352137
+                expr: /\b(v)[ai]+r[ia]+b[le]+(s)?\b/gi,
+                replacement: "$1ariable$2",
+                reason: App.consts.reasons.spelling
+            },
+            function_: {  // hhttps://regex101.com/r/sI3lT5/1
+                //thanks Kyll - http://chat.stackoverflow.com/transcript/message/29352203#29352203
+                expr: /\b(f)[un]+ct[io]+n?/gi,
+                replacement: "$1unction",
+                reason: App.consts.reasons.spelling
+            },
+            being: {  // 4,600+
+                expr: /\b(b)eeing\b/gi,
+                replacement: "$1eing",
+                reason: App.consts.reasons.spelling
+            },
+            happen: {  // https://regex101.com/r/jH8rE5/2
+                // thanks Praveen - http://chat.stackoverflow.com/transcript/message/29427717#29427717
+                expr: /\b(h)ap+e?n(e?d|s|ing)?\b/gi,
+                replacement: function (match,fChar,suffix) {
+                    return fChar+"appen"+suffix.replace(/^d/,'ed');
+                },
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -2296,9 +2321,9 @@
                 debug: false,
                 reason: App.consts.reasons.layout
             },
-            numbered_list: { // https://regex101.com/r/mI1aV3/2
-                expr: /[\n\r]+([ \t]*[\d]+)[).] */gm,
-                replacement: "\n\n$1. ",
+            numbered_list: { // https://regex101.com/r/mI1aV3/3
+                expr: /([\n\r]|^)+\(?([ \t]*[\d]+)[).:-] */gm,
+                replacement: "$1$1$2. ",
                 reason: App.consts.reasons.layout
             },
             // DISABLED temporarily - see Issue #115
@@ -2761,3 +2786,10 @@ function escapeTag(tag) {
                      });
     return "(?:\\s|\\b|$)" + retag + "(?:\\s|\\b|$)";  // hack - enclose tag in regexp boundary checks. WBN to do this in the taglist regexp.
 }
+
+// Better handling of indentation and the TAB key when editing posts
+// From balpha's stackexchange-tab-editing
+// (c) 2012 Benjamin Dumke-von der Ehe
+// Which is released under the MIT License - https://opensource.org/licenses/MIT
+// See http://stackapps.com/questions/3247/better-handling-of-indentation-and-the-tab-key-when-editing-posts
+function with_jquery(t){var e=document.createElement("script");e.type="text/javascript",e.textContent="("+t.toString()+")(jQuery)",document.body.appendChild(e)}with_jquery(function(t){t(function(){function e(t){var e=t.caret(),n="backward"===t[0].selectionDirection;return e.end-=e.text.match(/([ \t\n]*)$/)[0].length,n?(e.directedStart=e.end,e.directedEnd=e.start,e.backward=!0):(e.directedStart=e.start,e.directedEnd=e.end),e}function n(t,e,n,r){var a,i;2===arguments.length&&(n=e),r&&(a=e,e=n,n=a),e>n&&(a=e,e=n,n=a,i=!0),i&&h?t[0].setSelectionRange(e,n,"backward"):t.caret(e,n)}function r(e,n){"undefined"==typeof n&&(n=!l),l^n&&(t(e).css("opacity",n?1:.3),l=n)}function a(){var e=t(this),n=this.value||"",r=e.caret(),a=n.substring(0,r.end),i=(a.match(/(?:^|\n)([^\n]*)$/)||["",""])[1];return/^[ \t]+$/.test(i)?c.call(this,!0):!0}function i(r){var a,i,c=t(this),s=this.value||"",h=e(c),u=s.substring(0,h.directedEnd),l=s.substring(h.directedEnd),o=(u.match(/(?:^|\n)([^\n]*)$/)||["",""])[1];if(o.length){a=o.search(/[^ \t]/);var f=new RegExp("^ {0,"+(d-1)+"}	");(a>=d||a>0&&f.test(o))&&(i=h.directedEnd-o.length+a)}else a=(l.match(/^[\t ]*/)||[""])[0].length,a>0&&(i=h.directedEnd+a);return"undefined"!=typeof i?(r?n(c,h.directedStart,i):n(c,i),!1):!0}function c(r){var a,i,c=t(this),h=this.value||"",u=e(c),l=h.substring(0,u.start),o=h.substring(u.start,u.end),f=h.substring(u.end);if(u.start===u.end){var g,w=(l.match(/(?:^|\n)([^\n]*)$/)||["",""])[1],p=0;if(r&&!/(^|[ \t])$/.test(w))return!1;var v=!0;for(r&&!w.length&&(f=f.replace(/^[ \t]*/,function(t){return w=t,l+=t,""}),v=!1),g=0;g<w.length;g++)"	"===w.charAt(g)?p=0:p++;if(r){var y=w.length?p%d||d:d,b=new RegExp(" {0,"+(y-1)+"}[ \\t]$");l=l.replace(b,function(t){return a=-t.length,""})}else a=d-p%d,l+=s.slice(p%d);c.val(l+f),v||(a=0),c.caret(u.start+a,u.start+a)}else{l=l.replace(/(^|\n)([^\n]*)$/,function(t,e,n){return o=n+o,e});var m="\n"===h.substr(u.start-1,1)?0:1;if(r){a=0;var b=new RegExp("(^|\n)(	| {1,"+(d-1)+"}[ 	])","g");if(o=o.replace(b,function(t,e,n){return a||(i=d-n.length),a-=n.length,e}),!a)return!1}else a=0,i=0,o=o.replace(/^|\n/g,function(t){return a+=d,t+s});c.val(l+o+f),n(c,u.start+i+m*a,u.end+a,u.backward)}return!1}if(window.StackExchange&&StackExchange.ready){var d=4,s=" ".repeat(d),h="selectionDirection"in t("<textarea />")[0],u={9:{handler:c,allowShift:!0},36:{handler:i,allowShift:h},8:{handler:a}},l=!0,o=!1;t("#mainbar").on("keyup",".wmd-input",function(t){o&&17===t.which?r(this):r(this,!0)}),t("#mainbar").on("keydown",".wmd-input",function(t){if(o=17===t.which,t.ctrlKey||t.altKey||t.metaKey)return!0;var e=l;if(r(this,!0),!e)return!0;if(!u.hasOwnProperty(t.which))return!0;var n=u[t.which];return t.shiftKey&&!n.allowShift?!0:n.handler.call(this,t.shiftKey)})}})});

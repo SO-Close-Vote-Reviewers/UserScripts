@@ -132,7 +132,27 @@ When you click the Magic™ wand, the display changes to show the applied update
 At this time (4 Feb 2016), Magic™ Editor has:
 
 - Rules for tidying question titles; tags are removed from the beginning and end, all caps titles are converted to Sentence case.
-- 89 Trademark spelling & capitalization rules (e.g. "JavaScript", "MySQL", and "WordPress").
-- 210 Spelling rules, many of which can fix multiple words.
-- 17 Grammar rules addressing sentence capitalization, proper use of "a" vs. "an", spacing, comma usage, improperly formatted contractions ("Im", "ie", "eg", "etc", etc.), and common broken English (e.g. "I am wanting...").
-- 9 Noise-reduction rules to remove fluff that adds nothing of technical value to posts.
+- 97 Trademark spelling & capitalization rules (e.g. "JavaScript", "MySQL", and "WordPress").
+- 255 Spelling rules, many of which can fix multiple words.
+- 55 Acronym capitalization rules (e.g. "HTTP")
+- 25 Grammar rules addressing sentence capitalization, proper use of "a" vs. "an", spacing, comma usage, improperly formatted contractions ("Im", "ie", "eg", "etc", etc.), and common broken English (e.g. "I am wanting...").
+- 12 Noise-reduction rules to remove fluff that adds nothing of technical value to posts.
+- Automatic correction of numbered-list item layout.
+- Editor support for shifting text (indent / outdent).
+
+### Better handling of indentation and the TAB key when editing posts<sup>[ref](http://stackapps.com/questions/3247)</sup>
+<sup><sub>Included script (c) 2012 Benjamin Dumke-von der Ehe, under [MIT Licence](https://opensource.org/licenses/MIT)</sub></sup>
+
+This user script changes the behavior of a few keys (most notably the <kbd>Tab</kbd> key) within the post editor to behave more like it does in IDEs or text editors:
+
+* When one or more lines are selected, <kbd>Tab</kbd> and <kbd>Shift</kbd>-<kbd>Tab</kbd> indent and outdent these lines
+
+* When nothing is selected, <kbd>Tab</kbd> and <kbd>Shift</kbd>-<kbd>Tab</kbd> insert or remove whitespace to align the cursor on a tab boundary
+
+* When the cursor is within the left margin of a line, <kbd>Backspace</kbd> removes whitespace to align the cursor on a tab boundary (in other words, it may delete more than just one space character)
+
+* On indented lines, the <kbd>Home</kbd> key toggles the cursor between the *actual* beginning of the line and the beginning of the real content (in other words, it jumps back and forth to before and after the leading whitespace). This only happens on lines that are indented by at least four spaces or a tab, since it can be confusing for the following reason: When you press <kbd>Home</kbd> in the text editor, you expect the cursor to jump to the beginning of the line *as it is displayed*, which (due to wrapping) may be different from the actual previous newline character.
+
+* So that you don't have to reach for the mouse to tab out of the editor, you can press *and release* the <kbd>Ctrl</kbd> key, and the next key press will not be intercepted; thus <kbd>Tab</kbd> takes you out of the editor. Pressing and releasing <kbd>Ctrl</kbd> will grey out the text editor until the next keystroke to clarify this. If you think this is too awkward, I'm open to other suggestions, but there should be some way to tab out of the editor .
+
+Note that this will never insert TAB characters, only spaces. It does however handle already-present TABs, and it handles them the same way the Markdown converter does.
