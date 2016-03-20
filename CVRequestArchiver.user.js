@@ -337,7 +337,7 @@ function CVRequestArchiver(info){
             setTimeout(checkRequests, response.backoff * 1000);
         });
 
-        var url = 'http://api.stackexchange.com/2.2/questions/' + formatPosts(currentreq) + '?' + [
+        var url = '//api.stackexchange.com/2.2/questions/' + formatPosts(currentreq) + '?' + [
             'pagesize=100',
             'site=stackoverflow',
             'key=qhq7Mdy8)4lSXLCjrzQFaQ((',
