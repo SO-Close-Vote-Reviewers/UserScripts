@@ -1,15 +1,15 @@
 // ==UserScript==
 // @name         Review links
 // @namespace    https://github.com/Gothdo
-// @version      1.0
+// @version      1.1
 // @description  If a question or an answer is currently in a review queue, adds a link to it.
 // @author       Gothdo
-// @match        http://stackoverflow.com/questions/*
+// @match        *://stackoverflow.com/questions/*
 // @grant        none
 // ==/UserScript==
 
 function addReviewLink(isQuestion, postId) {
-  $.get(`http://stackoverflow.com/posts/${postId}/timeline`)
+  $.get(`/posts/${postId}/timeline`)
     .then(page=> {
       const $reviewLink = $(page).find(".event-type.review").parent().parent().find(".event-verb a")
       if ($reviewLink.length === 1) {
