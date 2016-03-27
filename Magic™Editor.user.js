@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.5.2.64
+// @version        1.5.2.65
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com\/(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
@@ -447,8 +447,8 @@
                 replacement: "iPhone",
                 reason: App.consts.reasons.trademark
             },
-            google: {  // https://regex101.com/r/qW8fI8/1
-                expr: /\bgo+(?:g+le|lge?|gel)([drs]|ing|\b)/gi,
+            google: {  // https://regex101.com/r/qW8fI8/2
+                expr: /\bgo+(?:g+le?|lge?|gl?el)(e|e[drs]|ing)\b/gi,
                 replacement: function(str,suffix) {
                     return "Googl" + ((suffix.search(/ing/) == -1 ) ? "e" : "") + suffix;
                 },
@@ -2076,6 +2076,7 @@
                 // thanks Praveen - http://chat.stackoverflow.com/transcript/message/29427717#29427717
                 expr: /\b(h)ap+e?n(e?d|s|ing)?\b/gi,
                 replacement: function (match,fChar,suffix) {
+                    suffix = suffix || '';
                     return fChar+"appen"+suffix.replace(/^d/,'ed');
                 },
                 reason: App.consts.reasons.spelling
@@ -2240,7 +2241,7 @@
                 reason: App.consts.reasons.noise
             },
             please: {
-                expr: /\b(p)(?:lz|lse?|l?ease?)\b/gi,
+                expr: /\b(p)(?:lz+|lse?|l?ease?)\b/gi,
                 replacement: "$1lease",
                 reason: App.consts.reasons.silent
             },
