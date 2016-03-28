@@ -2230,8 +2230,13 @@
                 replacement: "$1elp",
                 reason: App.consts.reasons.silent
             },
-            thanks: {
-                expr: /\b(t)(?:anks|hx|anx)\b/gi,
+            thank: {  // https://regex101.com/r/pN0sX4/2
+                expr: /\b(t)(?:[hank]{2,4}|hx)(?= *(you\b))\b/gi,
+                replacement: "$1hank",
+                reason: App.consts.reasons.silent
+            },
+            thanks: {  // https://regex101.com/r/cO7gG2/2
+                expr: /\b(t)(?:anks *(?=[.?!]\n|to|for|in|ever)|[han]{3}([ks]{2}|x)+|hx|anx)\b/gi,
                 replacement: "$1hanks",
                 reason: App.consts.reasons.silent
             },
