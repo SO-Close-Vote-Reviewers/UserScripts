@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.5.2.65
+// @version        1.5.2.66
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com\/(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
@@ -447,11 +447,9 @@
                 replacement: "iPhone",
                 reason: App.consts.reasons.trademark
             },
-            google: {  // https://regex101.com/r/qW8fI8/2
-                expr: /\bgo+(?:g+le?|lge?|gl?el)(e|e[drs]|ing)\b/gi,
-                replacement: function(str,suffix) {
-                    return "Googl" + ((suffix.search(/ing/) == -1 ) ? "e" : "") + suffix;
-                },
+            google: {  // https://regex101.com/r/qW8fI8/4
+                expr: /\bgo+(?:g+le?|lge?|gl?el)(e[drs]*|ing)\b/gi,
+                replacement: "Googl$1",
                 reason: App.consts.reasons.trademark
             },
             google_verbed: {
