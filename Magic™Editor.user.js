@@ -1603,8 +1603,8 @@
                 replacement: "$1efore",
                 reason: App.consts.reasons.spelling
             },
-            example: { // https://regex101.com/r/uU4bH5/1
-                expr: /\b(e)(?:xsample|xamle|x?amp[le]{1-2}|xemple)\b/gi,
+            example: { // https://regex101.com/r/uU4bH5/2
+                expr: /\b(e)(?:xsample|xamle|x?amp[le]{1,2}|xemple|xaple)(s)?\b/gi,
                 replacement: "$1xample",
                 reason: App.consts.reasons.spelling
             },
@@ -2076,6 +2076,23 @@
                 replacement: function (match,fChar,suffix) {
                     suffix = suffix || '';
                     return fChar+"appen"+suffix.replace(/^d/,'ed');
+                },
+                reason: App.consts.reasons.spelling
+            },
+            actual: {  // https://regex101.com/r/mT1cL7/1
+                expr: /\b(a)(?:ct[ua]+|[ct]ua)l*(ly)?\b/gi,
+                replacement: "$1ctual$2",
+                reason: App.consts.reasons.spelling
+            },
+            assign: {  // https://regex101.com/r/cM7mF2/1
+                expr: /\b(a)s+i[gn]+/gi,
+                replacement: "$1ssign",
+                reason: App.consts.reasons.spelling
+            },
+            prefer_refer: {  // https://regex101.com/r/gG7bQ9/1
+                expr: /\b([pr]+)ef+e?r+([ea]nc|able)/gi,
+                replacement: function(match,fChar,suffix) {
+                    return fChar+"efer"+suffix.replace(/anc/,"enc");
                 },
                 reason: App.consts.reasons.spelling
             },
