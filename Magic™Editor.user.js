@@ -2096,6 +2096,21 @@
                 },
                 reason: App.consts.reasons.spelling
             },
+            use_case: {  // 4,556 (+818 usecases)
+                expr: /\b(u)se(c)ase/gi,
+                replacement: "$1se $2ase",
+                reason: App.consts.reasons.spelling
+            },
+            matches: {  // 
+                expr: /\b(m)atc[he]s/gi,
+                replacement: "$1atches",
+                reason: App.consts.reasons.spelling
+            },
+            specific: {  // 
+                expr: /\b(s)pe[cs]i?fic/gi,
+                replacement: "$1pecific",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -2305,6 +2320,13 @@
             enter_code_here: {
                 expr: /\benter (?:code|image description|link description) here\b/gi,
                 replacement: "",
+                reason: App.consts.reasons.noise
+            },
+            i_have_a_question: {  // https://regex101.com/r/uM0nQ1/1
+                expr: /^(?:I have|I've)(?: got)* a question[ \t,.?:-]*(?:about|when)?[ \t,.?:-]*/gi,
+                replacement: "",
+                rerun: ["firstcaps"],
+                debug: true,
                 reason: App.consts.reasons.noise
             },
             /*
@@ -2631,6 +2653,8 @@
             
             // Loop through all editing rules
             for (var j in App.edits) for (var field in fields) {
+                var debug = App.edits[j].debug;
+                if (debug) console.log("edit "+j+" in "+field);
                 if (App.consts.reasons.tidyTitle == App.edits[j].reason && 'title' !== field)
                     continue;  // Skip title-only edits if not editing title.
                 var fix = App.funcs.fixIt(data[field], App.edits[j]);
