@@ -26,58 +26,38 @@ function startAutoComplete(jquery) {
     var $ = jquery,
         inp = $('#input'),  // where we type messages
         parse = /(@closey\s+)([\w|\W]+)/i, // //parse botname and commands
-        cmds_was = [
-             // public
-            'alive',
-            'commands',
-            'help',
-            'running commands',
-            'status',
-             // Registered
-            'audit stats', // - Shows stats about your recorded audits.
-            'completed tags', // [min <#>] - Shows the latest tags that have been completed by multiple people.
-            'current session', // - Tells if the user has an open session or not, and when it started.
-            'current tag', // - Get the tag that has the most amount of manageable close queue items from the SEDE query.
-            'end session', // - If a user has an open review session this command will force end that session.
-            'last session stats', // - Shows stats about your last review session.
-            'last session edit count', // <new count> - Edits the number of reviewed items in your last review session.
-            'next', // <#> tags - Displays the first X tags from the SEDE query to focus on.
-            'refresh tags', // - Forces a refresh of the tags obtained from the SEDE query.
-            'start event', // - Shows the current stats from the /review/close/stats page and the next 3 tags to work on.
-            'starting', // - Informs the chatbot that you are starting a new review session.
-            'stats', // - Shows the stats at the top of the /review/close/stats page.
-            // owner
-            'add user',
-            'track user', // <chat id> - Adds the user to the registered users list.
-            'stop bot'// - The bot will leave the chat room and quit the running application.
-        ], // all known commands
         cmds = [
-             // public
+             // Public
+            'add',                    // [user id] to [group name] - Manually adds a user to the given permission group.
             'alive',                  // A simple ping command to test if the bot is running.
-            'commands',               // Shows this list.
+            'approve request',        // [#] - Approves a pending permission request.
+            'commands',               // Shows most commands.
+            'commands full',          // Shows all commands, broken down by category.
             'help',                   // Prints info about this software.
+            'membership',             // Shows a list of all permission groups, and the members in those permission groups.
+            'my membership',          // Shows the permission groups you are a part of.
+            'reject request',         // [#] - Rejects a pending permission request.
+            'remove',                 // [user id] from [group name] - Manually removes a user from the given permission group.
+            'request permission to',  // [group name] - Submits a request for the user to be added to a given permission group.
             'running commands',       // Displays a list of all commands that the chat bot is currently running.
             'status',                 // Tests if the chatbot is alive and shows simple info about it.
-             // Registered
+            'view requests',          // Shows all pending permission requests.
+             // Reviewer
             'audit stats',            // Shows stats about your recorded audits.
             'current tag',            // Get the tag that has the most amount of manageable close queue items from the SEDE query.
-            'my membership',          // Shows the permission groups you are a part of.
             'next',                   // [#] tags - Displays the first X tags from the SEDE query to focus on.
             'opt in',                 // Tells the bot to resume tracking your close vote reviewing.
             'opt out',                // Tells the bot to stop tracking your close vote reviewing.
             'refresh tags',           // Forces a refresh of the tags obtained from the SEDE query.
-            'request permission to',  // [group name] - Submits a request for the user to be added to a given permission group.
             'reviews today',          // Shows stats about your reviews completed today. Or, if requesting a full data dump ("reviews today details"), prints a table of the reviews items you've done today.
             'reviews today details',  // <...Or, if requesting a full data dump ("reviews today details"), prints a table of the reviews items you've done today.
             'room effectiveness',     // Shows stats about how effective the room is at processing close vote review items.
-            'start event',            // Shows the current stats from the /review/close/stats page and the next 3 tags to work on.
             'stats',                  // Shows the stats at the top of the /review/close/stats page.
-            // owner
-            'add',                    // [user id] to [group name] - Manually adds a user to the given permission group.
-            'approve request',        // [#] - Approves a pending permission request.
-            'membership',             // Shows a list of all permission groups, and the members in those permission groups.
-            'reject request',         // [#] - Rejects a pending permission request.
-            'remove',                 // [user id] from [group name] - Manually removes a user from the given permission group.
+            'total reviews today',    // Shows summary information and a table of the people who have completed reviews today.
+            // BotOwner
+//          'add review',             // [review id] [user id] - Manually adds a review to a user. Should only be used for testing.
+            'ping reviewers',         // <message> - The bot will send a message with an @reply to all users that have done reviews recently.
+            'start event',            // Shows the current stats from the /review/close/stats page and the next 3 tags to work on.
             'stop bot'                // - The bot will leave the chat room and quit the running application.
         ]; // all known commands
     // clear all hints and remove click handlers
