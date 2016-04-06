@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         @Closey command auto complete
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/UserScripts
-// @version      0.2
+// @version      0.3
 // @description  command completion for bot commands
 // @author       rene
 // @match        *://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers
@@ -26,7 +26,7 @@ function startAutoComplete(jquery) {
     var $ = jquery,
         inp = $('#input'),  // where we type messages
         parse = /(@closey\s+)([\w|\W]+)/i, // //parse botname and commands
-        cmds = [
+        cmds_was = [
              // public
             'alive',
             'commands',
@@ -50,8 +50,36 @@ function startAutoComplete(jquery) {
             'add user',
             'track user', // <chat id> - Adds the user to the registered users list.
             'stop bot'// - The bot will leave the chat room and quit the running application.
+        ], // all known commands
+        cmds = [
+             // public
+            'alive',                  // A simple ping command to test if the bot is running.
+            'commands',               // Shows this list.
+            'help',                   // Prints info about this software.
+            'running commands',       // Displays a list of all commands that the chat bot is currently running.
+            'status',                 // Tests if the chatbot is alive and shows simple info about it.
+             // Registered
+            'audit stats',            // Shows stats about your recorded audits.
+            'current tag',            // Get the tag that has the most amount of manageable close queue items from the SEDE query.
+            'my membership',          // Shows the permission groups you are a part of.
+            'next',                   // [#] tags - Displays the first X tags from the SEDE query to focus on.
+            'opt in',                 // Tells the bot to resume tracking your close vote reviewing.
+            'opt out',                // Tells the bot to stop tracking your close vote reviewing.
+            'refresh tags',           // Forces a refresh of the tags obtained from the SEDE query.
+            'request permission to',  // [group name] - Submits a request for the user to be added to a given permission group.
+            'reviews today',          // Shows stats about your reviews completed today. Or, if requesting a full data dump ("reviews today details"), prints a table of the reviews items you've done today.
+            'reviews today details',  // <...Or, if requesting a full data dump ("reviews today details"), prints a table of the reviews items you've done today.
+            'room effectiveness',     // Shows stats about how effective the room is at processing close vote review items.
+            'start event',            // Shows the current stats from the /review/close/stats page and the next 3 tags to work on.
+            'stats',                  // Shows the stats at the top of the /review/close/stats page.
+            // owner
+            'add',                    // [user id] to [group name] - Manually adds a user to the given permission group.
+            'approve request',        // [#] - Approves a pending permission request.
+            'membership',             // Shows a list of all permission groups, and the members in those permission groups.
+            'reject request',         // [#] - Rejects a pending permission request.
+            'remove',                 // [user id] from [group name] - Manually removes a user from the given permission group.
+            'stop bot'                // - The bot will leave the chat room and quit the running application.
         ]; // all known commands
-
     // clear all hints and remove click handlers
     function clearHints() {
         $('#closey').find('li').each(function () { $(this).off('click'); });
