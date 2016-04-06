@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.5.2.66
+// @version        1.5.2.67
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com\/(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
@@ -1603,8 +1603,8 @@
                 replacement: "$1efore",
                 reason: App.consts.reasons.spelling
             },
-            example: { // https://regex101.com/r/uU4bH5/1
-                expr: /\b(e)(?:xsample|xamle|x?amp[le]{1-2}|xemple)\b/gi,
+            example: { // https://regex101.com/r/uU4bH5/2
+                expr: /\b(e)(?:xsample|xamle|x?amp[le]{1,2}|xemple|xaple)(s)?\b/gi,
                 replacement: "$1xample",
                 reason: App.consts.reasons.spelling
             },
@@ -2079,6 +2079,38 @@
                 },
                 reason: App.consts.reasons.spelling
             },
+            actual: {  // https://regex101.com/r/mT1cL7/1
+                expr: /\b(a)(?:ct[ua]+|[ct]ua)l*(ly)?\b/gi,
+                replacement: "$1ctual$2",
+                reason: App.consts.reasons.spelling
+            },
+            assign: {  // https://regex101.com/r/cM7mF2/1
+                expr: /\b(a)s+i[gn]+/gi,
+                replacement: "$1ssign",
+                reason: App.consts.reasons.spelling
+            },
+            prefer_refer: {  // https://regex101.com/r/gG7bQ9/1
+                expr: /\b([pr]+)ef+e?r+([ea]nc|able)/gi,
+                replacement: function(match,fChar,suffix) {
+                    return fChar+"efer"+suffix.replace(/anc/,"enc");
+                },
+                reason: App.consts.reasons.spelling
+            },
+            use_case: {  // 4,556 (+818 usecases)
+                expr: /\b(u)se(c)ase/gi,
+                replacement: "$1se $2ase",
+                reason: App.consts.reasons.spelling
+            },
+            matches: {  // 
+                expr: /\b(m)atc[he]s/gi,
+                replacement: "$1atches",
+                reason: App.consts.reasons.spelling
+            },
+            specific: {  // 
+                expr: /\b(s)pe[cs]i?fic/gi,
+                replacement: "$1pecific",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -2288,6 +2320,13 @@
             enter_code_here: {
                 expr: /\benter (?:code|image description|link description) here\b/gi,
                 replacement: "",
+                reason: App.consts.reasons.noise
+            },
+            i_have_a_question: {  // https://regex101.com/r/uM0nQ1/1
+                expr: /^(?:I have|I've)(?: got)* a question[ \t,.?:-]*(?:about|when)?[ \t,.?:-]*/gi,
+                replacement: "",
+                rerun: ["firstcaps"],
+                debug: true,
                 reason: App.consts.reasons.noise
             },
             /*
@@ -2614,6 +2653,8 @@
             
             // Loop through all editing rules
             for (var j in App.edits) for (var field in fields) {
+                var debug = App.edits[j].debug;
+                if (debug) console.log("edit "+j+" in "+field);
                 if (App.consts.reasons.tidyTitle == App.edits[j].reason && 'title' !== field)
                     continue;  // Skip title-only edits if not editing title.
                 var fix = App.funcs.fixIt(data[field], App.edits[j]);
