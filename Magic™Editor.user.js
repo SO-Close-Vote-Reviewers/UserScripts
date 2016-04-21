@@ -2585,7 +2585,8 @@
                 'left': '410px',
                 'display': 'inline-block',
                 'overflow': 'visible',
-                'height': '55%',
+                //'height': '55%',
+                'height': '90%',  // Temporary? 21-Apr-2016 Stack changed their CSS.
                 'white-space': 'nowrap'
             });
             App.selections.buttonFix.css({
