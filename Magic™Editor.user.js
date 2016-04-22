@@ -127,6 +127,7 @@
         });
 
         // Define edit rules
+        // See https://regex101.com/r/fC3bY5/1 for a basic RegExp that excludes matches in filenames, paths, library names, etc.
         App.edits = {
             // Handle all-caps posts first
             noneedtoyell: {
@@ -1141,6 +1142,11 @@
                 replacement: "because",
                 reason: App.consts.reasons.spelling
             },
+            because_: {  // 10K+ posts
+                expr: /(?:'|\b)(c)ause (?=I|you|we|if)\b/gi,
+                replacement: "because ",
+                reason: App.consts.reasons.spelling
+            },
             ofc: {
                 expr: /\b(o)fc\b/gi,
                 replacement: "$1f course",
@@ -1325,6 +1331,11 @@
                 expr: /\b(w)h?eth?er\b/gi,
                 replacement: "$1hether",
                 reason: App.consts.reasons.spelling
+            },
+            whether_not_weather: { // https://regex101.com/r/oS1xE5/3
+                expr: /\b(w)eather(?= (?:it|we|I|or not|they|[^.?!]*(?:works?|helps?))\b)/gi,
+                replacement: "$1hether",
+                reason: App.consts.reasons.spelling                
             },
             through: {  // https://regex101.com/r/gQ0dZ1/4
                 expr: /\b(t)(?:hru|rough|hroug)\b/gi,
@@ -2245,8 +2256,8 @@
                 replacement: "$1.g. ",
                 reason: App.consts.reasons.grammar
             },
-            etc: {  // https://regex101.com/r/dE7cV1/4
-                expr: /\betc(?:\.+)?/g,
+            etc: {  // https://regex101.com/r/dE7cV1/5
+                expr: /\betc(?:\.+)?|ect\./g,
                 replacement: "etc.",
                 reason: App.consts.reasons.grammar
             },
@@ -2420,8 +2431,8 @@
                 replacement: "$1$1$2. ",
                 reason: App.consts.reasons.layout
             },
-            no_html_break: { // https://regex101.com/r/xP2oW9/1
-                expr: / *\< *br *\/? *> */gi,
+            no_html_break: { // https://regex101.com/r/xP2oW9/4
+                expr: / *< *br *\/? *> */gi,
                 replacement: "  ",
                 reason: App.consts.reasons.layout
             },
