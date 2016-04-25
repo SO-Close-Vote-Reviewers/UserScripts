@@ -2193,8 +2193,8 @@
                     // words starting with vowels being incorrectly treated, check that the script
                     // has not had a unicode substitution error. (Git did this do me, once.)
                     function AvsAnOverride_(fword) {
-                        var exceptionsA_ = /^(?:uis?|data|java|form\w*|rota|cd)/i;
-                        var exceptionsAn_ = /(?:^[lr]value|a\b|sql|ns)/i;
+                        var exceptionsA_ = /^(?:uis?|data|java|form\w*|rota|cd|mysql|tra\w+)/i;
+                        var exceptionsAn_ = /(?:^[lr]value|a\b|sql|ns|ng)/i;
                         return (exceptionsA_.test(fword) ? article[0] :
                                 exceptionsAn_.test(fword) ? article[0]+"n" : false);
                     }
