@@ -127,7 +127,7 @@
         });
 
         // Define edit rules
-        // See https://regex101.com/r/fC3bY5/1 for a basic RegExp that excludes matches in filenames, paths, library names, etc.
+        // See https://regex101.com/r/fC3bY5/2 for a basic RegExp that excludes matches in filenames, paths, library names, etc.
         App.edits = {
             // Handle all-caps posts first
             noneedtoyell: {
@@ -138,7 +138,7 @@
                 reason: App.consts.reasons.grammar
             },
             // Remove tags from title
-            taglist: {  // https://regex101.com/r/wH4oA3/22
+            taglist: {  // https://regex101.com/r/wH4oA3/23
                 // WARNING: the expression from regex101 must have backslashes escaped here - wbn to automate this...
                 expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?!\\.\\w)(?:and|[ ,.&+/-])*)+[:. \\)-]*|\\b(?:[:. \\(-]|in|with|using|by|for)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
                                  .replace(/_xTagsx_/g,App.globals.taglist.map(escapeTag).join("|")),
@@ -959,6 +959,11 @@
             },
             ide: {
                 expr: /(?:[^\b\w.]|^)ide\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            ram_rom: {
+                expr: /(?:[^\w.\-/\\_]|^)r[ao]m\b(?![.\-]\w|[/\\_])/gi,
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.acronym
             },
@@ -2170,6 +2175,21 @@
                 replacement: "$1ynchronous",
                 reason: App.consts.reasons.spelling
             },
+            exception: { // https://regex101.com/r/jK4gX6/1
+                expr: /\b(e)[xc]+e[pt]+ion/gi,
+                replacement: "$1xception",
+                reason: App.consts.reasons.spelling
+            },
+            information: { // https://regex101.com/r/yE3fD6/1
+                expr: /\b(i)nfo[rm]+at[io]+ns?\b/gi,
+                replacement: "$1nformation",
+                reason: App.consts.reasons.spelling
+            },
+            piece: { // https://regex101.com/r/tZ1fY3/1
+                expr: /\b(p)eace(s)?(?= of [\w -]*(?:code|cake|script|text|string|content|image|file))/gi,
+                replacement: "$1iece$2",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -2256,8 +2276,8 @@
                 replacement: "$1.g. ",
                 reason: App.consts.reasons.grammar
             },
-            etc: {  // https://regex101.com/r/dE7cV1/5
-                expr: /\betc(?:\.+)?|ect\./g,
+            etc: {  // https://regex101.com/r/dE7cV1/6
+                expr: /\betc(?:\.+)?|\bect\./g,
                 replacement: "etc.",
                 reason: App.consts.reasons.grammar
             },
@@ -2345,9 +2365,14 @@
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
+            complimentaryClose: {  // https://regex101.com/r/hL3kT5/6
+                expr: /^\s*(?:(?:kind(?:est)* |best )*regards?|cheers?|greetings?|thanks|thank you|peace)\b,?.*[\r\n]{0,2}.*(?:[.!?: ]*|$)/gim,
+                replacement: "",
+                reason: App.consts.reasons.noise
+            },
             // http://meta.stackexchange.com/questions/2950/should-hi-thanks-taglines-and-salutations-be-removed-from-posts/93989#93989
-            salutation: { // https://regex101.com/r/yS9lN8/10
-                expr: /^\s*(?:dears?\b.*$|greetings?\b.*$|(?:hi(?:ya)*|hel+o+|heya?|hai|g'?day|good\s?(?:evening|morning|day|afternoon)|ahoy|folks|guys)[,\s]*(?:\s+(?:all|guys|folks|friends?|there|everyone|people|matey?s?|bud+(y|ies))*))(?:[,.!?: ]*|$)/gmi,
+            salutation: { // https://regex101.com/r/yS9lN8/11
+                expr: /^\s*(?:dears?\b.*$|greetings?\b.*$|(?:hi(?:ya)*|hel+o+|heya?|hai|g'?day|peace[^.!]*|good\s?(?:evening|morning|day|afternoon)|ahoy|folks|guys)[,\s]*(?:\s+(?:you|all|guys|folks|friends?|there|everyone|people|matey?s?|bud+(y|ies))*))(?:[,.!?: ]*|$)/gmi,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
@@ -2358,11 +2383,6 @@
             },
             imnew: {
                 expr: /(?! )[\w\s]*\bi[' ]?a?m +(?:kinda|really) *new\w* +(?:to|in) *\w* *(?:and|[;,.!?])? */gi,
-                replacement: "",
-                reason: App.consts.reasons.noise
-            },
-            complimentaryClose: {  // https://regex101.com/r/hL3kT5/5
-                expr: /^\s*(?:(?:kind(?:est)* |best )*regards?|cheers?|greetings?|thanks|thank you)\b,?.*[\r\n]{0,2}.*(?:[.!?: ]*|$)/gim,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
