@@ -138,9 +138,9 @@
                 reason: App.consts.reasons.grammar
             },
             // Remove tags from title
-            taglist: {  // https://regex101.com/r/wH4oA3/23
+            taglist: {  // https://regex101.com/r/wH4oA3/25
                 // WARNING: the expression from regex101 must have backslashes escaped here - wbn to automate this...
-                expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?!\\.\\w)(?:and|[ ,.&+/-])*)+[:. \\)-]*|\\b(?:[:. \\(-]|in|with|using|by|for)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
+                expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?!\\.\\w)(?:and|[ ,.&+/-])*)+[:. \\)-]*|\\b(?:[:. \\(-]|in|with|using|by|for|from)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
                                  .replace(/_xTagsx_/g,App.globals.taglist.map(escapeTag).join("|")),
                                  //.replace(/\\(?=[bsSdDwW])/g,"\\"), // https://regex101.com/r/pY1hI2/1 - WBN to figure this out.
                                  'gi'),
@@ -1143,12 +1143,12 @@
                 reason: App.consts.reasons.spelling
             },
             cuz: {
-                expr: /\bcuz\b/gi,
+                expr: /'?\bcuz\b|'cause\b/gi,
                 replacement: "because",
                 reason: App.consts.reasons.spelling
             },
             because_: {  // 10K+ posts
-                expr: /(?:'|\b)(c)ause (?=I|you|we|if)\b/gi,
+                expr: /\b(c)ause (?=I|you|we|if)\b/gi,
                 replacement: "because ",
                 reason: App.consts.reasons.spelling
             },
@@ -1629,7 +1629,7 @@
             },
             example: { // https://regex101.com/r/uU4bH5/2
                 expr: /\b(e)(?:xsample|xamle|x?amp[le]{1,2}|xemple|xaple)(s)?\b/gi,
-                replacement: "$1xample",
+                replacement: "$1xample$2",
                 reason: App.consts.reasons.spelling
             },
             somewhere: {  // https://regex101.com/r/aU2nP5/1
@@ -2190,6 +2190,16 @@
                 replacement: "$1iece$2",
                 reason: App.consts.reasons.spelling
             },
+            is_there_a: {  // 2K+ posts
+                expr: /\b(i)s their a\b/gi,
+                replacement: "$1s there a",
+                reason: App.consts.reasons.spelling
+            },
+            usage: {
+                expr: /\b(u)s[ea]+ge?\b/gi,
+                replacement: "$1sage",
+                reason: App.consts.reasons.spelling
+            },
             /*
             ** Grammar - Correct common grammatical errors.
             **/
@@ -2222,9 +2232,9 @@
                 reason: App.consts.reasons.grammar
             },
             firstcaps: {
-                //    https://regex101.com/r/qR5fO9/41
+                //    https://regex101.com/r/qR5fO9/42
                 // Regex finds all sentences; replacement must determine whether it needs to capitalize.
-                expr: /(([A-Z_a-z]|\d(?!\d*\. ))(\S*))((?:(?:etc\.|i\.e\.|e\.g\.|vs\.|\.\.\.|\w*\.(?![\s")])|[*-]+|\n(?![ \t]*\n| *(?:[*-]|\d+\.))|[^.?!\n]?))+(?:([.?!])(?=[\s")]|$)|\n\n|\n(?= *[*-])|\n(?= *\d+\.)|$))/gi,
+                expr: /(([A-Za-z]|\d(?!\d*\. )|[.$_]\w+)(\S*))((?:(?:etc\.|i\.e\.|e\.g\.|vs\.|\.\.\.|\w*\.(?![\s")])|[*-]+|\n(?![ \t]*\n| *(?:[*-]|\d+\.))|[^.?!\n]?))+(?:([.?!])(?=[\s")]|$)|\n\n|\n(?= *[*-])|\n(?= *\d+\.)|$))/gi,
                 replacement: function(sentence, fWord, fChar, fWordPost, sentencePost, endpunc) { 
                     var capChar = fChar.toUpperCase();
                     if (sentence === "undefined"||capChar == fChar) return sentence;  // MUST match sentence, or gets counted as a change.
@@ -2232,7 +2242,7 @@
                     var fWordChars = fWord.split('');
                     // Leave some words alone: filenames, camelCase
                     for (var i=0; i<fWordChars.length; i++) {
-                        if (fWordChars[i].search(/[._/]/g) !== -1 ||
+                        if (fWordChars[i].search(/[._/$]/g) !== -1 ||
                             (fWordChars[i].search(/[a-z]/gi) !==-1 && fWordChars[i] == fWordChars[i].toUpperCase()))
                             return sentence;
                     }
@@ -2329,6 +2339,16 @@
             doesnt_work: {  // 900+ posts
                 expr: /\b(d)on't works/gi,
                 replacement: "$1oesn't work",
+                reason: App.consts.reasons.grammar
+            },
+            how_it_works: {  // 38,563+ posts
+                expr: /\b(h)ow it works\?/gi,
+                replacement: "$1ow does it work?",
+                reason: App.consts.reasons.grammar
+            },
+            double_period: {  // https://regex101.com/r/fG6lY3/1
+                expr: /([^.]|^)\.{2}(?!\.)/g,
+                replacement: "$1.",
                 reason: App.consts.reasons.grammar
             },
             /*
