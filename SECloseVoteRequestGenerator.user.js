@@ -13,6 +13,10 @@ if(typeof StackExchange === "undefined")
     var StackExchange = unsafeWindow.StackExchange;
 
 (function(){
+    if($(".close-question-link").data("isclosed") === true) {
+        return;
+    }
+    
     var reasons = {
         't': 'too broad', 
         'u': 'unclear',
