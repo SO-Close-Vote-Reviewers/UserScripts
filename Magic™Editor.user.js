@@ -699,6 +699,11 @@
                 replacement: "Eclipse",
                 reason: App.consts.reasons.trademark
             },
+            pthread: {
+                expr: /([^\w.\-/\\_]|^)pthr[ea]+d(s)?\b(?![.\-]\w|[/\\_])/gi,
+                replacement: "$1Pthread$2",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
@@ -1058,7 +1063,7 @@
                 reason: App.consts.reasons.spelling
             },
             didn_t: {
-                expr: /\b(d)id[^\w]*n?t\b/gi,
+                expr: /\b(d)id?[^\w]*n?t\b/gi,  // Caveat: changes dint -> didn't, although "dint" is a word.
                 replacement: "$1idn't",
                 reason: App.consts.reasons.spelling
             },
@@ -2170,8 +2175,13 @@
                 replacement: "$1uggest",
                 reason: App.consts.reasons.spelling
             },
-            synchronous: { // https://regex101.com/r/vG6jQ8/1
-                expr: /(s)[yi]nch?ron[ou]+s/gi,
+            synchronize: { // subset of https://regex101.com/r/vG6jQ8/1
+                expr: /(s)[yi]nch?ron/gi,
+                replacement: "$1ynchron",
+                reason: App.consts.reasons.spelling
+            },
+            synchronous: {
+                expr: /(s)ynchron[ou]+s/gi,
                 replacement: "$1ynchronous",
                 reason: App.consts.reasons.spelling
             },
@@ -2198,6 +2208,16 @@
             usage: {
                 expr: /\b(u)s[ea]+ge?\b/gi,
                 replacement: "$1sage",
+                reason: App.consts.reasons.spelling
+            },
+            background: {  // 1,583+ posts
+                expr: /\b(b)a[ck]+ ?gr[ou]+[nd]+\b/gi,
+                replacement: "$1ackground",
+                reason: App.consts.reasons.spelling
+            },
+            preempt: {
+                expr: /\b(p)r[e -]+m[pt]+/gi,
+                replacement: "$1reempt",
                 reason: App.consts.reasons.spelling
             },
             /*
@@ -2301,9 +2321,10 @@
                 replacement: "$1$2",
                 reason: App.consts.reasons.grammar
             },
-            i_want: { //https://regex101.com/r/iD2tU0/1
-                expr: /\bI['a ]*m wanting\b/gi,
-                replacement: "I want",
+            i_want: { //https://regex101.com/r/iD2tU0/5
+                expr: /\b(?:are )?(I|you|they) ?(?:['a ]*m|are)? want(?:ing|s)?\b/gi,
+                replacement: "$1 want",
+                rerun: ["firstcaps"],
                 reason: App.consts.reasons.grammar
             },
             oxford_comma: { // https://regex101.com/r/xN0mF6/6
