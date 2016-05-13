@@ -9,7 +9,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.5.2.69
+// @version        1.5.2.70
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com\/(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
@@ -127,6 +127,7 @@
         });
 
         // Define edit rules
+        // See https://regex101.com/r/fC3bY5/2 for a basic RegExp that excludes matches in filenames, paths, library names, etc.
         App.edits = {
             // Handle all-caps posts first
             noneedtoyell: {
@@ -137,9 +138,9 @@
                 reason: App.consts.reasons.grammar
             },
             // Remove tags from title
-            taglist: {  // https://regex101.com/r/wH4oA3/22
+            taglist: {  // https://regex101.com/r/wH4oA3/25
                 // WARNING: the expression from regex101 must have backslashes escaped here - wbn to automate this...
-                expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?!\\.\\w)(?:and|[ ,.&+/-])*)+[:. \\)-]*|\\b(?:[:. \\(-]|in|with|using|by|for)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
+                expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?!\\.\\w)(?:and|[ ,.&+/-])*)+[:. \\)-]*|\\b(?:[:. \\(-]|in|with|using|by|for|from)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
                                  .replace(/_xTagsx_/g,App.globals.taglist.map(escapeTag).join("|")),
                                  //.replace(/\\(?=[bsSdDwW])/g,"\\"), // https://regex101.com/r/pY1hI2/1 - WBN to figure this out.
                                  'gi'),
@@ -698,6 +699,16 @@
                 replacement: "Eclipse",
                 reason: App.consts.reasons.trademark
             },
+            pthread: {
+                expr: /([^\w.\-/\\_]|^)pthr[ea]+d(s)?\b(?![.\-]\w|[/\\_])/gi,
+                replacement: "$1Pthread$2",
+                reason: App.consts.reasons.trademark
+            },
+            perl: {
+                expr: /([^\w.\-/\\_]|^)perl\b(?![.\-]\w|[/\\_])/gi,
+                replacement: "$1Perl",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
@@ -961,6 +972,11 @@
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.acronym
             },
+            ram_rom: {
+                expr: /(?:[^\w.\-/\\_]|^)r[ao]m\b(?![.\-]\w|[/\\_])/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
             /*
             ** Spelling - Correct common spelling errors. (Including apostrophes, which are really grammar.)
             ** Acknowledgement: A subset of terms were adapted from Peter Mortensen's list
@@ -1052,7 +1068,7 @@
                 reason: App.consts.reasons.spelling
             },
             didn_t: {
-                expr: /\b(d)id[^\w]*n?t\b/gi,
+                expr: /\b(d)id?[^\w]*n?t\b/gi,  // Caveat: changes dint -> didn't, although "dint" is a word.
                 replacement: "$1idn't",
                 reason: App.consts.reasons.spelling
             },
@@ -1137,8 +1153,13 @@
                 reason: App.consts.reasons.spelling
             },
             cuz: {
-                expr: /\bcuz\b/gi,
+                expr: /'?\bcuz\b|'cause\b/gi,
                 replacement: "because",
+                reason: App.consts.reasons.spelling
+            },
+            because_: {  // 10K+ posts
+                expr: /\b(c)ause (?=I|you|we|if)\b/gi,
+                replacement: "because ",
                 reason: App.consts.reasons.spelling
             },
             ofc: {
@@ -1325,6 +1346,11 @@
                 expr: /\b(w)h?eth?er\b/gi,
                 replacement: "$1hether",
                 reason: App.consts.reasons.spelling
+            },
+            whether_not_weather: { // https://regex101.com/r/oS1xE5/3
+                expr: /\b(w)eather(?= (?:it|we|I|or not|they|[^.?!]*(?:works?|helps?))\b)/gi,
+                replacement: "$1hether",
+                reason: App.consts.reasons.spelling                
             },
             through: {  // https://regex101.com/r/gQ0dZ1/4
                 expr: /\b(t)(?:hru|rough|hroug)\b/gi,
@@ -1613,7 +1639,7 @@
             },
             example: { // https://regex101.com/r/uU4bH5/2
                 expr: /\b(e)(?:xsample|xamle|x?amp[le]{1,2}|xemple|xaple)(s)?\b/gi,
-                replacement: "$1xample",
+                replacement: "$1xample$2",
                 reason: App.consts.reasons.spelling
             },
             somewhere: {  // https://regex101.com/r/aU2nP5/1
@@ -2154,9 +2180,49 @@
                 replacement: "$1uggest",
                 reason: App.consts.reasons.spelling
             },
-            synchronous: { // https://regex101.com/r/vG6jQ8/1
-                expr: /(s)[yi]nch?ron[ou]+s/gi,
+            synchronize: { // subset of https://regex101.com/r/vG6jQ8/1
+                expr: /(s)[yi]nch?ron/gi,
+                replacement: "$1ynchron",
+                reason: App.consts.reasons.spelling
+            },
+            synchronous: {
+                expr: /(s)ynchron[ou]+s/gi,
                 replacement: "$1ynchronous",
+                reason: App.consts.reasons.spelling
+            },
+            exception: { // https://regex101.com/r/jK4gX6/1
+                expr: /\b(e)[xc]+e[pt]+ion/gi,
+                replacement: "$1xception",
+                reason: App.consts.reasons.spelling
+            },
+            information: { // https://regex101.com/r/yE3fD6/1
+                expr: /\b(i)nfo[rm]+at[io]+ns?\b/gi,
+                replacement: "$1nformation",
+                reason: App.consts.reasons.spelling
+            },
+            piece: { // https://regex101.com/r/tZ1fY3/1
+                expr: /\b(p)eace(s)?(?= of [\w -]*(?:code|cake|script|text|string|content|image|file))/gi,
+                replacement: "$1iece$2",
+                reason: App.consts.reasons.spelling
+            },
+            is_there_a: {  // 2K+ posts
+                expr: /\b(i)s their a\b/gi,
+                replacement: "$1s there a",
+                reason: App.consts.reasons.spelling
+            },
+            usage: {
+                expr: /\b(u)s[ea]+ge?\b/gi,
+                replacement: "$1sage",
+                reason: App.consts.reasons.spelling
+            },
+            background: {  // 1,583+ posts
+                expr: /\b(b)a[ck]+ ?gr[ou]+[nd]+\b/gi,
+                replacement: "$1ackground",
+                reason: App.consts.reasons.spelling
+            },
+            preempt: {
+                expr: /\b(p)r[e -]+m[pt]+/gi,
+                replacement: "$1reempt",
                 reason: App.consts.reasons.spelling
             },
             /*
@@ -2182,8 +2248,8 @@
                     // words starting with vowels being incorrectly treated, check that the script
                     // has not had a unicode substitution error. (Git did this do me, once.)
                     function AvsAnOverride_(fword) {
-                        var exceptionsA_ = /^(?:uis?|data|java|form\w*|rota|cd)/i;
-                        var exceptionsAn_ = /(?:^[lr]value|a\b|sql|ns)/i;
+                        var exceptionsA_ = /^(?:uis?)/i;
+                        var exceptionsAn_ = /^(?:[lr]value|a\b|sql|ns|ng|is)/i;
                         return (exceptionsA_.test(fword) ? article[0] :
                                 exceptionsAn_.test(fword) ? article[0]+"n" : false);
                     }
@@ -2191,9 +2257,9 @@
                 reason: App.consts.reasons.grammar
             },
             firstcaps: {
-                //    https://regex101.com/r/qR5fO9/41
+                //    https://regex101.com/r/qR5fO9/42
                 // Regex finds all sentences; replacement must determine whether it needs to capitalize.
-                expr: /(([A-Z_a-z]|\d(?!\d*\. ))(\S*))((?:(?:etc\.|i\.e\.|e\.g\.|vs\.|\.\.\.|\w*\.(?![\s")])|[*-]+|\n(?![ \t]*\n| *(?:[*-]|\d+\.))|[^.?!\n]?))+(?:([.?!])(?=[\s")]|$)|\n\n|\n(?= *[*-])|\n(?= *\d+\.)|$))/gi,
+                expr: /(([A-Za-z]|\d(?!\d*\. )|[.$_]\w+)(\S*))((?:(?:etc\.|i\.e\.|e\.g\.|vs\.|\.\.\.|\w*\.(?![\s")])|[*-]+|\n(?![ \t]*\n| *(?:[*-]|\d+\.))|[^.?!\n]?))+(?:([.?!])(?=[\s")]|$)|\n\n|\n(?= *[*-])|\n(?= *\d+\.)|$))/gi,
                 replacement: function(sentence, fWord, fChar, fWordPost, sentencePost, endpunc) { 
                     var capChar = fChar.toUpperCase();
                     if (sentence === "undefined"||capChar == fChar) return sentence;  // MUST match sentence, or gets counted as a change.
@@ -2201,7 +2267,7 @@
                     var fWordChars = fWord.split('');
                     // Leave some words alone: filenames, camelCase
                     for (var i=0; i<fWordChars.length; i++) {
-                        if (fWordChars[i].search(/[._/]/g) !== -1 ||
+                        if (fWordChars[i].search(/[._/$]/g) !== -1 ||
                             (fWordChars[i].search(/[a-z]/gi) !==-1 && fWordChars[i] == fWordChars[i].toUpperCase()))
                             return sentence;
                     }
@@ -2245,8 +2311,8 @@
                 replacement: "$1.g. ",
                 reason: App.consts.reasons.grammar
             },
-            etc: {  // https://regex101.com/r/dE7cV1/4
-                expr: /\betc(?:\.+)?/g,
+            etc: {  // https://regex101.com/r/dE7cV1/6
+                expr: /\betc(?:\.+)?|\bect\./g,
                 replacement: "etc.",
                 reason: App.consts.reasons.grammar
             },
@@ -2260,9 +2326,10 @@
                 replacement: "$1$2",
                 reason: App.consts.reasons.grammar
             },
-            i_want: { //https://regex101.com/r/iD2tU0/1
-                expr: /\bI['a ]*m wanting\b/gi,
-                replacement: "I want",
+            i_want: { //https://regex101.com/r/iD2tU0/5
+                expr: /\b(?:are )?(I|you|they) ?(?:['a ]*m|are)? want(?:ing|s)?\b/gi,
+                replacement: "$1 want",
+                rerun: ["firstcaps"],
                 reason: App.consts.reasons.grammar
             },
             oxford_comma: { // https://regex101.com/r/xN0mF6/6
@@ -2300,6 +2367,16 @@
                 replacement: "$1oesn't work",
                 reason: App.consts.reasons.grammar
             },
+            how_it_works: {  // 38,563+ posts
+                expr: /\b(h)ow it works\?/gi,
+                replacement: "$1ow does it work?",
+                reason: App.consts.reasons.grammar
+            },
+            double_period: {  // https://regex101.com/r/fG6lY3/1
+                expr: /([^.]|^)\.{2}(?!\.)/g,
+                replacement: "$1.",
+                reason: App.consts.reasons.grammar
+            },
             /*
             ** Noise reduction - Remove fluff that adds nothing of technical value to posts.
             **/
@@ -2334,9 +2411,14 @@
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
+            complimentaryClose: {  // https://regex101.com/r/hL3kT5/6
+                expr: /^\s*(?:(?:kind(?:est)* |best )*regards?|cheers?|greetings?|thanks|thank you|peace)\b,?.*[\r\n]{0,2}.*(?:[.!?: ]*|$)/gim,
+                replacement: "",
+                reason: App.consts.reasons.noise
+            },
             // http://meta.stackexchange.com/questions/2950/should-hi-thanks-taglines-and-salutations-be-removed-from-posts/93989#93989
-            salutation: { // https://regex101.com/r/yS9lN8/10
-                expr: /^\s*(?:dears?\b.*$|greetings?\b.*$|(?:hi(?:ya)*|hel+o+|heya?|hai|g'?day|good\s?(?:evening|morning|day|afternoon)|ahoy|folks|guys)[,\s]*(?:\s+(?:all|guys|folks|friends?|there|everyone|people|matey?s?|bud+(y|ies))*))(?:[,.!?: ]*|$)/gmi,
+            salutation: { // https://regex101.com/r/yS9lN8/11
+                expr: /^\s*(?:dears?\b.*$|greetings?\b.*$|(?:hi(?:ya)*|hel+o+|heya?|hai|g'?day|peace[^.!]*|good\s?(?:evening|morning|day|afternoon)|ahoy|folks|guys)[,\s]*(?:\s+(?:you|all|guys|folks|friends?|there|everyone|people|matey?s?|bud+(y|ies))*))(?:[,.!?: ]*|$)/gmi,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
@@ -2347,11 +2429,6 @@
             },
             imnew: {
                 expr: /(?! )[\w\s]*\bi[' ]?a?m +(?:kinda|really) *new\w* +(?:to|in) *\w* *(?:and|[;,.!?])? */gi,
-                replacement: "",
-                reason: App.consts.reasons.noise
-            },
-            complimentaryClose: {  // https://regex101.com/r/hL3kT5/5
-                expr: /^\s*(?:(?:kind(?:est)* |best )*regards?|cheers?|greetings?|thanks|thank you)\b,?.*[\r\n]{0,2}.*(?:[.!?: ]*|$)/gim,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
@@ -2420,8 +2497,8 @@
                 replacement: "$1$1$2. ",
                 reason: App.consts.reasons.layout
             },
-            no_html_break: { // https://regex101.com/r/xP2oW9/1
-                expr: / *\< *br *\/? *> */gi,
+            no_html_break: { // https://regex101.com/r/xP2oW9/4
+                expr: / *< *br *\/? *> */gi,
                 replacement: "  ",
                 reason: App.consts.reasons.layout
             },
