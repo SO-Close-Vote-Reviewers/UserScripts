@@ -704,6 +704,11 @@
                 replacement: "$1Pthread$2",
                 reason: App.consts.reasons.trademark
             },
+            perl: {
+                expr: /([^\w.\-/\\_]|^)perl\b(?![.\-]\w|[/\\_])/gi,
+                replacement: "$1Perl",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
