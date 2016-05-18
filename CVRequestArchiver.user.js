@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/Tiny-Giant/
-// @version      2.0.0.4
-// @description  Scans the chat transcript and checks all cv requests for status, then moves the closed ones.
-// @author       @TinyGiant @rene
+// @version      2.0.0.5
+// @description  Scans the chat transcript and checks all cv+delete requests for status, then moves the closed/deleted ones.
+// @author       @TinyGiant @rene @Tunaki
 // @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/rooms\/.*/
 // @grant        none
 // ==/UserScript==
@@ -33,7 +33,7 @@ function CVRequestArchiver(info){
     
     var count = 0, total = 0, num = 0, rnum = 0, rlen = 0;
     var requests = [];
-    var closed = [];
+    var messagesToMove = [];
     var events = [];
     var ids = [];
     
@@ -201,7 +201,7 @@ function CVRequestArchiver(info){
         count = 0;
         num = 0;
         requests = [];
-        closed = [];
+        messagesToMove = [];
         events = [];
         ids = [];
         nodes.count.style.display = 'none';
@@ -270,23 +270,41 @@ function CVRequestArchiver(info){
         checkRequests();
     }
     
-    var regexes = [
+    var cvRegexes = [
         /(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts)\/(\d+)/,
         /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\])/,
     ];
+    
+    var deleteRegexes = [
+        /(?:tagged\/del(?:ete)-pl(?:ease|s|z)|\[del(?:ete)-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts)\/(\d+)/,
+        /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/del(?:ete)-pl(?:ease|s|z)|\[del(?:ete)-pl(?:ease|s|z)\])/,
+    ];
+    
+    var RequestType = {
+        CLOSE: 'close-vote',
+        DELETE: 'delete-vote'
+    }
+    
+    function matchesRegex(message, regexes) {
+        for(var j in regexes) {
+            if(regexes[j].test(message)) {
+                return true;
+            }
+        }
+        return false;
+    }
     
     function checkEvent(event, current, total) {
         nodes.indicator.value = 'checking events... (' + current + ' / ' + total + ')';
         nodes.progress.style.width = Math.ceil((current * 100) / total) + '%';
         var message = event.content;
-        var isreq = false;
-        for(var j in regexes) {
-            if(regexes[j].test(message)) {
-                isreq = true;
-                break;
-            }
+        var type = RequestType.CLOSE;
+        var isCVReq = matchesRegex(message, cvRegexes), isDelReq = false;
+        if (!isCVReq) {
+            isDelReq = matchesRegex(message, deleteRegexes);
+            if (!isDelReq) return false;
+            type = RequestType.DELETE;
         }
-        if (!isreq) return false;
         var matches = message.match(/http.*?(?:q[^\/]*|posts)\/(\d+)/g);
         var posts = [];
         // matches will be null if an user screws up the formatting
@@ -295,7 +313,7 @@ function CVRequestArchiver(info){
                 posts.push(/(?:q[^\/]*|posts)\/(\d+)/.exec(matches[k])[1]);
             }
         }
-        for(var l in posts) requests.push({ msg: event.message_id, post: posts[l], time: event.time_stamp });
+        for(var l in posts) requests.push({ msg: event.message_id, post: posts[l], time: event.time_stamp, type: type });
     }
 
     function checkRequests() {
@@ -319,15 +337,20 @@ function CVRequestArchiver(info){
             var items = response.items;
 
             for(var i in items) {
+                if (!items[i].deleted_date) {
+                    for(var j in currentreq) {
+                        if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.DELETE) delete currentreq[j];
+                    }
+                }
                 if(!items[i].closed_date) {
                     for(var j in currentreq) {
                         if(items[i].close_vote_count == 0 && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
-                        if(currentreq[j].post == items[i].question_id) delete currentreq[j];
+                        if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.CLOSE) delete currentreq[j];
                     }
                 }
             }
 
-            for(var i in currentreq) closed.push(currentreq[i]);
+            for(var i in currentreq) messagesToMove.push(currentreq[i]);
 
             if(!requests.length) {
                 checkDone();
@@ -350,19 +373,19 @@ function CVRequestArchiver(info){
     }
 
     function checkDone() {
-        rnum = closed.length;
+        rnum = messagesToMove.length;
         
         if(!rnum) {
-            nodes.indicator.value = 'no closed requests found';
+            nodes.indicator.value = 'no requests found';
             nodes.progresswrp.style.display = 'none';
             nodes.progress.style.width = '';
             nodes.cancel.disabled = false;
             return false;
         }
         
-        ids = chunkArray(formatMsgs(closed), 100);
+        ids = chunkArray(formatMsgs(messagesToMove), 100);
 
-        nodes.indicator.value = closed.length + ' closed request' + ['','s'][+(closed.length > 1)] + ' found';
+        nodes.indicator.value = messagesToMove.length + ' request' + ['','s'][+(messagesToMove.length > 1)] + ' found';
         nodes.movebtn.style.display = '';
         nodes.cancel.disabled = false;
         nodes.progresswrp.style.display = 'none';
