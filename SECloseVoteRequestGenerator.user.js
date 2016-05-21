@@ -1,11 +1,14 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.5.7
-// @description    This script generates formatted close vote requests and sends them to a specified chat room
-// @author         @TinyGiant
+// @version        1.5.8
+// @description    This script generates formatted close vote requests and sends them to a specified chat room, fixes #65
+// @author         @TinyGiant @rene
 // @include        /^https?:\/\/\w*.?(stackexchange.com|stackoverflow.com|serverfault.com|superuser.com|askubuntu.com|stackapps.com|mathoverflow.net)\/q(uestions)?\/\d+/
 // @require        https://code.jquery.com/jquery-2.1.4.min.js
+// @connect        https://rawgit.com/
+// @connect        http://chat.stackoverflow.com/
+// @connect        https://chat.stackoverflow.com/
 // @grant          GM_xmlhttpRequest
 // ==/UserScript==
 
@@ -13,14 +16,10 @@ if(typeof StackExchange === "undefined")
     var StackExchange = unsafeWindow.StackExchange;
 
 (function(){
-    if($(".close-question-link").data("isclosed") === true) {
-        return;
-    }
-    
     var reasons = {
-        't': 'too broad', 
+        't': 'too broad',
         'u': 'unclear',
-        'p': 'pob', 
+        'p': 'pob',
         'd': 'duplicate',
         'm': 'no mcve',
         'r': 'no repro',
@@ -28,12 +27,12 @@ if(typeof StackExchange === "undefined")
         'f': 'serverfault',
         'l': 'library/tool/resource',
         'g': 'gimme-teh-codez',
-        get: function(r) {  
+        get: function(r) {
             var a = r.split(' ');
-            a.forEach(function(v,i){ 
-                a[i] = reasons[v] && v !== 'get' ? reasons[v] : v; 
+            a.forEach(function(v,i){
+                a[i] = reasons[v] && v !== 'get' ? reasons[v] : v;
             });
-            return a.join(' '); 
+            return a.join(' ');
         }
     };
 
@@ -72,7 +71,7 @@ if(typeof StackExchange === "undefined")
         return false;
     }
 
-    function checkUpdates(force) { 
+    function checkUpdates(force) {
         GM_xmlhttpRequest({
             method: 'GET',
             url: 'https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version',
@@ -170,7 +169,7 @@ if(typeof StackExchange === "undefined")
     };
     RoomList.getRoom = function(callback,url) {
         var rooms = this.rooms;
-        if(!url) 
+        if(!url)
             url = getStorage(base + 'room');
         var m = /(https?:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)\/rooms\/(.*)\/.*/.exec(url);
         if(m) {
@@ -188,7 +187,7 @@ if(typeof StackExchange === "undefined")
                         notify('Failed finding room name. Is it a valid room?');
                         if(callback) callback(false);
                     } else {
-                        if(callback) callback(RoomList.insert({ 
+                        if(callback) callback(RoomList.insert({
                             host: m[1],
                             url: url,
                             id: m[4],
@@ -239,8 +238,7 @@ if(typeof StackExchange === "undefined")
 
     if(!getStorage(base + 'room'))
         setStorage(base + 'room', 'http://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers');
-    
-    
+
     RoomList.init();
 
     var CVRGUI = {};
@@ -256,7 +254,7 @@ if(typeof StackExchange === "undefined")
                 div.show().find('[type="text"]').focus();
                 $(this).html('Set target room:');
             } else closeTarget();
-        })
+        });
         RoomList.getRoom(function(room){
             link.html(room.name);
         });
@@ -321,7 +319,7 @@ if(typeof StackExchange === "undefined")
     CVRGUI.wrp.append(CVRGUI.css);
 
     $('#question .post-menu').append(CVRGUI.wrp);
-    
+
     $('.question').on('click', '[type="submit"], .new-post-activity a', function(e){
         var self = this;
         var menuCheck = setInterval(function(){
@@ -338,17 +336,17 @@ if(typeof StackExchange === "undefined")
     });
 
     $('a:not(.cvrgui a)').on('click',function(){
-        if(CVRGUI.list.is(':visible')) 
+        if(CVRGUI.list.is(':visible'))
             hideMenu();
     });
     $('.cv-list *:not(a)').on('click',function(e){
         e.stopPropagation();
     });
 
-    CVRGUI.button.on('click', function(e){ 
+    CVRGUI.button.on('click', function(e){
         e.stopPropagation();
         $('div', CVRGUI.list).hide();
-        CVRGUI.list.toggle(); 
+        CVRGUI.list.toggle();
     });
 
     CVRGUI.items.send.on('click',function(e){
@@ -363,7 +361,7 @@ if(typeof StackExchange === "undefined")
         var reason = $('input[type="text"]', CVRGUI.items.send).val();
         if(!reason) return false;
         reason = reasons.get(reason);
-        var tit = '[' + $('#question-header h1 a').text().replace(/\[(.*)\]/g, '($1)') + '](' + base + $('#question .short-link').attr('href') + ')'; 
+        var tit = '[' + $('#question-header h1 a').text().replace(/\[(.*)\]/g, '($1)') + '](' + base + $('#question .short-link').attr('href') + ')';
         var usr = $('.post-signature:not([align="right"]) .user-details').text().trim().match(/[^\n]+/)[0].trim(), tim;
         if($('#question .owner a').length) usr = '[' + usr + '](' + base + $('#question .owner a').attr('href') + ')';
         if($('#question .owner .relativetime').length) tim = $('#question .owner .relativetime').attr('title');
@@ -393,7 +391,7 @@ if(typeof StackExchange === "undefined")
             } else {
                 hideMenu();
             }
-        } 
+        }
     });
     setTimeout(checkUpdates);
     var closereasons = {
@@ -407,28 +405,28 @@ if(typeof StackExchange === "undefined")
     };
     $('.close-question-link').click(function(){
         var cpcheck = setInterval(function(){
-            var popup = $('#popup-close-question'), selected;
+            var popup = $('#popup-close-question'), selected, discard;
             if(!popup.length) return;
             clearInterval(cpcheck);
             var remainingvotes = $('.remaining-votes', popup);
-            
+
             if($('input', remainingvotes).length) return false;
-            
+
             var checkbox = $('<label><input type="checkbox" style="vertical-align:middle;margin-left: 5px;">Send cv-pls request</label>');
-            
+
             $('.remaining-votes', popup).append(checkbox);
             $('[name="close-reason"]').change(function(){
-                this.checked && (selected = $(this)) && $('input[type="text"]', CVRGUI.items.send).val(this.value.replace(/(?!^)([A-Z])/g, ' $1'));
+               discard = this.checked && (selected = $(this)) && $('input[type="text"]', CVRGUI.items.send).val(this.value.replace(/(?!^)([A-Z])/g, ' $1'));
             });
             $('[name="close-as-off-topic-reason"]').change(function(){
-                this.checked && (selected = $(this)) && $('input[type="text"]', CVRGUI.items.send).val(closereasons[this.value]);
+               discard = this.checked && (selected = $(this)) && $('input[type="text"]', CVRGUI.items.send).val(closereasons[this.value]);
             });
             $('.popup-submit').click(function() {
                 if(selected.val() === '3') {
                     var parent = selected.parent().parent();
                     $('input[type="text"]', CVRGUI.items.send).val($('textarea',parent).val().replace($('[type="hidden"]',parent).val(),''));
                 }
-                checkbox.find('input').is(':checked') && $('form', CVRGUI.items.send).submit();
+                discard= checkbox.find('input').is(':checked') && $('form', CVRGUI.items.send).submit();
             });
         }, 100);
     });
