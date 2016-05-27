@@ -1232,16 +1232,6 @@
                 replacement: "$1idth",
                 reason: App.consts.reasons.spelling
             },
-            centered: {
-                expr: /\b(c)ent(?:red|erd)\b/gi,
-                replacement: "$1entered",
-                reason: App.consts.reasons.spelling
-            },
-            center: {
-                expr: /\b(c)entre\b/gi,    // "Centre" is a word, however in most cases on SO "center" is meant
-                replacement: "$1enter",
-                reason: App.consts.reasons.spelling
-            },
             aint_isnt: {
                 expr: /\bain'?t\b/gi,
                 replacement: "isn't",
