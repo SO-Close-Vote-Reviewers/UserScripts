@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.5.8
+// @version        1.5.9
 // @description    This script generates formatted close vote requests and sends them to a specified chat room, fixes #65
-// @author         @TinyGiant @rene
+// @author         @TinyGiant
+// @contributor    @rene
 // @include        /^https?:\/\/\w*.?(stackexchange.com|stackoverflow.com|serverfault.com|superuser.com|askubuntu.com|stackapps.com|mathoverflow.net)\/q(uestions)?\/\d+/
 // @require        https://code.jquery.com/jquery-2.1.4.min.js
-// @connect        https://rawgit.com/
-// @connect        http://chat.stackoverflow.com/
-// @connect        https://chat.stackoverflow.com/
+// @connect        rawgit.com
+// @connect        chat.stackoverflow.com
 // @grant          GM_xmlhttpRequest
 // ==/UserScript==
 
@@ -16,6 +16,10 @@ if(typeof StackExchange === "undefined")
     var StackExchange = unsafeWindow.StackExchange;
 
 (function(){
+    if($(".close-question-link").data("isclosed") === true) {
+         return;
+     }
+
     var reasons = {
         't': 'too broad',
         'u': 'unclear',
@@ -122,8 +126,8 @@ if(typeof StackExchange === "undefined")
                         }
                     });
                 },
-                onerror: function() {
-                    notify('Failed retrieving fkey from chat.');
+                onerror: function(resp) {
+                    notify('Failed retrieving fkey from chat. (' + resp.status + ')');
                 }
             });
         });
