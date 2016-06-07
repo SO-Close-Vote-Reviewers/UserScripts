@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.5.10
+// @version        1.5.11
 // @description    This script generates formatted close vote requests and sends them to a specified chat room, fixes #65
 // @author         @TinyGiant
-// @contributor    @rene
+// @contributor    @rene @Tunaki
 // @include        /^https?:\/\/\w*.?(stackexchange.com|stackoverflow.com|serverfault.com|superuser.com|askubuntu.com|stackapps.com|mathoverflow.net)\/q(uestions)?\/\d+/
 // @require        https://code.jquery.com/jquery-2.1.4.min.js
 // @connect        rawgit.com
@@ -365,9 +365,10 @@ if(typeof StackExchange === "undefined")
         reason = reasons.get(reason);
         var tit = '[' + $('#question-header h1 a').text().replace(/\[(.*)\]/g, '($1)') + '](' + base + $('#question .short-link').attr('href') + ')';
         var usr = $('.post-signature:not([align="right"]) .user-details').text().trim().match(/[^\n]+/)[0].trim(), tim;
+        var tag = $('#question a.post-tag').html();
         if($('#question .owner a').length) usr = '[' + usr + '](' + base + $('#question .owner a').attr('href') + ')';
         if($('#question .owner .relativetime').length) tim = $('#question .owner .relativetime').attr('title');
-        var result = '[tag:'+ (isclosed?'reopen-pls':'cv-pls') +'] ' + reason + ' ' + tit + ' - ' + usr + (tim ? ' - ' + tim : '');
+        var result = '[tag:'+ (isclosed?'reopen-pls':'cv-pls') +'] [tag:' + tag + '] ' + reason + ' ' + tit + ' - ' + usr + (tim ? ' - ' + tim : '');
         sendRequest(result);
     });
 
