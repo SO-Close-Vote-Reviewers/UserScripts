@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/Tiny-Giant/
-// @version      2.0.0.5
-// @description  Scans the chat transcript and checks all cv+delete requests for status, then moves the closed/deleted ones.
+// @version      2.0.0.6
+// @description  Scans the chat transcript and checks all cv+delete+reopen requests for status, then moves the closed/deleted/reopened ones.
 // @author       @TinyGiant @rene @Tunaki
 // @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/rooms\/.*/
 // @grant        none
@@ -280,9 +280,15 @@ function CVRequestArchiver(info){
         /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/del(?:ete)-pl(?:ease|s|z)|\[del(?:ete)-pl(?:ease|s|z)\])/,
     ];
     
+    var reopenRegexes = [
+        /(?:tagged\/reopen-pl(?:ease|s|z)|\[reopen-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts)\/(\d+)/,
+        /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/reopen-pl(?:ease|s|z)|\[reopen-pl(?:ease|s|z)\])/,
+    ];
+    
     var RequestType = {
         CLOSE: 'close-vote',
-        DELETE: 'delete-vote'
+        DELETE: 'delete-vote',
+        REOPEN: 'reopen-vote'
     }
     
     function matchesRegex(message, regexes) {
@@ -299,11 +305,15 @@ function CVRequestArchiver(info){
         nodes.progress.style.width = Math.ceil((current * 100) / total) + '%';
         var message = event.content;
         var type = RequestType.CLOSE;
-        var isCVReq = matchesRegex(message, cvRegexes), isDelReq = false;
+        var isCVReq = matchesRegex(message, cvRegexes), isDelReq = false, isOpenReq = false;
         if (!isCVReq) {
             isDelReq = matchesRegex(message, deleteRegexes);
-            if (!isDelReq) return false;
             type = RequestType.DELETE;
+            if (!isDelReq) {
+                isOpenReq = matchesRegex(message, reopenRegexes);
+                if (!isOpenReq) return false;
+                type = RequestType.REOPEN;
+            }
         }
         var matches = message.match(/http.*?(?:q[^\/]*|posts)\/(\d+)/g);
         var posts = [];
@@ -348,6 +358,12 @@ function CVRequestArchiver(info){
                         if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.CLOSE) delete currentreq[j];
                     }
                 }
+                if(items[i].closed_date) {
+                    for(var j in currentreq) {
+                        if(items[i].reopen_vote_count == 0 && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
+                        if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.REOPEN) delete currentreq[j];
+                    }
+                }
             }
 
             for(var i in currentreq) messagesToMove.push(currentreq[i]);
@@ -364,7 +380,7 @@ function CVRequestArchiver(info){
             'pagesize=100',
             'site=stackoverflow',
             'key=qhq7Mdy8)4lSXLCjrzQFaQ((',
-            'filter=!gB66oJbwf2oAg19qt9k287Kesk6)y5u4M_f'
+            'filter=!5RCJFFV3*1idqdx)f2XdVzdib'
         ].join('&');
 
         xhr.open("GET", url);
