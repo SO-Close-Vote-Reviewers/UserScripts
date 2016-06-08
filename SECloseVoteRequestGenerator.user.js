@@ -365,7 +365,7 @@ if(typeof StackExchange === "undefined")
         reason = reasons.get(reason);
         var tit = '[' + $('#question-header h1 a').text().replace(/\[(.*)\]/g, '($1)') + '](' + base + $('#question .short-link').attr('href') + ')';
         var usr = $('.post-signature:not([align="right"]) .user-details').text().trim().match(/[^\n]+/)[0].trim(), tim;
-        var tag = $('#question a.post-tag').attr('href').split('/')[3]; //huh, sponsored tags have images =/, needs to parse href
+        var tag = $('#question a.post-tag').first().text(); //huh, sponsored tags have images =/ and off-topic tag like C++ are URL encoded -> get the text only
         if($('#question .owner a').length) usr = '[' + usr + '](' + base + $('#question .owner a').attr('href') + ')';
         if($('#question .owner .relativetime').length) tim = $('#question .owner .relativetime').attr('title');
         var result = '[tag:'+ (isclosed?'reopen-pls':'cv-pls') +'] [tag:' + tag + '] ' + reason + ' ' + tit + ' - ' + usr + (tim ? ' - ' + tim : '');
