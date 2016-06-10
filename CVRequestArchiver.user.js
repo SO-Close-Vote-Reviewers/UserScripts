@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/Tiny-Giant/
-// @version      2.0.0.6
+// @version      2.0.0.7
 // @description  Scans the chat transcript and checks all cv+delete+reopen requests for status, then moves the closed/deleted/reopened ones.
 // @author       @TinyGiant @rene @Tunaki
 // @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/rooms\/.*/
@@ -276,8 +276,8 @@ function CVRequestArchiver(info){
     ];
     
     var deleteRegexes = [
-        /(?:tagged\/del(?:ete)-pl(?:ease|s|z)|\[del(?:ete)-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts)\/(\d+)/,
-        /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/del(?:ete)-pl(?:ease|s|z)|\[del(?:ete)-pl(?:ease|s|z)\])/,
+        /(?:tagged\/del(?:ete)?-?(?:vote)?-pl(?:ease|s|z)|\[del(?:ete)?-?(?:vote)?-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts)\/(\d+)/,
+        /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/del(?:ete)?-?(?:vote)?-pl(?:ease|s|z)|\[del(?:ete)?-?(?:vote)?-pl(?:ease|s|z)\])/,
     ];
     
     var reopenRegexes = [
