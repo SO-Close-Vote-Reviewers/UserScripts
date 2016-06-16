@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.5.13
+// @version        1.5.14
 // @description    This script generates formatted close vote requests and sends them to a specified chat room, fixes #65
 // @author         @TinyGiant
 // @contributor    @rene @Tunaki
@@ -364,10 +364,11 @@ if(typeof StackExchange === "undefined")
         if(!reason) return false;
         reason = reasons.get(reason);
         var tit = '[' + $('#question-header h1 a').text().replace(/\[(.*)\]/g, '($1)') + '](' + base + $('#question .short-link').attr('href') + ')';
-        var usr = $('.post-signature:not([align="right"]) .user-details').text().trim().match(/[^\n]+/)[0].trim(), tim;
+        var usr = $('.post-signature:not([align="right"],#popup-close-question .post-signature) .user-details').text().trim().match(/[^\n]+/)[0].trim(), tim;
         var tag = $('#question a.post-tag').first().text(); //huh, sponsored tags have images =/ and off-topic tag like C++ are URL encoded -> get the text only
-        if($('#question .owner a').length) usr = '[' + usr + '](' + base + $('#question .owner a').attr('href') + ')';
-        if($('#question .owner .relativetime').length) tim = $('#question .owner .relativetime').attr('title');
+		// for duplicate cv-pls, when the dupe is selected, the mini-review messes up the selector for username and date: it is removed with :not
+        if($('#question .owner:not(#popup-close-question .owner) a').length) usr = '[' + usr + '](' + base + $('#question .owner:not(#popup-close-question .owner) a').attr('href') + ')';
+        if($('#question .owner:not(#popup-close-question .owner) .relativetime').length) tim = $('#question .owner:not(#popup-close-question .owner) .relativetime').attr('title');
         var result = '[tag:'+ (isclosed?'reopen-pls':'cv-pls') +'] [tag:' + tag + '] ' + reason + ' ' + tit + ' - ' + usr + (tim ? ' - ' + tim : '');
         sendRequest(result);
     });
