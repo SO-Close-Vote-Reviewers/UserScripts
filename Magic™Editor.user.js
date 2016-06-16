@@ -1032,9 +1032,9 @@
                 replacement: "$1seudo",
                 reason: App.consts.reasons.spelling
             },
-            application: {
-                expr: /\b(a)pp?l[ia]ca(?:ti|it)on\b/gi,
-                replacement: "$1pplication",
+            application: {  // https://regex101.com/r/bO4dP4/3
+                expr: /\b(a)p[plia]+ca?[tio]+n(s)?\b/gi,
+                replacement: "$1pplication$2",
                 reason: App.consts.reasons.spelling
             },
             calendar: {
