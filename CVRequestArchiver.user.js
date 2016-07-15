@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         CV Request Archiver
-// @namespace    https://github.com/Tiny-Giant/
-// @version      2.0.0.8
-// @description  Scans the chat transcript and checks all cv+delete+reopen requests for status, then moves the closed/deleted/reopened ones.
+// @namespace    https://github.com/SO-Close-Vote-Reviewers/
+// @version      2.0.1.0
+// @description  Scans the chat transcript and checks all cv+delete+reopen+dupe requests for status, then moves the closed/deleted/reopened ones. Possible dupe requests are moved after 30 minutes.
 // @author       @TinyGiant @rene @Tunaki
 // @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/rooms\/.*/
 // @grant        none
@@ -285,10 +285,16 @@ function CVRequestArchiver(info){
         /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/reopen-pl(?:ease|s|z)|\[reopen-pl(?:ease|s|z)\])/,
     ];
     
+    var dupeRegexes = [
+        /(?:tagged\/possible-duplicate).*(?:q[^\/]*|posts)\/(\d+)/,
+        /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/possible-duplicate)/,
+    ];
+    
     var RequestType = {
         CLOSE: 'close-vote',
         DELETE: 'delete-vote',
-        REOPEN: 'reopen-vote'
+        REOPEN: 'reopen-vote',
+        DUPE: 'possible-dupe'
     }
     
     function matchesRegex(message, regexes) {
@@ -305,17 +311,21 @@ function CVRequestArchiver(info){
         nodes.progress.style.width = Math.ceil((current * 100) / total) + '%';
         var message = event.content;
         var type = RequestType.CLOSE;
-        var isCVReq = matchesRegex(message, cvRegexes), isDelReq = false, isOpenReq = false;
+        var isCVReq = matchesRegex(message, cvRegexes), isDelReq = false, isOpenReq = false, isDupeReq = false;
         if (!isCVReq) {
             isDelReq = matchesRegex(message, deleteRegexes);
             type = RequestType.DELETE;
             if (!isDelReq) {
                 isOpenReq = matchesRegex(message, reopenRegexes);
-                if (!isOpenReq) return false;
                 type = RequestType.REOPEN;
+                if (!isOpenReq) {
+                    isDupeReq = matchesRegex(message, dupeRegexes);
+                    type = RequestType.DUPE;
+                    if (!isDupeReq) return false;
+                }
             }
         }
-        var matches = message.match(/http.*?(?:q[^\/]*|posts)\/(\d+)/g);
+        var matches = message.match(/(?:q[^\/]*|posts)\/(\d+)/g);
         var posts = [];
         // matches will be null if an user screws up the formatting
         if (matches !== null) {
@@ -325,7 +335,7 @@ function CVRequestArchiver(info){
         }
         for(var l in posts) requests.push({ msg: event.message_id, post: posts[l], time: event.time_stamp, type: type });
     }
-
+    
     function checkRequests() {
         var currentreq = requests.pop();
 
@@ -333,7 +343,28 @@ function CVRequestArchiver(info){
 
         nodes.indicator.value = 'checking requests... (' + left + ' / ' + rlen + ')'; 
         nodes.progress.style.width = Math.ceil((left * 100) / rlen) + '%';
+        
+        var wait = checkRequestsDupe(currentreq);
+        wait += checkRequestsMod(currentreq);
+        
+        for(var i in currentreq) messagesToMove.push(currentreq[i]);
 
+        if(!requests.length) {
+            checkDone();
+            return false;
+        }
+        setTimeout(checkRequests, wait * 1000);
+    }
+    
+    function checkRequestsDupe(currentreq) {
+        // just move all possible-dupe posted more than 30 minutes ago
+        for(var j in currentreq) {
+            if(currentreq[j].type == RequestType.DUPE && ((Date.now() - (currentreq[j].time * 1000)) < (1000 * 60 * 30))) delete currentreq[j];
+        }
+        return 0;
+    }
+
+    function checkRequestsMod(currentreq) {
         var xhr = new XMLHttpRequest();
 
         xhr.addEventListener("load", function(){
@@ -365,15 +396,7 @@ function CVRequestArchiver(info){
                     }
                 }
             }
-
-            for(var i in currentreq) messagesToMove.push(currentreq[i]);
-
-            if(!requests.length) {
-                checkDone();
-                return false;
-            }
-
-            setTimeout(checkRequests, response.backoff * 1000);
+            return response.backoff;
         });
 
         var url = '//api.stackexchange.com/2.2/questions/' + formatPosts(currentreq) + '?' + [
