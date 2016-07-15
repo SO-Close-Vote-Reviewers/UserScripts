@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      2.0.1.0
-// @description  Scans the chat transcript and checks all cv+delete+reopen+dupe requests for status, then moves the closed/deleted/reopened ones. Possible dupe requests are moved after 30 minutes.
+// @version      2.0.1.1
+// @description  Scans the chat transcript and checks all cv+delete+reopen+dupe requests for status, then moves the closed/deleted/reopened ones. Possible dupe requests (and their replies) are moved after 30 minutes.
 // @author       @TinyGiant @rene @Tunaki
 // @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/rooms\/.*/
 // @grant        none
@@ -290,11 +290,16 @@ function CVRequestArchiver(info){
         /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/possible-duplicate)/,
     ];
     
+    var repliesRegexes = [
+        /@queen (?:f|k)/
+    ];
+    
     var RequestType = {
         CLOSE: 'close-vote',
         DELETE: 'delete-vote',
         REOPEN: 'reopen-vote',
-        DUPE: 'possible-dupe'
+        DUPE: 'possible-dupe',
+        REPLY: 'feedback'
     }
     
     function matchesRegex(message, regexes) {
@@ -311,7 +316,7 @@ function CVRequestArchiver(info){
         nodes.progress.style.width = Math.ceil((current * 100) / total) + '%';
         var message = event.content;
         var type = RequestType.CLOSE;
-        var isCVReq = matchesRegex(message, cvRegexes), isDelReq = false, isOpenReq = false, isDupeReq = false;
+        var isCVReq = matchesRegex(message, cvRegexes), isDelReq = false, isOpenReq = false, isDupeReq = false, isReplyReq = false;
         if (!isCVReq) {
             isDelReq = matchesRegex(message, deleteRegexes);
             type = RequestType.DELETE;
@@ -321,19 +326,28 @@ function CVRequestArchiver(info){
                 if (!isOpenReq) {
                     isDupeReq = matchesRegex(message, dupeRegexes);
                     type = RequestType.DUPE;
-                    if (!isDupeReq) return false;
+                    if (!isDupeReq) {
+                        isReplyReq = matchesRegex(message, repliesRegexes);
+                        type = RequestType.REPLY;
+                        if (!isReplyReq) return false;
+                    }
                 }
             }
         }
-        var matches = message.match(/(?:q[^\/]*|posts)\/(\d+)/g);
-        var posts = [];
-        // matches will be null if an user screws up the formatting
-        if (matches !== null) {
-            for(var k in Object.keys(matches)) {
-                posts.push(/(?:q[^\/]*|posts)\/(\d+)/.exec(matches[k])[1]);
+        
+        if (type != RequestType.REPLY) {
+            var matches = message.match(/(?:q[^\/]*|posts)\/(\d+)/g);
+            var posts = [];
+            // matches will be null if an user screws up the formatting
+            if (matches !== null) {
+                for(var k in Object.keys(matches)) {
+                    posts.push(/(?:q[^\/]*|posts)\/(\d+)/.exec(matches[k])[1]);
+                }
             }
+            for(var l in posts) requests.push({ msg: event.message_id, post: posts[l], time: event.time_stamp, type: type });
+        } else {
+            requests.push({ msg: event.message_id, post: -1, time: event.time_stamp, type: type });
         }
-        for(var l in posts) requests.push({ msg: event.message_id, post: posts[l], time: event.time_stamp, type: type });
     }
     
     function checkRequests() {
@@ -344,8 +358,8 @@ function CVRequestArchiver(info){
         nodes.indicator.value = 'checking requests... (' + left + ' / ' + rlen + ')'; 
         nodes.progress.style.width = Math.ceil((left * 100) / rlen) + '%';
         
-        var wait = checkRequestsDupe(currentreq);
-        wait += checkRequestsMod(currentreq);
+        var wait = checkRequestsQueen(currentreq);
+        wait += checkRequestsOthers(currentreq);
         
         for(var i in currentreq) messagesToMove.push(currentreq[i]);
 
@@ -356,15 +370,15 @@ function CVRequestArchiver(info){
         setTimeout(checkRequests, wait * 1000);
     }
     
-    function checkRequestsDupe(currentreq) {
-        // just move all possible-dupe posted more than 30 minutes ago
+    function checkRequestsQueen(currentreq) {
+        // just move all possible-dupe and replies posted more than 30 minutes ago
         for(var j in currentreq) {
-            if(currentreq[j].type == RequestType.DUPE && ((Date.now() - (currentreq[j].time * 1000)) < (1000 * 60 * 30))) delete currentreq[j];
+            if((currentreq[j].type == RequestType.DUPE || currentreq[j].type == RequestType.REPLY) && ((Date.now() - (currentreq[j].time * 1000)) < (1000 * 60 * 30))) delete currentreq[j];
         }
         return 0;
     }
 
-    function checkRequestsMod(currentreq) {
+    function checkRequestsOthers(currentreq) {
         var xhr = new XMLHttpRequest();
 
         xhr.addEventListener("load", function(){
