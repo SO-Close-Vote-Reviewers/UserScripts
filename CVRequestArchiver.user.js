@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      2.0.1.3
+// @version      2.0.1.4
 // @description  Scans the chat transcript and checks all cv+delete+reopen+dupe requests for status, then moves the closed/deleted/reopened ones. Possible dupe requests (and their replies) are moved after 30 minutes.
 // @author       @TinyGiant @rene @Tunaki
 // @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/rooms\/.*/
@@ -73,6 +73,11 @@ function CVRequestArchiver(info){
     nodes.cancel.textContent = 'cancel';
     nodes.cancel.style.display = 'none';
     nodes.scope.appendChild(nodes.cancel);
+    
+    nodes.scandate = document.createElement('span');
+    nodes.scandate.textContent = '';
+    nodes.scandate.style.display = 'none';
+    nodes.scope.appendChild(nodes.scandate);
 
     nodes.scope.appendChild(document.createElement('br'));
 
@@ -174,6 +179,7 @@ function CVRequestArchiver(info){
         nodes.count.style.display = '';
         nodes.gobtn.style.display = '';
         nodes.cancel.style.display = '';
+        nodes.scandate.style.display = '';
         nodes.count.focus();
     }, false);
 
@@ -210,6 +216,8 @@ function CVRequestArchiver(info){
         nodes.gobtn.style.display = 'none';
         nodes.gobtn.disabled = false;
         nodes.cancel.style.display = 'none';
+        nodes.scandate.style.display = 'none';
+        nodes.scandate.textContent = '';
         nodes.indicator.style.display = 'none';
         nodes.indicator.textContent = '';
         nodes.movebtn.style.display = 'none';
@@ -243,6 +251,8 @@ function CVRequestArchiver(info){
                     scanEvents();
                     return false;
                 }
+                
+                nodes.scandate.textContent = new Date(1000 * response.events[0].time_stamp).toISOString();
 
                 getEvents(count - 500, response.events[0].message_id);
             }
