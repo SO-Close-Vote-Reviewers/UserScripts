@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      2.0.1.4
+// @version      2.0.1.5
 // @description  Scans the chat transcript and checks all cv+delete+reopen+dupe requests for status, then moves the closed/deleted/reopened ones. Possible dupe requests (and their replies) are moved after 30 minutes.
 // @author       @TinyGiant @rene @Tunaki
 // @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/rooms\/.*/
@@ -367,18 +367,15 @@ function CVRequestArchiver(info){
 
         nodes.indicator.value = 'checking requests... (' + left + ' / ' + rlen + ')'; 
         nodes.progress.style.width = Math.ceil((left * 100) / rlen) + '%';
-        
-        if (!checkRequestsQueen(currentreq)) {
-            checkRequestsOthers(currentreq);
-        }
+
+        checkRequestsQueen(currentreq);
+        checkRequestsOthers(currentreq);
     }
     
     function checkRequestsQueen(currentreq) {
-        var isQueen = false;
         // just move all possible-dupe and replies posted more than 30 minutes ago
         for(var j in currentreq) {
             if((currentreq[j].type == RequestType.DUPE || currentreq[j].type == RequestType.REPLY)) {
-                isQueen = true;
                 if ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 30)) {
                     messagesToMove.push(currentreq[j]);
                 } else {
@@ -386,14 +383,6 @@ function CVRequestArchiver(info){
                 }
             }
         }
-        if (isQueen) {
-            if(!requests.length) {
-                checkDone();
-            } else {
-                setTimeout(checkRequests, 10);
-            }
-        }
-        return isQueen;
     }
 
     function checkRequestsOthers(currentreq) {
@@ -415,13 +404,13 @@ function CVRequestArchiver(info){
                 }
                 if(!items[i].closed_date) {
                     for(var j in currentreq) {
-                        if(items[i].close_vote_count == 0 && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
+                        if(currentreq[j].type == RequestType.CLOSE && items[i].close_vote_count == 0 && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
                         if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.CLOSE) delete currentreq[j];
                     }
                 }
                 if(items[i].closed_date) {
                     for(var j in currentreq) {
-                        if(items[i].reopen_vote_count == 0 && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
+                        if(currentreq[j].type == RequestType.REOPEN && items[i].reopen_vote_count == 0 && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
                         if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.REOPEN) delete currentreq[j];
                     }
                 }
