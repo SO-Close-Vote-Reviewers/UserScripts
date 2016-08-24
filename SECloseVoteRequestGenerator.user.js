@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.5.15
+// @version        1.5.16
 // @description    This script generates formatted close vote requests and sends them to a specified chat room, fixes #65
 // @author         @TinyGiant
 // @contributor    @rene @Tunaki
@@ -369,7 +369,7 @@ if(typeof StackExchange === "undefined")
 		// for duplicate cv-pls, when the dupe is selected, the mini-review messes up the selector for username and date: it is removed with :not
         if($('#question .owner:not(#popup-close-question .owner) a').length) usr = '[' + usr + '](' + base + $('#question .owner:not(#popup-close-question .owner) a').attr('href') + ')';
         if($('#question .owner:not(#popup-close-question .owner) .relativetime').length) tim = $('#question .owner:not(#popup-close-question .owner) .relativetime').attr('title');
-        var result = '[tag:'+ (isclosed?'reopen-pls':'cv-pls') +'] [tag:' + tag + '] ' + reason + ' ' + tit + ' - ' + usr + (tim ? ' - ' + tim : '');
+        var result = '[tag:'+ (isclosed?'reopen-pls':'cv-pls') +'] [tag:' + tag + '] ' + reason + ' ' + tit + ' - ' + usr + (tim ? '\u200E - ' + tim : ''); //username can be RTL... need to insert a LTR marker to have proper direction
         sendRequest(result);
     });
 
