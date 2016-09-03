@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      2.0.1.5
-// @description  Scans the chat transcript and checks all cv+delete+reopen+dupe requests for status, then moves the closed/deleted/reopened ones. Possible dupe requests (and their replies) are moved after 30 minutes.
+// @version      2.0.1.6
+// @description  Scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests for status, then moves the closed/deleted/undeleted/reopened ones. Possible dupe requests (and their replies) are moved after 30 minutes.
 // @author       @TinyGiant @rene @Tunaki
 // @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/rooms\/.*/
 // @grant        none
@@ -290,6 +290,11 @@ function CVRequestArchiver(info){
         /(?:q[^\/]*|posts|a[^\/]*)\/(\d+).*(?:tagged\/del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\])/,
     ];
     
+    var undeleteRegexes = [
+        /(?:tagged\/undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/,
+        /(?:q[^\/]*|posts|a[^\/]*)\/(\d+).*(?:tagged\/undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\])/,
+    ];
+    
     var reopenRegexes = [
         /(?:tagged\/reopen-pl(?:ease|s|z)|\[reopen-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts)\/(\d+)/,
         /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/reopen-pl(?:ease|s|z)|\[reopen-pl(?:ease|s|z)\])/,
@@ -305,11 +310,12 @@ function CVRequestArchiver(info){
     ];
     
     var RequestType = {
-        CLOSE: 'close-vote',
-        DELETE: 'delete-vote',
-        REOPEN: 'reopen-vote',
-        DUPE: 'possible-dupe',
-        REPLY: 'feedback'
+        CLOSE: { regexes: cvRegexes },
+        DELETE: { regexes: deleteRegexes },
+        UNDELETE: { regexes: undeleteRegexes },
+        REOPEN: { regexes: reopenRegexes },
+        DUPE: { regexes: dupeRegexes },
+        REPLY: { regexes: repliesRegexes }
     }
     
     function matchesRegex(message, regexes) {
@@ -325,25 +331,16 @@ function CVRequestArchiver(info){
         nodes.indicator.value = 'checking events... (' + current + ' / ' + total + ')';
         nodes.progress.style.width = Math.ceil((current * 100) / total) + '%';
         var message = event.content;
-        var type = RequestType.CLOSE;
-        var isCVReq = matchesRegex(message, cvRegexes), isDelReq = false, isOpenReq = false, isDupeReq = false, isReplyReq = false;
-        if (!isCVReq) {
-            isDelReq = matchesRegex(message, deleteRegexes);
-            type = RequestType.DELETE;
-            if (!isDelReq) {
-                isOpenReq = matchesRegex(message, reopenRegexes);
-                type = RequestType.REOPEN;
-                if (!isOpenReq) {
-                    isDupeReq = matchesRegex(message, dupeRegexes);
-                    type = RequestType.DUPE;
-                    if (!isDupeReq) {
-                        isReplyReq = matchesRegex(message, repliesRegexes);
-                        type = RequestType.REPLY;
-                        if (!isReplyReq) return false;
-                    }
-                }
+        var type;
+
+        for (var i in RequestType) {
+            if (matchesRegex(message, RequestType[i].regexes)) {
+                type = RequestType[i];
+                break;
             }
         }
+
+        if (!type) return false;
         
         if (type != RequestType.REPLY) {
             var matches = message.match(/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/g);
@@ -416,6 +413,14 @@ function CVRequestArchiver(info){
                 }
             }
             
+            for(var j in currentreq) {
+                var didApiReturnPost = false;
+                for(var i in items) {
+                    if(currentreq[j].post == items[i].question_id) { didApiReturnPost = true; break; }
+                }
+                currentreq[j].undeleteAndNotReturnedAsQuestion = !didApiReturnPost && currentreq[j].type == RequestType.UNDELETE;
+            }
+
             var xhr2 = new XMLHttpRequest();
             xhr2.addEventListener("load", function(){
                 if(this.status !== 200) {
@@ -432,7 +437,22 @@ function CVRequestArchiver(info){
                         if(currentreq[j].post == items[i].answer_id && currentreq[j].type == RequestType.DELETE) delete currentreq[j];
                     }
                 }
-                for(var i in currentreq) messagesToMove.push(currentreq[i]);
+                
+                for(var j in currentreq) {
+                    var didApiReturnPost = false;
+                    for(var i in items) {
+                        if(currentreq[j].post == items[i].answer_id) { didApiReturnPost = true; break; }
+                    }
+                    if (!didApiReturnPost && currentreq[j].type == RequestType.UNDELETE && currentreq[j].undeleteAndNotReturnedAsQuestion) {
+                        delete currentreq[j];
+                    }
+                }
+                
+                for(var i in currentreq) {
+                    if (currentreq[i].type != RequestType.DUPE && currentreq[i].type != RequestType.REPLY) {
+                        messagesToMove.push(currentreq[i]);
+                    }
+                }
                 if(!requests.length) {
                     checkDone();
                     return false;
@@ -443,7 +463,8 @@ function CVRequestArchiver(info){
             var url = '//api.stackexchange.com/2.2/answers/' + formatPosts(currentreq) + '?' + [
                 'pagesize=100',
                 'site=stackoverflow',
-                'key=qhq7Mdy8)4lSXLCjrzQFaQ(('
+                'key=qhq7Mdy8)4lSXLCjrzQFaQ((',
+                'filter=!Wn5py8CX('
             ].join('&');
 
             xhr2.open("GET", url);
