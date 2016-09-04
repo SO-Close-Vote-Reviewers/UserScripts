@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      2.0.1.6
+// @version      2.0.1.7
 // @description  Scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests for status, then moves the closed/deleted/undeleted/reopened ones. Possible dupe requests (and their replies) are moved after 30 minutes.
 // @author       @TinyGiant @rene @Tunaki
 // @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/rooms\/.*/
@@ -281,28 +281,28 @@ function CVRequestArchiver(info){
     }
     
     var cvRegexes = [
-        /(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts)\/(\d+)/,
-        /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\])/,
+        /(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\]).*stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+)/,
+        /stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\])/,
     ];
     
     var deleteRegexes = [
-        /(?:tagged\/del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/,
-        /(?:q[^\/]*|posts|a[^\/]*)\/(\d+).*(?:tagged\/del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\])/,
+        /(?:tagged\/del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\]).*stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/,
+        /stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+).*(?:tagged\/del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\])/,
     ];
     
     var undeleteRegexes = [
-        /(?:tagged\/undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/,
-        /(?:q[^\/]*|posts|a[^\/]*)\/(\d+).*(?:tagged\/undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\])/,
+        /(?:tagged\/undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\]).*stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/,
+        /stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+).*(?:tagged\/undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\])/,
     ];
     
     var reopenRegexes = [
-        /(?:tagged\/reopen-pl(?:ease|s|z)|\[reopen-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts)\/(\d+)/,
-        /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/reopen-pl(?:ease|s|z)|\[reopen-pl(?:ease|s|z)\])/,
+        /(?:tagged\/reopen-pl(?:ease|s|z)|\[reopen-pl(?:ease|s|z)\]).*stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+)/,
+        /stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/reopen-pl(?:ease|s|z)|\[reopen-pl(?:ease|s|z)\])/,
     ];
     
     var dupeRegexes = [
-        /(?:tagged\/possible-duplicate).*(?:q[^\/]*|posts)\/(\d+)/,
-        /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/possible-duplicate)/,
+        /(?:tagged\/possible-duplicate).*stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+)/,
+        /stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/possible-duplicate)/,
     ];
     
     var repliesRegexes = [
@@ -343,12 +343,12 @@ function CVRequestArchiver(info){
         if (!type) return false;
         
         if (type != RequestType.REPLY) {
-            var matches = message.match(/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/g);
+            var matches = message.match(/stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/g);
             var posts = [];
             // matches will be null if an user screws up the formatting
             if (matches !== null) {
                 for(var k in Object.keys(matches)) {
-                    posts.push(/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/.exec(matches[k])[1]);
+                    posts.push(/stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/.exec(matches[k])[1]);
                 }
             }
             for(var l in posts) requests.push({ msg: event.message_id, post: posts[l], time: event.time_stamp, type: type });
