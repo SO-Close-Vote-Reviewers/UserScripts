@@ -309,13 +309,19 @@ function CVRequestArchiver(info){
         /@queen (?:f|k)/
     ];
     
+    var editReviewRegexes = [
+        /(?:tagged\/(?:approve|reject)-pl(?:ease|s|z)|\[(?:approve|reject)-pl(?:ease|s|z)\]).*stackoverflow.com\/review\/suggested-edits\/(\d+)/,
+        /stackoverflow.com\/review\/suggested-edits\/(\d+).*(?:tagged\/(?:approve|reject)-pl(?:ease|s|z)|\[(?:approve|reject)-pl(?:ease|s|z)\])/
+    ];
+    
     var RequestType = {
         CLOSE: { regexes: cvRegexes },
         DELETE: { regexes: deleteRegexes },
         UNDELETE: { regexes: undeleteRegexes },
         REOPEN: { regexes: reopenRegexes },
         DUPE: { regexes: dupeRegexes },
-        REPLY: { regexes: repliesRegexes }
+        REPLY: { regexes: repliesRegexes },
+        EDIT_REVIEW: { regexes: editReviewRegexes }
     }
     
     function matchesRegex(message, regexes) {
