@@ -10,11 +10,11 @@
 // ==/UserScript==
 /* jshint -W097 */
 /* jshint esnext:true */
+
 (function() {
     'use strict';
 
-    if (window.location.pathname === '/search')
-    {
+    if (window.location.pathname === '/search') {
         const regexes = [
             /(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts)\/(\d+)/,
             /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\])/,
@@ -28,8 +28,7 @@
 
         let requests = [];
 
-        funcs.appendInfo = (request) =>
-        {
+        funcs.appendInfo = (request) => {
             const scope = request.msg;
             const info = request.info;
 
@@ -48,14 +47,11 @@
             link.title = 'Click to open this question in a new tab.';
             link.appendChild(document.createTextNode(text));
 
-            if (existing !== null)
-            {
+            if (existing !== null) {
                 existing.appendChild(document.createElement('br'));
                 existing.appendChild(link);
                 scope.parentNode.parentNode.style.minHeight = existing.clientHeight + 'px';
-            }
-            else
-            {
+            } else {
                 const node = document.createElement('span');
                 node.className = 'request-info messages';
                 node.appendChild(link);
@@ -63,14 +59,11 @@
             }
         };
 
-        funcs.checkDone = () =>
-        {
-            for (let orequest of open)
-            {
+        funcs.checkDone = () => {
+            for (let orequest of open) {
                 const parent = orequest.msg.parentNode.parentNode;
 
-                if ((/\d+/.exec(parent.querySelector('.username a[href^="/user"]').href) || [false])[0] === me)
-                {
+                if ((/\d+/.exec(parent.querySelector('.username a[href^="/user"]').href) || [false])[0] === me) {
                     parent.remove();
                     continue;
                 }
@@ -78,16 +71,14 @@
                 funcs.appendInfo(orequest);
             }
 
-            for (let crequest of closed)
-            {
+            for (let crequest of closed) {
                 const message = crequest.msg;
                 if (message) {
-                    const parent = message.parentNode ? message.parentNode.parentNode: message.parentNode;
+                    const parent = message.parentNode ? message.parentNode.parentNode : message.parentNode;
 
                     message.remove();
 
-                    if (parent && !parent.querySelector('.message'))
-                    {
+                    if (parent && !parent.querySelector('.message')) {
                         parent.remove();
                     }
                 }
@@ -95,30 +86,25 @@
 
             const links = [].slice.call(document.querySelectorAll('.content a'));
 
-            for (let link of links)
-            {
+            for (let link of links) {
                 link.target = "_blank";
             }
         };
 
         funcs.formatPosts = arr => arr.map(item => item.post).join(';');
 
-        funcs.chunkArray = (arr, len) =>
-        {
+        funcs.chunkArray = (arr, len) => {
             const tmp = [];
             const num = Math.ceil(arr.length / len);
 
-            for (let i = 0; i < num; ++i)
-            {
+            for (let i = 0; i < num; ++i) {
                 tmp.push([]);
             }
 
             let ind = 0;
 
-            for (let j in arr)
-            {
-                if (arr.hasOwnProperty(j))
-                {
+            for (let j in arr) {
+                if (arr.hasOwnProperty(j)) {
                     if (j > 0 && !(j % len)) ++ind;
 
                     tmp[ind].push(arr[j]);
@@ -128,21 +114,17 @@
             return tmp;
         };
 
-        funcs.checkRequests = () =>
-        {
+        funcs.checkRequests = () => {
             let currentreq = requests.pop();
 
-            if (typeof currentreq === 'undefined')
-            {
+            if (typeof currentreq === 'undefined') {
                 return;
             }
 
             let xhr = new XMLHttpRequest();
 
-            xhr.addEventListener("load", event =>
-                                 {
-                if (xhr.status !== 200)
-                {
+            xhr.addEventListener("load", event => {
+                if (xhr.status !== 200) {
                     console.log(xhr.status, xhr.statusText, xhr.responseText);
                     funcs.checkDone();
                     return;
@@ -151,19 +133,14 @@
                 let response = JSON.parse(xhr.responseText);
                 let items = response.items;
 
-                for (let item of items)
-                {
-                    if (item.closed_date)
-                    {
+                for (let item of items) {
+                    if (item.closed_date) {
                         continue;
                     }
 
-                    for (let j in currentreq)
-                    {
-                        if (currentreq.hasOwnProperty(j))
-                        {
-                            if (currentreq[j].post == item.question_id)
-                            {
+                    for (let j in currentreq) {
+                        if (currentreq.hasOwnProperty(j)) {
+                            if (currentreq[j].post == item.question_id) {
                                 open.push({
                                     msg: currentreq[j].msg,
                                     info: item
@@ -177,16 +154,13 @@
                     }
                 }
 
-                for (let request in currentreq)
-                {
-                    if (typeof request !== 'undefined')
-                    {
+                for (let request in currentreq) {
+                    if (typeof request !== 'undefined') {
                         closed.push(request);
                     }
                 }
 
-                if (!requests.length)
-                {
+                if (!requests.length) {
                     funcs.checkDone();
                     return;
                 }
@@ -232,38 +206,30 @@
 
         let messages = [].slice.call(document.querySelectorAll('.message'));
 
-        for (let message of messages)
-        {
+        for (let message of messages) {
             const parent = message.parentNode.parentNode;
 
             let content = message.querySelector('.content');
 
-            if (content === null || content.innerHTML.trim() === '')
-            {
+            if (content === null || content.innerHTML.trim() === '') {
                 continue;
-            }
-            else
-            {
+            } else {
                 content = content.innerHTML.trim();
             }
 
             let isreq = false;
 
-            for (let regex of regexes)
-            {
-                if (regex.test(message.innerHTML))
-                {
+            for (let regex of regexes) {
+                if (regex.test(message.innerHTML)) {
                     isreq = true;
                     break;
                 }
             }
 
-            if (!isreq)
-            {
+            if (!isreq) {
                 message.remove();
 
-                if (!parent.querySelector('.message'))
-                {
+                if (!parent.querySelector('.message')) {
                     parent.remove();
                 }
 
@@ -272,36 +238,30 @@
 
             const matches = message.innerHTML.match(/(?:q[^\/]*|posts)\/(\d+)/g);
 
-            if (matches === null)
-            {
+            if (matches === null) {
                 continue;
             }
 
             const posts = [];
 
-            for (let key of Object.keys(matches))
-            {
+            for (let key of Object.keys(matches)) {
                 posts.push(/(?:q[^\/]*|posts)\/(\d+)/.exec(matches[key])[1]);
             }
 
-            for (let l in posts) requests.push(
-                {
-                    msg: message,
-                    post: posts[l]
-                });
+            for (let l in posts) requests.push({
+                msg: message,
+                post: posts[l]
+            });
         }
 
         rlen = requests.length;
 
-        if (rlen !== 0)
-        {
+        if (rlen !== 0) {
             requests = funcs.chunkArray(requests, 100);
 
             funcs.checkRequests();
         }
-    }
-    else
-    {
+    } else {
         const nodes = {};
 
         nodes.scope = document.querySelector('#chat-buttons');
@@ -315,8 +275,7 @@
 
         nodes.scope.appendChild(document.createTextNode(' '));
 
-        nodes.button.addEventListener('click', function()
-                                      {
+        nodes.button.addEventListener('click', function() {
             window.open(window.location.origin + '/search?q=tagged%2Fcv-pls&Room=41570&page=1&pagesize=50&sort=newest');
         }, false);
     }
