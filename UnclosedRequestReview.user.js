@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      1.0.1.4
+// @version      1.0.1.3
 // @description  Adds a button to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request query, then it scans the results  for closed or deleted requests, or false positives and hides them.
 // @author       @TinyGiant @rene @mogsdad
 // @match        *://chat.stackoverflow.com/rooms/41570/*
@@ -34,10 +34,10 @@
             /(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts)\/(\d+)/,
             /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\])/,
         ];
-
+        
         const me = (/\d+/.exec(document.querySelector('.topbar-menu-links a[href^="/users"]').href) || [false])[0];
 
-        const funcs = {};
+        const funcs  = {};
 
         funcs.formatPosts = arr => arr.map(item => item.post).join(';');
 
@@ -63,7 +63,7 @@
         };
 
         funcs.isRequest = message => {
-            if (!(message instanceof Node)) {
+            if(!(message instanceof Node)) {
                 return false;
             }
 
@@ -150,6 +150,7 @@
             return requests;
         };
 
+
         funcs.checkRequestChunks = (chunks, chunk_index) => {
             if (!chunk_index) {
                 chunk_index = 0;
@@ -175,7 +176,7 @@
             })();
 
             fetch(url).then(r => r.json()).then(response => {
-                if ("error_id" in response) {
+                if("error_id" in response) {
                     console.log(response);
                     return;
                 }
@@ -193,8 +194,8 @@
                     for (let item of items) {
                         if (request.post == item.question_id) {
                             const message = request.message;
-
-                            const [author] = /\d+/.exec(message.parentNode.parentNode.className) || [false];
+                            
+                            const [author] = /\d+/.exec(message.parentNode.parentNode.className) || [false];  
 
                             if (item.closed_date || author == me) {
                                 funcs.removeMessage(message);
@@ -206,7 +207,7 @@
 
                             break;
                         }
-                    }
+                    } 
 
                     if (deleted) {
                         funcs.removeMessage(request.message);
@@ -254,6 +255,6 @@
         nodes.button.textContent = 'requests';
         nodes.scope.appendChild(nodes.button);
 
-        nodes.button.addEventListener('click', window.open.bind(`${ window.location.origin }/search?q=tagged%2Fcv-pls&Room=41570&page=1&pagesize=50&sort=newest`));
+        nodes.button.addEventListener('click', () => window.open(`${ window.location.origin }/search?q=tagged%2Fcv-pls&Room=41570&page=1&pagesize=50&sort=newest`));
     }
 })();
