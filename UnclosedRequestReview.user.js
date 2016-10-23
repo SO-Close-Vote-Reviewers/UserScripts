@@ -1,95 +1,43 @@
 // ==UserScript==
 // @name         Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      1.0.1.3
+// @version      1.0.1.4
 // @description  Adds a button to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request query, then it scans the results  for closed or deleted requests, or false positives and hides them.
 // @author       @TinyGiant @rene @mogsdad
 // @match        *://chat.stackoverflow.com/rooms/41570/*
 // @match        *://chat.stackoverflow.com/search?q=tagged%2Fcv-pls&Room=41570&page=*&pagesize=50&sort=newest
-// @grant        GM_xmlhttpRequest
+// @grant        GM_addStyle
 // ==/UserScript==
 /* jshint -W097 */
 /* jshint esnext:true */
-
 (function() {
     'use strict';
 
     if (window.location.pathname === '/search') {
+        GM_addStyle(`
+            .request-info {
+                display: inline-block;
+                position: absolute;
+                top: -6px;
+                left: 100%;
+                white-space: nowrap;
+                padding: 6px 10px;
+                width: auto;
+                border-left: 5px solid #ff7b18;
+            }
+            .content a:visited {
+                color: #0480DE;
+            }
+        `);
+
         const regexes = [
             /(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts)\/(\d+)/,
             /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\])/,
         ];
 
-        const closed = [];
-        const open = [];
+        const me = (/\d+/.exec(document.querySelector('.topbar-menu-links a[href^="/users"]').href) || [false])[0];
+
         const funcs = {};
-
-        let post, message, id, rlen;
-
-        let requests = [];
-
-        funcs.appendInfo = (request) => {
-            const scope = request.msg;
-            const info = request.info;
-
-            const text = [
-                info.score,
-                '(+' + info.up_vote_count + '/-' + info.down_vote_count + ')',
-                'c:(' + info.close_vote_count + ')',
-                'v:(' + info.view_count + ')'
-            ].join(' ');
-
-            const existing = scope.querySelector('.request-info');
-
-            const link = document.createElement('a');
-            link.href = window.location.protocol + '//stackoverflow.com/q/' + request.info.question_id;
-            link.target = '_blank';
-            link.title = 'Click to open this question in a new tab.';
-            link.appendChild(document.createTextNode(text));
-
-            if (existing !== null) {
-                existing.appendChild(document.createElement('br'));
-                existing.appendChild(link);
-                scope.parentNode.parentNode.style.minHeight = existing.clientHeight + 'px';
-            } else {
-                const node = document.createElement('span');
-                node.className = 'request-info messages';
-                node.appendChild(link);
-                scope.appendChild(node);
-            }
-        };
-
-        funcs.checkDone = () => {
-            for (let orequest of open) {
-                const parent = orequest.msg.parentNode.parentNode;
-
-                if ((/\d+/.exec(parent.querySelector('.username a[href^="/user"]').href) || [false])[0] === me) {
-                    parent.remove();
-                    continue;
-                }
-
-                funcs.appendInfo(orequest);
-            }
-
-            for (let crequest of closed) {
-                const message = crequest.msg;
-                if (message) {
-                    const parent = message.parentNode ? message.parentNode.parentNode : message.parentNode;
-
-                    message.remove();
-
-                    if (parent && !parent.querySelector('.message')) {
-                        parent.remove();
-                    }
-                }
-            }
-
-            const links = [].slice.call(document.querySelectorAll('.content a'));
-
-            for (let link of links) {
-                link.target = "_blank";
-            }
-        };
 
         funcs.formatPosts = arr => arr.map(item => item.post).join(';');
 
@@ -114,153 +62,186 @@
             return tmp;
         };
 
-        funcs.checkRequests = () => {
-            let currentreq = requests.pop();
-
-            if (typeof currentreq === 'undefined') {
-                return;
+        funcs.isRequest = message => {
+            if (!(message instanceof Node)) {
+                return false;
             }
-
-            let xhr = new XMLHttpRequest();
-
-            xhr.addEventListener("load", event => {
-                if (xhr.status !== 200) {
-                    console.log(xhr.status, xhr.statusText, xhr.responseText);
-                    funcs.checkDone();
-                    return;
-                }
-
-                let response = JSON.parse(xhr.responseText);
-                let items = response.items;
-
-                for (let item of items) {
-                    if (item.closed_date) {
-                        continue;
-                    }
-
-                    for (let j in currentreq) {
-                        if (currentreq.hasOwnProperty(j)) {
-                            if (currentreq[j].post == item.question_id) {
-                                open.push({
-                                    msg: currentreq[j].msg,
-                                    info: item
-                                });
-
-                                delete currentreq[j];
-
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                for (let request in currentreq) {
-                    if (typeof request !== 'undefined') {
-                        closed.push(request);
-                    }
-                }
-
-                if (!requests.length) {
-                    funcs.checkDone();
-                    return;
-                }
-
-                setTimeout(funcs.checkRequests, response.backoff * 1000);
-
-            }, false);
-
-            let url = window.location.protocol + '//api.stackexchange.com/2.2/questions/' + funcs.formatPosts(currentreq) + '?' + [
-                'pagesize=100',
-                'site=stackoverflow',
-                'key=YvvkfBc3LOSK*mwaTPkUVQ((',
-                'filter=!*1SgQGDMA8qLEtv8iqQCAvh1tX2WDEre5g0fErdQn'
-            ].join('&');
-
-            xhr.open("GET", url);
-
-            xhr.send();
-        };
-
-        let scope = document.body;
-
-        let style = document.createElement('style');
-        style.type = 'text/css';
-        style.textContent = [
-            '.request-info {',
-            '    display: inline-block;',
-            '    position: absolute;',
-            '    top: -6px;',
-            '    left: 100%;',
-            '    white-space: nowrap;',
-            '    padding: 6px 10px;',
-            '    width: auto;',
-            '    border-left: 5px solid #ff7b18;',
-            '}',
-            '.content a:visited {',
-            '    color: #0480DE;',
-            '}'
-        ].join('\n');
-        scope.appendChild(style);
-
-        let me = (/\d+/.exec(document.querySelector('.topbar-menu-links a[href^="/users"]').href) || [false])[0];
-
-        let messages = [].slice.call(document.querySelectorAll('.message'));
-
-        for (let message of messages) {
-            const parent = message.parentNode.parentNode;
-
-            let content = message.querySelector('.content');
-
-            if (content === null || content.innerHTML.trim() === '') {
-                continue;
-            } else {
-                content = content.innerHTML.trim();
-            }
-
-            let isreq = false;
 
             for (let regex of regexes) {
                 if (regex.test(message.innerHTML)) {
-                    isreq = true;
-                    break;
+                    return true;
                 }
             }
 
-            if (!isreq) {
-                message.remove();
+            return false;
+        };
 
-                if (!parent.querySelector('.message')) {
-                    parent.remove();
+        funcs.removeMessage = message => {
+            if (!(message instanceof Node)) {
+                return false;
+            }
+
+            const parent = message.parentNode;
+
+            message.remove();
+
+            if (!(parent instanceof Node)) {
+                return true;
+            }
+
+            const messages = parent.querySelectorAll('.message');
+
+            if (messages.length <= 0) {
+                parent.parentNode.remove();
+            }
+        };
+
+        funcs.appendInfo = (scope, info) => {
+
+            const text = [
+                info.score,
+                '(+' + info.up_vote_count + '/-' + info.down_vote_count + ')',
+                'c:(' + info.close_vote_count + ')',
+                'v:(' + info.view_count + ')'
+            ].join(' ');
+
+            const existing = scope.querySelector('.request-info');
+
+            const link = document.createElement('a');
+            link.href = window.location.protocol + '//stackoverflow.com/q/' + info.question_id;
+            link.target = '_blank';
+            link.title = 'Click to open this question in a new tab.';
+            link.appendChild(document.createTextNode(text));
+
+            if (existing !== null) {
+                existing.appendChild(document.createElement('br'));
+                existing.appendChild(link);
+                scope.parentNode.parentNode.style.minHeight = existing.clientHeight + 'px';
+            } else {
+                const node = document.createElement('span');
+                node.className = 'request-info messages';
+                node.appendChild(link);
+                scope.appendChild(node);
+            }
+        };
+
+        funcs.filterMessages = messages => {
+            const requests = [];
+
+            for (let message of messages) {
+                if (!funcs.isRequest(message)) {
+                    funcs.removeMessage(message);
+
+                    continue;
                 }
 
-                continue;
+                const [, match] = /(?:q[^\/]*|posts)\/(\d+)/g.exec(message.innerHTML);
+
+                if (typeof match === 'undefined') {
+                    continue;
+                }
+
+                requests.push({
+                    message: message,
+                    post: match
+                });
             }
 
-            const matches = message.innerHTML.match(/(?:q[^\/]*|posts)\/(\d+)/g);
+            return requests;
+        };
 
-            if (matches === null) {
-                continue;
+        funcs.checkRequestChunks = (chunks, chunk_index) => {
+            if (!chunk_index) {
+                chunk_index = 0;
             }
 
-            const posts = [];
-
-            for (let key of Object.keys(matches)) {
-                posts.push(/(?:q[^\/]*|posts)\/(\d+)/.exec(matches[key])[1]);
+            if (!(chunks[chunk_index] instanceof Array)) {
+                console.log('Chunk is not an array');
+                return;
             }
 
-            for (let l in posts) requests.push({
-                msg: message,
-                post: posts[l]
+            const current_chunk = chunks[chunk_index];
+
+            const url = (function() {
+                const protocol = window.location.protocol;
+                const location = 'api.stackexchange.com/2.2/questions';
+                const posts = funcs.formatPosts(current_chunk);
+                const pagesize = 'pagesize=100';
+                const site = 'site=stackoverflow';
+                const key = 'key=YvvkfBc3LOSK*mwaTPkUVQ((';
+                const filter = 'filter=!*1SgQGDMA8qLEtv8iqQCAvh1tX2WDEre5g0fErdQn';
+
+                return `${ protocol }//${ location }/${ posts }?&${ pagesize}&${ site}&${ key }&${ filter }`;
+            })();
+
+            fetch(url).then(r => r.json()).then(response => {
+                if ("error_id" in response) {
+                    console.log(response);
+                    return;
+                }
+
+                const items = response.items;
+
+                if (typeof items === "undefined") {
+                    console.log("items property not set in response from API");
+                    return;
+                }
+
+                for (let request of current_chunk) {
+                    let deleted = true;
+
+                    for (let item of items) {
+                        if (request.post == item.question_id) {
+                            const message = request.message;
+
+                            const [author] = /\d+/.exec(message.parentNode.parentNode.className) || [false];
+
+                            if (item.closed_date || author == me) {
+                                funcs.removeMessage(message);
+                            } else {
+                                funcs.appendInfo(message, item);
+                            }
+
+                            deleted = false;
+
+                            break;
+                        }
+                    }
+
+                    if (deleted) {
+                        funcs.removeMessage(request.message);
+                    }
+                }
+
+                if (chunk_index == chunks.length - 1) {
+                    funcs.checkDone();
+                } else if (response.has_more) {
+                    setTimeout(funcs.checkRequestChunks, response.backoff * 1000, chunks, ++chunk_index);
+                }
             });
-        }
+        };
 
-        rlen = requests.length;
+        funcs.init = () => {
+            const messages = [...document.querySelectorAll('.message')];
 
-        if (rlen !== 0) {
-            requests = funcs.chunkArray(requests, 100);
+            const requests = funcs.filterMessages(messages);
 
-            funcs.checkRequests();
-        }
+            if (requests.length === 0) {
+                return false;
+            }
+
+            const chunks = funcs.chunkArray(requests, 100);
+
+            funcs.checkRequestChunks(chunks);
+
+            const links = [...document.querySelectorAll('.content a')];
+
+            for (let link of links) {
+                link.target = "_blank";
+            }
+        };
+
+        funcs.init();
     } else {
         const nodes = {};
 
@@ -273,10 +254,6 @@
         nodes.button.textContent = 'requests';
         nodes.scope.appendChild(nodes.button);
 
-        nodes.scope.appendChild(document.createTextNode(' '));
-
-        nodes.button.addEventListener('click', function() {
-            window.open(window.location.origin + '/search?q=tagged%2Fcv-pls&Room=41570&page=1&pagesize=50&sort=newest');
-        }, false);
+        nodes.button.addEventListener('click', window.open.bind(`${ window.location.origin }/search?q=tagged%2Fcv-pls&Room=41570&page=1&pagesize=50&sort=newest`));
     }
 })();
