@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      2.0.1.7
+// @version      2.0.1.8
 // @description  Scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests for status, then moves the closed/deleted/undeleted/reopened ones. Possible dupe requests (and their replies) are moved after 30 minutes.
 // @author       @TinyGiant @rene @Tunaki
 // @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/rooms\/.*/
@@ -401,13 +401,13 @@ function CVRequestArchiver(info){
                 }
                 if(!items[i].closed_date) {
                     for(var j in currentreq) {
-                        if(currentreq[j].type == RequestType.CLOSE && items[i].close_vote_count == 0 && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
+                        if(currentreq[j].type == RequestType.CLOSE && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
                         if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.CLOSE) delete currentreq[j];
                     }
                 }
                 if(items[i].closed_date) {
                     for(var j in currentreq) {
-                        if(currentreq[j].type == RequestType.REOPEN && items[i].reopen_vote_count == 0 && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
+                        if(currentreq[j].type == RequestType.REOPEN && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
                         if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.REOPEN) delete currentreq[j];
                     }
                 }
