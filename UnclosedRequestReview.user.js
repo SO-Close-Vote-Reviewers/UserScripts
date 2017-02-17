@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      1.0.1.4
+// @version      1.0.2.0
 // @description  Adds a button to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request query, then it scans the results  for closed or deleted requests, or false positives and hides them.
 // @author       @TinyGiant @rene @mogsdad @Makyen
 // @match        *://chat.stackoverflow.com/rooms/41570/*
@@ -364,5 +364,16 @@
                                       {
             window.open(window.location.origin + '/search?q=tagged%2Fcv-pls&Room=41570&page=1&pagesize=50&sort=newest');
         }, false);
+
+        //Apply the same visited link style on the main chat page as we have on the requests search page.
+        let scope = document.body;
+        let style = document.createElement('style');
+        style.type = 'text/css';
+        style.textContent = [
+            '.content a:visited {',
+            '    color: #0480DE;',
+            '}'
+        ].join('\n');
+        scope.appendChild(style);
     }
 })();
