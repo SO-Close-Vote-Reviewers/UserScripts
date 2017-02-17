@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      1.0.1.3
+// @version      1.0.1.4
 // @description  Adds a button to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request query, then it scans the results  for closed or deleted requests, or false positives and hides them.
-// @author       @TinyGiant @rene @mogsdad
+// @author       @TinyGiant @rene @mogsdad @Makyen
 // @match        *://chat.stackoverflow.com/rooms/41570/*
 // @match        *://chat.stackoverflow.com/search?q=tagged%2Fcv-pls&Room=41570&page=*&pagesize=50&sort=newest
 // @grant        GM_xmlhttpRequest
@@ -24,7 +24,7 @@
         const open = [];
         const funcs = {};
 
-        let post, message, id, rlen;
+        let post, message, id;
 
         let requests = [];
 
@@ -87,7 +87,10 @@
             for (let crequest of closed)
             {
                 const message = crequest.msg;
-                if (message) {
+                //Don't delete if the message has request-info in case there was more than one
+                //  request in the message.
+                if (message && !message.querySelector('.request-info'))
+                {
                     const parent = message.parentNode ? message.parentNode.parentNode: message.parentNode;
 
                     message.remove();
@@ -196,7 +199,7 @@
 
                 //Add any remaining requests to the "closed" list. This should be requests for questions which are
                 //  either A) closed (had a closed_date), or B) did not produce any data from the API (deleted).
-                for (let request in currentreq)
+                for (let request of currentreq)
                 {
                     if (typeof request !== 'undefined')
                     {
@@ -313,20 +316,26 @@
             //We can have duplicates here due to possible HTML: <a href="questionURL">questionURL</a>
             for (let key of Object.keys(matches))
             {
-                posts.push(/(?:q[^\/]*|posts)\/(\d+)/.exec(matches[key])[1]);
+                let post = /(?:q[^\/]*|posts)\/(\d+)/.exec(matches[key])[1];
+                //Don't add duplicate posts for the same question.
+                if(posts.indexOf(post) === -1)
+                {
+                    posts.push(post);
+                }
             }
 
             //For each post found in this message, create a request mapping the post to the message.
-            for (let l in posts) requests.push(
+            for (let post of posts)
+            {
+                requests.push(
                 {
                     msg: message,
-                    post: posts[l]
+                    post: post
                 });
+            }
         }
 
-        rlen = requests.length;
-
-        if (rlen !== 0)
+        if (requests.length !== 0)
         {
             //API requests are max 100 questions each. So, break the array into 100 post long chunks.
             requests = funcs.chunkArray(requests, 100);
