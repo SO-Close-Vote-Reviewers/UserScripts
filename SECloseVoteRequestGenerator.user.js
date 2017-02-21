@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.5.20
+// @version        1.5.21
 // @description    This script generates formatted close vote requests and sends them to a specified chat room, fixes #65
 // @author         @TinyGiant
 // @contributor    @rene @Tunaki
@@ -32,7 +32,7 @@ if(typeof StackExchange === "undefined")
         get: function(r) {
             var a = r.split(' ');
             a.forEach(function(v,i){
-                a[i] = reasons[v] && v !== 'get' ? reasons[v] : v;
+                a[i] = reasons.hasOwnProperty(v) && v !== 'get' ? reasons[v] : v;
             });
             return a.join(' ');
         }
