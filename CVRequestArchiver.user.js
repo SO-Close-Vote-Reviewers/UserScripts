@@ -311,7 +311,8 @@ function CVRequestArchiver(info){
     ];
     // FireAlarm reports
     var faRegexes = [
-        /(?:\/\/stackapps.com\/q\/7183">FireAlarm-Swift)/
+        /(?:\/\/stackapps.com\/q\/7183">FireAlarm-Swift)/,
+        /(?:\[ <a href="\/\/github.com\/SOBotics\/FireAlarm\/tree\/swift" rel="nofollow noopener noreferrer">FireAlarm-Swift<\/a> \])/
     ];
     // matches replies to FireAlarm
     var faRepliesRegexes = [
