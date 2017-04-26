@@ -10,6 +10,7 @@
 // @connect        rawgit.com
 // @connect        raw.githubusercontent.com
 // @connect        chat.stackoverflow.com
+// @connect        chat.stackexchange.com
 // @grant          GM_xmlhttpRequest
 // ==/UserScript==
 
