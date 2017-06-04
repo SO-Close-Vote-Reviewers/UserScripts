@@ -236,7 +236,7 @@ if(typeof StackExchange === "undefined")
     function getStorage(key) { return localStorage[prefix + key]; }
     function setStorage(key, val) { return (localStorage[prefix + key] = val); }
 
-    var base = 'http://' + window.location.hostname;
+    var base = 'https://' + window.location.hostname;
 
     if(!getStorage(base + 'room'))
         setStorage(base + 'room', 'http://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers');
