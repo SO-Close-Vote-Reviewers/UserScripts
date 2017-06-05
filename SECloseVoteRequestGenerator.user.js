@@ -270,7 +270,7 @@ if(typeof StackExchange === "undefined")
         $('input[type="text"]', CVRGUI.items.send).focus();
     }
     CVRGUI.items  = {
-        send:    $('<dd><a href="javascript:void(0)">Send request</a><div style="display:none"><form><input type="text"/><input type="submit" value="Send"></form></div><hr></dd>'),
+        send:    $('<dd><a href="javascript:void(0)">Send request</a><div style="display:none"><form><input type="text" placeholder="Close reason"/><input type="submit" value="Send"></form></div><hr></dd>'),
         room:    (function(){
             var item = $('<dd></dd>');
             var list = $('<dl>');
