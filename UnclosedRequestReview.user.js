@@ -76,7 +76,7 @@
 
                 if (reporter)
                 {
-                    if (((/\d+/.exec(reporter).href) || [false])[0] === me)
+                    if (((/\d+/.exec(reporter.href)) || [false])[0] === me)
                     {
                         parent.remove();
                         continue;
