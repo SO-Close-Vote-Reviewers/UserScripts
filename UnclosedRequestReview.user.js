@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      1.0.1.4
+// @version      1.0.1.5
 // @description  Adds a button to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request query, then it scans the results  for closed or deleted requests, or false positives and hides them.
-// @author       @TinyGiant @rene @mogsdad @Makyen
+// @author       @TinyGiant @rene @mogsdad @Makyen @PaulRoub
 // @match        *://chat.stackoverflow.com/rooms/41570/*
 // @match        *://chat.stackoverflow.com/search?q=tagged%2Fcv-pls&Room=41570&page=*&pagesize=50&sort=newest
 // @grant        GM_xmlhttpRequest
@@ -71,13 +71,16 @@
             //Add request-info for all open questions (except the user's own).
             for (let orequest of open)
             {
-                const parent = orequest.msg.parentNode.parentNode;
+                const parent = orequest.msg.parentNode.parentNode;                
+                const reporter = parent.querySelector('.username a[href^="/user"]');
 
-                //Delete the user's own messages.
-                if ((/\d+/.exec(parent.querySelector('.username a[href^="/user"]').href) || [false])[0] === me)
+                if (reporter)
                 {
-                    parent.remove();
-                    continue;
+                    if (((/\d+/.exec(reporter.href)) || [false])[0] === me)
+                    {
+                        parent.remove();
+                        continue;
+                    }
                 }
 
                 funcs.appendInfo(orequest);
