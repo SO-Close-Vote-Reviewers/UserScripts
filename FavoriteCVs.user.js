@@ -11,7 +11,7 @@
 // ==/UserScript==
 
 (function() {
-    'use strict';
+	'use strict';
 
 	var fetch_button = $('<button class="button" id="imp-cvs">refresh imp-cvs</button>');
 	$($('#widgets')[0]).append(fetch_button);
@@ -26,7 +26,7 @@
 		    var status_text = $(".question-status", content.responseText);
 		    if (!(status_text.length > 0 && status_text[0].innerHTML.indexOf("put on hold") > -1)){
 			var vote_status = $(".close-question-link", content.responseText);
-			if(vote_status.length > 0 && $(vote_status[0]).attr("title").indexOf("You voted to close") == -1){
+			if(vote_status.length > 0 && $(vote_status[0]).html().startsWith("close") && $(vote_status[0]).attr("title").indexOf("You voted to close") == -1 ){
 			    var disp_text = "";
 			    disp_text = "<a class=\"message\" href=\"https://stackoverflow.com/q/"+q_id+"/\">"+title+"</a>";
 			    $($("#important_cvs_content")[0]).append($(disp_text+"<br><br>"));
