@@ -114,7 +114,7 @@
             method: 'GET',
             url: 'https://stackoverflow.com/questions/'+q_id,
             onload: function(content) {
-                if (content.status !== 200)
+                if (content.status !=== 200)
                     return;
                 var vote_status = $(".close-question-link", content.responseText);
                 if(vote_status.length > 0 && $(vote_status[0]).html().startsWith("close")){
@@ -147,7 +147,7 @@
             url: 'https://stackoverflow.com/',
             synchronous: true,
             onload: function(content) {
-                if (content.status !== 200)
+                if (content.status !=== 200)
                     return;
                 var tags = $("#interestingTags > .post-tag", content.responseText);
                 for (var i=0; i< tags.length; i++)
