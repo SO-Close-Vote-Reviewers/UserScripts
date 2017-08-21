@@ -114,7 +114,7 @@
             method: 'GET',
             url: 'https://stackoverflow.com/questions/'+q_id,
             onload: function(content) {
-                if (content.status !=== 200)
+                if (content.status !== 200)
                     return;
                 var vote_status = $(".close-question-link", content.responseText);
                 if(vote_status.length > 0 && $(vote_status[0]).html().startsWith("close")){
@@ -135,7 +135,11 @@
             }
         });
     }
-
+    function reset_cv_box() {
+        favorite_cvs_loader_animation.hide();
+        favorite_cvs_refresh_button.show();
+        favorite_cvs_auto_reloader=setInterval(function(){fetch_imp_cvs();}, 60*1000);
+    }
     function fetch_imp_cvs() {
         clearInterval(favorite_cvs_auto_reloader);
         favorite_cvs_loader_animation.show();
@@ -147,8 +151,10 @@
             url: 'https://stackoverflow.com/',
             synchronous: true,
             onload: function(content) {
-                if (content.status !=== 200)
+                if (content.status !== 200){
+                    reset_cv_box();
                     return;
+                }
                 var tags = $("#interestingTags > .post-tag", content.responseText);
                 for (var i=0; i< tags.length; i++)
                     fav_tags.push(tags[i].textContent);
@@ -159,9 +165,7 @@
 
     function throttle_and_send(delay, request_ids) {
         if (request_ids.length === 0){
-            favorite_cvs_loader_animation.hide();
-            favorite_cvs_refresh_button.show();
-            favorite_cvs_auto_reloader=setInterval(function(){fetch_imp_cvs();}, 60*1000);
+            reset_cv_box();
             return;
         }
         var send_now = request_ids.pop();
@@ -204,10 +208,12 @@
                         if(!matches)
                             continue;
                         var q_id = matches[1];
+                        
                         if(q_id && processed_q.indexOf(q_id)===-1){
                             if(ignore_list.indexOf(q_id) === -1 ){
-                                if(already_voted.indexOf(q_id) === -1)
+                                if(already_voted.indexOf(q_id) === -1){
                                     requests_to_send.push([q_id, title]);
+                                }
                                 else
                                     new_already_voted.push(q_id);
                             }else{
@@ -228,3 +234,4 @@
     favorite_cvs_auto_reloader=setInterval(function(){fetch_imp_cvs();}, 60*1000);
     fetch_imp_cvs();
 })();
+
