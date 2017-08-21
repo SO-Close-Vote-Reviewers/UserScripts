@@ -72,7 +72,7 @@
                        +'        filter:alpha(opacity=95);'
                        +'        -webkit-box-shadow:0 1px 15px #9c9c9c;'
                        +'        -moz-box-shadow:0 1px 15px #9c9c9c;'
-                       +'        box-shadoe:0 1px 15px #9c9c9c;'
+                       +'        box-shadow:0 1px 15px #9c9c9c;'
                        +'        overflow-y:auto;'
                        +'    }'
                        +'    #favorite_cvs-btn-quickrefresh{'
