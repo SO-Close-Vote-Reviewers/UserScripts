@@ -6,6 +6,7 @@
 // @contributor    Unihedron
 // @contributor    Tiny Giant
 // @contributor    Mogsdad
+// @contributor    Makyen
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
@@ -71,18 +72,31 @@
             "links":  /_xLinkxPlacexHolderx_/gi,
             "tags":   /_xTagxPlacexHolderx_/gi
         };
+        App.globals.placeHolderChecksKeys = Object.keys(App.globals.placeHolderChecks);
         App.globals.checks = {
-            //        https://regex101.com/r/cI6oK2/1 automatically inserted text
+            //automatically inserted text
+            //        https://regex101.com/r/cI6oK2/1
             "auto":   /[^]*\<\!\-\- End of automatically inserted text \-\-\>/g,
-            //        https://regex101.com/r/fU5lE6/1 blockquotes
+            //blockquotes
+            //        https://regex101.com/r/fU5lE6/1
             "quote":  /^\>(?:(?!\n\n)[^])+/gm,
-            //        https://regex101.com/r/lL6fH3/1 single-line inline code
+            //single-line inline code
+            //        https://regex101.com/r/lL6fH3/1
             "inline": /`[^`\n]+`/g,
-            //        https://regex101.com/r/eC7mF7/2 code blocks and multiline inline code.
-            "block":  /`[^`]+`|^(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ ]+\n)*)+)+/gm,
-            //        https://regex101.com/r/tZ4eY3/7 link-sections 
-            "lsec":   /(?:  (?:\[\d\]): \w*:+\/\/.*\n*)+/g,
-            //        https://regex101.com/r/tZ4eY3/20 links and pathnames
+            //code blocks and multiline inline code.
+            //        https://regex101.com/r/eC7mF7/3
+            "block":  /(?:(?:^ *(?:[\r\n]|\r\n))?`[^`]+`|(?:^ *(?:[\r\n]|\r\n))^(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ ]+\n)*)+)+)/gm,
+            //link-sections
+            //  Testing of this and the "links" RegExp were done within the same regex101.com "regex".
+            //  The prior version of this was https://regex101.com/r/tZ4eY3/7 it was saved and became version 21.
+            //  It was then forked into it's own regex:
+            //        https://regex101.com/r/C7nXfd/1
+            "lsec":   /(?:^ *(?:[\r\n]|\r\n))?(?:  (?:\[\d\]): \w*:+\/\/.*\n*)+/gm,
+            //links and pathnames
+            //  See comment above the "lsec" RegExp regarding testing sharing the same "regex" on regex101.com
+            //        https://regex101.com/r/tZ4eY3/20
+            //  There is a version 21 of this regex101.com "regex", which is a non-current version of the "lsec" (above) RegExp.
+            //  If you need to make changes, just go ahead and save them there. The "lsec" testing has been forked into another regex101.com regex.
             "links":  /\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d:/?#\[\]@!$&'()*+,;=\-~%]*/g,
             //        https://regex101.com/r/bF0iQ0/2   tags and html comments 
             "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>|\[tag:[\w.-]+\]/gi
@@ -2411,8 +2425,8 @@
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
-            complimentaryClose: {  // https://regex101.com/r/hL3kT5/6
-                expr: /^\s*(?:(?:kind(?:est)* |best )*regards?|cheers?|greetings?|thanks|thank you|peace)\b,?.*[\r\n]{0,2}.*(?:[.!?: ]*|$)/gim,
+            complimentaryClose: {  // https://regex101.com/r/hL3kT5/7
+                expr: /^\s*(?:(?:kind(?:est)* |best )*regards?|cheers?|greetings?|thanks|thank you|peace)\b,?(?:[^_\r\n]|_(?:[^x\r\n]|$))*(?: *[\r\n]){0,2}(?:[^_\r\n]|_(?:[^x\r\n]|$))*(?:[.!?: ]*|$)/gim,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
@@ -2526,16 +2540,29 @@
             }
         };
 
+        // Check if the placeholders are the same in two pieces of text.
+        App.funcs.didPlaceholdersChange = function(before, after) {
+            //Currently, we only check that the number of instances for each type of placeholder is the
+            //  same in both texts.
+            return App.globals.placeHolderChecksKeys.some(function(key) {
+                var regEx = App.globals.placeHolderChecks[key];
+                var beforeMatches = before.match(regEx);
+                var afterMatches = after.match(regEx);
+                return !((beforeMatches === null && afterMatches === null) || (beforeMatches !== null && afterMatches !== null && beforeMatches.length === afterMatches.length));
+            });
+        };
+
         // This is where the magic happens: this function takes a few pieces of information and applies edits to the post
-        App.funcs.fixIt = function(input, edit) {
+        App.funcs.fixIt = function(input, edit, editRule) {
             var expression = edit.expr;
             var replacement = edit.replacement;
             var reasoning = edit.reason;
             var debug = edit.debug;
             
             if (debug) {
-                console.log(input);
-                console.log(expression.toString());
+                console.log('editRule:', editRule);
+                console.log('input:', input);
+                console.log('expression.toString():', expression.toString());
                 console.log("replacement: '"+replacement+"'");
             }
             // If there is nothing to search, exit
@@ -2545,19 +2572,33 @@
             if (debug) console.log(matches, expression.exec(input));
             if (!matches) return false;
             var count = 0;  // # replacements to do
+            var deniedCount = 0;  // # replacements not to do
             input = input.replace(expression, function(before){ 
                 var after = before.replace(expression, replacement);
                 if(after !== before) ++count; 
-                if (debug) console.log(before, after, after !== before, count);
+                //Check to see if the quantity of the place holders changed between the input and output.
+                if(App.funcs.didPlaceholdersChange(before, after)) {
+                    //An edit rule should never change the quantity of placeholders in the text. If it does, we deny making the change.
+                    console.log('PREVENTED change: edit rule:', editRule, ': Placeholders changed:  before:', before, '::  after:', after, '::  count:', count);
+                    count--;
+                    deniedCount++;
+                    return before;
+                }
+                if (debug) console.log('before:', before, '::  after:', after, '::  after !== before:', after !== before, '::  count:', count);
                 return after;
             });
-            if (!count) {
+            if (!count && !deniedCount) {
                 // Seems like no replacements, check.
                 // In some cases, the expression matches on the initial input, but
                 // fails to on the individual matches. In that case, we can't count
                 // the total changes accurately, but we can still complete the
                 // replacement on the initial input.
                 var after = input.replace(expression, replacement);
+                if(App.funcs.didPlaceholdersChange(input, after)) {
+                    //An edit rule should never change the quantity of placeholders in the text. If it does, we deny making the change.
+                    console.log('PREVENTED global change: edit rule:', editRule, ': Placeholders changed:  input:', input, '::  after:', after, '::  count:', count);
+                    after = input;
+                }
                 if (debug) console.log("zero-count: ", input, after, after !== input);
                 if(after !== input) {
                     ++count; 
@@ -2791,7 +2832,7 @@
                 if (debug) console.log("edit "+j+" in "+field);
                 if (App.edits[j].titleOnly && 'title' !== field)
                     continue;  // Skip title-only edits if not editing title.
-                var fix = App.funcs.fixIt(data[field], App.edits[j]);
+                var fix = App.funcs.fixIt(data[field], App.edits[j], j);
                 if (!fix) continue;
                 if (fix.reason in App.globals.reasons) App.globals.reasons[fix.reason].count += fix.count;
                 else App.globals.reasons[fix.reason] = { reason:fix.reason, editId:j, count:fix.count };
