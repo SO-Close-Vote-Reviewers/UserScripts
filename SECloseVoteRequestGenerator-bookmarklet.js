@@ -1,3 +1,6 @@
+//
+// Version 1.0.1
+//
 //The bookmarklet is minified in order to fit in the 2088 character limit imposed by some browsers (e.g. IE, Edge).
 //The minified bookmarklet was produced by running the code below through:
 //  uglifyjs SECloseVoteRequestGenerator-bookmarklet.js --compress collapse_vars,reduce_vars --beautify beautify=false,quote_style=1 --mangle toplevel | sed -e "s/^\!/javascript:void\(/" -e 's/;$/)/' > SECloseVoteRequestGenerator-bookmarklet.min.js
@@ -5,6 +8,13 @@
 
 //Formatted source for bookmarklet
 javascript:void((function() {
+    function restoreHistory(){
+        //Restore the original location, if possible.
+        try {
+            history.replaceState({}, '', currentLocation);
+        } catch(e) {
+        }
+    }
     var reasons = {
         't': 'Too Broad',
         'u': 'Unclear',
@@ -25,15 +35,18 @@ javascript:void((function() {
             return a.join(' ');
         }
     };
-    var win = $(window);
-    var scroll = win.scrollTop();
+    var win = window;
+    var winLocation = win.location;
+    var currentLocation = winLocation.href;
+    var $win = $(win);
+    var scroll = $win.scrollTop();
     var notify = StackExchange.notify;
     var notifyId = 483912;
     var success;
     var reqType = ($('.special-status .question-status H2 B').filter(function() {
         return /hold|closed|marked/i.test($(this).text()); 
     }).length ? 'reopen' : 'cv') + '-pls';
-    var base = 'https://' + window.location.hostname;
+    var base = 'https://' + winLocation.hostname;
     var reason = window.prompt('Request reason:', '');
     if (!reason) return;
     reason = reasons.get(reason);
@@ -55,19 +68,21 @@ javascript:void((function() {
     var textarea = $(resultInTextArea).appendTo(document.body);
     var textForYour = 'The text for your ' + reqType;
     try {
+        //Try to copy the text to the clipboard
         textarea[0].select();
         success = document.execCommand('copy');
+        //If failed, go with notification of text.
         if (!success) throw 1;
-        var message = textForYour + ' has been copied to the clipboard.';
+        var copiedToClipboadText = 'been copied to the clipboard.';
+        var message = textForYour + ' has ' + copiedToClipboadText;
         //Notify the user that the request has been copied to the clipboard.
         notify.show(message, notifyId);
         setTimeout(notify.close, 3000, notifyId);
     } catch (e) {
         //If something goes wrong, fallback to StackExchange.notify().
         var note1 = textForYour + ' is:';
-        //var note2 = '<div>' + resultInTextArea + '</div>';
         var note2 = resultInTextArea;
-        var note3 = 'It has ' + (success ? '' : 'NOT ') + 'been copied to the clipboard.';
+        var note3 = 'It has ' + (success ? '' : 'NOT ') + copiedToClipboadText;
         try {
             notify.show(note1 + note2 + note3 + ' You can press Ctrl-C now to copy it.', notifyId);
         } catch (e) {
@@ -76,13 +91,18 @@ javascript:void((function() {
         }
     }
     textarea.remove();
-    win.scrollTop(scroll);
+    $win.scrollTop(scroll);
+    loopCount = 0;
     setTimeout(function loop(){
+        loopCount++;
         var notifyTextarea = $('.cvrg-result');
         if(notifyTextarea.length) {
             notifyTextarea[0].select();
+            restoreHistory();
+        } else if(loopCount < 100){
+            setTimeout(loop, 200);
         } else {
-            setTimeout(loop,200);
+            restoreHistory();
         }
     }, 200);
 })())
