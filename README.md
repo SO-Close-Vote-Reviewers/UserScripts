@@ -4,6 +4,7 @@ This repository contains various [Tampermonkey](http://tampermonkey.net/) (Chrom
 
 Jump to:
 - [SO Close Vote Request Generator](#so-close-vote-request-generator)
+  - [SO Close Vote Request Generator (bookmarklet)](#so-close-vote-request-generator-bookmarklet)
 - [Magic™ Editor](#magic-editor)
 
 ## SO Close Vote Request Generator
@@ -75,6 +76,25 @@ This script has a short reason replacement feature. The script will split the re
 * `f: serverfault`
 * `l: library/tool/resource`
 * `g: gimme-teh-codez`
+
+### SO Close Vote Request Generator (bookmarklet)
+In some environments it's not possible to install user scripts. In order to facilitate making `cv-pls` requests in such situations, there's a version of the SO Close Vote Request Generator as a [bookmarklet](https://www.google.com/search?q=bookmarklet).
+
+#### Using the bookmarklet:
+You will be prompted to enter a reason for the request. After entering the reason, the text for the formatted `cv-pls` will be copied to the clipboard.  If the bookmarklet was unable to copy the text to the clipboard, a notification will be displayed at the top of the page from which you can copy the text.
+
+#### Creating the bookmarklet:
+In most browsers, but not Edge, you can add a bookmarklet by creating a bookmark/favorite and changing the URL/location to the minified version of the bookmarklet below.  The bookmarklet is minified in order to fit in the 2088 character limit imposed by some browsers (e.g. IE, Edge). The [minified version](SECloseVoteRequestGenerator-bookmarklet.min.js) of the bookmarklet is:
+
+    javascript:void(function(){var t,e={t:'Too Broad',u:'Unclear',p:'Primarily Opinion Based',o:'Opinion Based',d:'Duplicate',m:'No MCVE',r:'Typo or Cannot Reproduce',g:'General Computing',s:'Super User',f:'Server Fault',l:'Request for Off-Site Resource',get:function(t){var o=t.split(' ');return o.forEach(function(t,r){o[r]=e.hasOwnProperty(t)&&'get'!==t?e[t]:t}),o.join(' ')}},o=$(window),r=o.scrollTop(),n=StackExchange.notify,a=($('.special-status .question-status H2 B').filter(function(){return/hold|closed|marked/i.test($(this).text())}).length?'reopen':'cv')+'-pls',s='https://'+window.location.hostname,i=window.prompt('Request reason:','');if(i){i=e.get(i);var c,l='['+$('#question-header h1 a').text().replace(/(\[|\])/g,'\\$1').replace(/^\s+|\s+$/gm,'')+'‭]('+s+$('#question .short-link').attr('href')+')',p=$('.post-signature:not([align=\'right\'],#popup-close-question .post-signature) .user-details').text().trim().match(/[^\n]+/)[0].trim(),u=$('#question a.post-tag').first().text(),h=$('#question .owner:not(#popup-close-question .owner)'),d=$('a',h);d.length&&(p='['+p+']('+s+d.attr('href')+')');var g=$('.relativetime',h);g.length&&(c=g.attr('title'));var m='[tag:'+a+'] [tag:'+u+'] '+i+' '+l+' - '+p+(c?'‭ - '+c:''),f='<textarea class=\'cvrg-result\' style=\'width:95%;display:block;margin:10px auto;\'>'+m+'</textarea>',v=$(f).appendTo(document.body),w='The text for your '+a;try{if(v[0].select(),!(t=document.execCommand('copy')))throw 1;var y=w+' has been copied to the clipboard.';n.show(y,483912),setTimeout(n.close,3e3,483912)}catch(e){var x=w+' is:',T=f,q='It has '+(t?'':'NOT ')+'been copied to the clipboard.';try{n.show(x+T+q+' You can press Ctrl-C now to copy it.',483912)}catch(t){alert(x+'\n\n'+m+'\n\n'+q)}}v.remove(),o.scrollTop(r),setTimeout(function t(){var e=$('.cvrg-result');e.length?e[0].select():setTimeout(t,200)},200)}}())
+
+
+You can see the [non-minified version of the bookmarklet](SECloseVoteRequestGenerator-bookmarklet.js). 
+
+For some reason, Edge does not permit directly creating bookmarklets. In Edge, you *must* import the bookmarklet from the [bookmarks file](SECloseVoteRequestGenerator-bookmarklet-bookmarks.html).  You will need to save that file to your system and then use Edge's settings->Import from another browser->Import from file.  You will probably then want to click on "View imported favorites" in order to move teh `cv-pls` bookmarklet to the location you desire.
+
+Other browsers can also import from the .html file, but don't need to.
+ 
 
 ## Magic™ Editor
 
