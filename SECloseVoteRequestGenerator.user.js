@@ -12,6 +12,7 @@
 // @connect        chat.stackoverflow.com
 // @connect        chat.stackexchange.com
 // @grant          GM_xmlhttpRequest
+// @grant          GM_setClipboard
 // ==/UserScript==
 
 if(typeof StackExchange === "undefined")
@@ -98,6 +99,33 @@ if(typeof StackExchange === "undefined")
         $('div', CVRGUI.items.send).hide();
         CVRGUI.list.hide();
     }
+    
+    function displayRequestText (requestText, message) {
+        // Try to copy the text to clipboard.
+        var copied = false;
+
+        try {
+            GM_setClipboard(requestText);
+            copied = true;
+        } catch (e) {
+            copied = false;
+        }
+
+        // If copy fails, display request text in a notification.         
+        // If that also fails, display an alert.
+        try {
+            if(copied) {
+                message = message + " The text for your request has been copied to the clipboard.";
+            } else {
+                message = message + " The text for your request is: <br/><br/><small style='font-size: smaller'>" + requestText + "</small><br/>";
+            }
+            
+            notify(message);
+        } catch (e) {
+            console.error(message + "\n\n The text for your request is: \n\n" + requestText);
+            alert(message + "\n\n The text for your request is: \n\n" + requestText);
+        } 
+    }
 
     function sendRequest(result) {
         RoomList.getRoom(function(room){
@@ -119,14 +147,18 @@ if(typeof StackExchange === "undefined")
                             notify('Close vote request sent.',1000);
                             hideMenu();
                         },
-                        onerror: function() {
-                            notify('Failed sending close vote request.');
+                        onerror: function(err) {
                             hideMenu();
+                            var message = "Failed sending close vote request.";
+                            console.error(message, err);
+                            displayRequestText(result, message);
                         }
                     });
                 },
                 onerror: function(resp) {
-                    notify('Failed retrieving fkey from chat. (' + resp.status + ')');
+                    var message = "Failed retrieving fkey from chat. (" + resp.status + ")";
+                    console.error(message, resp);
+                    displayRequestText(result, message);
                 }
             });
         });

@@ -4,7 +4,7 @@
 //The bookmarklet is minified in order to fit in the 2088 character limit imposed by some browsers (e.g. IE, Edge).
 //The minified bookmarklet was produced by running the code below through:
 //  uglifyjs SECloseVoteRequestGenerator-bookmarklet.js --compress collapse_vars,reduce_vars --beautify beautify=false,quote_style=1 --mangle toplevel | sed -e "s/^\!/javascript:void\(/" -e 's/;$/)/' > SECloseVoteRequestGenerator-bookmarklet.min.js
-//ublifyjs can be found at: https://github.com/mishoo/UglifyJS2
+//uglifyjs can be found at: https://github.com/mishoo/UglifyJS2
 
 //Formatted source for bookmarklet
 javascript:void((function() {
