@@ -12,7 +12,6 @@
 // @connect        chat.stackoverflow.com
 // @connect        chat.stackexchange.com
 // @grant          GM_xmlhttpRequest
-// @grant          GM_setClipboard
 // ==/UserScript==
 
 if(typeof StackExchange === "undefined")
@@ -101,28 +100,17 @@ if(typeof StackExchange === "undefined")
     }
     
     function displayRequestText (requestText, message) {
-        // Try to copy the text to clipboard.
-        var copied = false;
-
         try {
-            GM_setClipboard(requestText);
-            copied = true;
-        } catch (e) {
-            copied = false;
-        }
-
-        // If copy fails, display request text in a notification.         
-        // If that also fails, display an alert.
-        try {
-            if(copied) {
-                message = message + " The text for your request has been copied to the clipboard.";
-            } else {
-                message = message + " The text for your request is: <br/><br/><small style='font-size: smaller'>" + requestText + "</small><br/>";
-            }
+            message = message + " <br/><br/><span>Request text: </span><a href='#' onclick=\" $(this).parent().find('textarea').select();document.execCommand('copy');\" title='Click here to copy the request text to clipboard.'>(Copy)</a><br/><textarea style='width: 95%;'>" + requestText + "</textarea><br/>";
             
+            message = "<span style='font-size:smaller;'>" + message + "</span>";
             notify(message);
+            
+            // Select the notification for Ctrl + C copy.
+            // Current notification ID: notify-[notifyint]
+            $("#notify-" + notifyint + " textarea").select();
         } catch (e) {
-            console.error(message + "\n\n The text for your request is: \n\n" + requestText);
+            console.error(message + "\n\n The text for your request is: \n\n" + requestText, e);
             alert(message + "\n\n The text for your request is: \n\n" + requestText);
         } 
     }
@@ -149,14 +137,14 @@ if(typeof StackExchange === "undefined")
                         },
                         onerror: function(err) {
                             hideMenu();
-                            var message = "Failed sending close vote request.";
+                            var message = "Failed to send close vote request. See console (F12) for more details.";
                             console.error(message, err);
                             displayRequestText(result, message);
                         }
                     });
                 },
                 onerror: function(resp) {
-                    var message = "Failed retrieving fkey from chat. (" + resp.status + ")";
+                    var message = "Failed to retrieve fkey from chat. (Error Code: " + resp.status + ") See console (F12) for more details.";
                     console.error(message, resp);
                     displayRequestText(result, message);
                 }
