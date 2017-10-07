@@ -56,6 +56,11 @@ if(typeof StackExchange === "undefined")
         })(++notifyint);
     }
 
+    // Returns the ID of currently active notification.
+    function getCurrentNotificationId(){
+        return 'notify-' + notifyint;
+    }
+
     function isVersionNewer(proposed, current) {
         proposed = proposed.split(".");
         current = current.split(".");
@@ -98,21 +103,50 @@ if(typeof StackExchange === "undefined")
         $('div', CVRGUI.items.send).hide();
         CVRGUI.list.hide();
     }
-    
+
     function displayRequestText (requestText, message) {
-        try {
-            message = message + " <br/><br/><span>Request text: </span><a href='#' onclick=\" $(this).parent().find('textarea').select();document.execCommand('copy');\" title='Click here to copy the request text to clipboard.'>(Copy)</a><br/><textarea style='width: 95%;'>" + requestText + "</textarea><br/>";
-            
-            message = "<span style='font-size:smaller;'>" + message + "</span>";
-            notify(message);
-            
-            // Select the notification for Ctrl + C copy.
-            // Current notification ID: notify-[notifyint]
-            $("#notify-" + notifyint + " textarea").select();
-        } catch (e) {
-            console.error(message + "\n\n The text for your request is: \n\n" + requestText, e);
-            alert(message + "\n\n The text for your request is: \n\n" + requestText);
-        } 
+        message += "" +
+            "<br/><br/>" +
+            "<span>"+
+                "Request text "+
+                "("+
+                    "<a href='#' class='SECVR-copy-to-clipboard' title='Click here to copy the request text to the clipboard.'>"+
+                        "copy"+
+                    "</a>"+
+                "):"+
+            "</span>"+
+            "<br/>"+
+            "<textarea class='SECVR-request-text' style='width: 95%;'>" +
+                requestText +
+            "</textarea>"+
+            "<br/>" +
+            "";
+
+        notify(message);
+
+        // Select the notification for Ctrl + C copy.
+        var notificationId = getCurrentNotificationId();
+        $("#" + notificationId + " textarea.SECVR-request-text").select();
+
+        // Bind a click handler on the "copy" anchor to copy the text manually.
+        $("#" + notificationId + " a.SECVR-copy-to-clipboard").on("click", function() {
+            try {
+                $(this).parent().parent().find("textarea.SECVR-request-text").select();
+                var success = document.execCommand("copy");
+
+                if(!success) {
+                    throw "Failed to copy.";
+                }
+            } catch (e) {
+                console.error("Error copying the request text to the clipboard.", e);
+                alert("Failed to copy the request text! Please copy it manually.");
+
+                setTimeout(function(elem) {
+                    elem.select();
+                    elem.focus();
+                }, 100, $(this).parent().parent().find("textarea.SECVR-request-text"));
+            }
+        });
     }
 
     function sendRequest(result) {
@@ -137,14 +171,14 @@ if(typeof StackExchange === "undefined")
                         },
                         onerror: function(err) {
                             hideMenu();
-                            var message = "Failed to send close vote request. See console (F12) for more details.";
+                            var message = "Failed to send close vote request. See the console for more details.";
                             console.error(message, err);
                             displayRequestText(result, message);
                         }
                     });
                 },
                 onerror: function(resp) {
-                    var message = "Failed to retrieve fkey from chat. (Error Code: " + resp.status + ") See console (F12) for more details.";
+                    var message = "Failed to retrieve fkey from chat. (Error Code: " + resp.status + ") See the console for more details.";
                     console.error(message, resp);
                     displayRequestText(result, message);
                 }
