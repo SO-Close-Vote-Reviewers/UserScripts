@@ -56,11 +56,6 @@ if(typeof StackExchange === "undefined")
         })(++notifyint);
     }
 
-    // Returns the ID of currently active notification.
-    function getCurrentNotificationId(){
-        return 'notify-' + notifyint;
-    }
-
     function isVersionNewer(proposed, current) {
         proposed = proposed.split(".");
         current = current.split(".");
@@ -125,26 +120,21 @@ if(typeof StackExchange === "undefined")
         notify(message);
 
         // Select the notification for Ctrl + C copy.
-        var notificationId = getCurrentNotificationId();
-        $("#" + notificationId + " textarea.SECVR-request-text").select();
+        var requestTextInput = $("textarea.SECVR-request-text").last();
+        requestTextInput.select();
 
         // Bind a click handler on the "copy" anchor to copy the text manually.
-        $("#" + notificationId + " a.SECVR-copy-to-clipboard").on("click", function() {
-            try {
-                $(this).parent().parent().find("textarea.SECVR-request-text").select();
-                var success = document.execCommand("copy");
+        $("a.SECVR-copy-to-clipboard").last().on("click", function() {
+            requestTextInput.select();
+            var success = document.execCommand("copy");
 
-                if(!success) {
-                    throw "Failed to copy.";
-                }
-            } catch (e) {
-                console.error("Error copying the request text to the clipboard.", e);
+            if(!success) {
                 alert("Failed to copy the request text! Please copy it manually.");
 
                 setTimeout(function(elem) {
                     elem.select();
                     elem.focus();
-                }, 100, $(this).parent().parent().find("textarea.SECVR-request-text"));
+                }, 100, requestTextInput);
             }
         });
     }
