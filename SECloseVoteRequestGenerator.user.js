@@ -401,7 +401,7 @@ if(typeof StackExchange === "undefined")
     setTimeout(checkUpdates);
     var closereasons = {
         4: "General Computing",
-        7: "Serverfault.com",
+        7: "Server / Networking",
         16: "Request for Off-Site Resource",
         13: "No MCVE",
         11: "Typo or Cannot Reproduce",
