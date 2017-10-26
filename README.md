@@ -75,7 +75,6 @@ This script has a short reason replacement feature. The script will split the re
 * `s: superuser`
 * `f: serverfault`
 * `l: library/tool/resource`
-* `g: gimme-teh-codez`
 
 ### SO Close Vote Request Generator (bookmarklet)
 In some environments it's not possible to install user scripts. In order to facilitate making `cv-pls` requests in such situations, there's a version of the SO Close Vote Request Generator as a [bookmarklet](https://www.google.com/search?q=bookmarklet).
