@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         StackOverflow close votes shortcuts
 // @namespace    https://github.com/kappa7194/stackoverflow-close-votes-shortcuts
-// @version      1.0.2
+// @version      1.0.3
 // @description  A script to add keyboard shortcuts to StackOverflow's close votes review queue
-// @author       Albireo, rene
+// @author       Albireo, rene, paulroub
 // @match        *://stackoverflow.com/review/close*
 // @grant        none
 // ==/UserScript==
@@ -68,8 +68,12 @@
             },
                 state = states.atQuestion;
 
-            function clickElement(selector) {
-                $(selector).focus().click();
+            function clickElement(selector, idx) {
+                var elements = $(selector),
+                    idx = (idx || 0);
+
+                if (idx < elements.length)
+                    $(elements[idx]).focus().click();
             }
 
             function clickAction(action) {
@@ -80,8 +84,8 @@
                 clickElement('[name="close-reason"][value="' + reason + '"]');
             }
 
-            function clickOffTopicReason(reason) {
-                clickElement('[name="close-as-off-topic-reason"][value="' + reason + '"]');
+            function clickOffTopicReason(reason, idx) {
+                clickElement('[name="close-as-off-topic-reason"][value="' + reason + '"]', idx);
             }
 
             function clickOtherSite(site) {
@@ -160,8 +164,10 @@
                     state = states.atOtherSite;
                     clickOffTopicReason(configuration.offTopicReasons.migration.value);
                     break;
-                case keys[configuration.offTopicReasons.other.key]:
-                    clickOffTopicReason(configuration.offTopicReasons.other.value);
+                default:
+                    if (key >= keys[configuration.offTopicReasons.other.key]) {
+                    clickOffTopicReason(configuration.offTopicReasons.other.value, key - keys[configuration.offTopicReasons.other.key]);
+                    }
                     break;
                 }
             }
@@ -220,10 +226,10 @@
                 if ((e.target.tagName === 'INPUT' && e.target.type === 'text') || e.target.tagName === 'TEXTAREA') {
                     return;
                 }
-                
+
                 // numpad handling
                 if ((e.keyCode > 95) && (e.keyCode < 106)) {
-                    e.keyCode = e.keyCode - 48; 
+                    e.keyCode = e.keyCode - 48;
                 }
 
                 keyHandler(e.keyCode);
