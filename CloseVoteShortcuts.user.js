@@ -166,7 +166,7 @@
                     break;
                 default:
                     if (key >= keys[configuration.offTopicReasons.other.key]) {
-                    clickOffTopicReason(configuration.offTopicReasons.other.value, key - keys[configuration.offTopicReasons.other.key]);
+                        clickOffTopicReason(configuration.offTopicReasons.other.value, key - keys[configuration.offTopicReasons.other.key]);
                     }
                     break;
                 }
