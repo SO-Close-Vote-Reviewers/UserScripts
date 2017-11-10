@@ -11,6 +11,8 @@
 /* jshint jquery:    true */
 /* jshint forin:     false */
 /* jshint curly:     false */
+/* jshint browser:   true */
+/* jshint devel:     true */
 /* globals CHAT */
 'use strict';
 
@@ -311,7 +313,9 @@
         nodes.movebtn.addEventListener('click', movePosts, false);
 
         function reset() {
+            /* jshint -W040 */ //This is called as a jQuery event handler, which explicitly sets `this`.
             if(this.disabled) return false;
+            /* jshint +W040 */
             rlen = 0;
             rnum = 0;
             total = 0;
@@ -796,18 +800,16 @@
             return tmp;
         }
 
-        function chunkArray(arr, len) {
-            var tmp = [];
-            var num = Math.ceil(arr.length / len);
-            for(var i = 0; i < num; ++i) {
-                tmp.push([]);
+        function chunkArray(array, chunkSize) {
+            //Chop a single array into an array of arrays. Each new array contains chunkSize number of
+            //  elements, except the last one.
+            var chunkedArray = [];
+            var startIndex = 0;
+            while (array.length > startIndex) {
+                chunkedArray.push(array.slice(startIndex, startIndex + chunkSize));
+                startIndex += chunkSize;
             }
-            var ind = 0;
-            for(var j in arr) {
-                if(j > 0 && !(j % len)) ++ind;
-                tmp[ind].push(arr[j]);
-            }
-            return tmp;
+            return chunkedArray;
         }
 
         function getMoreEvents(moreCount) {
@@ -1169,6 +1171,8 @@
 
         //Manual message MoveTo
 
+        var priorSelectionMessageIds = [];
+
         function TargetRoom(_roomNumber,_fullName,_shortName,_displayed) {
             this.roomNumber = _roomNumber;
             this.fullName = _fullName;
@@ -1316,8 +1320,10 @@
 
         function moveToInMetaHandler() {
             //Handle a click on the moveTo controls
+            /* jshint -W040 */ //This is called as a jQuery event handler, which explicitly sets `this`.
             var $this = $(this);
             var roomId = this.dataset.roomId;
+            /* jshint +W040 */
             var message = $this.closest('.message');
             if(message.length) {
                 var messageId = getMessageIdFromMessage(message);
@@ -1358,7 +1364,7 @@
             var selection =  window.getSelection();
             addMessageIdToSet($(selection.anchorNode).closest('.message'));
             addMessageIdToSet($(selection.focusNode).closest('.message'));
-            var messages = $('.message').filter(function() {
+            $('.message').each(function() {
                 if(selection.containsNode(this)) {
                     addMessageIdToSet(this);
                 }
@@ -1368,7 +1374,6 @@
             //return Object.keys(messageIdsObject);
         }
 
-        var priorSelectionMessageIds = [];
         $(document).on('mousedown', '.SOCVR-Archiver-in-message-move-button', function() {
             //Clicking on the control sets the selection to the current control. Thus, we need
             //  to get the selection on mousedown and save it. We have to convert to messageIds here
