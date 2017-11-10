@@ -281,32 +281,41 @@
 
             checkRequests();
         }
+        /* Example request text:
+            <a href="//stackoverflow.com/questions/tagged/cv-pvs"><span class="ob-post-tag" style="background-color: #E0EAF1; color: #3E6D8E; border-color: #3E6D8E; border-style: solid;">cv-pvs</span></a> <a href="//stackoverflow.com/questions/tagged/entity-framework"><span class="ob-post-tag" style="background-color: #E0EAF1; color: #3E6D8E; border-color: #3E6D8E; border-style: solid;">entity-framework</span></a> Unclear (&quot;I get error&quot;-type of question) https://stackoverflow.com/q/46022628/861716
+         */
+        //People can really mangle the -pls portion of the request. The RegExp has a known terminating character for the tag:
+        // " for matching the href URL and ] for plain text.
+        //Match if they get at least 2 characters of pls, just pl, or 1 extra character
+        var please = '(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)';
+        var hrefUrlTag = '(?:tagged\\/';
+        var endHrefToPlainText = '"|\\[';
+        var endPlainTextToEndWithQuestion = '\\]).*stackoverflow.com\\/(?:[qa][^\\/]*|posts)\\/(\\d+)';
+        var questionUrlToHrefTag = 'stackoverflow.com\\/(?:[qa][^\\/]*|posts)\\/(\\d+).*(?:tagged\\/';
+        var endPlainTextToEnd = '\\])';
+        var endHrefPrefixToSpanText = '[^>]*><span[^>]*>';
+        var endSpanTextToPlainText = '<\\/span>|\\[';
 
-        var cvRegexes = [
-            /(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\]).*stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+)/,
-            /stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\])/,
-        ];
+        function makeTagRegExArray(prefix, additional) {
+            prefix = typeof prefix === 'string' ? prefix : '';
+            additional = typeof additional === 'string' ? additional : '';
+            return [
+                //Tag before question
+                new RegExp(hrefUrlTag + prefix + additional + endHrefToPlainText + prefix + additional + endPlainTextToEndWithQuestion, ''),
+                //Tag after question
+                new RegExp(questionUrlToHrefTag + prefix + additional + endHrefToPlainText + prefix + additional + endPlainTextToEnd, ''),
+                //Tag before question: match tag in the <span>, not in the href (which could be encoded)
+                new RegExp(hrefUrlTag + prefix + endHrefPrefixToSpanText + prefix + additional + endSpanTextToPlainText + prefix + additional + endPlainTextToEndWithQuestion, ''),
+                //Tag after uestion: match tag in the <span>, not in the href (which could be encoded)
+                new RegExp(questionUrlToHrefTag + prefix + endHrefPrefixToSpanText + prefix + additional + endSpanTextToPlainText + prefix + additional + endPlainTextToEnd, ''),
+            ];
+        }
 
-        var deleteRegexes = [
-            /(?:tagged\/del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\]).*stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/,
-            /stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+).*(?:tagged\/del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\])/,
-        ];
-
-        var undeleteRegexes = [
-            /(?:tagged\/undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\]).*stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/,
-            /stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+).*(?:tagged\/undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\])/,
-        ];
-
-        var reopenRegexes = [
-            /(?:tagged\/reopen-pl(?:ease|s|z)|\[reopen-pl(?:ease|s|z)\]).*stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+)/,
-            /stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/reopen-pl(?:ease|s|z)|\[reopen-pl(?:ease|s|z)\])/,
-        ];
-
-        var dupeRegexes = [
-            /(?:tagged\/possible-duplicate).*stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+)/,
-            /stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/possible-duplicate)/,
-        ];
-
+        var cvRegexes = makeTagRegExArray('cv-', please);
+        var deleteRegexes = makeTagRegExArray('del(?:ete)?(?:v)?-?(?:vote)?-', please);
+        var undeleteRegexes = makeTagRegExArray('undel(?:ete)?(?:v)?-?(?:vote)?-', please);
+        var reopenRegexes = makeTagRegExArray('reopen-', please);
+        var dupeRegexes = makeTagRegExArray('pos?sib(?:le|el)-dup(?:e|licate)?');
         var repliesRegexes = [
             /@queen (?:f|k)/
         ];
@@ -328,12 +337,13 @@
             DUPE: { regexes: dupeRegexes },
             REPLY: { regexes: repliesRegexes },
             FA: { regexes: faRegexes },
-            FAREPLY: { regexes: faRepliesRegexes }
+            FAREPLY: { regexes: faRepliesRegexes },
         };
 
         function matchesRegex(message, regexes) {
-            for(var j in regexes) {
-                if(regexes[j].test(message)) {
+            //Does the message match one of the RegExes in the array?
+            for(var regExType in regexes) {
+                if(regexes[regExType].test(message)) {
                     return true;
                 }
             }
