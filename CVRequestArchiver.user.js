@@ -3,8 +3,8 @@
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
 // @version      2.0.1.11
 // @description  Scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests for status, then moves the closed/deleted/undeleted/reopened ones. Possible dupe requests (and their replies) are moved after 30 minutes.
-// @author       @TinyGiant @rene @Tunaki
-// @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/rooms\/.*/
+// @author       @TinyGiant @rene @Tunaki @Makyen
+// @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/(rooms|search|transcript)(\/|\?).*/
 // @grant        none
 // ==/UserScript==
 /* jshint -W097 */
@@ -12,15 +12,54 @@
 'use strict';
 
 (function() {
-    var me = (/\d+/.exec($('#active-user').attr('class'))||[false])[0];
-    if(!me) return false;
+    var lsPrefix = 'SOCVR-Archiver-'; //prefix to avoid clashes in localStorage
+    function getStorage(key) { return localStorage[lsPrefix + key]; }
+    function setStorage(key, val) { return (localStorage[lsPrefix + key] = val); }
+    function setStorageJSON(key, val) { return (localStorage[lsPrefix + key] = JSON.stringify(val)); }
+    function getStorageJSON(key) {
+        var storageValue = getStorage(key);
+        try {
+            return JSON.parse(storageValue);
+        } catch (e) {
+            //Storage is not valid JSON
+            return null;
+        }
+    }
+    //Don't run in iframes
+    if(window !== window.top) return false;
+    var room = (/chat.stackoverflow.com.rooms.(\d+)/.exec(window.location.href)||[false,false])[1];
+    var isSearch = false;
+    if(/^\/search/.test(window.location.pathname)) {
+        isSearch = true;
+        room = (/^.*\broom=(\d+)\b.*$/i.exec(window.location.search)||[false,false])[1];
+    }
+    var isTranscript = false;
+    if(/\/transcript\//.test(window.location.pathname)) {
+        isTranscript = true;
+        var roomNameLink = $('.room-mini .room-name a');
+        if(roomNameLink.length) {
+            room = (/chat.stackoverflow.com.rooms.(\d+)/.exec(roomNameLink[0].href)||[false,false])[1];
+        }
+    }
+    if(!room) return false;
 
     var fkey = $('#fkey');
-    if(!fkey.length) return false;
-    fkey = fkey.val();
+    //fkey is not available in search
+    if(isSearch) {
+        fkey = isSearch ? getStorage('fkey') : fkey;
+    } else {
+        if(!fkey.length) return false;
+        fkey = fkey.val();
+    }
+    if(!fkey) return false;
+    setStorage('fkey', fkey);
 
-    var room = (/chat.stackoverflow.com.rooms.(\d+)/.exec(window.location.href)||[false,false])[1];
-    if(!room) return false;
+    var me = (/\d+/.exec($('#active-user').attr('class'))||[false])[0];
+    //Get me from localStorage. (transcript doesn't contain who you are).
+    me = me ? me : getStorage('me');
+    if(!me) return false;
+    //Save me in localStorage.
+    setStorage('me', me);
 
     $.ajax({
         type: 'POST',
@@ -43,6 +82,10 @@
         var nodes = {};
 
         nodes.scope = document.querySelector('#chat-buttons');
+        if(isTranscript || isSearch || !nodes.scope) {
+            //Create a dummy element
+            nodes.scope = document.createElement('div');
+        }
 
         nodes.startbtn = document.createElement('button');
         nodes.startbtn.className = 'button archiver-startbtn';
@@ -118,6 +161,8 @@
 
         nodes.style = document.createElement('style');
         nodes.style.type = 'text/css';
+        //Ideally the colors used for the MoveTo control hover would be adjustd in case the user has a non-stock theme installed.
+        //  But, we can't get colors here because the messages may not exist in the page yet.
         nodes.style.textContent = [
             '#chat-buttons {',
             '    cursor: default;',
@@ -181,9 +226,54 @@
             '    width: 0%;',
             '    background: #ff7b18;',
             '    height: 100%;',
-            '}'
+            '}',
+            '.SOCVR-Archiver-deleted-content {',
+            '    display: none;',
+            '}',
+            //While it's a nice idea to have the reply parent and/or child displayed, it causes the display to jump around too much.
+            //  This results in the user being unable to keep the mouse on the message of interest.
+            //'.message.reply-parent .SOCVR-Archiver-deleted-content,',
+            //'.message.reply-child .SOCVR-Archiver-deleted-content,',
+            //'.message.reply-parent .content .deleted ~ .SOCVR-Archiver-deleted-content,',
+            //'.message.reply-child .content .deleted ~ .SOCVR-Archiver-deleted-content,',
+            '.message:hover .SOCVR-Archiver-deleted-content,',
+            '.content .deleted:hover ~ .SOCVR-Archiver-deleted-content,',
+            '.content .deleted ~ .SOCVR-Archiver-deleted-content:hover {',
+            '    display: block;',
+            '}',
+            '.SOCVR-Archiver-in-message-move-button {',
+            '    cursor: pointer;',
+            '    font-size: 11px;',
+            '    margin-right: 5px;',
+            '}',
+            //Should adjust this based on the colors used (in case the user has a theme applied).
+            '.SOCVR-Archiver-in-message-move-button:hover {',
+            '    color: white;',
+            '    background-color: black;',
+            '}',
+            '.SOCVR-Archiver-multiMove-selected {',
+            '    background-color: LightSkyBlue !important;',
+            '}',
+            '.message.SOCVR-Archiver-multiMove-selected .SOCVR-Archiver-move-to-add-to-list {',
+            '    display: none;',
+            '}',
+            '.message:not(.SOCVR-Archiver-multiMove-selected) .SOCVR-Archiver-move-to-remove-from-list {',
+            '    display: none;',
+            '}',
+            //A general issue with these controlls is that they can obscure content. For instance: https://chat.stackoverflow.com/transcript/message/39961248#39961248
+            //  has a link which is not clickable due to the controls obscuring it.
+            //Show the meta options for your own posts (have to be able to move them).
+            '#chat-body .monologue.mine:hover .messages .message:hover .meta {',
+            '    background-color: #fbf2d9;',
+            '    display: inline-block;',
+            '}',
+            //Page JS is not functional for these
+            '#chat-body .monologue.mine:hover .messages .message:hover .meta .vote-count-container {',
+            '    display: none;',
+            '}',
         ].join('\n');
-        nodes.scope.appendChild(nodes.style);
+        //Put the styles in the document (nodes.scope can be invalid).
+        (document.head || document.documenetElement).appendChild(nodes.style);
 
         nodes.startbtn.addEventListener('click', function(){
             nodes.startbtn.disabled = true;
@@ -243,7 +333,10 @@
             nodes.startbtn.disabled = false;
             nodes.progresswrp.style.display = 'none';
             nodes.progress.style.width = '';
+            removeShownToBeMoved();
         }
+
+        var nextBefore;
 
         function getEvents(count, before) {
             //Get events from Chat. Chat returns up to 500 events per call from the indicated message.
@@ -265,6 +358,12 @@
                 url: '/chats/' + room + '/events',
                 data: data,
                 success: function(response) {
+                    var respEvents = response.events;
+                    if (respEvents.length) {
+                        respEvents.forEach(function(event) {
+                            event.timeStampUTC = (new Date(event.time_stamp * 1000)).toJSON();
+                        });
+                    }
                     events.push(response.events);
 
                     // no more events in the transcript
@@ -275,6 +374,7 @@
 
                     nodes.scandate.textContent = new Date(1000 * response.events[0].time_stamp).toISOString();
 
+                    nextBefore = response.events[0].message_id;
                     getEvents(count - 500, response.events[0].message_id);
                 },
                 error: function(xhr, status, error) {
@@ -405,7 +505,7 @@
                         posts.push(/stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/.exec(matches[k])[1]);
                     }
                 }
-                for(var l in posts) requests.push({ msg: event.message_id, post: posts[l], time: event.time_stamp, type: type });
+                for(var l in posts) requests.push({ msg: event.message_id, post: posts[l], time: event.time_stamp, type: type, event: event });
             } else {
                 // if this is a cv-pls reply for firealarm
                 if (type == RequestType.FAREPLY ) {
@@ -415,14 +515,14 @@
                             if (requests[r].msg === event.parent_id ) {
                                 // and make sure both parent and this reply are the same so the check for if the post is closed will work
                                 // store parent as well, we need it later
-                                requests.push({ msg: event.message_id, parent:event.parent_id, post: requests[r].post, time: event.time_stamp, type: type });
+                                requests.push({ msg: event.message_id, parent:event.parent_id, post: requests[r].post, time: event.time_stamp, type: type, event: event });
                             }
                         }
                     } else {
                         // do nothing for non-sense replies to FireAlarm
                     }
                 } else {
-                    requests.push({ msg: event.message_id, post: -1, time: event.time_stamp, type: type });
+                    requests.push({ msg: event.message_id, post: -1, time: event.time_stamp, type: type, event: event });
                 }
             }
         }
@@ -636,11 +736,16 @@
 
             ids = chunkArray(formatMsgs(messagesToMove), 100);
 
-            nodes.indicator.value = messagesToMove.length + ' request' + ['','s'][+(messagesToMove.length > 1)] + ' found';
+            setMessagesFound();
             nodes.movebtn.style.display = '';
             nodes.cancel.disabled = false;
             nodes.progresswrp.style.display = 'none';
             nodes.progress.style.width = '';
+            showToBeMoved();
+        }
+
+        function setMessagesFound() {
+            nodes.indicator.value = messagesToMove.length + ' request' + ['','s'][+(messagesToMove.length > 1)] + ' found';
         }
 
         function movePosts() {
@@ -661,6 +766,7 @@
                         nodes.progress.style.width = '';
                         nodes.indicator.value = 'done';
                         nodes.movebtn.style.display = 'none';
+                        removeShownToBeMoved();
                         return false;
                     }
 
@@ -671,7 +777,6 @@
                     console.log('currentids:', currentids, '::  target:', target, '::  fkey,:', fkey, '::  ids:', ids);
                     alert('$.ajax encountered an error moving posts. See console for data.');
                 },
-                }
             });
         }
 
@@ -699,6 +804,607 @@
                 tmp[ind].push(arr[j]);
             }
             return tmp;
+        }
+
+        function getMoreEvents(moreCount) {
+            //Clear the requests and events, as there's no need to re-process what we've already done.
+            requests = [];
+            events = [];
+            var currentCount = +nodes.count.value;
+            total = currentCount + moreCount;
+            nodes.count.value = total;
+            getEvents(moreCount, nextBefore);
+        }
+
+        var shownToBeMoved;
+        var priorMessagesShown = [];
+
+        function showToBeMoved() {
+            //The structure/CSS of this needs some more work.
+            removeShownToBeMoved();
+            shownToBeMoved = document.createElement('div');
+            var inputHeight = $('#input-area').css('height');
+            var mainHeight = /px$/.test(inputHeight) ? +inputHeight.replace(/px$/,'') + 75 : 150;
+            shownToBeMoved.insertAdjacentHTML('beforeend', [
+                '<div id="SOCVR-archiver-messagesToMove-container">',
+                '    <style>',
+                '        #SOCVR-archiver-messagesToMove-container {',
+                '            display: block;',
+                '            position: fixed;',
+                '            top: 25px;',
+                '            left: 50px;',
+                '            background-color: #fff;',
+                '            width: calc(100% - 100px);',
+                '            height: calc(100% - ' + mainHeight + 'px);',
+                '            z-index: 10000;',
+                '            border: 2px solid;',
+                '            box-shadow: 0px 0px 20px;',
+                '            resize: both;',
+                '            padding: 5px;',
+                '        }',
+                '        .SOCVR-Archiver-moveCount-container > span {',
+                '            margin: 15px;',
+                '        }',
+                '        .SOCVR-Archiver-button-container {',
+                '            text-align: center;',
+                '        }',
+                '        #SOCVR-archiver-messagesToMove-container button {',
+                '            margin: 10px;',
+                '        }',
+                '        #SOCVR-archiver-messagesToMove-container .monologue {',
+                '            position: relative;',
+                '        }',
+                '        #SOCVR-archiver-messagesToMove-container h1 {',
+                '            text-align: center;',
+                '        }',
+                '        .SOCVR-Archiver-moveCount-container {',
+                '            text-align: center;',
+                '        }',
+                '        .SOCVR-Archiver-moveCount {',
+                '            font-weight: bold;',
+                '            font-size: 120%;',
+                '        }',
+                '        .SOCVR-Archiver-latestDate {',
+                '            font-size: 120%;',
+                '        }',
+                '        .SOCVR-Archiver-moveMessages-container {',
+                '            height: calc(100% - 65px);',
+                '            width: 100%;',
+                '        }',
+                '        .SOCVR-Archiver-moveMessages-inner {',
+                '            height: 100%;',
+                '        }',
+                '        .SOCVR-Archiver-moveMessages {',
+                '            margin: 0 auto;',
+                '            display: block;',
+                '            overflow-y: auto;',
+                '            padding: 5px 60px 0px 0px;',
+                '            height: 90%;',
+                '        }',
+                // Close icon CSS is from the answer to "Pure css close button - Stack Overflow"
+                // at https://stackoverflow.com/a/20139794, copyright 2013 by Craig Wayne,
+                // licensed under CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).
+                // Some modifications have been made.
+                '        .SOCVR-Archiver-close-icon {',
+                '            display:block;',
+                '            box-sizing:border-box;',
+                '            width:20px;',
+                '            height:20px;',
+                '            border-width:3px;',
+                '            border-style: solid;',
+                '            border-color:#dd0000;',
+                '            border-radius:100%;',
+                '            background: -webkit-linear-gradient(-45deg, transparent 0%, transparent 46%, white 46%,  white 56%,transparent 56%, transparent 100%), -webkit-linear-gradient(45deg, transparent 0%, transparent 46%, white 46%,  white 56%,transparent 56%, transparent 100%);',
+                '            background-color:#dd0000;',
+                '            box-shadow:0px 0px 1px 1px rgba(0,0,0,0.5);',
+                '            cursor: pointer;',
+                '            position: absolute;',
+                '            top: 0px;',
+                '            right: 6px;',
+                '            z-index: 1000;',
+                '        }',
+                '        .SOCVR-Archiver-close-icon:hover {',
+                '            border-color: #ff0000;',
+                '            background-color: #ff0000;',
+                '        }',
+                '        #SOCVR-archiver-messagesToMove-container > .SOCVR-Archiver-close-icon {',
+                '            top: -10px;',
+                '            right: -10px;',
+                '        }',
+                '    </style>',
+                '    <div class="SOCVR-Archiver-close-icon" title="Cancel"></div>',
+                '    <div class="SOCVR-Archiver-moveMessages-inner">',
+                '        <div>',
+                '            <h1>Move messages to SOCVR Request Graveyard</h1>',
+                '        </div>',
+                '        <div class="SOCVR-Archiver-moveCount-container">',
+                '            <span class="SOCVR-Archiver-moveCount"></span>',
+                '            <span class="SOCVR-Archiver-latestDate">',
+                '                Going back to: ' + nodes.scandate.textContent,
+                '            </span>',
+                '            <span class="SOCVR-Archiver-scan-count">Scanned:' + nodes.count.value + '</span>',
+                '        </div>',
+                '        <div class="SOCVR-Archiver-button-container">',
+                '            <button class="SOCVR-Archiver-button-move">Move these to the Graveyard</button>',
+                '            <button class="SOCVR-Archiver-button-1kmore">scan 1k more</button>',
+                '            <button class="SOCVR-Archiver-button-10kmore">scan 10k more</button>',
+                '            <button class="SOCVR-Archiver-button-100kmore">scan 100k more</button>',
+                '            <button class="SOCVR-Archiver-button-cancel">Cancel</button>',
+                '        </div>',
+                '        <div class="SOCVR-Archiver-moveMessages-container">',
+                '            <div class="SOCVR-Archiver-moveMessages">',
+                '            </div>',
+                '        </div>',
+                '    </div>',
+                '</div>',
+            ].join('\n'));
+            var moveMessagesDiv = shownToBeMoved.getElementsByClassName('SOCVR-Archiver-moveMessages')[0];
+            var moveCountDiv = shownToBeMoved.getElementsByClassName('SOCVR-Archiver-moveCount')[0];
+            $('.SOCVR-Archiver-close-icon', shownToBeMoved).on('click', reset);
+            shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-cancel')[0].addEventListener('click', reset, false);
+            shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-move')[0].addEventListener('click', movePosts, false);
+            shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-1kmore')[0].addEventListener('click', getMoreEvents.bind(null, 1000), false);
+            shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-10kmore')[0].addEventListener('click', getMoreEvents.bind(null, 10000), false);
+            shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-100kmore')[0].addEventListener('click', getMoreEvents.bind(null, 100000), false);
+            messagesToMove.forEach(function(message) {
+                moveMessagesDiv.insertAdjacentHTML('beforeend', makeMonologueHtml(message.event));
+            });
+            function updateMessagesToMove() {
+                moveCountDiv.textContent = messagesToMove.length + ' message' + (messagesToMove.length > 1 ? 's' : '') + ' to move';
+            }
+            moveMessagesDiv.addEventListener('click', function(event) {
+                var target = event.target;
+                if(!target.classList.contains('SOCVR-Archiver-close-icon')) {
+                    return;
+                } //else
+                var messageId = target.dataset.messageId;
+                messagesToMove = messagesToMove.filter(function(message) {
+                    if(message.msg == messageId) {
+                        return false;
+                    } //else
+                    return true;
+                });
+                updateMessagesToMove();
+                setMessagesFound();
+                moveMessagesDiv.getElementsByClassName('SOCVR-Archiver-monologue-for-message-' + messageId)[0].remove();
+            });
+            updateMessagesToMove();
+            document.body.insertBefore(shownToBeMoved, document.body.firstChild);
+            addMoveToInMeta();
+            //Request that the unclosed request review script udate request-info for the page, inlcuding the popup.
+            var shownToBeMovedMessages = $(shownToBeMoved).find('.message');
+            if(shownToBeMovedMessages.length === priorMessagesShown.length) {
+                window.dispatchEvent(new CustomEvent('urrs-Request-Info-update-desired', {
+                    bubbles: true,
+                    cancelable: true,
+                }));
+            } else {
+                window.dispatchEvent(new CustomEvent('urrs-Request-Info-update-immediate', {
+                    bubbles: true,
+                    cancelable: true,
+                }));
+            }
+            priorMessagesShown = shownToBeMovedMessages;
+        }
+
+        function removeShownToBeMoved() {
+            if(shownToBeMoved) {
+                shownToBeMoved.remove();
+            }
+        }
+
+        function makeMonologueHtml(event) {
+            var userId = event.user_id;
+            //var userGravatar = '';
+            var userName = event.user_name;
+            var userReputation = '';
+            var parentId = event.parent_id;
+            var showParent = event.show_parent;
+            var messageId = event.message_id;
+            var contentHtml = event.content;
+            var timestamp = event.timeStampUTC.replace(/T(\d\d:\d\d):\d\d\.\d{3}/,' $1');
+            var html = [
+                '<div class="user-container user-' + userId + ' monologue SOCVR-Archiver-monologue-for-message-' + messageId + '">',
+                '    <div class="SOCVR-Archiver-close-icon" data-message-id="' + messageId + '" title="Don\'t move"></div>',
+                '    <a href="/users/' + userId + '" class="signature user-' + userId + '">',
+                '        <div class="tiny-signature" style="">',
+                //Gravatar information is not in the event. Unless we go searching for it, this just shows the alt text, which is disruptive.
+                //'            <div class="avatar avatar-16">',
+                //'                <img src="https://i.stack.imgur.com/' + userGravatar + '?s=16&amp;g=1" alt="' + userName + '" title="' + userName + '" width="16" height="16">',
+                //'            </div>',
+                '            <div class="username">' + userName + '</div>',
+                '        </div>',
+                //Gravatar information is not in the event. Unless we go searching for it, this just shows the alt text, which is disruptive.
+                //'        <div class="avatar avatar-32 clear-both" style="display: none;">',
+                //'            <img src="https://i.stack.imgur.com/' + userGravatar + '?s=32&amp;g=1" alt="' + userName + '" title="' + userName + '" width="32" height="32">',
+                //'            <div>',
+                //'           </div>',
+                //'        </div>',
+                '        <div class="username" style="display: none;">' + userName + '</div>',
+                '        <div class="flair" style="display: none;" title="' + userReputation + '">' + userReputation + '</div>',
+                '    </a>',
+                '    <div class="messages">',
+                '        <div class="message' + (showParent ? ' pid-' + parentId : '') + '" id="SOCVR-Archiver-message-' + messageId + '">',
+                '            <div class="timestamp">' + timestamp + '</div>',
+                //search action link
+                '            <a name="' + messageId + '" href="/transcript/41570?m=' + messageId + '#' + messageId + '">',
+                '                <span style="display:inline-block;" class="action-link">',
+                '                    <span class="img"> </span>',
+                '                </span>',
+                '            </a>',
+                //Main chat action link. Does not automatically become functional. Would need to hook it into the page (maybe just move where the Div is placed).
+                //'            <a class="action-link" title="click for message actions" href="/transcript/message/' + messageId + '#' + messageId + '">',
+                //'                <span class="img menu"> </span>',
+                //'            </a>',
+                (showParent ? '            <a class="reply-info" title="This is a reply to an earlier message" href="/transcript/message/' + parentId + '#' + parentId + '"> </a>' : ''),
+                '            <div class="content">' + contentHtml,
+                '            </div>',
+                //In normal chat, but not making it active here.
+                //'            <span class="meta">',
+                //'                <span class="flags vote-count-container">',
+                //'                    <span class="img vote" title="flag this message as spam, inappropriate, or offensive"></span>',
+                //'                    <span class="times"></span>',
+                //'                </span>&nbsp;',
+                //'                <span class="stars vote-count-container">',
+                //'                    <span class="img vote" title="star this message as useful / interesting for the transcript"></span>',
+                //'                    <span class="times"> </span>',
+                //'                </span>&nbsp;<span class="newreply" title="link my next chat message as a reply to this"></span>',
+                //'            </span>',
+                '            <span class="flash">',
+                //In normal chat, but not making it active here.
+                //'                <span class="stars vote-count-container">',
+                //'                    <span class="img vote" title="star this message as useful / interesting for the transcript"></span>',
+                //'                    <span class="times"></span>',
+                //'                </span>',
+                '            </span>',
+                '        </div>',
+                '    </div>',
+                '    <div class="clear-both" style="height: 0px;">&nbsp;</div>',
+                '</div>',
+            ].join('\n');
+            return html;
+        }
+
+        //Add deleted content to be shown on hover.
+
+        //CHAT listener
+        function listenToChat(){
+            /* This is not needed when you're an RO.
+            if(chatInfo.event_type === 10) {
+                //A message is being deleted.
+                var message = $('#message-' + chatInfo.message_id);
+                if(message.length) {
+                    //console.log('message:', message);
+                    var content = $(message).find('.content');
+                    //console.log('content:', content);
+                    var cloneContent = content.clone();
+                    //console.log('cloneContent:', cloneContent);
+                    //Execute after content is deleted:
+                    setTimeout(addDeletedContentToMessageId, 0, chatInfo.message_id, cloneContent);
+                }
+            }
+            */
+            //Delay untill after the content has been added. Only 0ms is required.
+            setTimeout(addMoveToInMeta, 10);
+        }
+        if(!isTranscript && !isSearch) {
+            CHAT.addEventHandlerHook(listenToChat);
+        }
+
+        var deletedMessagesWithoutDeletedContent;
+        var delayBetweenGettingDeletedContent = 500;
+        var gettingDeletedContent = 0;
+
+        function addAllDeletedContent() {
+            if(!gettingDeletedContent && (!deletedMessagesWithoutDeletedContent || !deletedMessagesWithoutDeletedContent.length)) {
+                deletedMessagesWithoutDeletedContent = $('.content .deleted').parent().filter(function() {
+                    return !$(this).children('.SOCVR-Archiver-deleted-content').length;
+                }).closest('.message');
+                if(deletedMessagesWithoutDeletedContent.length) {
+                    addNextDeletedContent();
+                }
+            }
+        }
+
+        function addNextDeletedContent() {
+            gettingDeletedContent = 1;
+            if(deletedMessagesWithoutDeletedContent.length) {
+                var message = deletedMessagesWithoutDeletedContent.last();
+                //Remove the message we're working on.
+                deletedMessagesWithoutDeletedContent.splice(deletedMessagesWithoutDeletedContent.length - 1, 1);
+                var messageId = getMessageIdFromMessage(message);
+                getMessageMostRecentVersionFromHistory(messageId, function(deletedContent) {
+                    if(deletedContent) {
+                        addDeletedContentToMessageId(messageId, deletedContent);
+                    }
+                    if(deletedMessagesWithoutDeletedContent.length) {
+                        gettingDeletedContent = setTimeout(addNextDeletedContent, delayBetweenGettingDeletedContent);
+                    } else {
+                        gettingDeletedContent = 0;
+                        setTimeout(addAllDeletedContent, delayBetweenGettingDeletedContent);
+                    }
+                });
+            } else {
+                gettingDeletedContent = 0;
+                setTimeout(addAllDeletedContent, delayBetweenGettingDeletedContent);
+            }
+        }
+
+        function addDeletedContentToMessageId(messageId, deletedContent) {
+            var newContent = $('#message-' + messageId + ' .content');
+            deletedContent.removeClass('content').addClass('SOCVR-Archiver-deleted-content');
+            newContent.append(deletedContent);
+            //Indicate to the user that the content is available.
+            newContent.find('.deleted').append('<span> &#128065;</span>');
+        }
+
+        function fechHistoryForMessage(messageId, callback) {
+            $.ajax({
+                type: 'GET',
+                url: 'https://' + window.location.hostname + '/messages/' + messageId + '/history',
+                success: callback,
+                error: function(xhr, status, error) {
+                    console.log('AJAX Error Getting history', '::  xhr:', xhr, '::  status:', status, '::  error:', error);
+                    console.log('target:', target, '::  fkey,:', fkey, '::  ids:', ids);
+                },
+            });
+        }
+
+        function getMessageMostRecentVersionFromHistory(messageId, callback) {
+            fechHistoryForMessage(messageId, function(data) {
+                var newDoc = jQuery.parseHTML(data);
+                callback($('.message .content', newDoc).first());
+            });
+        }
+
+        //Manual message MoveTo
+
+        function TargetRoom(_roomNumber,_fullName,_shortName,_displayed) {
+            this.roomNumber = _roomNumber;
+            this.fullName = _fullName;
+            this.shortName = _shortName;
+            this.displayed = _displayed;
+        }
+
+        var targetRoomsByRoomNumber = {
+            //SOCVR
+            41570: new TargetRoom(41570, 'SOCVR', 'SOCVR', 'R'),
+            //Graveyard
+            90230: new TargetRoom(90230, 'SOCVR Request Graveyard', 'Graveyard', 'G'),
+            //Sanitarium
+            126195: new TargetRoom(126195, 'SOCVR Sanitarium', 'Sanitarium', 'S'),
+            //Testing Facility
+            //68414: new TargetRoom(68414, 'SOCVR Testing Facility', 'Testing', 'T'),
+            //SOBotics
+            //111347: new TargetRoom(111347, 'SOBotics', 'Botics', 'B'),
+        };
+        //The curent room is not a valid room target.
+        delete targetRoomsByRoomNumber[room];
+
+        function moveSomePostsWithConfirm(posts, targetRoomId, callback) {
+            //Confirm that the user wants to move the files.
+            var countPosts = 0;
+            if(!Array.isArray(posts)) {
+                countPosts = 1;
+            } else {
+                if(Array.isArray(posts[0])) {
+                    //Already chunked
+                    posts.forEach(function(chunk) {
+                        countPosts += chunk.length;
+                    });
+                } else {
+                    countPosts = posts.length;
+                }
+            }
+            if(countPosts && window.confirm('Do you really want to move ' + countPosts + ' message' + (countPosts === 1 ? '' : 's') + ' to ' + targetRoomsByRoomNumber[targetRoomId].fullName + '?')) {
+                //Move the posts
+                moveSomePosts(posts, targetRoomId, callback);
+            } else {
+                if(typeof callback === 'function') {
+                    callback(false);
+                }
+                return false;
+            }
+        }
+
+        function moveSomePosts(posts, targetRoomId, callback) {
+            //posts can be an String/Number of postId, Array of posts, or already chunked Array of post Arrays.
+            if(!targetRoomId || +targetRoomId > 0 || !posts || (Array.isArray(posts) && posts.length === 0)) {
+                if(typeof callback === 'function') {
+                    callback(false);
+                }
+                return false;
+            }
+            posts = Array.isArray(posts) ? posts : [posts];
+            //Chunk the array, if it's not already chunked
+            posts = Array.isArray(posts[0]) ? posts : chunkArray(posts, 100);
+            var currentids = posts.pop();
+
+            $.ajax({
+                type: 'POST',
+                data: 'ids=' + currentids.join('%2C') + '&to=' + targetRoomId + '&fkey=' + fkey,
+                url: '/admin/movePosts/' + room,
+                success: function(){
+                    if(!posts.length) {
+                        if(typeof callback === 'function') {
+                            callback(true);
+                        }
+                        return false;
+                    }
+                    setTimeout(moveSomePosts, 5000, posts, targetRoomId, callback);
+                },
+                error: function(xhr, status, error) {
+                    console.log('AJAX Error moving some posts', '::  xhr:', xhr, '::  status:', status, '::  error:', error);
+                    console.log('posts:', posts, '::  targetRoomId:', targetRoomId, '::  callback:', callback);
+                    console.log('currentids:', currentids, '::  targetRoomId:', targetRoomId, '::  fkey,:', fkey);
+                    alert('$.ajax encountered an error moving some posts. See console for data.');
+                },
+            });
+        }
+
+        function makeMetaRoomTargetsHtml() {
+            var html = '';
+            Object.keys(targetRoomsByRoomNumber).forEach(function(key) {
+                var targetRoom = targetRoomsByRoomNumber[key];
+                html += '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-' +
+                    targetRoom.shortName + '" title="Move this message (and any you\'ve added to the list) to ' +
+                    targetRoom.fullName + '." data-room-id="' +
+                    targetRoom.roomNumber + '">' +
+                    targetRoom.displayed + '</span>';
+            });
+            return html;
+        }
+
+        var addedMetaHtml = [
+            //Some space which blocks the message.
+            '<span class="">&nbsp;&nbsp;?&nbsp;</span>',
+            makeMetaRoomTargetsHtml(),
+            //Add messge
+            '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-add-to-list" title="Add this message to the list." data-room-id="add">+</span>',
+            //remove message
+            '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-remove-from-list" title="Remove this message from the list." data-room-id="remove">-</span>',
+            //clear list
+            '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-clear-list" title="Clear the list." data-room-id="clear">*</span>',
+        ].join('');
+
+        function addMoveToInMeta() {
+            //Brute force add movement to all messages meta
+            var messages = $('.monologue .message');
+            var messagesWithoutMeta = messages.filter(function() {
+                return !$(this).children('.meta').length;
+            });
+            //Add meta to any messages which don't have it.
+            messagesWithoutMeta.children('.request-info,.flash:not(.request-info ~ .flash)').before('<span class="meta"></span>');
+            var messagesWithoutAddedMeta = messages.find('.meta').filter(function() {
+                return !$(this).children('.SOCVR-Archiver-in-message-move-button').length;
+            });
+            messagesWithoutAddedMeta.each(function() {
+                $(this).prepend(addedMetaHtml);
+            });
+            showAllManualMoveMessages();
+            addAllDeletedContent();
+        }
+
+        var manualMoveList = getLSManualMoveList();
+
+        function getMessageIdFromMessage(message) {
+            var el = (message instanceof jQuery) ? message[0] : message;
+            return el.id.replace(/(?:SOCVR-Archiver-)?message-/,'');
+        }
+
+        function moveToInMetaHandler() {
+            var $this = $(this);
+            var roomId = this.dataset.roomId;
+            var message = $this.closest('.message');
+            if(message.length) {
+                var messageId = getMessageIdFromMessage(message);
+                if (messageId) {
+                    if (roomId === 'add') {
+                        addToLSManualMoveList(messageId);
+                        return;
+                    } //else
+                    if (roomId === 'remove') {
+                        removeFromLSManualMoveList(messageId);
+                        return;
+                    } //else
+                    if (roomId === 'clear') {
+                        clearLSManualMoveList();
+                        return;
+                    } //else
+                    if (+roomId) {
+                        addToLSManualMoveList(messageId);
+                        moveSomePostsWithConfirm(manualMoveList, roomId, function() {
+                            clearLSManualMoveList();
+                            //Clear the list again, in case there's delays between tabs.
+                            setTimeout(clearLSManualMoveList, 2000);
+                        });
+                    }
+                }
+            }
+        }
+
+        //Add to meta when the page announces it's ready. (This is supposed to work, but doesn't actually help).
+        window.addEventListener('message', addMoveToInMeta, true);
+        //Accept notifications specific to this script that the page has changed.
+        window.addEventListener('SOCVR-Archiver-Messages-Changed', addMoveToInMeta, true);
+        //Global jQuery AJAX listener: Catches user requesting older chat messages
+        $(document).ajaxComplete( function() {
+            setTimeout(addMoveToInMeta, 500);
+        });
+        //Lazy way of adding moveInMeta after messages load
+        $(document).on('click','.SOCVR-Archiver-in-message-move-button', moveToInMetaHandler);
+        //Add meta when room is ready
+        if(!isSearch) {
+            CHAT.Hub.roomReady.add(function() {
+                addMoveToInMeta();
+                addAllDeletedContent();
+            });
+        }
+        addMoveToInMeta();
+
+        //Simple update of the manual move list:
+        window.addEventListener('storage', function(event) {
+            if(event.key.indexOf(lsPrefix) === 0) {
+                if(event.key.indexOf('manualMoveList') > -1) {
+                    getLSManualMoveList();
+                    showAllManualMoveMessages();
+                }
+            }
+        });
+
+        function getLSManualMoveList() {
+            var list = getStorageJSON('manualMoveList');
+            manualMoveList = list ? list : [];
+            return manualMoveList;
+        }
+
+        function setLSManualMoveList() {
+            setStorageJSON('manualMoveList', manualMoveList);
+        }
+
+        function addToLSManualMoveList(value) {
+            if(manualMoveList.indexOf(value) === -1) {
+                //No duplicates
+                manualMoveList.push(value);
+            }
+            setLSManualMoveList(manualMoveList);
+            showAllManualMoveMessages();
+        }
+
+        function removeFromLSManualMoveList(value) {
+            manualMoveList = manualMoveList.filter(function(compare) {
+                return compare != value;
+            });
+            setLSManualMoveList(manualMoveList);
+            showAllManualMoveMessages();
+        }
+
+        function clearLSManualMoveList() {
+            manualMoveList = [];
+            setLSManualMoveList(manualMoveList);
+            showAllManualMoveMessages();
+        }
+
+        var mostRecentMessageListCount;
+
+        function showAllManualMoveMessages() {
+            $('.message').each(function() {
+                var messageId = getMessageIdFromMessage(this);
+                if(manualMoveList.indexOf(messageId) > -1) {
+                    $(this).addClass('SOCVR-Archiver-multiMove-selected');
+                } else {
+                    $(this).removeClass('SOCVR-Archiver-multiMove-selected');
+                }
+            });
+            var length = manualMoveList.length;
+            //No need to change these, if the value didn't change.
+            if(mostRecentMessageListCount !== length) {
+                var newText = '[List has ' + length + ' message' + (length === 1 ? '' : 's') + '.]';
+                $('.SOCVR-Archiver-in-message-move-button').each(function() {
+                    this.title = this.title.replace(/^([^\[]+)( ?\[.*)?$/,'$1 ' + newText);
+                });
+                mostRecentMessageListCount = length;
+            }
         }
     }
 })();
