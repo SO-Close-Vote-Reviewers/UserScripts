@@ -1210,7 +1210,7 @@
                     countPosts = posts.length;
                 }
             }
-            if(countPosts && window.confirm('Do you really want to move ' + countPosts + ' message' + (countPosts === 1 ? '' : 's') + ' to ' + targetRoomsByRoomNumber[targetRoomId].fullName + '?')) {
+            if(countPosts && window.confirm('Move ' + countPosts + ' message' + (countPosts === 1 ? '' : 's') + ' to ' + targetRoomsByRoomNumber[targetRoomId].fullName + '?')) {
                 //Move the posts
                 moveSomePosts(posts, targetRoomId, callback);
             } else {
@@ -1272,7 +1272,7 @@
 
         var addedMetaHtml = [
             //Some space which blocks the message.
-            '<span class="">&nbsp;&nbsp;?&nbsp;</span>',
+            '<span class="" title="This provides more visual separation between the controls and the containing message. It is not a control.">&nbsp;&nbsp;?&nbsp;</span>',
             makeMetaRoomTargetsHtml(),
             //Add messge
             '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-add-to-list" title="Add this/selected message(s) to the list." data-room-id="add">+</span>',
