@@ -8,7 +8,10 @@
 // @grant        none
 // ==/UserScript==
 /* jshint -W097 */
-/* global $:true */
+/* jshint jquery:    true */
+/* jshint forin:     false */
+/* jshint curly:     false */
+/* globals CHAT */
 'use strict';
 
 (function() {
@@ -583,13 +586,13 @@
                         continue;
                     }
                 }
-                // handle FireAlarm 
+                // handle FireAlarm
                 if(currentreq[j].type == RequestType.FA) {
                     // we want to keep requests that have a cv-pls reply
                     var keep = false;
                     // loop over all requests again
                     for(var fa in currentreq) {
-                        // if we have a reply 
+                        // if we have a reply
                         if (currentreq[fa].parent && currentreq[fa].parent === currentreq[j].msg) {
                             // keep it
                             keep = true;
