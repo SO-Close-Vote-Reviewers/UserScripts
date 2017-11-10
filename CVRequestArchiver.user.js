@@ -47,7 +47,14 @@
         nodes.startbtn = document.createElement('button');
         nodes.startbtn.className = 'button archiver-startbtn';
         nodes.startbtn.textContent = 'archiver';
+        nodes.startbtn.title = 'Open the controls for the request archiver.';
         nodes.scope.appendChild(nodes.startbtn);
+
+        nodes.scan5kbtn = document.createElement('button');
+        nodes.scan5kbtn.className = 'button archiver-scan1k';
+        nodes.scan5kbtn.textContent = 'scan 5k';
+        nodes.scan5kbtn.title = 'Open the controls for the request archiver and scan 5k events.';
+        nodes.scope.appendChild(nodes.scan5kbtn);
 
         nodes.scope.appendChild(document.createElement('br'));
 
@@ -60,12 +67,14 @@
         nodes.count.placeholder = '#';
         nodes.count.type = 'text';
         nodes.count.style.display = 'none';
+        nodes.count.title = 'The number of "events" (messages) to scan for completed requests.';
         nodes.form.appendChild(nodes.count);
 
         nodes.gobtn = document.createElement('button');
         nodes.gobtn.className = 'button archiver-gobtn';
         nodes.gobtn.textContent = 'scan';
         nodes.gobtn.style.display = 'none';
+        nodes.gobtn.title = 'Scan the events in this room for matching messages.';
         nodes.form.appendChild(nodes.gobtn);
 
         nodes.scope.appendChild(document.createTextNode(' '));
@@ -178,11 +187,18 @@
 
         nodes.startbtn.addEventListener('click', function(){
             nodes.startbtn.disabled = true;
+            nodes.scan5kbtn.disabled = true;
             nodes.count.style.display = '';
             nodes.gobtn.style.display = '';
             nodes.cancel.style.display = '';
             nodes.scandate.style.display = '';
             nodes.count.focus();
+        }, false);
+
+        nodes.scan5kbtn.addEventListener('click', function(){
+            nodes.startbtn.click();
+            nodes.count.value = '5000';
+            nodes.gobtn.click();
         }, false);
 
         nodes.cancel.addEventListener('click', reset, false);
@@ -217,6 +233,7 @@
             nodes.count.disabled = false;
             nodes.gobtn.style.display = 'none';
             nodes.gobtn.disabled = false;
+            nodes.scan5kbtn.disabled = false;
             nodes.cancel.style.display = 'none';
             nodes.scandate.style.display = 'none';
             nodes.scandate.textContent = '';
