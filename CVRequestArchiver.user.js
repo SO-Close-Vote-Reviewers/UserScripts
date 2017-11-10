@@ -752,6 +752,7 @@
         }
 
         function movePosts() {
+            //Actually move posts collected by the archiver search.
             var currentids = ids.pop();
 
             var left = [rnum,rnum - (ids.length * 100)][+(rnum > 100)];
@@ -823,6 +824,7 @@
         var priorMessagesShown = [];
 
         function showToBeMoved() {
+            //Create and show the archive preview.
             //The structure/CSS of this needs some more work.
             removeShownToBeMoved();
             shownToBeMoved = document.createElement('div');
@@ -941,6 +943,7 @@
                 '    </div>',
                 '</div>',
             ].join('\n'));
+            //Most of the following should be converted to jQuery, given that it's available.
             var moveMessagesDiv = shownToBeMoved.getElementsByClassName('SOCVR-Archiver-moveMessages')[0];
             var moveCountDiv = shownToBeMoved.getElementsByClassName('SOCVR-Archiver-moveCount')[0];
             $('.SOCVR-Archiver-close-icon', shownToBeMoved).on('click', reset);
@@ -991,12 +994,14 @@
         }
 
         function removeShownToBeMoved() {
+            //Remove the to-be-archived preview
             if(shownToBeMoved) {
                 shownToBeMoved.remove();
             }
         }
 
         function makeMonologueHtml(event) {
+            //Create the HTML for a monologue containing a single message.
             var userId = event.user_id;
             //var userGravatar = '';
             var userName = event.user_name;
@@ -1099,6 +1104,7 @@
         var gettingDeletedContent = 0;
 
         function addAllDeletedContent() {
+            //Go through the DOM and add the content back in for all deleted messages which don't already have it added back in.
             if(!gettingDeletedContent && (!deletedMessagesWithoutDeletedContent || !deletedMessagesWithoutDeletedContent.length)) {
                 deletedMessagesWithoutDeletedContent = $('.content .deleted').parent().filter(function() {
                     return !$(this).children('.SOCVR-Archiver-deleted-content').length;
@@ -1110,6 +1116,7 @@
         }
 
         function addNextDeletedContent() {
+            //Get the content for the next deleted message and insert it into the DOM.
             gettingDeletedContent = 1;
             if(deletedMessagesWithoutDeletedContent.length) {
                 var message = deletedMessagesWithoutDeletedContent.last();
@@ -1246,6 +1253,7 @@
         }
 
         function makeMetaRoomTargetsHtml() {
+            //Create the HTML for the in-question moveTo controls
             var html = '';
             Object.keys(targetRoomsByRoomNumber).forEach(function(key) {
                 var targetRoom = targetRoomsByRoomNumber[key];
@@ -1296,6 +1304,7 @@
         }
 
         function moveToInMetaHandler() {
+            //Handle a click on the moveTo controls
             var $this = $(this);
             var roomId = this.dataset.roomId;
             var message = $this.closest('.message');
