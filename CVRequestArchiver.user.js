@@ -1258,7 +1258,7 @@
             Object.keys(targetRoomsByRoomNumber).forEach(function(key) {
                 var targetRoom = targetRoomsByRoomNumber[key];
                 html += '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-' +
-                    targetRoom.shortName + '" title="Move this message (and any you\'ve added to the list) to ' +
+                    targetRoom.shortName + '" title="Move this/selected message(s) (and any already in the list) to ' +
                     targetRoom.fullName + '." data-room-id="' +
                     targetRoom.roomNumber + '">' +
                     targetRoom.displayed + '</span>';
@@ -1271,9 +1271,9 @@
             '<span class="">&nbsp;&nbsp;?&nbsp;</span>',
             makeMetaRoomTargetsHtml(),
             //Add messge
-            '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-add-to-list" title="Add this message to the list." data-room-id="add">+</span>',
+            '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-add-to-list" title="Add this/selected message(s) to the list." data-room-id="add">+</span>',
             //remove message
-            '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-remove-from-list" title="Remove this message from the list." data-room-id="remove">-</span>',
+            '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-remove-from-list" title="Remove this/selected message(s) from the list." data-room-id="remove">-</span>',
             //clear list
             '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-clear-list" title="Clear the list." data-room-id="clear">*</span>',
         ].join('');
@@ -1299,8 +1299,19 @@
         var manualMoveList = getLSManualMoveList();
 
         function getMessageIdFromMessage(message) {
+            //Get the message ID from a message element or the first element in a jQuery Object.
             var el = (message instanceof jQuery) ? message[0] : message;
-            return el.id.replace(/(?:SOCVR-Archiver-)?message-/,'');
+            if (message instanceof jQuery) {
+                if(message.length) {
+                    message = message[0];
+                } else {
+                    return '';
+                }
+            }
+            if(message) {
+                return el.id.replace(/(?:SOCVR-Archiver-)?message-/,'');
+            } //else
+            return '';
         }
 
         function moveToInMetaHandler() {
@@ -1313,18 +1324,15 @@
                 if (messageId) {
                     if (roomId === 'add') {
                         addToLSManualMoveList(messageId);
-                        return;
-                    } //else
-                    if (roomId === 'remove') {
+                        addToLSManualMoveList(priorSelectionMessageIds);
+                    } else if (roomId === 'remove') {
                         removeFromLSManualMoveList(messageId);
-                        return;
-                    } //else
-                    if (roomId === 'clear') {
+                        removeFromLSManualMoveList(priorSelectionMessageIds);
+                    } else if (roomId === 'clear') {
                         clearLSManualMoveList();
-                        return;
-                    } //else
-                    if (+roomId) {
+                    } else if (+roomId) {
                         addToLSManualMoveList(messageId);
+                        addToLSManualMoveList(priorSelectionMessageIds);
                         moveSomePostsWithConfirm(manualMoveList, roomId, function() {
                             clearLSManualMoveList();
                             //Clear the list again, in case there's delays between tabs.
@@ -1333,7 +1341,40 @@
                     }
                 }
             }
+            //Clear the selection
+            priorSelectionMessageIds = [];
+            window.getSelection().removeAllRanges();
         }
+
+        function getMessagesInSelection() {
+            //Convert the selection to a list of messageIds
+            var messageIdsObject = {};
+            function addMessageIdToSet(message) {
+                var messageId = getMessageIdFromMessage(message);
+                if(messageId) {
+                    messageIdsObject[messageId] = true;
+                }
+            }
+            var selection =  window.getSelection();
+            addMessageIdToSet($(selection.anchorNode).closest('.message'));
+            addMessageIdToSet($(selection.focusNode).closest('.message'));
+            var messages = $('.message').filter(function() {
+                if(selection.containsNode(this)) {
+                    addMessageIdToSet(this);
+                }
+            });
+            var messageIds = Object.keys(messageIdsObject);
+            return messageIds;
+            //return Object.keys(messageIdsObject);
+        }
+
+        var priorSelectionMessageIds = [];
+        $(document).on('mousedown', '.SOCVR-Archiver-in-message-move-button', function() {
+            //Clicking on the control sets the selection to the current control. Thus, we need
+            //  to get the selection on mousedown and save it. We have to convert to messageIds here
+            //  because just saving the selection Object doesn't work (at least on FF56).
+            priorSelectionMessageIds = getMessagesInSelection();
+        });
 
         //Add to meta when the page announces it's ready. (This is supposed to work, but doesn't actually help).
         window.addEventListener('message', addMoveToInMeta, true);
@@ -1374,18 +1415,22 @@
             setStorageJSON('manualMoveList', manualMoveList);
         }
 
-        function addToLSManualMoveList(value) {
-            if(manualMoveList.indexOf(value) === -1) {
-                //No duplicates
-                manualMoveList.push(value);
-            }
+        function addToLSManualMoveList(values) {
+            values = Array.isArray(values) ? values : [values];
+            values.forEach(function(value) {
+                if(manualMoveList.indexOf(value) === -1) {
+                    //No duplicates
+                    manualMoveList.push(value);
+                }
+            });
             setLSManualMoveList(manualMoveList);
             showAllManualMoveMessages();
         }
 
-        function removeFromLSManualMoveList(value) {
+        function removeFromLSManualMoveList(values) {
+            values = Array.isArray(values) ? values : [values];
             manualMoveList = manualMoveList.filter(function(compare) {
-                return compare != value;
+                return values.indexOf(compare) === -1;
             });
             setLSManualMoveList(manualMoveList);
             showAllManualMoveMessages();
