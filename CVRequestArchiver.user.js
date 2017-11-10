@@ -246,6 +246,8 @@
         }
 
         function getEvents(count, before) {
+            //Get events from Chat. Chat returns up to 500 events per call from the indicated message.
+            //  These are placed in the events Array as a 2D array.
             nodes.indicator.value = 'getting events... (' + (total - count) + ' / ' + total + ')';
             nodes.progress.style.width = Math.ceil(((total - count) * 100) / total) + '%';
             if (count <= 0) {
@@ -274,13 +276,22 @@
                     nodes.scandate.textContent = new Date(1000 * response.events[0].time_stamp).toISOString();
 
                     getEvents(count - 500, response.events[0].message_id);
-                }
+                },
+                error: function(xhr, status, error) {
+                    console.log('AJAX Error getting events', '::  xhr:', xhr, '::  status:', status, '::  error:', error);
+                    console.log('target:', target, '::  fkey,:', fkey, '::  ids:', ids);
+                    alert('$.ajax encountered an error getting events. See console for data.');
+                },
             });
         }
 
         function scanEvents(){
             nodes.progress.style.width = '';
-            for(var i in events) for(var j in events[i]) checkEvent(events[i][j], i, events.length);
+            for(var i in events) {
+                for(var j in events[i]) {
+                    checkEvent(events[i][j], i, events.length);
+                }
+            }
             nodes.progress.style.width = '';
 
             if(!requests.length) {
@@ -373,8 +384,10 @@
             var message = event.content;
             var type;
 
+            //Determine if it matches one of the RegExp.
             for (var i in RequestType) {
                 if (matchesRegex(message, RequestType[i].regexes)) {
+                    //Use the RegExp array as the indicator of the type.
                     type = RequestType[i];
                     break;
                 }
@@ -465,7 +478,7 @@
                         messagesToMove.push(currentreq[j]);
                     } else {
                         delete currentreq[j];
-                         // if we have deleted it
+                        // if we have deleted it
                         // we better move on
                         continue;
                     }
@@ -509,27 +522,28 @@
                 var response = JSON.parse(this.response);
                 var items = response.items;
 
-                for(var i in items) {
-                    for(var j in currentreq) {
+                var i, j;
+                for(i in items) {
+                    for(j in currentreq) {
                         if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.DELETE) delete currentreq[j];
                     }
                     if(!items[i].closed_date) {
-                        for(var j in currentreq) {
+                        for(j in currentreq) {
                             if(currentreq[j].type == RequestType.CLOSE && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
                             if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.CLOSE) delete currentreq[j];
                         }
                     }
                     if(items[i].closed_date) {
-                        for(var j in currentreq) {
+                        for(j in currentreq) {
                             if(currentreq[j].type == RequestType.REOPEN && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
                             if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.REOPEN) delete currentreq[j];
                         }
                     }
                 }
 
-                for(var j in currentreq) {
+                for(j in currentreq) {
                     var didApiReturnPost = false;
-                    for(var i in items) {
+                    for(i in items) {
                         if(currentreq[j].post == items[i].question_id) { didApiReturnPost = true; break; }
                     }
                     currentreq[j].undeleteAndNotReturnedAsQuestion = !didApiReturnPost && currentreq[j].type == RequestType.UNDELETE;
@@ -545,15 +559,16 @@
                     var response = JSON.parse(this.response);
                     var items = response.items;
 
-                    for(var i in items) {
-                        for(var j in currentreq) {
+                    var i, j;
+                    for(i in items) {
+                        for(j in currentreq) {
                             if(currentreq[j].post == items[i].answer_id && currentreq[j].type == RequestType.DELETE) delete currentreq[j];
                         }
                     }
 
-                    for(var j in currentreq) {
+                    for(j in currentreq) {
                         var didApiReturnPost = false;
-                        for(var i in items) {
+                        for(i in items) {
                             if(currentreq[j].post == items[i].answer_id) { didApiReturnPost = true; break; }
                         }
                         if (!didApiReturnPost && currentreq[j].type == RequestType.UNDELETE && currentreq[j].undeleteAndNotReturnedAsQuestion) {
@@ -561,7 +576,7 @@
                         }
                     }
 
-                    for(var i in currentreq) {
+                    for(i in currentreq) {
                         if (currentreq[i].type != RequestType.DUPE && currentreq[i].type != RequestType.REPLY) {
                             messagesToMove.push(currentreq[i]);
                         }
@@ -638,6 +653,12 @@
                     }
 
                     setTimeout(movePosts, 5000);
+                },
+                error: function(xhr, status, error) {
+                    console.log('AJAX Error moving posts', '::  xhr:', xhr, '::  status:', status, '::  error:', error);
+                    console.log('currentids:', currentids, '::  target:', target, '::  fkey,:', fkey, '::  ids:', ids);
+                    alert('$.ajax encountered an error moving posts. See console for data.');
+                },
                 }
             });
         }
