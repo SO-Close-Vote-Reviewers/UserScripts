@@ -621,6 +621,18 @@
                 nodes.cancel.disabled = false;
                 return false;
             }
+            //Remove any duplicates
+            //Should really look into why we're getting duplicates. It looks like it's FireAlarm messages.
+            var dupCheck = {};
+            messagesToMove = messagesToMove.filter(function(message) {
+                if(dupCheck[message.msg]) {
+                    return false;
+                } //else
+                dupCheck[message.msg] = true;
+                return true;
+            }).sort(function(a, b) {
+                return a.event.time_stamp - b.event.time_stamp;
+            });
 
             ids = chunkArray(formatMsgs(messagesToMove), 100);
 
