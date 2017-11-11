@@ -1106,21 +1106,6 @@
 
         //CHAT listener
         function listenToChat(){
-            /* This is not needed when you're an RO.
-            if(chatInfo.event_type === 10) {
-                //A message is being deleted.
-                var message = $('#message-' + chatInfo.message_id);
-                if(message.length) {
-                    //console.log('message:', message);
-                    var content = $(message).find('.content');
-                    //console.log('content:', content);
-                    var cloneContent = content.clone();
-                    //console.log('cloneContent:', cloneContent);
-                    //Execute after content is deleted:
-                    setTimeout(addDeletedContentToMessageId, 0, chatInfo.message_id, cloneContent);
-                }
-            }
-            */
             //Delay untill after the content has been added. Only 0ms is required.
             setTimeout(addMoveToInMeta, 10);
         }
