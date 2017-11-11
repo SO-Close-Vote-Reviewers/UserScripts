@@ -1024,10 +1024,8 @@
             //Create the HTML for a monologue containing a single message.
             var userId = +event.user_id;
             var userAvatar16 = '';
-            var userAvatar32 = '';
             if(avatarList[userId]) {
                 userAvatar16 = avatarList[userId][16];
-                userAvatar32 = avatarList[userId][32];
             }
             var userName = event.user_name;
             var userReputation = '';
@@ -1037,66 +1035,30 @@
             var contentHtml = event.content;
             var timestamp = event.timeStampUTC.replace(/T(\d\d:\d\d):\d\d\.\d{3}/,' $1');
             var html = [
-                '<div class="user-container user-' + userId + ' monologue SOCVR-Archiver-monologue-for-message-' + messageId + '">',
+                //From transcript
+                '<div class="monologue user-' + userId + ' SOCVR-Archiver-monologue-for-message-' + messageId + '">',
                 '    <div class="SOCVR-Archiver-close-icon" data-message-id="' + messageId + '" title="Don\'t move"></div>',
-                '    <a href="/users/' + userId + '" class="signature user-' + userId + '">',
-                '        <div class="tiny-signature" style="">',
-                //Avatar information is not in the event. Unless we go searching for it, this just shows the alt text, which is disruptive.
+                '    <div class="signature">',
+                '        <div class="tiny-signature">',
                 (userAvatar16 ? '' +
                     '        <div class="avatar avatar-16">' +
-                    '            <img src="' + userAvatar16 + '" alt="' + userName + '" title="' + userName + '" width="16" height="16">' +
-                    '        </div>' +
-                    '        <div class="username">' + userName + '</div>' +
-                    '    </div>' +
-                    '' : ''),
-                //Avatar information is not in the event. Unless we go searching for it, this just shows the alt text, which is disruptive.
-                (userAvatar32 ? '' +
-                    '        <div class="avatar avatar-32 clear-both" style="display: none;">' +
-                    '            <img src="' + userAvatar32 + '" alt="' + userName + '" title="' + userName + '" width="32" height="32">' +
-                    '            <div>' +
-                    '           </div>' +
+                    '            <img src="' + userAvatar16 + '" alt="' + userName + '" width="16" height="16">' +
                     '        </div>' +
                     '' : ''),
-                '        <div class="username" style="display: none;">' + userName + '</div>',
-                '        <div class="flair" style="display: none;" title="' + userReputation + '">' + userReputation + '</div>',
-                '    </a>',
+                '            <div class="username"><a href="/users/' + userId + '/' + userName + '" title="' + userName + '">' + userName + '</a></div>',
+                '        </div>',
+                '    </div>',
                 '    <div class="messages">',
-                '        <div class="message' + (showParent ? ' pid-' + parentId : '') + '" id="SOCVR-Archiver-message-' + messageId + '">',
+                '        <div class="message" id="message-' + messageId + '">',
                 '            <div class="timestamp">' + timestamp + '</div>',
-                //search action link
-                '            <a name="' + messageId + '" href="/transcript/41570?m=' + messageId + '#' + messageId + '">',
-                '                <span style="display:inline-block;" class="action-link">',
-                '                    <span class="img"> </span>',
-                '                </span>',
-                '            </a>',
-                //Main chat action link. Does not automatically become functional. Would need to hook it into the page (maybe just move where the Div is placed).
-                //'            <a class="action-link" title="click for message actions" href="/transcript/message/' + messageId + '#' + messageId + '">',
-                //'                <span class="img menu"> </span>',
-                //'            </a>',
-                (showParent ? '            <a class="reply-info" title="This is a reply to an earlier message" href="/transcript/message/' + parentId + '#' + parentId + '"> </a>' : ''),
+                '            <a name="' + messageId + '" href="/transcript/' + room + '?m=' + messageId + '#' + messageId + '"><span style="display:inline-block;" class="action-link"><span class="img menu"> </span></span></a>',
                 '            <div class="content">' + contentHtml,
                 '            </div>',
-                //In normal chat, but not making it active here.
-                //'            <span class="meta">',
-                //'                <span class="flags vote-count-container">',
-                //'                    <span class="img vote" title="flag this message as spam, inappropriate, or offensive"></span>',
-                //'                    <span class="times"></span>',
-                //'                </span>&nbsp;',
-                //'                <span class="stars vote-count-container">',
-                //'                    <span class="img vote" title="star this message as useful / interesting for the transcript"></span>',
-                //'                    <span class="times"> </span>',
-                //'                </span>&nbsp;<span class="newreply" title="link my next chat message as a reply to this"></span>',
-                //'            </span>',
                 '            <span class="flash">',
-                //In normal chat, but not making it active here.
-                //'                <span class="stars vote-count-container">',
-                //'                    <span class="img vote" title="star this message as useful / interesting for the transcript"></span>',
-                //'                    <span class="times"></span>',
-                //'                </span>',
                 '            </span>',
                 '        </div>',
                 '    </div>',
-                '    <div class="clear-both" style="height: 0px;">&nbsp;</div>',
+                '    <div class="clear-both" style="height:0">&nbsp;</div> ',
                 '</div>',
             ].join('\n');
             return html;
@@ -1527,7 +1489,7 @@
             avatarList = getStorageJSON('avatarList') || {};
             $('.signature').each(function() {
                 var $this = $(this);
-                var userId = +this.className.replace(/.*\buser-(\d+)\b.*/,'$1');
+                var userId = +$this.closest('.monologue')[0].className.replace(/.*\buser-(\d+)\b.*/,'$1');
                 if(userId) {
                     if(!avatarList[userId]) {
                         avatarList[userId] = {};
@@ -1555,7 +1517,5 @@
                 setStorageJSON('avatarList', avatarList);
             }
         }
-
-
     }
 })();
