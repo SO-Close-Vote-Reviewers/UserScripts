@@ -246,6 +246,13 @@
             '.content .deleted ~ .SOCVR-Archiver-deleted-content:hover {',
             '    display: block;',
             '}',
+            'div.message .meta {',
+            //A clearer indicator of separation between controls and message text.
+            '    border-left: 1px solid;',
+            '}',
+            '.SOCVR-Archiver-in-message-move-button:first-of-type {',
+            '    margin-left: 5px;',
+            '}',
             '.SOCVR-Archiver-in-message-move-button {',
             '    cursor: pointer;',
             '    font-size: 11px;',
@@ -1271,8 +1278,6 @@
         }
 
         var addedMetaHtml = [
-            //Some space which blocks the message.
-            '<span class="" title="This provides more visual separation between the controls and the containing message. It is not a control.">&nbsp;&nbsp;?&nbsp;</span>',
             makeMetaRoomTargetsHtml(),
             //Add messge
             '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-add-to-list" title="Add this/selected message(s) to the list." data-room-id="add">+</span>',
@@ -1294,6 +1299,8 @@
                 return !$(this).children('.SOCVR-Archiver-in-message-move-button').length;
             });
             messagesWithoutAddedMeta.each(function() {
+                //Put the moveTo controls to the left of the normal controls. This leaves the normal controls where they usually are
+                //  and places the reply-to control far away from lesser used controls.
                 $(this).prepend(addedMetaHtml);
             });
             showAllManualMoveMessages();
