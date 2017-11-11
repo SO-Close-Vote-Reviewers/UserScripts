@@ -1230,7 +1230,8 @@
 
         function moveSomePosts(posts, targetRoomId, callback) {
             //posts can be an String/Number of postId, Array of posts, or already chunked Array of post Arrays.
-            if(!targetRoomId || +targetRoomId > 0 || !posts || (Array.isArray(posts) && posts.length === 0)) {
+            if(!targetRoomId || +targetRoomId < 1 || !posts || (Array.isArray(posts) && posts.length === 0)) {
+                //Something is wrong with the arguments.
                 if(typeof callback === 'function') {
                     callback(false);
                 }
