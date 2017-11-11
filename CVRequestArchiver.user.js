@@ -317,7 +317,7 @@
             getEvents(count);
         }, false);
 
-        nodes.movebtn.addEventListener('click', movePosts, false);
+        nodes.movebtn.addEventListener('click', saveMoveInformationAndMovePosts, false);
 
         function reset() {
             /* jshint -W040 */ //This is called as a jQuery event handler, which explicitly sets `this`.
@@ -762,6 +762,16 @@
             nodes.indicator.value = messagesToMove.length + ' request' + ['','s'][+(messagesToMove.length > 1)] + ' found';
         }
 
+        function saveMoveInformationAndMovePosts() {
+            setStorageJSON('previousMoveTo', {
+                posts: [].concat(...ids),
+                targetRoomId: target,
+                //It would need to be tested to see if you really can only move from a single room, or if you can move from multiple rooms at a time.
+                sourceRoomId: room,
+            });
+            movePosts();
+        }
+
         function movePosts() {
             //Actually move posts collected by the archiver search.
             var currentids = ids.pop();
@@ -957,7 +967,7 @@
             var moveCountDiv = shownToBeMoved.getElementsByClassName('SOCVR-Archiver-moveCount')[0];
             $('.SOCVR-Archiver-close-icon', shownToBeMoved).on('click', reset);
             shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-cancel')[0].addEventListener('click', reset, false);
-            shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-move')[0].addEventListener('click', movePosts, false);
+            shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-move')[0].addEventListener('click', saveMoveInformationAndMovePosts, false);
             shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-1kmore')[0].addEventListener('click', getMoreEvents.bind(null, 1000), false);
             shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-10kmore')[0].addEventListener('click', getMoreEvents.bind(null, 10000), false);
             shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-100kmore')[0].addEventListener('click', getMoreEvents.bind(null, 100000), false);
@@ -1218,13 +1228,19 @@
                 }
             }
             if(countPosts && window.confirm('Move ' + countPosts + ' message' + (countPosts === 1 ? '' : 's') + ' to ' + targetRoomsByRoomNumber[targetRoomId].fullName + '?')) {
+                //Save a copy of the last information.
+                setStorageJSON('previousMoveTo', {
+                    posts:posts,
+                    targetRoomId: targetRoomId,
+                    //It would need to be tested to see if you really can only move from a single room, or if you can move from multiple rooms at a time.
+                    sourceRoomId: room,
+                });
                 //Move the posts
                 moveSomePosts(posts, targetRoomId, callback);
             } else {
                 if(typeof callback === 'function') {
                     callback(false);
                 }
-                return false;
             }
         }
 
@@ -1248,6 +1264,7 @@
                 url: '/admin/movePosts/' + room,
                 success: function(){
                     if(!posts.length) {
+                        //Done with messages. Normal completion.
                         if(typeof callback === 'function') {
                             callback(true);
                         }
@@ -1286,6 +1303,8 @@
             '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-remove-from-list" title="Remove this/selected message(s) from the list." data-room-id="remove">-</span>',
             //clear list
             '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-clear-list" title="Clear the list." data-room-id="clear">*</span>',
+            //Undo/ reselect the last moved list
+            '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-reselect" title="Re-select the messages which were last moved. This can be used to undo the last move by reselecting them (this control); going to the room they have been moved to; find one that\'s selected; then, manually moving them back by clicking on the control you want them moved to." data-room-id="reselect">U</span>',
         ].join('');
 
         function addMoveToInMeta() {
@@ -1344,13 +1363,23 @@
                         removeFromLSManualMoveList(priorSelectionMessageIds);
                     } else if (roomId === 'clear') {
                         clearLSManualMoveList();
+                    } else if (roomId === 'reselect') {
+                        reselectLastLSMoveList();
                     } else if (+roomId) {
                         addToLSManualMoveList(messageId);
                         addToLSManualMoveList(priorSelectionMessageIds);
-                        moveSomePostsWithConfirm(manualMoveList, roomId, function() {
-                            clearLSManualMoveList();
-                            //Clear the list again, in case there's delays between tabs.
-                            setTimeout(clearLSManualMoveList, 2000);
+                        moveSomePostsWithConfirm(manualMoveList, roomId, function(moved) {
+                            // Should consider here if we really want to clear the list.
+                            // Not clearing it gives the user the oportunity to reverse the
+                            // move by going to the other room, where the messages will
+                            // already be selected.  Clearing it feels more like what people
+                            // would expect.
+                            if(moved) {
+                                //If the move was successful, clear the list. Keep the list if it wasn't.
+                                clearLSManualMoveList();
+                                //Clear the list again, in case there's delays between tabs.
+                                setTimeout(clearLSManualMoveList, 2000);
+                            }
                         });
                     }
                 }
@@ -1421,6 +1450,10 @@
         function getLSManualMoveList() {
             var list = getStorageJSON('manualMoveList');
             manualMoveList = list ? list : [];
+            //Make sure the list is always numbers, not strings.
+            manualMoveList = manualMoveList.map(function(value) {
+                return +value;
+            });
             return manualMoveList;
         }
 
@@ -1431,6 +1464,7 @@
         function addToLSManualMoveList(values) {
             values = Array.isArray(values) ? values : [values];
             values.forEach(function(value) {
+                value = +value;
                 if(manualMoveList.indexOf(value) === -1) {
                     //No duplicates
                     manualMoveList.push(value);
@@ -1442,9 +1476,21 @@
 
         function removeFromLSManualMoveList(values) {
             values = Array.isArray(values) ? values : [values];
-            manualMoveList = manualMoveList.filter(function(compare) {
-                return values.indexOf(compare) === -1;
+            //Convert all values to numbers.
+            values = values.map(function(value) {
+                return +value;
             });
+            manualMoveList = manualMoveList.filter(function(compare) {
+                return values.indexOf(+compare) === -1;
+            });
+            setLSManualMoveList(manualMoveList);
+            showAllManualMoveMessages();
+        }
+
+        function reselectLastLSMoveList() {
+            var priorMove = getStorageJSON('previousMoveTo');
+            manualMoveList = priorMove ? priorMove.posts : [];
+            manualMoveList = priorMove.posts;
             setLSManualMoveList(manualMoveList);
             showAllManualMoveMessages();
         }
@@ -1456,11 +1502,12 @@
         }
 
         var mostRecentMessageListCount;
+        var messageListCountAddedFirstTime = false;
 
         function showAllManualMoveMessages() {
             $('.message').each(function() {
                 var messageId = getMessageIdFromMessage(this);
-                if(manualMoveList.indexOf(messageId) > -1) {
+                if(manualMoveList.indexOf(+messageId) > -1) {
                     $(this).addClass('SOCVR-Archiver-multiMove-selected');
                 } else {
                     $(this).removeClass('SOCVR-Archiver-multiMove-selected');
@@ -1468,7 +1515,8 @@
             });
             var length = manualMoveList.length;
             //No need to change these, if the value didn't change.
-            if(mostRecentMessageListCount !== length) {
+            if(mostRecentMessageListCount !== length || !messageListCountAddedFirstTime) {
+                messageListCountAddedFirstTime = true;
                 var newText = '[List has ' + length + ' message' + (length === 1 ? '' : 's') + '.]';
                 $('.SOCVR-Archiver-in-message-move-button').each(function() {
                     this.title = this.title.replace(/^([^\[]+)( ?\[.*)?$/,'$1 ' + newText);
