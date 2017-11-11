@@ -85,6 +85,7 @@
 
         var target = 90230;
         var nodes = {};
+        var avatarList = getStorageJSON('avatarList') || {};
 
         nodes.scope = document.querySelector('#chat-buttons');
         if(isTranscript || isSearch || !nodes.scope) {
@@ -1021,8 +1022,13 @@
 
         function makeMonologueHtml(event) {
             //Create the HTML for a monologue containing a single message.
-            var userId = event.user_id;
-            //var userGravatar = '';
+            var userId = +event.user_id;
+            var userAvatar16 = '';
+            var userAvatar32 = '';
+            if(avatarList[userId]) {
+                userAvatar16 = avatarList[userId][16];
+                userAvatar32 = avatarList[userId][32];
+            }
             var userName = event.user_name;
             var userReputation = '';
             var parentId = event.parent_id;
@@ -1035,18 +1041,22 @@
                 '    <div class="SOCVR-Archiver-close-icon" data-message-id="' + messageId + '" title="Don\'t move"></div>',
                 '    <a href="/users/' + userId + '" class="signature user-' + userId + '">',
                 '        <div class="tiny-signature" style="">',
-                //Gravatar information is not in the event. Unless we go searching for it, this just shows the alt text, which is disruptive.
-                //'            <div class="avatar avatar-16">',
-                //'                <img src="https://i.stack.imgur.com/' + userGravatar + '?s=16&amp;g=1" alt="' + userName + '" title="' + userName + '" width="16" height="16">',
-                //'            </div>',
-                '            <div class="username">' + userName + '</div>',
-                '        </div>',
-                //Gravatar information is not in the event. Unless we go searching for it, this just shows the alt text, which is disruptive.
-                //'        <div class="avatar avatar-32 clear-both" style="display: none;">',
-                //'            <img src="https://i.stack.imgur.com/' + userGravatar + '?s=32&amp;g=1" alt="' + userName + '" title="' + userName + '" width="32" height="32">',
-                //'            <div>',
-                //'           </div>',
-                //'        </div>',
+                //Avatar information is not in the event. Unless we go searching for it, this just shows the alt text, which is disruptive.
+                (userAvatar16 ? '' +
+                    '        <div class="avatar avatar-16">' +
+                    '            <img src="' + userAvatar16 + '" alt="' + userName + '" title="' + userName + '" width="16" height="16">' +
+                    '        </div>' +
+                    '        <div class="username">' + userName + '</div>' +
+                    '    </div>' +
+                    '' : ''),
+                //Avatar information is not in the event. Unless we go searching for it, this just shows the alt text, which is disruptive.
+                (userAvatar32 ? '' +
+                    '        <div class="avatar avatar-32 clear-both" style="display: none;">' +
+                    '            <img src="' + userAvatar32 + '" alt="' + userName + '" title="' + userName + '" width="32" height="32">' +
+                    '            <div>' +
+                    '           </div>' +
+                    '        </div>' +
+                    '' : ''),
                 '        <div class="username" style="display: none;">' + userName + '</div>',
                 '        <div class="flair" style="display: none;" title="' + userReputation + '">' + userReputation + '</div>',
                 '    </a>',
@@ -1325,6 +1335,7 @@
             });
             showAllManualMoveMessages();
             addAllDeletedContent();
+            getAvatars();
         }
 
         var manualMoveList = getLSManualMoveList();
@@ -1524,5 +1535,42 @@
                 mostRecentMessageListCount = length;
             }
         }
+
+        function getAvatars() {
+            //Collect the existing avatar information from localStorage and in the page.
+            var listChanged =  false;
+            avatarList = getStorageJSON('avatarList') || {};
+            $('.signature').each(function() {
+                var $this = $(this);
+                var userId = +this.className.replace(/.*\buser-(\d+)\b.*/,'$1');
+                if(userId) {
+                    if(!avatarList[userId]) {
+                        avatarList[userId] = {};
+                        listChanged = true;
+                    }
+                    var avatar16 = $this.find('.avatar-16 img').first();
+                    if(avatar16.length) {
+                        var avatar16src = avatar16[0].src;
+                        if(avatar16src && avatarList[userId][16] !== avatar16src) {
+                            avatarList[userId][16] = avatar16src;
+                            listChanged = true;
+                        }
+                    }
+                    var avatar32 = $this.find('.avatar-32 img').first();
+                    if(avatar32.length) {
+                        var avatar32src = avatar32[0].src;
+                        if(avatar32src && avatarList[userId][32] !== avatar32src) {
+                            avatarList[userId][32] = avatar32src;
+                            listChanged = true;
+                        }
+                    }
+                }
+            });
+            if(listChanged) {
+                setStorageJSON('avatarList', avatarList);
+            }
+        }
+
+
     }
 })();
