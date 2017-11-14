@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.5.23
+// @version        1.5.24
 // @description    This script generates formatted close vote requests and sends them to a specified chat room, fixes #65
 // @author         @TinyGiant
 // @contributor    @rene @Tunaki @Makyen
@@ -15,12 +15,14 @@
 // @grant          GM.xmlHttpRequest
 // ==/UserScript==
 
-//The only GM_ API used in this script is GM_xmlhttpRequest, which is already asynchronous and doesn't return a value.
+//The only GM_ APIs used in this script are GM_xmlhttpRequest, which is already asynchronous
+//and doesn't return a value, and GM_info, which is an Object, not a function.
 //At some point in the future, use https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
-//However, at the moment (2017-11-13), it's broken for Chrome/Tampermonkey when using GM_xmlhttpRequest.
+//However, at the moment (2017-11-13), it's broken.
 if (typeof GM === 'undefined') {
-  var GM = {};
+  GM = {};
   GM.xmlHttpRequest = GM_xmlhttpRequest;
+  GM.info = GM_info;
 }
 
 if(typeof StackExchange === "undefined")
@@ -89,7 +91,7 @@ if(typeof StackExchange === "undefined")
             url: 'https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version',
             onload: function(response) {
                 var VERSION = response.responseText.trim();
-                if(isVersionNewer(VERSION,GM_info.script.version)) {
+                if(isVersionNewer(VERSION,GM.info.script.version)) {
                     var lastAcknowledgedVersion = getStorage('LastAcknowledgedVersion');
                     if(lastAcknowledgedVersion != VERSION || force) {
                         if(confirm('A new version of The Close Vote Request Generator is available, would you like to install it now?'))
