@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.5.22
+// @version        1.5.23
 // @description    This script generates formatted close vote requests and sends them to a specified chat room, fixes #65
 // @author         @TinyGiant
-// @contributor    @rene @Tunaki
+// @contributor    @rene @Tunaki @Makyen
 // @include        /^https?:\/\/\w*.?(stackexchange.com|stackoverflow.com|serverfault.com|superuser.com|askubuntu.com|stackapps.com|mathoverflow.net)\/q(uestions)?\/\d+/
 // @require        https://code.jquery.com/jquery-2.1.4.min.js
 // @connect        rawgit.com
@@ -12,7 +12,16 @@
 // @connect        chat.stackoverflow.com
 // @connect        chat.stackexchange.com
 // @grant          GM_xmlhttpRequest
+// @grant          GM.xmlHttpRequest
 // ==/UserScript==
+
+//The only GM_ API used in this script is GM_xmlhttpRequest, which is already asynchronous and doesn't return a value.
+//At some point in the future, use https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
+//However, at the moment (2017-11-13), it's broken for Chrome/Tampermonkey when using GM_xmlhttpRequest.
+if (typeof GM === 'undefined') {
+  var GM = {};
+  GM.xmlHttpRequest = GM_xmlhttpRequest;
+}
 
 if(typeof StackExchange === "undefined")
     var StackExchange = unsafeWindow.StackExchange;
@@ -75,7 +84,7 @@ if(typeof StackExchange === "undefined")
     }
 
     function checkUpdates(force) {
-        GM_xmlhttpRequest({
+        GM.xmlHttpRequest({
             method: 'GET',
             url: 'https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version',
             onload: function(response) {
@@ -101,32 +110,92 @@ if(typeof StackExchange === "undefined")
 
     function sendRequest(result) {
         RoomList.getRoom(function(room){
-            GM_xmlhttpRequest({
+
+            function displayRequestText (requestText, message) {
+                message += '' +
+                    '<br/><br/>' +
+                    '<span>' +
+                    '    Request text ' +
+                    '    (<a href="#" class="SECVR-copy-to-clipboard" title="Click here to copy the request text to the clipboard.">copy</a>):' +
+                    '</span>' +
+                    '<br/>' +
+                    '<textarea class="SECVR-request-text" style="width: 95%;">' +
+                        requestText +
+                    '</textarea>'+
+                    '<br/>' +
+                    '';
+                notify(message);
+                // Select the notification for Ctrl + C copy.
+                var requestTextInput = $('textarea.SECVR-request-text').last();
+                requestTextInput.select();
+                // Bind a click handler on the "copy" anchor to copy the text manually.
+                var copyButton = $('a.SECVR-copy-to-clipboard');
+                var thisNotification = copyButton.closest('[id^="notify-"]').filter(function() {
+                    //Make sure we're putting it on the notification, not the notify-container
+                    return /notify-\d+/.test(this.id);
+                }).last().on('click', function(event) {
+                    //Prevent the cv-pls GUI from closing for clicks within the notification.
+                    event.stopPropagation();
+                    event.preventDefault();
+                });
+                copyButton.last().on('click', function(event) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    requestTextInput.select();
+                    var success = document.execCommand('copy');
+                    if(!success) {
+                        alert('Failed to copy the request text! Please copy it manually.');
+                        //Restore the selection and focus. (not normally needed, but doesn't hurt)
+                        requestTextInput.select();
+                        requestTextInput.focus();
+                        //The GUI is left open here because we don't have a way to determine if the user is actually
+                        //  done with the request.
+                    } else {
+                        //Copy succeeded. Send another notification to cause the original notification to be dismissed.
+                        //  This really should be handled by creating a function which dismisses the current notification.
+                        notify('',10);
+                        hideMenu();
+                    }
+                });
+            }
+
+            function handleError(message, error) {
+                var seeConsole = '<br/>See the console for more details.';
+                console.error(message, error);
+                displayRequestText(result, message + seeConsole);
+            }
+            GM.xmlHttpRequest({
                 method: 'GET',
                 url: room.url,
                 onload: function(response) {
-                    var fkey = response.responseText.match(/hidden" value="([\dabcdef]{32})/)[1];
+                    var matches = response.responseText.match(/hidden" value="([\dabcdef]{32})/);
+                    var fkey = matches ? matches[1] : '';
                     if(!fkey) {
-                        notify('Failed retrieving key, is the room URL valid?');
+                        handleError('responseText did not contain fkey. Is the room URL valid?', response);
                         return false;
-                    }
-                    GM_xmlhttpRequest({
+                    } // else
+                    GM.xmlHttpRequest({
                         method: 'POST',
                         url: room.host + '/chats/' + room.id + '/messages/new',
                         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                         data: 'text=' + encodeURIComponent(result) + '&fkey=' + fkey,
-                        onload: function() {
-                            notify('Close vote request sent.',1000);
-                            hideMenu();
+                        onload: function(newMessageResponse) {
+                            if(newMessageResponse.status != 200) {
+                                var responseText = newMessageResponse.responseText;
+                                var shownResponseText = newMessageResponse.responseText.length < 100 ? ' ' + newMessageResponse.responseText : '';
+                                handleError('Failed sending chat request message.' + shownResponseText, newMessageResponse);
+                            } else {
+                                notify('Close vote request sent.',1000);
+                                hideMenu();
+                            }
                         },
-                        onerror: function() {
-                            notify('Failed sending close vote request.');
-                            hideMenu();
+                        onerror: function(error) {
+                            handleError('Got an error when sending chat request message.', error);
                         }
                     });
                 },
-                onerror: function(resp) {
-                    notify('Failed retrieving fkey from chat. (' + resp.status + ')');
+                onerror: function(response) {
+                    handleError('Failed to retrieve fkey from chat. (Error Code: ' + response.status + ')', response);
                 }
             });
         });
@@ -181,7 +250,7 @@ if(typeof StackExchange === "undefined")
                 if(callback) callback(room);
                 return false;
             }
-            GM_xmlhttpRequest({
+            GM.xmlHttpRequest({
                 method: 'GET',
                 url: url,
                 onload: function(response){
@@ -401,7 +470,7 @@ if(typeof StackExchange === "undefined")
     setTimeout(checkUpdates);
     var closereasons = {
         4: "General Computing",
-        7: "Serverfault.com",
+        7: "Server / Networking",
         16: "Request for Off-Site Resource",
         13: "No MCVE",
         11: "Typo or Cannot Reproduce",
