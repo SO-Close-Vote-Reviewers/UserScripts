@@ -12,7 +12,16 @@
 // @connect        chat.stackoverflow.com
 // @connect        chat.stackexchange.com
 // @grant          GM_xmlhttpRequest
+// @grant          GM.xmlHttpRequest
 // ==/UserScript==
+
+//The only GM_ API used in this script is GM_xmlhttpRequest, which is already asynchronous and doesn't return a value.
+//At some point in the future, use https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
+//However, at the moment (2017-11-13), it's broken for Chrome/Tampermonkey when using GM_xmlhttpRequest.
+if (typeof GM === 'undefined') {
+  var GM = {};
+  GM.xmlHttpRequest = GM_xmlhttpRequest;
+}
 
 if(typeof StackExchange === "undefined")
     var StackExchange = unsafeWindow.StackExchange;
@@ -75,7 +84,7 @@ if(typeof StackExchange === "undefined")
     }
 
     function checkUpdates(force) {
-        GM_xmlhttpRequest({
+        GM.xmlHttpRequest({
             method: 'GET',
             url: 'https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version',
             onload: function(response) {
@@ -155,7 +164,7 @@ if(typeof StackExchange === "undefined")
                 console.error(message, error);
                 displayRequestText(result, message + seeConsole);
             }
-            GM_xmlhttpRequest({
+            GM.xmlHttpRequest({
                 method: 'GET',
                 url: room.url,
                 onload: function(response) {
@@ -165,7 +174,7 @@ if(typeof StackExchange === "undefined")
                         handleError('responseText did not contain fkey. Is the room URL valid?', response);
                         return false;
                     } // else
-                    GM_xmlhttpRequest({
+                    GM.xmlHttpRequest({
                         method: 'POST',
                         url: room.host + '/chats/' + room.id + '/messages/new',
                         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -241,7 +250,7 @@ if(typeof StackExchange === "undefined")
                 if(callback) callback(room);
                 return false;
             }
-            GM_xmlhttpRequest({
+            GM.xmlHttpRequest({
                 method: 'GET',
                 url: url,
                 onload: function(response){
