@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.5.24
+// @version        1.5.25
 // @description    This script generates formatted close vote requests and sends them to a specified chat room, fixes #65
 // @author         @TinyGiant
 // @contributor    @rene @Tunaki @Makyen
 // @include        /^https?:\/\/\w*.?(stackexchange.com|stackoverflow.com|serverfault.com|superuser.com|askubuntu.com|stackapps.com|mathoverflow.net)\/q(uestions)?\/\d+/
 // @require        https://code.jquery.com/jquery-2.1.4.min.js
+// @require        https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/gm4-polyfill.js
 // @connect        rawgit.com
 // @connect        raw.githubusercontent.com
 // @connect        chat.stackoverflow.com
@@ -14,16 +15,6 @@
 // @grant          GM_xmlhttpRequest
 // @grant          GM.xmlHttpRequest
 // ==/UserScript==
-
-//The only GM_ APIs used in this script are GM_xmlhttpRequest, which is already asynchronous
-//and doesn't return a value, and GM_info, which is an Object, not a function.
-//At some point in the future, use https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
-//However, at the moment (2017-11-13), it's broken.
-if (typeof GM === 'undefined') {
-  GM = {};
-  GM.xmlHttpRequest = GM_xmlhttpRequest;
-  GM.info = GM_info;
-}
 
 if(typeof StackExchange === "undefined")
     var StackExchange = unsafeWindow.StackExchange;
