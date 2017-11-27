@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.5.25
+// @version        1.5.26
 // @description    This script generates formatted close vote requests and sends them to a specified chat room, fixes #65
 // @author         @TinyGiant
 // @contributor    @rene @Tunaki @Makyen
@@ -224,7 +224,7 @@ if(typeof StackExchange === "undefined")
     RoomList.name = function(name)  { return this.search('name',name);  };
     RoomList.index = function(name) { return this.search('index',name); };
     RoomList.id = function(name)    { return this.search('id',name);    };
-    RoomList.url = function(name)   { return this.search('url',name);   };
+    RoomList.url = function(url)    { return this.search('url',RoomList.useHttpsForStackExchangeAndTrim(url));};
     RoomList.insert = function(room) {
         if(!RoomList.url(room.url)) {
             this.rooms[room.url] = room;
@@ -235,7 +235,8 @@ if(typeof StackExchange === "undefined")
     RoomList.getRoom = function(callback,url) {
         var rooms = this.rooms;
         if(!url)
-            url = getStorage(base + 'room');
+            url = getCurrentRoom();
+        url = RoomList.useHttpsForStackExchangeAndTrim(url);
         var m = /(https?:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)\/rooms\/(.*)\/.*/.exec(url);
         if(m) {
             var room = RoomList.url(url);
@@ -273,11 +274,12 @@ if(typeof StackExchange === "undefined")
     };
     RoomList.setRoom = function(url) {
         var exists;
+        url = RoomList.useHttpsForStackExchangeAndTrim(url);
         if(this.url(url))
             exists = true;
         RoomList.getRoom(function(room) {
-            if(room && getStorage(base + 'room') !== room.url) {
-                setStorage(base + 'room',room.url);
+            if(room && getCurrentRoom() !== room.url) {
+                setCurrentRoom(room.url);
                 CVRGUI.roomList.find('[type="checkbox"]').prop('checked',false);
                 if(!exists)
                     CVRGUI.roomList.append($('<dd><label><input type="radio" name="target-room" value="' + room.url + '" checked>' + room.name + '</label><form><button>-</button></form></dd>'));
@@ -293,16 +295,38 @@ if(typeof StackExchange === "undefined")
         else
             RoomList.rooms = JSON.parse(getStorage('rooms'));
     };
+    RoomList.useHttpsForStackExchangeAndTrim = function(url) {
+        //Change a SE/SO URL to HTTPS instead of HTTP.
+        return /(https?:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)/.test(url) ? url.replace(/http:/ig, 'https:').replace(/(https:\/\/chat\.stack(?:exchange|overflow)\.com\/rooms\/\d+)\b.*$/ig, '$1/') : url;
+    };
+    RoomList.changeToHttpsForStackExchange = function() {
+        //Just change the JSON (pass it through parse/stringify to remove any duplicates):
+        // The RegExp is probably overly restrictive, as the rooms should never already contain non-stackexchange/stackoverflow URLs, as such are considered invalid.
+        try {
+            setStorage('rooms', JSON.stringify(JSON.parse(getStorage('rooms').replace(/http:\/\/chat\.stack(exchange|overflow)\.com/ig, 'https://chat.stack$1.com').replace(/(https:\/\/chat\.stack(?:exchange|overflow)\.com\/rooms\/\d+)\b[^"]*/ig, '$1/'))));
+        } catch (e) {
+            //No storage or Invalid JSON in 'rooms'
+            setStorage('rooms', JSON.stringify({}));
+        }
+        var roomStorage = getCurrentRoom();
+        roomStorage = roomStorage ? roomStorage : '';
+        setCurrentRoom(RoomList.useHttpsForStackExchangeAndTrim(roomStorage));
+    };
+
 
     //Wrap local storage access so that we avoid collisions with other scripts
     var prefix = "SECloseVoteRequestGenerator_"; //prefix to avoid clashes in localstorage
     function getStorage(key) { return localStorage[prefix + key]; }
     function setStorage(key, val) { return (localStorage[prefix + key] = val); }
+    function getCurrentRoom(){ return getStorage(base + 'room'); }
+    function setCurrentRoom(url){ return setStorage(base + 'room', url); }
 
     var base = 'https://' + window.location.hostname;
 
-    if(!getStorage(base + 'room'))
-        setStorage(base + 'room', 'http://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers');
+    if(!getCurrentRoom())
+        setCurrentRoom('https://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers');
+    //Change the localStorage to HTTPS prior to initializing the RoomList.
+    RoomList.changeToHttpsForStackExchange();
 
     RoomList.init();
 
