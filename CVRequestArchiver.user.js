@@ -499,6 +499,12 @@
             nodes.progress.style.width = Math.ceil((current * 100) / total) + '%';
             var message = event.content;
             var type;
+            //Don't match things in code format, as those normally are used to explain, not as intended tags indicating a request.
+            //The message content should really be converted to DOM and parsed form there.
+            //Note that converting to DOM changes HTML entities into the represented characters.
+            var messageAsDom = $('<div></div>').append(message);
+            messageAsDom.find('code').remove();
+            message = messageAsDom.html();
 
             //Determine if it matches one of the RegExp.
             for (var i in RequestType) {
