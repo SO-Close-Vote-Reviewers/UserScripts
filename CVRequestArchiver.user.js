@@ -99,11 +99,12 @@
         nodes.startbtn.title = 'Open the controls for the request archiver.';
         nodes.scope.appendChild(nodes.startbtn);
 
-        nodes.scan5kbtn = document.createElement('button');
-        nodes.scan5kbtn.className = 'button archiver-scan1k';
-        nodes.scan5kbtn.textContent = 'scan 5k';
-        nodes.scan5kbtn.title = 'Open the controls for the request archiver and scan 5k events.';
-        nodes.scope.appendChild(nodes.scan5kbtn);
+        var nKButtonEntriesToScan = 2000;
+        nodes.scanNkbtn = document.createElement('button');
+        nodes.scanNkbtn.className = 'button archiver-scan1k';
+        nodes.scanNkbtn.textContent = 'scan 2k';
+        nodes.scanNkbtn.title = 'Open the controls for the request archiver and scan ' + (nKButtonEntriesToScan/1000) + 'k events.';
+        nodes.scope.appendChild(nodes.scanNkbtn);
 
         nodes.scope.appendChild(document.createElement('br'));
 
@@ -290,7 +291,7 @@
 
         nodes.startbtn.addEventListener('click', function(){
             nodes.startbtn.disabled = true;
-            nodes.scan5kbtn.disabled = true;
+            nodes.scanNkbtn.disabled = true;
             nodes.count.style.display = '';
             nodes.gobtn.style.display = '';
             nodes.cancel.style.display = '';
@@ -298,9 +299,9 @@
             nodes.count.focus();
         }, false);
 
-        nodes.scan5kbtn.addEventListener('click', function(){
+        nodes.scanNkbtn.addEventListener('click', function(){
             nodes.startbtn.click();
-            nodes.count.value = '5000';
+            nodes.count.value = nKButtonEntriesToScan;
             nodes.gobtn.click();
         }, false);
 
@@ -338,7 +339,7 @@
             nodes.count.disabled = false;
             nodes.gobtn.style.display = 'none';
             nodes.gobtn.disabled = false;
-            nodes.scan5kbtn.disabled = false;
+            nodes.scanNkbtn.disabled = false;
             nodes.cancel.style.display = 'none';
             nodes.scandate.style.display = 'none';
             nodes.scandate.textContent = '';
