@@ -396,7 +396,7 @@
                 error: function(xhr, status, error) {
                     console.log('AJAX Error getting events', '::  xhr:', xhr, '::  status:', status, '::  error:', error);
                     console.log('target:', target, '::  fkey,:', fkey, '::  ids:', ids);
-                    alert('$.ajax encountered an error getting events. See console for data.');
+                    alert('$.ajax encountered an error getting events. See console for data.' + (error && error.length < 100 ? ' error: ' + error : ''));
                 },
             });
         }
@@ -826,7 +826,7 @@
                 error: function(xhr, status, error) {
                     console.log('AJAX Error moving posts', '::  xhr:', xhr, '::  status:', status, '::  error:', error);
                     console.log('currentids:', currentids, '::  target:', target, '::  fkey,:', fkey, '::  ids:', ids);
-                    alert('$.ajax encountered an error moving posts. See console for data.');
+                    alert('$.ajax encountered an error moving posts. See console for data.' + (error && error.length < 100 ? ' error: ' + error : ''));
                 },
             });
         }
@@ -1258,7 +1258,7 @@
                     console.log('AJAX Error moving some posts', '::  xhr:', xhr, '::  status:', status, '::  error:', error);
                     console.log('posts:', posts, '::  targetRoomId:', targetRoomId, '::  callback:', callback);
                     console.log('currentids:', currentids, '::  targetRoomId:', targetRoomId, '::  fkey,:', fkey);
-                    alert('$.ajax encountered an error moving some posts. See console for data.');
+                    alert('$.ajax encountered an error moving some posts. See console for details.' + (error && error.length < 100 ? ' error: ' + error : ''));
                 },
             });
         }
