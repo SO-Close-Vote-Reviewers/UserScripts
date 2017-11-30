@@ -457,10 +457,10 @@
 
         var cvRegexes = makeTagRegExArray('cv-', please);
         var deleteRegexes = makeTagRegExArray('del(?:ete)?(?:v)?-?(?:vote)?-', please);
-        var undeleteRegexes = makeTagRegExArray('undel(?:ete)?(?:v)?-?(?:vote)?-', please);
-        var reopenRegexes = makeTagRegExArray('reopen-', please);
-        var dupeRegexes = makeTagRegExArray('pos?sib(?:le|el)-dup(?:e|licate)?');
-        var repliesRegexes = [
+        var undeleteRegexes = makeTagRegExArray('un-?del(?:ete)?(?:v)?-?(?:vote)?-', please);
+        var reopenRegexes = makeTagRegExArray('re-?open-', please);
+        var duplicateRegexes = makeTagRegExArray('pos?sib(?:le|el)-dup(?:e|licate)?');
+        var queenRepliesRegexes = [
             /@queen (?:f|k)/
         ];
         // FireAlarm reports
@@ -478,10 +478,10 @@
             DELETE: { regexes: deleteRegexes },
             UNDELETE: { regexes: undeleteRegexes },
             REOPEN: { regexes: reopenRegexes },
-            DUPE: { regexes: dupeRegexes },
-            REPLY: { regexes: repliesRegexes },
-            FA: { regexes: faRegexes },
-            FAREPLY: { regexes: faRepliesRegexes },
+            DUPLICATE: { regexes: duplicateRegexes },
+            QUEEN_REPLY: { regexes: queenRepliesRegexes },
+            FIREALARM: { regexes: faRegexes },
+            FIREALARM_REPLY: { regexes: faRepliesRegexes },
         };
 
         function matchesRegex(message, regexes) {
@@ -511,8 +511,8 @@
 
             if (!type) return false;
 
-            // don't handle replies
-            if ((type != RequestType.REPLY) && (type != RequestType.FAREPLY)) {
+            // Handle everything except FireAlarm and Queen replies
+            if ((type != RequestType.QUEEN_REPLY) && (type != RequestType.FIREALARM_REPLY)) {
                 var matches = message.match(/stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/g);
                 var posts = [];
                 // matches will be null if an user screws up the formatting
@@ -524,7 +524,7 @@
                 for(var l in posts) requests.push({ msg: event.message_id, post: posts[l], time: event.time_stamp, type: type, event: event });
             } else {
                 // if this is a cv-pls reply for firealarm
-                if (type == RequestType.FAREPLY ) {
+                if (type == RequestType.FIREALARM_REPLY ) {
                     // find its parent, aka the message it replies to
                     if (event.parent_id) {
                         for(var r=0; r < requests.length; r++) {
@@ -560,7 +560,7 @@
         function checkRequestsFireAlarm(currentreq) {
             for(var j in currentreq) {
                 // handle FireAlarm
-                if(currentreq[j].type == RequestType.FA) {
+                if(currentreq[j].type == RequestType.FIREALARM) {
                     // we want to keep requests that have a cv-pls reply
                     var keep = false;
                     // loop over all requests again
@@ -589,7 +589,7 @@
         function checkRequestsQueen(currentreq) {
             // just move all possible-dupe and replies posted more than 30 minutes ago
             for(var j in currentreq) {
-                if((currentreq[j].type == RequestType.DUPE || currentreq[j].type == RequestType.REPLY)) {
+                if((currentreq[j].type == RequestType.DUPLICATE || currentreq[j].type == RequestType.QUEEN_REPLY)) {
                     if ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 30)) {
                         messagesToMove.push(currentreq[j]);
                     } else {
@@ -600,7 +600,7 @@
                     }
                 }
                 // handle FireAlarm
-                if(currentreq[j].type == RequestType.FA) {
+                if(currentreq[j].type == RequestType.FIREALARM) {
                     // we want to keep requests that have a cv-pls reply
                     var keep = false;
                     // loop over all requests again
@@ -693,7 +693,7 @@
                     }
 
                     for(i in currentreq) {
-                        if (currentreq[i].type != RequestType.DUPE && currentreq[i].type != RequestType.REPLY) {
+                        if (currentreq[i].type != RequestType.DUPLICATE && currentreq[i].type != RequestType.QUEEN_REPLY) {
                             messagesToMove.push(currentreq[i]);
                         }
                     }
