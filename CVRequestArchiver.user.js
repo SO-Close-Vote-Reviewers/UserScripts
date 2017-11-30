@@ -576,6 +576,8 @@
 
         // FireAlarm handling (those are complex message-reply patterns)
         function checkRequestsFireAlarm(currentreq) {
+            //Cut-off time is 30 minutes. Time will be compared in seconds from epoch.
+            var mustBeNewerThan = Math.floor((Date.now()/1000) -  30 * 60);
             for(var j in currentreq) {
                 // handle FireAlarm
                 if(currentreq[j].type == RequestType.FIREALARM) {
@@ -593,7 +595,7 @@
                     // if we can loose it ...
                     if (!keep) {
                         // do so if the timelimit has exceeded
-                        if ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 30)) {
+                        if (currentreq[j].time < mustBeNewerThan) {
                             messagesToMove.push(currentreq[j]);
                         } else {
                             // maybe next time
@@ -606,9 +608,11 @@
 
         function checkRequestsQueen(currentreq) {
             // just move all possible-dupe and replies posted more than 30 minutes ago
+            //Cut-off time is 30 minutes. Time will be compared in seconds from epoch.
+            var mustBeNewerThan = Math.floor((Date.now()/1000) -  30 * 60);
             for(var j in currentreq) {
                 if((currentreq[j].type == RequestType.DUPLICATE || currentreq[j].type == RequestType.QUEEN_REPLY)) {
-                    if ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 30)) {
+                    if (currentreq[j].time < mustBeNewerThan) {
                         messagesToMove.push(currentreq[j]);
                     } else {
                         delete currentreq[j];
@@ -633,7 +637,7 @@
                     // if we can loose it ...
                     if (!keep) {
                         // do so if the timelimit has exceeded
-                        if ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 30)) {
+                        if (currentreq[j].time < mustBeNewerThan) {
                             messagesToMove.push(currentreq[j]);
                         } else {
                             // maybe next time
@@ -656,6 +660,8 @@
                 var response = JSON.parse(this.response);
                 var items = response.items;
 
+                //Cut-off time is 3 days ago. Time will be compared in seconds from epoch.
+                var mustBeNewerThan = Math.floor((Date.now()/1000) -  3 * 24 * 60 * 60);
                 var i, j;
                 for(i in items) {
                     for(j in currentreq) {
@@ -663,13 +669,13 @@
                     }
                     if(!items[i].closed_date) {
                         for(j in currentreq) {
-                            if(currentreq[j].type == RequestType.CLOSE && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
+                            if(currentreq[j].type == RequestType.CLOSE && (currentreq[j].time < mustBeNewerThan)) continue;
                             if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.CLOSE) delete currentreq[j];
                         }
                     }
                     if(items[i].closed_date) {
                         for(j in currentreq) {
-                            if(currentreq[j].type == RequestType.REOPEN && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
+                            if(currentreq[j].type == RequestType.REOPEN && (currentreq[j].time < mustBeNewerThan)) continue;
                             if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.REOPEN) delete currentreq[j];
                         }
                     }
