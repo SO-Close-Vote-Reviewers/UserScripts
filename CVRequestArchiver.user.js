@@ -524,10 +524,22 @@
                 // matches will be null if an user screws up the formatting
                 if (matches !== null) {
                     for(var k in Object.keys(matches)) {
+                        //This gets questions and answers in "basic" format. For answers (e.g. del-pls), we would need to also detect the other answer URL formats.
+                        //  We really should do a full parse of the URL, including making a choice based on request type as to considering the question, answer, or comment
+                        //  for longer formats. E.g. for a cv-pls do we assume it's the associated question when the URL is to an answer? to a comment on an answer?
                         posts.push(/stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/.exec(matches[k])[1]);
                     }
                 }
-                for(var l in posts) requests.push({ msg: event.message_id, post: posts[l], time: event.time_stamp, type: type, event: event });
+                //Add one entry in the requests list per postId found above.
+                for(var l in posts) {
+                    requests.push({
+                        msg: event.message_id,
+                        post: posts[l],
+                        time: event.time_stamp,
+                        type: type,
+                        event: event,
+                    });
+                }
             } else {
                 // if this is a cv-pls reply for firealarm
                 if (type == RequestType.FIREALARM_REPLY ) {
