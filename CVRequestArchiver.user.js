@@ -411,10 +411,11 @@
             nodes.progress.style.width = '';
 
             if(!requests.length) {
-                nodes.indicator.value = 'no requests found';
+                nodes.indicator.value = 'no ' + (messagesToMove.length > 0 ? 'additional ' : '') + 'requests found';
                 nodes.progresswrp.style.display = 'none';
                 nodes.progress.style.width = '';
                 nodes.cancel.disabled = false;
+                setShowToBeMovedScanCount();
                 return false;
             }
 
@@ -755,10 +756,11 @@
             rnum = messagesToMove.length;
 
             if(!rnum) {
-                nodes.indicator.value = 'no requests found';
+                nodes.indicator.value = 'no ' + (messagesToMove.length > 0 ? 'additional ' : '') + 'requests found';
                 nodes.progresswrp.style.display = 'none';
                 nodes.progress.style.width = '';
                 nodes.cancel.disabled = false;
+                setShowToBeMovedScanCount();
                 return false;
             }
             //Remove any duplicates
@@ -867,6 +869,19 @@
 
         var shownToBeMoved;
         var priorMessagesShown = [];
+        var manualMoveList = getLSManualMoveList();
+        var scanCountSpan;
+
+        function setShowToBeMovedScanCount() {
+            if(scanCountSpan && scanCountSpan.length) {
+                scanCountSpan.text(nodes.count.value);
+            }
+        }
+
+        function hideManualMoveSetAddShowMoveMoveList() {
+            $('.SOCVR-Archiver-button-add-to-move-list,.SOCVR-Archiver-button-set-as-move-list', shownToBeMoved).hide();
+            $('.SOCVR-Archiver-button-move-move-list', shownToBeMoved).show().find('span').text('(' + manualMoveList.length + ' message' + (manualMoveList.length > 1 ? 's' : '') + ')');
+        }
 
         function showToBeMoved() {
             //Create and show the archive preview.
@@ -875,7 +890,7 @@
             shownToBeMoved = document.createElement('div');
             var inputHeight = $('#input-area').css('height');
             var mainHeight = /px$/.test(inputHeight) ? +inputHeight.replace(/px$/,'') + 75 : 150;
-            shownToBeMoved.insertAdjacentHTML('beforeend', [
+            $(shownToBeMoved).append([
                 '<div id="SOCVR-archiver-messagesToMove-container">',
                 '    <style>',
                 '        #SOCVR-archiver-messagesToMove-container {',
@@ -972,13 +987,18 @@
                 '            <span class="SOCVR-Archiver-latestDate">',
                 '                Going back to: ' + nodes.scandate.textContent,
                 '            </span>',
-                '            <span class="SOCVR-Archiver-scan-count">Scanned:' + nodes.count.value + '</span>',
+                '            <span class="SOCVR-Archiver-scan-count-container">Scanned: ',
+                '                <span class="SOCVR-Archiver-scan-count">' + nodes.count.value + '</span>',
+                '            </span>',
                 '        </div>',
                 '        <div class="SOCVR-Archiver-button-container">',
                 '            <button class="SOCVR-Archiver-button-move">Move these to the Graveyard</button>',
-                '            <button class="SOCVR-Archiver-button-1kmore">scan 1k more</button>',
-                '            <button class="SOCVR-Archiver-button-10kmore">scan 10k more</button>',
-                '            <button class="SOCVR-Archiver-button-100kmore">scan 100k more</button>',
+                '            <button class="SOCVR-Archiver-button-1kmore">Scan 1k more</button>',
+                '            <button class="SOCVR-Archiver-button-10kmore">Scan 10k more</button>',
+                '            <button class="SOCVR-Archiver-button-100kmore">Scan 100k more</button>',
+                '            <button class="SOCVR-Archiver-button-add-to-move-list">Add to move list</button>',
+                '            <button class="SOCVR-Archiver-button-set-as-move-list">Set as move list</button>',
+                '            <button class="SOCVR-Archiver-button-move-move-list" style="display:none;">Move manual move list <span></span></button>',
                 '            <button class="SOCVR-Archiver-button-cancel">Cancel</button>',
                 '        </div>',
                 '        <div class="SOCVR-Archiver-moveMessages-container">',
@@ -988,40 +1008,82 @@
                 '    </div>',
                 '</div>',
             ].join('\n'));
-            //Most of the following should be converted to jQuery, given that it's available.
-            var moveMessagesDiv = shownToBeMoved.getElementsByClassName('SOCVR-Archiver-moveMessages')[0];
-            var moveCountDiv = shownToBeMoved.getElementsByClassName('SOCVR-Archiver-moveCount')[0];
-            $('.SOCVR-Archiver-close-icon', shownToBeMoved).on('click', reset);
-            shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-cancel')[0].addEventListener('click', reset, false);
-            shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-move')[0].addEventListener('click', saveMoveInformationAndMovePosts, false);
-            shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-1kmore')[0].addEventListener('click', getMoreEvents.bind(null, 1000), false);
-            shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-10kmore')[0].addEventListener('click', getMoreEvents.bind(null, 10000), false);
-            shownToBeMoved.getElementsByClassName('SOCVR-Archiver-button-100kmore')[0].addEventListener('click', getMoreEvents.bind(null, 100000), false);
+            var moveMessagesDiv = $('.SOCVR-Archiver-moveMessages', shownToBeMoved).first();
+            var moveCountDiv = $('.SOCVR-Archiver-moveCount', shownToBeMoved).first();
+            scanCountSpan = $('.SOCVR-Archiver-scan-count', shownToBeMoved).first();
             messagesToMove.forEach(function(message) {
-                moveMessagesDiv.insertAdjacentHTML('beforeend', makeMonologueHtml(message.event));
+                moveMessagesDiv.append(makeMonologueHtml(message.event));
+            });
+            //Events
+            $('#SOCVR-archiver-messagesToMove-container > .SOCVR-Archiver-close-icon', shownToBeMoved).on('click', reset);
+            $('.SOCVR-Archiver-button-cancel', shownToBeMoved).first().on('click', reset);
+            $('.SOCVR-Archiver-button-move', shownToBeMoved).first().on('click', saveMoveInformationAndMovePosts);
+            $('.SOCVR-Archiver-button-1kmore', shownToBeMoved).first().on('click', getMoreEvents.bind(null, 1000));
+            $('.SOCVR-Archiver-button-10kmore', shownToBeMoved).first().on('click', getMoreEvents.bind(null, 10000));
+            $('.SOCVR-Archiver-button-100kmore', shownToBeMoved).first().on('click', getMoreEvents.bind(null, 100000));
+            $('.SOCVR-Archiver-button-add-to-move-list', shownToBeMoved).first().on('click', function() {
+                addToLSManualMoveList(messagesToMove.map(function(value) {
+                    return value.msg;
+                }));
+                hideManualMoveSetAddShowMoveMoveList();
+            });
+            $('.SOCVR-Archiver-button-set-as-move-list', shownToBeMoved).first().on('click', function() {
+                clearLSManualMoveList();
+                addToLSManualMoveList(messagesToMove.map(function(value) {
+                    return value.msg;
+                }));
+                hideManualMoveSetAddShowMoveMoveList();
+            });
+            $('.SOCVR-Archiver-button-move-move-list', shownToBeMoved).first().on('click', function() {
+                moveMoveList(target, function(success) {
+                    if(success) {
+                        reset.call({disabled:false});
+                    } else {
+                        //XXX Should notify user of failure in some way.
+                    }
+                });
             });
             function updateMessagesToMove() {
-                moveCountDiv.textContent = messagesToMove.length + ' message' + (messagesToMove.length > 1 ? 's' : '') + ' to move';
+                moveCountDiv.text(messagesToMove.length + ' message' + (messagesToMove.length > 1 ? 's' : '') + ' to move');
             }
-            moveMessagesDiv.addEventListener('click', function(event) {
-                var target = event.target;
-                if(!target.classList.contains('SOCVR-Archiver-close-icon')) {
-                    return;
-                } //else
-                var messageId = target.dataset.messageId;
-                messagesToMove = messagesToMove.filter(function(message) {
-                    if(message.msg == messageId) {
-                        return false;
-                    } //else
-                    return true;
-                });
-                updateMessagesToMove();
-                setMessagesFound();
-                moveMessagesDiv.getElementsByClassName('SOCVR-Archiver-monologue-for-message-' + messageId)[0].remove();
+            moveMessagesDiv.on('click', function(event) {
+                var target = $(event.target);
+                if(target.hasClass('SOCVR-Archiver-close-icon')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    let messageId = target.data('messageId');
+                    messagesToMove = messagesToMove.filter(function(message) {
+                        if(message.msg == messageId) {
+                            return false;
+                        } //else
+                        return true;
+                    });
+                    updateMessagesToMove();
+                    setMessagesFound();
+                    $('.SOCVR-Archiver-monologue-for-message-' + messageId, moveMessagesDiv).first().remove();
+                } else if(target.hasClass('newreply')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    var message = target.closest('.message');
+                    let messageId = getMessageIdFromMessage(message);
+                    var input = $('#input');
+                    var oldInputVal = input.val();
+                    if(oldInputVal) {
+                        input.val(oldInputVal.replace(/^(?::\d+ ?)?/,':' + messageId + ' '));
+                    } else {
+                        input.val(':' + messageId + ' ');
+                    }
+                }
             });
             updateMessagesToMove();
-            document.body.insertBefore(shownToBeMoved, document.body.firstChild);
+            $(document.body).prepend(shownToBeMoved);
             addMoveToInMeta();
+            var replyNode = $('.monologue:not(.mine) .message .newreply').first().clone(true);
+            moveMessagesDiv.find('.message .meta').filter(function() {
+                return !$(this).children('.newreply').length;
+            }).each(function() {
+                $(this).append(replyNode.clone(false));
+            });
             //Request that the unclosed request review script udate request-info for the page, inlcuding the popup.
             var shownToBeMovedMessages = $(shownToBeMoved).find('.message');
             if(shownToBeMovedMessages.length === priorMessagesShown.length) {
@@ -1053,9 +1115,6 @@
                 userAvatar16 = avatarList[userId][16];
             }
             var userName = event.user_name;
-            var userReputation = '';
-            var parentId = event.parent_id;
-            var showParent = event.show_parent;
             var messageId = event.message_id;
             var contentHtml = event.content;
             var timestamp = event.timeStampUTC.replace(/T(\d\d:\d\d):\d\d\.\d{3}/,' $1');
@@ -1065,16 +1124,16 @@
                 '    <div class="SOCVR-Archiver-close-icon" data-message-id="' + messageId + '" title="Don\'t move"></div>',
                 '    <div class="signature">',
                 '        <div class="tiny-signature">',
-                (userAvatar16 ? '' +
-                    '        <div class="avatar avatar-16">' +
-                    '            <img src="' + userAvatar16 + '" alt="' + userName + '" width="16" height="16">' +
-                    '        </div>' +
-                    '' : ''),
+                            (userAvatar16 ? '' +
+                                '        <div class="avatar avatar-16">' +
+                                '            <img src="' + userAvatar16 + '" alt="' + userName + '" width="16" height="16">' +
+                                '        </div>' +
+                                '' : ''),
                 '            <div class="username"><a href="/users/' + userId + '/' + userName + '" title="' + userName + '">' + userName + '</a></div>',
                 '        </div>',
                 '    </div>',
                 '    <div class="messages">',
-                '        <div class="message" id="message-' + messageId + '">',
+                '        <div class="message" id="SOCVR-Archiver-message-' + messageId + '">',
                 '            <div class="timestamp">' + timestamp + '</div>',
                 '            <a name="' + messageId + '" href="/transcript/' + room + '?m=' + messageId + '#' + messageId + '"><span style="display:inline-block;" class="action-link"><span class="img menu"> </span></span></a>',
                 '            <div class="content">' + contentHtml,
@@ -1310,8 +1369,6 @@
             getAvatars();
         }
 
-        var manualMoveList = getLSManualMoveList();
-
         function getMessageIdFromMessage(message) {
             //Get the message ID from a message element or the first element in a jQuery Object.
             var el = (message instanceof jQuery) ? message[0] : message;
@@ -1326,6 +1383,25 @@
                 return el.id.replace(/(?:SOCVR-Archiver-)?message-/,'');
             } //else
             return '';
+        }
+
+        function moveMoveList(roomId, callback) {
+            moveSomePostsWithConfirm(manualMoveList, roomId, function(moved) {
+                // Should consider here if we really want to clear the list.
+                // Not clearing it gives the user the oportunity to reverse the
+                // move by going to the other room, where the messages will
+                // already be selected.  Clearing it feels more like what people
+                // would expect.
+                if(moved) {
+                    //If the move was successful, clear the list. Keep the list if it wasn't.
+                    clearLSManualMoveList();
+                    //Clear the list again, in case there's delays between tabs.
+                    setTimeout(clearLSManualMoveList, 2000);
+                }
+                if (typeof callback === 'function') {
+                    callback(moved);
+                }
+            });
         }
 
         function moveToInMetaHandler() {
@@ -1351,19 +1427,7 @@
                     } else if (+roomId) {
                         addToLSManualMoveList(messageId);
                         addToLSManualMoveList(priorSelectionMessageIds);
-                        moveSomePostsWithConfirm(manualMoveList, roomId, function(moved) {
-                            // Should consider here if we really want to clear the list.
-                            // Not clearing it gives the user the oportunity to reverse the
-                            // move by going to the other room, where the messages will
-                            // already be selected.  Clearing it feels more like what people
-                            // would expect.
-                            if(moved) {
-                                //If the move was successful, clear the list. Keep the list if it wasn't.
-                                clearLSManualMoveList();
-                                //Clear the list again, in case there's delays between tabs.
-                                setTimeout(clearLSManualMoveList, 2000);
-                            }
-                        });
+                        moveMoveList(roomId);
                     }
                 }
             }
