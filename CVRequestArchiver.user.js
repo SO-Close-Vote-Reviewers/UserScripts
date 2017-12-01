@@ -885,6 +885,16 @@
 
         function showToBeMoved() {
             //Create and show the archive preview.
+            function moveMoveListAndResetOnSuccess(roomTarget, event) {
+                moveMoveList(roomTarget, function(success) {
+                    if(success) {
+                        reset.call({disabled:false});
+                    } else {
+                        //XXX Should notify user of failure in some way.
+                    }
+                    event.target.blur();
+                });
+            }
             //The structure/CSS of this needs some more work.
             removeShownToBeMoved();
             shownToBeMoved = document.createElement('div');
@@ -912,6 +922,21 @@
                 '        }',
                 '        .SOCVR-Archiver-button-container {',
                 '            text-align: center;',
+                '        }',
+                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container button,',
+                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container button {',
+                '            margin: 0px;',
+                '        }',
+                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container,',
+                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container {',
+                '            margin-right: 10px;',
+                '        }',
+                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container,',
+                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container {',
+                '            margin-left: 20px;',
+                '        }',
+                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-cancel {',
+                '            margin-left: 40px;',
                 '        }',
                 '        #SOCVR-archiver-messagesToMove-container button {',
                 '            margin: 10px;',
@@ -992,13 +1017,22 @@
                 '            </span>',
                 '        </div>',
                 '        <div class="SOCVR-Archiver-button-container">',
-                '            <button class="SOCVR-Archiver-button-move">Move these to the Graveyard</button>',
-                '            <button class="SOCVR-Archiver-button-1kmore">Scan 1k more</button>',
-                '            <button class="SOCVR-Archiver-button-10kmore">Scan 10k more</button>',
-                '            <button class="SOCVR-Archiver-button-100kmore">Scan 100k more</button>',
-                '            <button class="SOCVR-Archiver-button-add-to-move-list">Add to move list</button>',
-                '            <button class="SOCVR-Archiver-button-set-as-move-list">Set as move list</button>',
-                '            <button class="SOCVR-Archiver-button-move-move-list" style="display:none;">Move manual move list <span></span></button>',
+                '            <button class="SOCVR-Archiver-button-move" title="Move all of the messages listed in this popup to the Graveyard">Move these to the Graveyard</button>',
+                '            <span class="SOCVR-Archiver-button-scanMore-container">',
+                '                <span>Scan more:</span>',
+                '                <button class="SOCVR-Archiver-button-1kmore" title="Scan 1,000 more">1k</button>',
+                '                <button class="SOCVR-Archiver-button-10kmore" title="Scan 10,000 more">10k</button>',
+                '                <button class="SOCVR-Archiver-button-100kmore" title="Scan 100,000 more">100k</button>',
+                '            </span>',
+                '            <span class="SOCVR-Archiver-button-moveList-container">',
+                '                <span>Manual Move List:</span>',
+                '                <button class="SOCVR-Archiver-button-set-as-move-list" title="Set the Manual Move List to these messages.">Set</button>',
+                '                <button class="SOCVR-Archiver-button-add-to-move-list" title="Add these messages to the Manual Move List.">Add</button>',
+                '                <button class="SOCVR-Archiver-button-remove-from-move-list" title="Remove these messages from the Manual Move List.">Remove</button>',
+                //'                <button class="SOCVR-Archiver-button-move-move-list" style="display:none;" title="Move all messages on the Manual Move List to the Graveyard.">Move <span></span></button>',
+                '                <button class="SOCVR-Archiver-button-grave-move-list" title="Move all messages on the Manual Move List to the Graveyard.">Grave</button>',
+                '                <button class="SOCVR-Archiver-button-san-move-list" title="Move all messages on the Manual Move List to the Sanitorium.">San</button>',
+                '            </span>',
                 '            <button class="SOCVR-Archiver-button-cancel">Cancel</button>',
                 '        </div>',
                 '        <div class="SOCVR-Archiver-moveMessages-container">',
@@ -1025,24 +1059,24 @@
                 addToLSManualMoveList(messagesToMove.map(function(value) {
                     return value.msg;
                 }));
-                hideManualMoveSetAddShowMoveMoveList();
+                this.blur();
             });
             $('.SOCVR-Archiver-button-set-as-move-list', shownToBeMoved).first().on('click', function() {
                 clearLSManualMoveList();
                 addToLSManualMoveList(messagesToMove.map(function(value) {
                     return value.msg;
                 }));
-                hideManualMoveSetAddShowMoveMoveList();
+                this.blur();
             });
-            $('.SOCVR-Archiver-button-move-move-list', shownToBeMoved).first().on('click', function() {
-                moveMoveList(target, function(success) {
-                    if(success) {
-                        reset.call({disabled:false});
-                    } else {
-                        //XXX Should notify user of failure in some way.
-                    }
-                });
+            $('.SOCVR-Archiver-button-remove-from-move-list', shownToBeMoved).first().on('click', function() {
+                removeFromLSManualMoveList(messagesToMove.map(function(value) {
+                    return value.msg;
+                }));
+                this.blur();
             });
+            $('.SOCVR-Archiver-button-move-move-list', shownToBeMoved).first().on('click', moveMoveListAndResetOnSuccess.bind(null, target));
+            $('.SOCVR-Archiver-button-grave-move-list', shownToBeMoved).first().on('click', moveMoveListAndResetOnSuccess.bind(null, 90230)); //Graveyard
+            $('.SOCVR-Archiver-button-san-move-list', shownToBeMoved).first().on('click',  moveMoveListAndResetOnSuccess.bind(null, 126195)); //Sanitorium
             function updateMessagesToMove() {
                 moveCountDiv.text(messagesToMove.length + ' message' + (messagesToMove.length > 1 ? 's' : '') + ' to move');
             }
@@ -1565,7 +1599,7 @@
             if(mostRecentMessageListCount !== length || !messageListCountAddedFirstTime) {
                 messageListCountAddedFirstTime = true;
                 var newText = '[List has ' + length + ' message' + (length === 1 ? '' : 's') + '.]';
-                $('.SOCVR-Archiver-in-message-move-button').each(function() {
+                $('.SOCVR-Archiver-in-message-move-button, .SOCVR-Archiver-button-moveList-container button').each(function() {
                     this.title = this.title.replace(/^([^\[]+)( ?\[.*)?$/,'$1 ' + newText);
                 });
                 mostRecentMessageListCount = length;
