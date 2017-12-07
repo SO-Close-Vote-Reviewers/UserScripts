@@ -1484,13 +1484,18 @@
                 }
             }
             var selection =  window.getSelection();
-            addMessageIdToSet($(selection.anchorNode).closest('.message'));
-            addMessageIdToSet($(selection.focusNode).closest('.message'));
-            $('.message').each(function() {
-                if(selection.containsNode(this)) {
-                    addMessageIdToSet(this);
-                }
-            });
+            var selectionText = selection.toString();
+            if(typeof selectionText === 'string' && selectionText.length) {
+                //We don't want to use a selection the user can't see.
+                //If we did, there are cases where the anchorNode and focusNode can be set from prior clicks.
+                addMessageIdToSet($(selection.anchorNode).closest('.message'));
+                addMessageIdToSet($(selection.focusNode).closest('.message'));
+                $('.message').each(function() {
+                    if(selection.containsNode(this)) {
+                        addMessageIdToSet(this);
+                    }
+                });
+            }
             var messageIds = Object.keys(messageIdsObject);
             return messageIds;
             //return Object.keys(messageIdsObject);
