@@ -1401,8 +1401,10 @@
                 //Put the moveTo controls to the left of the normal controls. This leaves the normal controls where they usually are
                 //  and places the reply-to control far away from lesser used controls.
                 $(this).prepend(addedMetaHtml);
+                //Add the moveList length to this message.
+                addManualMoveListLength(null, this);
             });
-            showAllManualMoveMessages();
+            showAllManualMoveMessages(true);
             addAllDeletedContent();
             getAvatars();
         }
@@ -1594,7 +1596,17 @@
         var mostRecentMessageListCount;
         var messageListCountAddedFirstTime = false;
 
-        function showAllManualMoveMessages() {
+        function addManualMoveListLength(selector, element) {
+            selector = selector ? selector : '.SOCVR-Archiver-in-message-move-button, .SOCVR-Archiver-button-moveList-container button';
+            element = element ? element : document;
+            var length = manualMoveList.length;
+            var newText = '[List has ' + length + ' message' + (length === 1 ? '' : 's') + '.]';
+            $(selector, element).each(function() {
+                this.title = this.title.replace(/^((?:.(?!\[))+)(?:\s*\[.*)?$/,'$1 ' + newText);
+            });
+        }
+
+        function showAllManualMoveMessages(forceLengthUpdate) {
             $('.message').each(function() {
                 var messageId = getMessageIdFromMessage(this);
                 if(manualMoveList.indexOf(+messageId) > -1) {
@@ -1603,14 +1615,11 @@
                     $(this).removeClass('SOCVR-Archiver-multiMove-selected');
                 }
             });
-            var length = manualMoveList.length;
             //No need to change these, if the value didn't change.
-            if(mostRecentMessageListCount !== length || !messageListCountAddedFirstTime) {
+            var length = manualMoveList.length;
+            if(forceLengthUpdate || mostRecentMessageListCount !== length || !messageListCountAddedFirstTime) {
                 messageListCountAddedFirstTime = true;
-                var newText = '[List has ' + length + ' message' + (length === 1 ? '' : 's') + '.]';
-                $('.SOCVR-Archiver-in-message-move-button, .SOCVR-Archiver-button-moveList-container button').each(function() {
-                    this.title = this.title.replace(/^([^\[]+)( ?\[.*)?$/,'$1 ' + newText);
-                });
+                addManualMoveListLength();
                 mostRecentMessageListCount = length;
             }
         }
