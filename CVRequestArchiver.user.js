@@ -1158,7 +1158,7 @@
             var timestamp = event.timeStampUTC.replace(/T(\d\d:\d\d):\d\d\.\d{3}/,' $1');
             var html = [
                 //From transcript
-                '<div class="monologue user-' + userId + ' SOCVR-Archiver-monologue-for-message-' + messageId + '">',
+                '<div class="monologue user-' + userId + (userId == me ? ' mine' : '') + ' SOCVR-Archiver-monologue-for-message-' + messageId + '">',
                 '    <div class="SOCVR-Archiver-close-icon" data-message-id="' + messageId + '" title="Don\'t move"></div>',
                 '    <div class="signature">',
                 '        <div class="tiny-signature">',
