@@ -86,6 +86,7 @@
         var target = 90230;
         var nodes = {};
         var avatarList = getStorageJSON('avatarList') || {};
+        var $body = $(document.body);
 
         nodes.scope = document.querySelector('#chat-buttons');
         if(isTranscript || isSearch || !nodes.scope) {
@@ -251,6 +252,9 @@
             'div.message .meta {',
             //A clearer indicator of separation between controls and message text.
             '    border-left: 1px solid;',
+            '}',
+            '.SOCVR-Archiver-hide-message-meta-menu div.message:hover .meta {',
+            '    display: none !important;',
             '}',
             '.SOCVR-Archiver-in-message-move-button:first-of-type {',
             '    margin-left: 5px;',
@@ -1640,5 +1644,17 @@
                 setStorageJSON('avatarList', avatarList);
             }
         }
+
+        $(window).on('keydown', function(event) {
+            if(event.key === 'CapsLock') {
+                $body.addClass('SOCVR-Archiver-hide-message-meta-menu');
+            }
+        });
+
+        $(window).on('keyup', function(event) {
+            if(event.key === 'CapsLock') {
+                $body.removeClass('SOCVR-Archiver-hide-message-meta-menu');
+            }
+        });
     }
 })();
