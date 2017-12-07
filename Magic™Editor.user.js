@@ -98,7 +98,7 @@
             //  There is a version 21 of this regex101.com "regex", which is a non-current version of the "lsec" (above) RegExp.
             //  If you need to make changes, just go ahead and save them there. The "lsec" testing has been forked into another regex101.com regex.
             "links":  /\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d:/?#\[\]@!$&'()*+,;=\-~%]*/g,
-            //        https://regex101.com/r/bF0iQ0/2   tags and html comments 
+            //        https://regex101.com/r/bF0iQ0/2   tags and html comments
             "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>|\[tag:[\w.-]+\]/gi
         };
         App.globals.checksr = (function(o1){
@@ -113,7 +113,7 @@
 
         // Define order in which mods affect  here
         App.globals.order = ["omit", "codefix", "edit", "diff", "replace", "output"];
-        
+
         // Define reason constant strings
         App.consts.reasons = {
             legalSO:       "'Stack Overflow' is the legal name",
@@ -130,13 +130,13 @@
             titleSaysAll:  "replicated title in body"
         };
 
-        
+
         // Get the original post tags
         App.globals.taglist = [];
         $('a.post-tag').each( function(){
             var newtag = $(this).text();
             if (App.globals.taglist.indexOf(newtag) === -1) {
-                App.globals.taglist.push(newtag);                
+                App.globals.taglist.push(newtag);
             }
         });
 
@@ -1364,7 +1364,7 @@
             whether_not_weather: { // https://regex101.com/r/oS1xE5/3
                 expr: /\b(w)eather(?= (?:it|we|I|or not|they|[^.?!]*(?:works?|helps?))\b)/gi,
                 replacement: "$1hether",
-                reason: App.consts.reasons.spelling                
+                reason: App.consts.reasons.spelling
             },
             through: {  // https://regex101.com/r/gQ0dZ1/4
                 expr: /\b(t)(?:hru|rough|hroug)\b/gi,
@@ -2149,12 +2149,12 @@
                 replacement: "$1se $2ase",
                 reason: App.consts.reasons.spelling
             },
-            matches: {  // 
+            matches: {  //
                 expr: /\b(m)atc[he]s/gi,
                 replacement: "$1atches",
                 reason: App.consts.reasons.spelling
             },
-            specific: {  // 
+            specific: {  //
                 expr: /\b(s)pe[cs]i?fic/gi,
                 replacement: "$1pecific",
                 reason: App.consts.reasons.spelling
@@ -2164,27 +2164,27 @@
                 replacement: "$1omputer",
                 reason: App.consts.reasons.spelling
             },
-            something_like: {  // Some thing like -- 6,468 posts 
+            something_like: {  // Some thing like -- 6,468 posts
                 expr: /\b(s)ome thing like/gi,
                 replacement: "$1omething like",
                 reason: App.consts.reasons.spelling
             },
-            maybe_something: {  // May be something -- 4,259 posts 
+            maybe_something: {  // May be something -- 4,259 posts
                 expr: /\b(m)ay be some ?thing/gi,
                 replacement: "$1aybe something",
                 reason: App.consts.reasons.spelling
             },
-            targeting: {  // 3,151 posts 
+            targeting: {  // 3,151 posts
                 expr: /\b(t)argetting/gi,
                 replacement: "$1argeting",
                 reason: App.consts.reasons.spelling
             },
-            column: {  // 1,363 posts 
+            column: {  // 1,363 posts
                 expr: /\b(c)olou?mn?(s)?/gi,
                 replacement: "$1olumn$2",
                 reason: App.consts.reasons.spelling
             },
-            array: { 
+            array: {
                 expr: /\b(a)(?:rry|ray)(s)?/gi,
                 replacement: "$1rray$2",
                 reason: App.consts.reasons.spelling
@@ -2254,7 +2254,7 @@
                     var res = AvsAnOverride_(input) || AvsAnSimple.query(input);
                     var newArticle = article[0] + res.substr(1);  // Preserve existing capitalization
                     return newArticle+' '+following;
-                    
+
                     // Hack alert: Due to the technical nature of SO subjects, many common terms
                     // are not well-represented in the data used by AvsAnSimple, so we need to
                     // provide a way to override it.
@@ -2271,10 +2271,10 @@
                 reason: App.consts.reasons.grammar
             },
             firstcaps: {
-                //    https://regex101.com/r/qR5fO9/42
+                //    https://regex101.com/r/JnSYVw/1
                 // Regex finds all sentences; replacement must determine whether it needs to capitalize.
-                expr: /(([A-Za-z]|\d(?!\d*\. )|[.$_]\w+)(\S*))((?:(?:etc\.|i\.e\.|e\.g\.|vs\.|\.\.\.|\w*\.(?![\s")])|[*-]+|\n(?![ \t]*\n| *(?:[*-]|\d+\.))|[^.?!\n]?))+(?:([.?!])(?=[\s")]|$)|\n\n|\n(?= *[*-])|\n(?= *\d+\.)|$))/gi,
-                replacement: function(sentence, fWord, fChar, fWordPost, sentencePost, endpunc) { 
+                expr: /(([A-Za-z]|\d(?!\d*\. )|[.$_]\w+)(\S*))((?:(?:etc\.|i\.e\.|e\.g\.|vs\.|\.\.\.|\w*\.(?![\s")])|[*-]+|\n(?![ \t]*\n| *(?:[*-]|\d+\.))|[^.?!\n]?))+(?:([.?!]+)(?=[\s")]|$)|\n\n|\n(?= *[*-])|\n(?= *\d+\.)|$))/gi,
+                replacement: function(sentence, fWord, fChar, fWordPost, sentencePost, endpunc) {
                     var capChar = fChar.toUpperCase();
                     if (sentence === "undefined"||capChar == fChar) return sentence;  // MUST match sentence, or gets counted as a change.
                     if (!fWord) fWord = '';
@@ -2558,7 +2558,7 @@
             var replacement = edit.replacement;
             var reasoning = edit.reason;
             var debug = edit.debug;
-            
+
             if (debug) {
                 console.log('editRule:', editRule);
                 console.log('input:', input);
@@ -2573,9 +2573,9 @@
             if (!matches) return false;
             var count = 0;  // # replacements to do
             var deniedCount = 0;  // # replacements not to do
-            input = input.replace(expression, function(before){ 
+            input = input.replace(expression, function(before){
                 var after = before.replace(expression, replacement);
-                if(after !== before) ++count; 
+                if(after !== before) ++count;
                 //Check to see if the quantity of the place holders changed between the input and output.
                 if(App.funcs.didPlaceholdersChange(before, after)) {
                     //An edit rule should never change the quantity of placeholders in the text. If it does, we deny making the change.
@@ -2601,7 +2601,7 @@
                 }
                 if (debug) console.log("zero-count: ", input, after, after !== input);
                 if(after !== input) {
-                    ++count; 
+                    ++count;
                     input = after;
                 }
             }
@@ -2642,28 +2642,28 @@
             App.selections.preview.show();
             App.selections.previewToggle.text('hide preview');
         }
-        
+
         App.funcs.showDiff = function() {
             App.selections.preview.hide();
             App.selections.previewToggle.text('show preview');
             App.selections.diff.show();
             App.selections.diffToggle.text('hide diff');
         }
-        
+
         App.funcs.togglePreview = function() {
             App.selections.diff.hide();
             App.selections.diffToggle.text('show diff');
             if(/hide/.test(App.selections.previewToggle.text())) return App.selections.previewToggle.text('show preview'), App.selections.preview.toggle(), true;
             if(/show/.test(App.selections.previewToggle.text())) return App.selections.previewToggle.text('hide preview'), App.selections.preview.toggle(), true;
         }
-        
+
         App.funcs.toggleDiff = function() {
             App.selections.preview.hide();
             App.selections.previewToggle.text('show preview');
             if(/hide/.test(App.selections.diffToggle.text())) return App.selections.diffToggle.text('show diff'), App.selections.diff.toggle(), true;
             if(/show/.test(App.selections.diffToggle.text())) return App.selections.diffToggle.text('hide diff'), App.selections.diff.toggle(), true;
         }
-        
+
         // Populate edit item sets from DOM selections
         App.funcs.popItems = function() {
             var i = App.items, s = App.selections;
@@ -2679,7 +2679,7 @@
                 i[v] = s[v];
             });
         }
-        
+
         // Insert editing button
         App.funcs.createButton = function() {
             if (!App.selections.redoButton.length) return false;
@@ -2697,7 +2697,7 @@
 
             // Attach the event listener to the button
             App.selections.buttonFix.click(App.funcs.fixEvent);
-            
+
             App.selections.buttonWrapper.css({
                 'position': 'relative',
                 'left': '410px',
@@ -2754,7 +2754,7 @@
                     }
                 }
             }
-            
+
             a1 = a1.split(/(?=\b|\W|_)/g);
             a2 = a2.split(/(?=\b|\W|_)/g);
 
@@ -2825,7 +2825,7 @@
 
             // List of fields to be edited
             var fields = {body:'body',title:'title'};
-            
+
             // Loop through all editing rules
             for (var j in App.edits) for (var field in fields) {
                 var debug = App.edits[j].debug;
@@ -2839,14 +2839,14 @@
                 data[field] = fix.fixed;
                 App.edits[j].fixed = true;
             }
-            
+
             // Remove silent change reason
             delete App.globals.reasons[App.consts.reasons.silent];
-            
+
             // If there are no reasons, exit
             if (App.globals.reasons == {}) return false;
 
-            // We need a place to store the reasons being applied to the summary. 
+            // We need a place to store the reasons being applied to the summary.
             var reasons = [];
             App.globals.changes = 0;
 
@@ -2873,8 +2873,8 @@
             if (data.summary.length > 300) data.summary = data.summary.substr(0,300-3) + '...';
 
             return data;
-        };   
-        
+        };
+
         // Populate the diff
         App.pipeMods.diff = function() {
             App.selections.diff.empty().append('<div class="difftitle">' + App.funcs.diff(App.originals.title, App.items.title, true) + '</div>' +
@@ -2889,7 +2889,7 @@
                 var i = 0;
                 data.body = data.body.replace(App.globals.placeHolderChecks[type], function(match) {
                     var replace = App.globals.replacedStrings[type][i++];
-                    if(literal && /block|lsec/.test(type)) { 
+                    if(literal && /block|lsec/.test(type)) {
                         var after = replace.replace(/^\n\n/,'');
                         var prepend = after !== replace ? '<span class="add">\n\n</span><span class="del">`</span>' : '';
                         var append  = after !== replace ? '<span class="del">`</span>' : '';
@@ -2903,7 +2903,7 @@
             }
             return data;
         };
-        
+
         // Handle pipe output
         App.pipeMods.output = function(data) {
             App.selections.title.val(data.title);
@@ -2933,7 +2933,7 @@
     try {
         var test = window.location.href.match(/.posts.(\d+).edit/);
         if(test) extendEditor($('form[action^="/posts/' + test[1] + '"]'));
-        else $(document).ajaxComplete(function() { 
+        else $(document).ajaxComplete(function() {
             test = arguments[2].url.match(/posts.(\d+).edit-inline/);
             if(!test) {
                 test = arguments[2].url.match(/review.inline-edit-post/);
@@ -2955,7 +2955,7 @@
                          '}' +
                          '.diffbody {' +
                          '    white-space: pre-wrap;' +
-                         '    font-family: "courier new", "lucida sans typewriter", mono, monospace' + 
+                         '    font-family: "courier new", "lucida sans typewriter", mono, monospace' +
                          '}' +
                          '.add {' +
                          '    background: #CFC;' +
@@ -2969,7 +2969,7 @@
     }
 })();
 
-/* 
+/*
   * To Title Case 2.1 – http://individed.com/code/to-title-case/
   * Copyright © 2008–2013 David Gouch. Licensed under the MIT License.
  */
