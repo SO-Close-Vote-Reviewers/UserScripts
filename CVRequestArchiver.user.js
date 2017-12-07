@@ -1173,7 +1173,7 @@
                 '    <div class="messages">',
                 '        <div class="message" id="SOCVR-Archiver-message-' + messageId + '">',
                 '            <div class="timestamp">' + timestamp + '</div>',
-                '            <a name="' + messageId + '" href="/transcript/' + room + '?m=' + messageId + '#' + messageId + '"><span style="display:inline-block;" class="action-link"><span class="img menu"> </span></span></a>',
+                '            <a name="' + messageId + '" href="/transcript/' + room + '?m=' + messageId + '#' + messageId + '"><span style="display:inline-block;" class="action-link"><span class="img"> </span></span></a>',
                 '            <div class="content">' + contentHtml,
                 '            </div>',
                 '            <span class="flash">',
