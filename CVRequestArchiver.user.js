@@ -20,13 +20,13 @@
 (function() {
     'use strict';
 
-    var lsPrefix = 'SOCVR-Archiver-'; //prefix to avoid clashes in localStorage
+    const lsPrefix = 'SOCVR-Archiver-'; //prefix to avoid clashes in localStorage
     const getStorage = (key) => localStorage[lsPrefix + key];
     const setStorage = (key, val) => (localStorage[lsPrefix + key] = val);
     const setStorageJSON = (key, val) => (localStorage[lsPrefix + key] = JSON.stringify(val));
 
     function getStorageJSON(key) {
-        var storageValue = getStorage(key);
+        const storageValue = getStorage(key);
         try {
             return JSON.parse(storageValue);
         } catch (e) {
@@ -92,23 +92,23 @@
             return false;
         }
 
-        var totalEventsToFetch = 0;
-        var requests = [];
-        var messagesToMove = [];
-        var events = [];
-        var eventsByNum = {};
+        let totalEventsToFetch = 0;
+        let requests = [];
+        let messagesToMove = [];
+        let events = [];
+        let eventsByNum = {};
 
-        var defaultTargetRoom = 90230;
-        var nodes = {};
-        var avatarList = getStorageJSON('avatarList') || {};
-        var $body = $(document.body);
+        const defaultTargetRoom = 90230;
+        const nodes = {};
+        let avatarList = getStorageJSON('avatarList') || {};
+        const $body = $(document.body);
         const nKButtonEntriesToScan = 3000;
         const knownUserIds = {
             fireAlarm: 6373379,
             smokeDetector: 3735529,
             queen: 6294609,
         };
-        var targetRoomsByRoomNumber = {
+        const targetRoomsByRoomNumber = {
             //SOCVR
             41570: new TargetRoom(41570, 'SOCVR', 'SOCVR', 'R'),
             //Graveyard
@@ -198,7 +198,7 @@
         const offensiveAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('(?:off?en[cs]ive|rude|abb?u[cs]ive)');
         const approveRejectRegexes = makeTagRegExArray('(?:app?rove?|reject)-', please, true);
         // FireAlarm reports
-        var faRegexes = [
+        const faRegexes = [
             /(?:\/\/stackapps\.com\/q\/7183\">FireAlarm-Swift)/, // eslint-disable-line no-useless-escape
             /(?:\[ <a href="\/\/github\.com\/SOBotics\/FireAlarm\/tree\/swift" rel="nofollow noopener noreferrer">FireAlarm-Swift<\/a> \])/,
         ];
@@ -208,7 +208,7 @@
         const sdBangBangCommandsRegEx = /^\s*!!\/(?:report)/i;
         const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+(?:\n*(?:k|v|n|naa|fp?|tp?|spam|rude|abusive|offensive|v|vand|vandalism|notspam|true|false|ignore|delete|del|remove|gone|postgone|why))u?-?)+\s*$/i;
 
-        var RequestTypes = {
+        const RequestTypes = {
             DELETE: {
                 name: 'Delete',
                 primary: true,
@@ -361,7 +361,7 @@
 
         function populateRequestAges() {
             //Fill the alwaysArchiveAfterDateSeconds for each RequestTypes with a time in seconds from Epoch for each type's alwaysArchiveAfterSeconds.
-            var now = Date.now() / 1000;
+            const now = Date.now() / 1000;
             Object.keys(RequestTypes).forEach((type) => {
                 if (RequestTypes[type].alwaysArchiveAfterSeconds) {
                     RequestTypes[type].alwaysArchiveAfterDateSeconds = Math.floor(now - RequestTypes[type].alwaysArchiveAfterSeconds);
