@@ -142,43 +142,61 @@
         //People can really mangle the -pls portion of the request. The RegExp has a known terminating character for the tag:
         // " for matching the href URL and ] for plain text.
         //Match if they get at least 2 characters of pls, just pl, or 1 extra character
-        var please = '(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)';
-        var hrefUrlTag = '(?:tagged\\/';
-        var endHrefToPlainText = '"|\\[';
-        var endPlainTextToEndWithQuestion = '\\]).*stackoverflow\\.com\\/(?:[qa][^\\/]*|posts)\\/(\\d+)';
-        var questionUrlToHrefTag = 'stackoverflow\\.com\\/(?:[qa][^\\/]*|posts)\\/(\\d+).*(?:tagged\\/';
-        var endPlainTextToEnd = '\\])';
-        var endHrefPrefixToSpanText = '[^>]*><span[^>]*>';
-        var endSpanTextToPlainText = '<\\/span>|\\[';
+        const please = '(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)';
+        const hrefUrlTag = '(?:tagged\\/';
+        const endHrefToPlainText = '"|\\[';
+        const endPlainTextToEndWithQuestion = '\\]).*stackoverflow\\.com\\/(?:[qa][^\\/]*|posts)\\/(\\d+)';
+        const questionUrlToHrefTag = 'stackoverflow\\.com\\/(?:[qa][^\\/]*|posts)\\/(\\d+).*(?:tagged\\/';
+        const endPlainTextToEndWithQuestionOrReview = '\\]).*stackoverflow\\.com\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/(\\d+)';
+        const questionOrReviewUrlToHrefTag = 'stackoverflow\\.com\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/(\\d+).*(?:tagged\\/';
+        const endPlainTextToEnd = '\\])';
+        const endHrefPrefixToSpanText = '[^>]*><span[^>]*>';
+        const endSpanTextToPlainText = '<\\/span>|\\[';
 
-        function makeTagRegExArray(prefix, additional) {
+        function makeTagRegExArray(prefix, additional, includeReviews) {
             prefix = typeof prefix === 'string' ? prefix : '';
             additional = typeof additional === 'string' ? additional : '';
             //We have multiple RegExp for each tag type. We are always checking all of them for any match. Thus, this is equivalent
             //  to using a single RegExp that is /(?:RegExp text1|RegExp text2|RegExp text3|RegExp text4)/. Testing against a single
             //  RegExp should be faster than 4.
-            var regexText = '(?:' + ([
+            const regexText = '(?:' + ([
                 //Tag before question
-                (hrefUrlTag + prefix + additional + endHrefToPlainText + prefix + additional + endPlainTextToEndWithQuestion),
+                (hrefUrlTag + prefix + additional + endHrefToPlainText + prefix + additional + (includeReviews ? endPlainTextToEndWithQuestionOrReview : endPlainTextToEndWithQuestion)),
                 //Tag after question
-                (questionUrlToHrefTag + prefix + additional + endHrefToPlainText + prefix + additional + endPlainTextToEnd),
+                ((includeReviews ? questionOrReviewUrlToHrefTag : questionUrlToHrefTag) + prefix + additional + endHrefToPlainText + prefix + additional + endPlainTextToEnd),
                 //Tag before question: match tag in the <span>, not in the href (which could be encoded)
-                (hrefUrlTag + prefix + endHrefPrefixToSpanText + prefix + additional + endSpanTextToPlainText + prefix + additional + endPlainTextToEndWithQuestion),
+                (hrefUrlTag + prefix + endHrefPrefixToSpanText + prefix + additional + endSpanTextToPlainText + prefix + additional + (includeReviews ? endPlainTextToEndWithQuestionOrReview : endPlainTextToEndWithQuestion)),
                 //Tag after question: match tag in the <span>, not in the href (which could be encoded)
-                (questionUrlToHrefTag + prefix + endHrefPrefixToSpanText + prefix + additional + endSpanTextToPlainText + prefix + additional + endPlainTextToEnd),
+                ((includeReviews ? questionOrReviewUrlToHrefTag : questionUrlToHrefTag) + prefix + endHrefPrefixToSpanText + prefix + additional + endSpanTextToPlainText + prefix + additional + endPlainTextToEnd),
+            ].join('|')) + ')';
+            return [new RegExp(regexText, 'i')];
+            //Example RegExp generated for approve/reject with considering reviews:
+            //https://regex101.com/r/18x5ZH/1
+            //(?:(?:tagged\/(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*stackoverflow\.com\/(?:[qa][^\/]*|posts|review\/[\w-]+)\/(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts|review\/[\w-]+)\/(\d+).*(?:tagged\/(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\])|(?:tagged\/(?:app?rove?|reject)-[^>]*><span[^>]*>(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*stackoverflow\.com\/(?:[qa][^\/]*|posts|review\/[\w-]+)\/(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts|review\/[\w-]+)\/(\d+).*(?:tagged\/(?:app?rove?|reject)-[^>]*><span[^>]*>(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]))
+        }
+
+        function makeActualTagWithoutQuestionmarkRegExArray(prefix, additional) {
+            prefix = typeof prefix === 'string' ? prefix : '';
+            additional = typeof additional === 'string' ? additional : '';
+            const regexText = '(?:' + ([
+                //https://regex101.com/r/akgdVi/2
+                '<span class="ob-post-tag"[^>]*>' + prefix + additional + '<\\/span><\\/a>\\s*(?![\\w ]*\\?)',
             ].join('|')) + ')';
             return [new RegExp(regexText, 'i')];
         }
 
-        var cvRegexes = makeTagRegExArray('cv-', please);
-        var deleteRegexes = makeTagRegExArray('del(?:ete)?(?:v)?-?(?:vote)?-', please);
-        var undeleteRegexes = makeTagRegExArray('un-?del(?:ete)?(?:v)?-?(?:vote)?-', please);
-        var reopenRegexes = makeTagRegExArray('re-?open-', please);
-        var duplicateRegexes = makeTagRegExArray('pos?sib(?:le|el)-dup(?:e|licate)?');
-        var flagRegexes = makeTagRegExArray('flag-', please);
-        var spamRegexes = makeTagRegExArray('spam');
-        var offensiveRegexes = makeTagRegExArray('(?:off?en[cs]ive|rude|abb?u[cs]ive)');
-        var approveRejectRegexes = makeTagRegExArray('(?:app?rove?|reject)-', please);
+        const cvRegexes = makeTagRegExArray('cv-', please);
+        const deleteRegexes = makeTagRegExArray('del(?:ete)?(?:v)?-?(?:vote)?-', please);
+        const undeleteRegexes = makeTagRegExArray('un-?del(?:ete)?(?:v)?-?(?:vote)?-', please);
+        const reopenRegexes = makeTagRegExArray('re-?open-', please);
+        const duplicateRegexes = makeTagRegExArray('pos?sib(?:le|el)-dup(?:e|licate)?');
+        const flagRegexes = makeTagRegExArray('flag-', please);
+        const flagAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('flag-', please);
+        const spamRegexes = makeTagRegExArray('spam');
+        const spamAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('spam');
+        const offensiveRegexes = makeTagRegExArray('(?:off?en[cs]ive|rude|abb?u[cs]ive)');
+        const offensiveAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('(?:off?en[cs]ive|rude|abb?u[cs]ive)');
+        const approveRejectRegexes = makeTagRegExArray('(?:app?rove?|reject)-', please, true);
         // FireAlarm reports
         var faRegexes = [
             /(?:\/\/stackapps\.com\/q\/7183\">FireAlarm-Swift)/, // eslint-disable-line no-useless-escape
@@ -219,6 +237,8 @@
                 name: 'Flag, Spam and Offensive',
                 primary: true,
                 regexes: flagRegexes.concat(spamRegexes, offensiveRegexes),
+                //"spam" and "offensive" are too generic. We need to require that they are actually in tags.
+                andRegexes: flagAsTagRegexes.concat(spamAsTagRegexes, offensiveAsTagRegexes),
                 alwaysArchiveAfterSeconds: 2 * 60 * 60, //2 hours
                 underAgeTypeKey: 'DELETE',
             },
@@ -336,6 +356,7 @@
             RequestTypes.CLOSE,
             RequestTypes.UNDELETE,
             RequestTypes.FLAG_SPAM_OFFENSIVE,
+            RequestTypes.APPROVE_REJECT,
         ];
 
         function populateRequestAges() {
@@ -907,6 +928,10 @@
             } //else
             if (type.regexes && !matchesRegex(event.contentNoCode, type.regexes)) {
                 //Use the RegExp array as one indicator of the type.
+                return false;
+            } //else
+            if (type.andRegexes && !matchesRegex(event.contentNoCode, type.andRegexes)) {
+                //Another RegExp array which must match.
                 return false;
             } //else
             if (type.textRegexes && !matchesRegex(event.contentNoCodeText, type.textRegexes)) {
