@@ -1995,10 +1995,18 @@
                     setTimeout(moveSomePosts, 5000, posts, targetRoomId, callback, postsWithoutUserId);
                 },
                 error: function(xhr, status, error) {
-                    console.error('AJAX Error moving some posts', '::\n  xhr:', xhr, '::\n  status:', status, '::\n  error:', error);
-                    console.error('posts:', posts, '::\n  targetRoomId:', targetRoomId, '::\n  callback:', callback);
-                    console.error('messagesBeingMoved:', messagesBeingMoved, '::\n  targetRoomId:', targetRoomId, '::\n  fkey,:', fkey);
-                    console.error('ajaxInfo:', ajaxInfo);
+                    console.error(
+                        'AJAX Error moving some posts',
+                        '\n::  xhr:', xhr,
+                        '\n::  status:', status,
+                        '\n::  error:', error,
+                        '\n::  targetRoomId:', targetRoomId,
+                        '\n::  fkey,:', fkey,
+                        '\n::  messagesBeingMoved:', messagesBeingMoved,
+                        '\n::  posts:', posts,
+                        '\n::  callback:', callback,
+                        '\n::  ajaxInfo:', ajaxInfo
+                    );
                     alert('$.ajax encountered an error moving some posts. See console for details.' + (error && error.length < 100 ? ' error: ' + error : ''));
                 },
             };
