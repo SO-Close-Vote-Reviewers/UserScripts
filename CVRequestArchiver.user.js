@@ -167,7 +167,7 @@
                 //Tag after question: match tag in the <span>, not in the href (which could be encoded)
                 (questionUrlToHrefTag + prefix + endHrefPrefixToSpanText + prefix + additional + endSpanTextToPlainText + prefix + additional + endPlainTextToEnd),
             ].join('|')) + ')';
-            return [new RegExp(regexText, '')];
+            return [new RegExp(regexText, 'i')];
         }
 
         var cvRegexes = makeTagRegExArray('cv-', please);
@@ -175,6 +175,10 @@
         var undeleteRegexes = makeTagRegExArray('un-?del(?:ete)?(?:v)?-?(?:vote)?-', please);
         var reopenRegexes = makeTagRegExArray('re-?open-', please);
         var duplicateRegexes = makeTagRegExArray('pos?sib(?:le|el)-dup(?:e|licate)?');
+        var flagRegexes = makeTagRegExArray('flag-', please);
+        var spamRegexes = makeTagRegExArray('spam');
+        var offensiveRegexes = makeTagRegExArray('(?:off?en[cs]ive|rude|abb?u[cs]ive)');
+        var approveRejectRegexes = makeTagRegExArray('(?:app?rove?|reject)-', please);
         // FireAlarm reports
         var faRegexes = [
             /(?:\/\/stackapps\.com\/q\/7183\">FireAlarm-Swift)/, // eslint-disable-line no-useless-escape
@@ -189,27 +193,42 @@
         var RequestTypes = {
             DELETE: {
                 name: 'Delete',
-                regexes: deleteRegexes,
                 primary: true,
+                regexes: deleteRegexes,
                 alwaysArchiveAfterSeconds: 7 * SECONDS_IN_DAY, //7 days
             },
             REOPEN: {
                 name: 'Reopen',
-                regexes: reopenRegexes,
                 primary: true,
+                regexes: reopenRegexes,
                 alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
             },
             CLOSE: {
                 name: 'Close',
-                regexes: cvRegexes,
                 primary: true,
+                regexes: cvRegexes,
                 alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
             },
             UNDELETE: {
                 name: 'Undelete',
-                regexes: undeleteRegexes,
                 primary: true,
+                regexes: undeleteRegexes,
                 alwaysArchiveAfterSeconds: 7 * SECONDS_IN_DAY, //7 days
+            },
+            FLAG_SPAM_OFFENSIVE: {
+                name: 'Flag, Spam and Offensive',
+                primary: true,
+                regexes: flagRegexes.concat(spamRegexes, offensiveRegexes),
+                alwaysArchiveAfterSeconds: 2 * 60 * 60, //2 hours
+                underAgeTypeKey: 'DELETE',
+            },
+            APPROVE_REJECT: {
+                name: 'Approve/Reject',
+                primary: true,
+                regexes: approveRejectRegexes,
+                alwaysArchiveAfterSeconds: 2 * 60 * 60, //2 hours
+                //This really should have a separate call the the SE API to get review information, where possible.
+                underAgeTypeKey: 'DELETE',
             },
             DUPLICATE: {
                 name: 'Duplicate',
@@ -316,6 +335,7 @@
             RequestTypes.REOPEN,
             RequestTypes.CLOSE,
             RequestTypes.UNDELETE,
+            RequestTypes.FLAG_SPAM_OFFENSIVE,
         ];
 
         function populateRequestAges() {
