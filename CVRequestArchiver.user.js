@@ -1386,7 +1386,7 @@
 
         function saveMoveInformationAndMovePosts() {
             //Prior to moving posts, save the list of posts so we can undo a move by assigning those messages to the manual move list, if the user clicks 'U'.
-            var ids = formatMessages(messagesToMove);
+            var ids = convertRequestsListToMessageIds(messagesToMove);
             setStorageJSON('previousMoveTo', {
                 posts: ids,
                 targetRoomId: defaultTargetRoom,
@@ -1409,9 +1409,9 @@
             return postList.map((request) => request.post).join(';');
         }
 
-        function formatMessages(messageList) {
-            //Format messages in a list of messages so they can be passed to the SE API.
-            return messageList.map((message) => message.msg).join(';');
+        function convertRequestsListToMessageIds(messageList) {
+            //Change the list of requests to just message Ids.
+            return messageList.map((message) => message.msg);
         }
 
         function chunkArray(array, chunkSize) {
@@ -2002,7 +2002,9 @@
                         '\n::  error:', error,
                         '\n::  targetRoomId:', targetRoomId,
                         '\n::  fkey,:', fkey,
+                        '\n::  messagesBeingMoved.length:', messagesBeingMoved.length,
                         '\n::  messagesBeingMoved:', messagesBeingMoved,
+                        '\n::  formatted messagesBeingMoved:', messagesBeingMoved.join(','),
                         '\n::  posts:', posts,
                         '\n::  callback:', callback,
                         '\n::  ajaxInfo:', ajaxInfo
