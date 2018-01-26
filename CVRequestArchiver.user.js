@@ -1401,6 +1401,8 @@
                 nodes.indicator.value = 'done';
                 nodes.movebtn.style.display = 'none';
                 removeShownToBeMoved();
+                //Clear kept data
+                reset();
             });
         }
 
@@ -1715,6 +1717,9 @@
             //Remove the to-be-archived preview
             if (shownToBeMoved) {
                 shownToBeMoved.remove();
+                //Remove references to the popup so it can be garbage collected.
+                shownToBeMoved = null;
+                scanCountSpan = null;
             }
         }
 
