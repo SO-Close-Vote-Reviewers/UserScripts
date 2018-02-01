@@ -4,7 +4,7 @@
 // @version        1.5.26
 // @description    This script generates formatted close vote requests and sends them to a specified chat room, fixes #65
 // @author         @TinyGiant
-// @contributor    @rene @Tunaki @Makyen
+// @contributor    @rene @Tunaki @Makyen @paulroub
 // @include        /^https?:\/\/\w*.?(stackexchange.com|stackoverflow.com|serverfault.com|superuser.com|askubuntu.com|stackapps.com|mathoverflow.net)\/q(uestions)?\/\d+/
 // @require        https://code.jquery.com/jquery-2.1.4.min.js
 // @require        https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/gm4-polyfill.js
@@ -20,7 +20,8 @@ if(typeof StackExchange === "undefined")
     var StackExchange = unsafeWindow.StackExchange;
 
 (function(){
-    var isclosed = $(".close-question-link").data("isclosed");
+    var isclosed = $(".close-question-link").data("isclosed"),
+        isdeleted = $(".question .post-menu .deleted-post").length > 0;
 
     var reasons = {
         't': 'too broad',
@@ -197,6 +198,10 @@ if(typeof StackExchange === "undefined")
     function appendInfo() {
         if(getStorage('appendInfo') === "1") return true;
         return false;
+    }
+
+    if (isdeleted) {
+      return;
     }
 
     var RoomList = {};
