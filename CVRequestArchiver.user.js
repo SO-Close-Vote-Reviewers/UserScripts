@@ -219,12 +219,14 @@
                 name: 'Reopen',
                 primary: true,
                 regexes: reopenRegexes,
+                onlyQuestions: true,
                 alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
             },
             CLOSE: {
                 name: 'Close',
                 primary: true,
                 regexes: cvRegexes,
+                onlyQuestions: true,
                 alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
             },
             UNDELETE: {
@@ -761,6 +763,7 @@
             }
             this.time = _event.time_stamp;
             this.type = _event.type;
+            this.onlyQuestions = _event.type.onlyQuestions;
             this.event = _event;
         }
 
@@ -1158,6 +1161,11 @@
 
             //Handle young events which need the event type changed.
             if (type.alwaysArchiveAfterDateSeconds && event.time_stamp > type.alwaysArchiveAfterDateSeconds && type.underAgeType) {
+                //Remember the prior types.
+                if (!Array.isArray(event.underAgeTypes)) {
+                    event.underAgeTypes = [];
+                }
+                event.underAgeTypes.push(type);
                 type = event.type = type.underAgeType;
                 //Re-check with the new type. No attempt is made to make sure that there isn't a loop.
                 checkEvent(event, eventIndex, currentEvents, needParentList);
@@ -1174,7 +1182,7 @@
             //  for longer formats.
             var matches = event.contentNoCode.match(/stackoverflow\.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/g); // eslint-disable-line no-useless-escape
             //For a cv-pls we assume it's the associated question when the URL is to an answer or to a comment.
-            if (type !== RequestTypes.CLOSE && type !== RequestTypes.REOPEN) {
+            if (!type.onlyQuestions) {
                 //The above will preferentially obtain questions over some answer URL formats: e.g.
                 //    https://stackoverflow.com/questions/7654321/foo-my-baz/1234567#1234567
                 //  That's good for cv-pls/reopen-pls, but for other types of requests we should be considering the answer instead, if the URL is the alternate answer URL.
