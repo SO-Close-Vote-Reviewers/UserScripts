@@ -186,7 +186,7 @@
         }
 
         const cvRegexes = makeTagRegExArray('cv-', please);
-        const deleteRegexes = makeTagRegExArray('del(?:ete)?(?:v)?-?(?:vote)?-', please);
+        const deleteRegexes = makeTagRegExArray('d(?:el(?:ete)?)?(?:v)?-?(?:vote)?-', please);
         const undeleteRegexes = makeTagRegExArray('un-?del(?:ete)?(?:v)?-?(?:vote)?-', please);
         const reopenRegexes = makeTagRegExArray('re-?open-', please);
         const duplicateRegexes = makeTagRegExArray('pos?sib(?:le|el)-dup(?:e|licate)?');
