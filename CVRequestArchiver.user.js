@@ -753,6 +753,17 @@
             });
         }
 
+        function Request(_event, _postId) {
+            //A request class. Used to indicate that an event should be moved, or that we need data.
+            this.msg = _event.message_id;
+            if (_postId) {
+                this.post = _postId;
+            }
+            this.time = _event.time_stamp;
+            this.type = _event.type;
+            this.event = _event;
+        }
+
         var nextBefore;
 
         function getEvents(count, before, promised, needParentList) {
@@ -1055,12 +1066,7 @@
             //Directly add an event to the list of messages to move. The messagesToMove array actually contains request Objects.
             if (messagesToMove.every((moveItem) => event.message_id !== moveItem.msg)) {
                 //Don't add duplicates.
-                messagesToMove.push({
-                    event: event,
-                    msg: event.message_id,
-                    time: event.time_stamp,
-                    type: event.type,
-                });
+                messagesToMove.push(new Request(event));
             }
         }
 
@@ -1187,13 +1193,7 @@
             }
             //Add one entry in the requests list per postId found above.
             Object.keys(posts).forEach((postId) => {
-                requests.push({
-                    msg: event.message_id,
-                    post: postId,
-                    time: event.time_stamp,
-                    type: type,
-                    event: event,
-                });
+                requests.push(new Request(event, postId));
             });
         }
 
