@@ -306,6 +306,9 @@
                         } // else
                         return false;
                     },
+                    //NAA feedback is currently not considered, due to the MS API not raising NAA flags. Once FIRE does
+                    //  do so through the SE API, it'd be reasonable to expire them if the current user has sent such
+                    //  feedback through FIRE (implies that FIRE needs to indicate that).
                 ],
             },
             SMOKEDETECTOR_NOCONTENT: {
@@ -495,16 +498,16 @@
             '#chat-buttons {',
             '    cursor: default;',
             '}',
-            '.button {',
+            '#input-area .button {',
             '    margin: 1px !important;',
             '}',
-            'button.button:disabled {',
+            '#input-area button.button:disabled {',
             '    opacity: 0.8;',
             '}',
-            'button.button:disabled:hover {',
+            '#input-area button.button:disabled:hover {',
             '   background: #ff7b18 !important;',
             '}',
-            '.button:disabled {',
+            '#input-area .button:disabled {',
             '    cursor: default !important;',
             '}',
             '.archiver-count {',
