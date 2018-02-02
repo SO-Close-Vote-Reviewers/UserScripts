@@ -273,6 +273,8 @@
                 regexes: [
                     /Heat Detector/,
                 ],
+                underAgeTypeKey: 'DELETE',
+                onlyComments: true,
             },
             SMOKEDETECTOR: {
                 name: 'SmokeDetector',
@@ -362,7 +364,7 @@
             RequestTypes.UNDELETE,
             RequestTypes.FLAG_SPAM_OFFENSIVE,
             RequestTypes.APPROVE_REJECT,
-        ];
+        ].filter((type) => type);
 
         function populateRequestAges() {
             //Fill the alwaysArchiveAfterDateSeconds for each RequestTypes with a time in seconds from Epoch for each type's alwaysArchiveAfterSeconds.
@@ -384,7 +386,6 @@
                 currentRoom = currentRoomMatches[1];
             }
             if (currentRoom) {
-                console.log('currentRoom:', currentRoom);
                 $('.message .action-link').each(function() {
                     var actionSpan = $(this);
                     var linkHref = actionSpan.parent()[0].href;
@@ -755,11 +756,14 @@
             });
         }
 
-        function Request(_event, _postId) {
+        function Request(_event, _postId, _isComment) {
             //A request class. Used to indicate that an event should be moved, or that we need data.
             this.msg = _event.message_id;
             if (_postId) {
                 this.post = _postId;
+            }
+            if (_isComment) {
+                this.isComment = _isComment;
             }
             this.time = _event.time_stamp;
             this.type = _event.type;
@@ -774,60 +778,64 @@
             //  These are directly placed in the events Array as a 2D array.
             // @promised is the tail of a Promise which contains the processing tasks.
             // @needParentList is the events which were not completely processed due to missing parents.
-            setProgress('getting events\u2009', totalEventsToFetch - count, totalEventsToFetch);
-            promised = promised ? promised : Promise.resolve();
-            needParentList = Array.isArray(needParentList) ? needParentList : [];
-            if (count <= 0) {
-                //Done getting all requested events.
-                // Re-type those that need to have a parent found.
-                promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents));
-                return false;
-            }
-            var data = {
-                fkey: fkey,
-                msgCount: count > 500 ? 500 : count,
-                mode: 'Messages',
-            };
-            if (before) {
-                data.before = before;
-            }
-            $.ajax({
-                type: 'POST',
-                url: '/chats/' + room + '/events',
-                data: data,
-                success: function(response) {
-                    var respEvents = response.events;
-                    if (respEvents.length) {
-                        respEvents.forEach(function(event) {
-                            event.timeStampUTC = (new Date(event.time_stamp * 1000)).toJSON();
-                        });
-                    }
-                    events.push(response.events);
-                    //Adding 'reply-request' to this doesn't appear to help make the process significantly faster.
-                    promised = promised
-                        .then(() => delay(0, addEventsToByNumber, response.events, '', '', 'By Id'))
-                        .then(() => delay(0, scanStageEventChunk, response.events, assignEventBaseTypeAndContentWithoutCode, needParentList, 'typing............', totalEventsToFetch - count, totalEventsToFetch));
+            return new Promise((resolve, reject) => {
+                setProgress('getting events\u2009', totalEventsToFetch - count, totalEventsToFetch);
+                promised = promised ? promised : Promise.resolve();
+                needParentList = Array.isArray(needParentList) ? needParentList : [];
+                if (count <= 0) {
+                    //Done getting all requested events.
+                    // Re-type those that need to have a parent found.
+                    resolve(promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents)));
+                    return false;
+                }
+                var data = {
+                    fkey: fkey,
+                    msgCount: count > 500 ? 500 : count,
+                    mode: 'Messages',
+                };
+                if (before) {
+                    data.before = before;
+                }
+                $.ajax({
+                    type: 'POST',
+                    url: '/chats/' + room + '/events',
+                    data: data,
+                    success: function(response) {
+                        var respEvents = response.events;
+                        if (respEvents.length) {
+                            respEvents.forEach(function(event) {
+                                event.timeStampUTC = (new Date(event.time_stamp * 1000)).toJSON();
+                            });
+                        }
+                        events.push(response.events);
+                        //Adding 'reply-request' to this doesn't appear to help make the process significantly faster.
+                        promised = promised
+                            .then(() => delay(0, addEventsToByNumber, response.events, '', '', 'By Id'))
+                            .then(() => delay(0, scanStageEventChunk, response.events, assignEventBaseTypeAndContentWithoutCode, needParentList, 'typing............', totalEventsToFetch - count, totalEventsToFetch));
 
-                    if (!response.events[0]) {
-                        // No more events in the transcript
-                        // Re-type those that need to have a parent found.
-                        promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents));
-                        return false;
-                    }
+                        if (!response.events[0]) {
+                            // No more events in the transcript
+                            // Re-type those that need to have a parent found.
+                            resolve(promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents)));
+                            return false;
+                        }
 
-                    nodes.scandate.textContent = new Date(1000 * response.events[0].time_stamp).toISOString();
+                        nodes.scandate.textContent = new Date(1000 * response.events[0].time_stamp).toISOString();
 
-                    nextBefore = response.events[0].message_id;
-                    getEvents(count - 500, response.events[0].message_id, promised, needParentList);
-                },
-                error: function(xhr, status, error) {
-                    console.error('AJAX Error getting events', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  count:', count, '\n::  before:', before);
-                    if (confirm('$.ajax encountered an error getting events. See console for data.' + (error && error.length < 100 ? ' error: ' + error : '') +
-                            '\n\ncount:' + count + '::  before:' + before + '\n\nRetry fetching these?')) {
-                        //Allow the user to retry.
-                        getEvents(count, before, promised, needParentList);
-                    }
-                },
+                        nextBefore = response.events[0].message_id;
+                        resolve(getEvents(count - 500, response.events[0].message_id, promised, needParentList));
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error getting events:', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  count:', count, '\n::  before:', before);
+                        if (confirm('$.ajax encountered an error getting events. See console for data.' + (error && error.length < 100 ? ' error: ' + error : '') +
+                                '\n\ncount:' + count + '::  before:' + before + '\n\nRetry fetching these?')) {
+                            //Allow the user to retry.
+                            resolve(getEvents(count, before, promised, needParentList));
+                        } else {
+                            reject(new Error('AJAX Error getting events: ' + error));
+                        }
+                    },
+                });
             });
         }
 
@@ -909,8 +917,7 @@
                     //There are no events for which we need to get information from the SE API.
                     if (messagesToMove.length) {
                         //No messages were found which should be moved.
-                        checkDone();
-                        return;
+                        return checkDone();
                     }
                     //There are messages which should be moved.
                     nodes.indicator.value = 'no ' + (messagesToMove.length > 0 ? 'additional ' : '') + 'messages found';
@@ -923,8 +930,9 @@
 
                 nodes.indicator.value = 'chunking request array...';
                 requests = chunkArray(requests, 100);
-                checkRequests();
+                return checkRequests();
             });
+            return mainPromise;
         }
 
         function matchesRegex(text, regexes) {
@@ -1192,6 +1200,17 @@
                     matches = answerMatches.map((match) => match.replace(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"'])/, 'stackoverflow.com/a/$1')); // eslint-disable-line no-useless-escape
                 }
             }
+            const isComment = type.onlyComments || (Array.isArray(event.underAgeTypes) && event.underAgeTypes.some((uaType) => uaType.onlyComments));
+            if (matches !== null && isComment) {
+                //There are URLs, but this type, or a type from which this was changed due to being too young is only comments
+                const commentMatches = event.contentNoCode.match(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts|a)[^\s#]*#comment(\d+)(?:$|[\s"'_])/g); // eslint-disable-line no-useless-escape
+                if (commentMatches) {
+                    //Convert each one into a short answer URL so a single RegExp can be used below.
+                    matches = commentMatches.map((match) => match.replace(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts|a)[^\s#]*#comment(\d+)(?:$|[\s"'_])/, 'stackoverflow.com/a/$1')); // eslint-disable-line no-useless-escape
+                } else {
+                    matches = null;
+                }
+            }
             var posts = {};
             // matches will be null if an user screws up the formatting
             if (matches !== null) {
@@ -1201,11 +1220,11 @@
             }
             //Add one entry in the requests list per postId found above.
             Object.keys(posts).forEach((postId) => {
-                requests.push(new Request(event, postId));
+                requests.push(new Request(event, postId, isComment));
             });
         }
 
-        function checkRequests(totalRequests, questionBackoff, answerBackoff) {
+        function checkRequests(totalRequests, questionBackoff, answerBackoff, commentBackoff) {
             //Each call to this checks one block of requests. It is looped through by being called at the end of the
             //  asynchronous operations in checkRequestsOthers.
             var remaining = getTotalLengthOfChunks(requests);
@@ -1214,10 +1233,10 @@
             setProgress('checking requests', remaining, totalRequests);
             //All request types have been reduced to their primary type equivalent (cv, delv, reopen, undelete).
             //  Any reply that extends when the FireAlarm/Queen is valid has already been rolled up into the event being treated as a cv-pls.
-            checkRequestsOthers(currentRequests, totalRequests, questionBackoff, answerBackoff);
+            return checkRequestsOthers(currentRequests, totalRequests, questionBackoff, answerBackoff, commentBackoff);
         }
 
-        function checkRequestsOthers(currentRequests, totalRequests, questionBackoff, answerBackoff) {
+        function checkRequestsOthers(currentRequests, totalRequests, questionBackoff, answerBackoff, commentBackoff) {
             //The SE API is queried for each identified post, first as a question, then as an answer.
             //This could be more efficient. There is no need to request answer information when the data was returned as a question.
             //Further, it would be better to request everything as an answer first. This will give question information, which could be substituted
@@ -1228,10 +1247,12 @@
             //      in the request). Currently that situation is handled by the dup-question being closed qualifying the question for archiving.
             questionBackoff = questionBackoff ? questionBackoff : 0;
             answerBackoff = answerBackoff ? answerBackoff : 0;
+            commentBackoff = commentBackoff ? commentBackoff : 0;
 
             function makeSEApiUrl(requestsForUrl, type) {
                 var filters = {
-                    answers: '!Wn5py8CX(',
+                    comments: '!9Z(-x)zjA',
+                    answers: '!.UDo6l2k)5RjcU7O',
                     questions: '!5RCJFFV3*1idqdx)f2XdVzdib',
                 };
                 var filter = filters[type];
@@ -1248,146 +1269,216 @@
 
             function handleDeleteAndUndeleteWithValidData(items, requestsToHandle, itemIdPropKey) {
                 //Look through the items received from the SE API and handle requests for DELETE and UNDELETE.
+                const indexesToDelete = {};
                 for (const item of items) {
                     requestsToHandle.forEach((currentRequest, requestIndex) => {
                         if (currentRequest.post == item[itemIdPropKey]) { // eslint-disable-line eqeqeq
-                            //Have data, so not deleted. Remove matching del-pls, as they are not fulfilled.
+                            if (item.locked_date) {
+                                //The post is locked. We can't do anything. The request is thus "complete".
+                                addEventToMessagesToMove(currentRequest.event);
+                                indexesToDelete[requestIndex] = true;
+                                return true;
+                            } // else
                             if (currentRequest.type === RequestTypes.DELETE) {
-                                requestsToHandle.splice(requestIndex, 1);
-                            }
-                            //Add matching undel-pls to move list, as they are fulfilled.
+                                //Have data, so not deleted. Remove matching del-pls, as they are not fulfilled.
+                                indexesToDelete[requestIndex] = true;
+                                return true;
+                            } // else
                             if (currentRequest.type === RequestTypes.UNDELETE) {
+                                //Add matching undel-pls to move list, as they are fulfilled.
                                 addEventToMessagesToMove(currentRequest.event);
                                 //No need to request the data again as an answer.
-                                requestsToHandle.splice(requestIndex, 1);
-                            }
+                                indexesToDelete[requestIndex] = true;
+                                return true;
+                            } // else
                         }
                     });
                 }
+                //Remove the handled requests, from the end of the array to the front.
+                Object.keys(indexesToDelete).sort().reverse().forEach((index) => requestsToHandle.splice(index, 1));
             }
 
-            const checkXhrStatus = (responseData, textStatus, jqXHR) => new Promise((resolve, reject) => {
-                //Reject if the status isn't 200.
-                if (jqXHR.status === 200) {
-                    resolve(responseData);
-                } else {
-                    reject(new Error(jqXHR));
-                }
-            });
+            function checkXhrStatus(responseData, textStatus, jqXHR) {
+                return new Promise((resolve, reject) => {
+                    //Reject if the status isn't 200.
+                    if (jqXHR.status === 200) {
+                        resolve(responseData);
+                    } else {
+                        reject(new Error(jqXHR));
+                    }
+                });
+            }
 
-            const handleQuestionResponse = (responseData) => new Promise((resolve) => {
-                //Deal with the SE API response for questions.
-                questionBackoff = responseData.backoff;
-                var items = responseData.items;
-                handleDeleteAndUndeleteWithValidData(items, currentRequests, 'question_id');
-                //Check for data returned for CLOSE and REOPEN
-                for (const item of items) {
-                    currentRequests.forEach((currentRequest, requestIndex) => {
-                        if (currentRequest.post == item.question_id) { // eslint-disable-line eqeqeq
-                            //Remove all matching open cv-pls, as they are not fulfilled.
-                            if (item.closed_date) {
-                                //Item is closed.
-                                if (currentRequest.type === RequestTypes.CLOSE) {
-                                    //CLOSE request is handled.
-                                    addEventToMessagesToMove(currentRequest.event);
-                                    currentRequests.splice(requestIndex, 1);
-                                }
-                                if (currentRequest.type === RequestTypes.REOPEN) {
-                                    //REOPEN request is not handled, but we no longer need to consider it.
-                                    currentRequests.splice(requestIndex, 1);
-                                }
-                            } else {
-                                //Item is open.
-                                if (currentRequest.type === RequestTypes.REOPEN) {
-                                    //REOPEN request is handled.
-                                    addEventToMessagesToMove(currentRequest.event);
-                                    currentRequests.splice(requestIndex, 1);
-                                }
-                                if (currentRequest.type === RequestTypes.CLOSE) {
-                                    //CLOSE request is not handled, but we no longer need to consider it.
-                                    currentRequests.splice(requestIndex, 1);
+            function handleQuestionResponse(responseData) {
+                return new Promise((resolve) => {
+                    //Deal with the SE API response for questions.
+                    questionBackoff = responseData.backoff;
+                    var items = responseData.items;
+                    handleDeleteAndUndeleteWithValidData(items, currentRequests, 'question_id');
+                    //Check for data returned for CLOSE and REOPEN
+                    for (const item of items) {
+                        currentRequests = currentRequests.filter((currentRequest) => {
+                            if (currentRequest.post == item.question_id) { // eslint-disable-line eqeqeq
+                                //Remove all matching open cv-pls, as they are not fulfilled.
+                                if (item.closed_date) {
+                                    //Item is closed.
+                                    if (currentRequest.type === RequestTypes.CLOSE) {
+                                        //CLOSE request is handled.
+                                        addEventToMessagesToMove(currentRequest.event);
+                                        return false;
+                                    }
+                                    if (currentRequest.type === RequestTypes.REOPEN) {
+                                        //REOPEN request is not handled, but we no longer need to consider it.
+                                        return false;
+                                    }
+                                } else {
+                                    //Item is open.
+                                    if (currentRequest.type === RequestTypes.REOPEN) {
+                                        //REOPEN request is handled.
+                                        addEventToMessagesToMove(currentRequest.event);
+                                        return false;
+                                    }
+                                    if (currentRequest.type === RequestTypes.CLOSE) {
+                                        //CLOSE request is not handled, but we no longer need to consider it.
+                                        return false;
+                                    }
                                 }
                             }
+                            return true;
+                        });
+                    }
+                    resolve();
+                });
+            }
+
+            function convertOnlyQuestionRequestsToQuestion(items, requestsToCheck, idProperty, questionIdProperty) {
+                items.forEach((item) => {
+                    requestsToCheck.forEach((request) => {
+                        if (item[idProperty] == request.post && request.event.type.onlyQuestions) { // eslint-disable-line eqeqeq
+                            //This is a request which is only about questions, but this post was identified as an answer.
+                            //  Change the postId for the request to the question_id for this answer.
+                            request.post = item[questionIdProperty];
                         }
                     });
-                }
-                resolve();
-            });
+                });
+            }
 
-            const handleAnswerResponse = (responseData) => new Promise((resolve) => {
-                //Deal with the SE API response for answers.
-                var answerItems = responseData.items;
-                answerBackoff = responseData.backoff;
-                handleDeleteAndUndeleteWithValidData(answerItems, currentRequests, 'answer_id');
-                //All requests still in the list should only be posts which are deleted,
-                //  but can include cv and reopen requests which were to answers, not questions.
-                resolve();
-            });
+            function handleAnswerResponse(responseData) {
+                return new Promise((resolve) => {
+                    //Deal with the SE API response for answers.
+                    var answerItems = responseData.items;
+                    answerBackoff = responseData.backoff;
+                    handleDeleteAndUndeleteWithValidData(answerItems, currentRequests, 'answer_id');
+                    //All requests which were about answers have been handled.
+                    convertOnlyQuestionRequestsToQuestion(answerItems, currentRequests, 'answer_id', 'question_id');
+                    resolve();
+                });
+            }
+
+            function handleCommentResponse(responseData) {
+                return new Promise((resolve) => {
+                    var commentItems = responseData.items;
+                    commentBackoff = responseData.backoff;
+                    handleDeleteAndUndeleteWithValidData(commentItems, currentRequests, 'comment_id');
+                    convertOnlyQuestionRequestsToQuestion(commentItems, currentRequests, 'comment_id', 'post_id');
+                    resolve();
+                });
+            }
+
+            function sendAjaxIfRequests(requestsToSend, endpoint) {
+                //If there are requests, then send the $.ajax. If there aren't, then send an empty items.
+                if (Array.isArray(requestsToSend) && requestsToSend.length) {
+                    return $.ajax(makeSEApiUrl(requestsToSend, endpoint)).then(checkXhrStatus);
+                } // else
+                return Promise.resolve({items: []});
+            }
+
+            function getOnlyCommentRequests(requestsToFilter) {
+                return requestsToFilter.filter((request) => request.isComment);
+            }
+
+            function getNonCommentRequests(requestsToFilter) {
+                return requestsToFilter.filter((request) => !request.isComment);
+            }
 
             //There should be a limit set here on the number which can be requested at a time. The SE API
             //  will consider 30 requests/s/IP "very abusive". However, it should take significantly longer
             //  for the round trip than the average 67ms which would be needed to launch 30 requests in 1s.
-            Promise.all([
-                //Send the request for questions
-                delay(questionBackoff * 1000).then(() => $.ajax(makeSEApiUrl(currentRequests, 'questions')).then(checkXhrStatus)).then(handleQuestionResponse),
+            //Send the request for comments, then answers, then questions (converting to questions at each earlier stage, when needed).
+            return delay(commentBackoff * 1000)
+                .then(() => sendAjaxIfRequests(getOnlyCommentRequests(currentRequests), 'comments'))
+                .then(handleCommentResponse)
                 //Send the request for answers
-                delay(answerBackoff * 1000).then(() => $.ajax(makeSEApiUrl(currentRequests, 'answers')).then(checkXhrStatus)).then(handleAnswerResponse),
-            ]).then(() => {
-                for (const request of currentRequests) {
-                    if (request.type !== RequestTypes.UNDELETE) {
-                        addEventToMessagesToMove(request.event);
+                .then(() => delay(answerBackoff * 1000))
+                .then(() => sendAjaxIfRequests(getNonCommentRequests(currentRequests), 'answers'))
+                .then(handleAnswerResponse)
+                //Send the request for questions
+                .then(() => delay(questionBackoff * 1000))
+                .then(() => sendAjaxIfRequests(getNonCommentRequests(currentRequests), 'questions'))
+                .then(handleQuestionResponse)
+                .then(() => {
+                    for (const request of currentRequests) {
+                        if (request.type !== RequestTypes.UNDELETE) {
+                            addEventToMessagesToMove(request.event);
+                        }
                     }
-                }
-                if (!requests.length) {
+                    if (!requests.length) {
+                        return checkDone();
+                        //return false;
+                    }
+                    return checkRequests(totalRequests, questionBackoff, answerBackoff, commentBackoff);
+                }).catch((error) => {
+                    console.error(error);
                     checkDone();
-                    return false;
-                }
-                checkRequests(totalRequests, questionBackoff, answerBackoff);
-            }).catch(checkDone);
+                });
         }
 
         function checkDone() {
             //Add any messages associated (i.e. that should be archived at the same time) with those to be archived.
             //  Non-duplicate messages are pushed onto the end of the array, and we process them. This results in
             //  recursively adding any associated with any new additions.
-            for (let moveIndex = 0; moveIndex < messagesToMove.length; moveIndex++) {
-                const moveRequest = messagesToMove[moveIndex];
-                if (moveRequest.event.alsoArchive) {
-                    moveRequest.event.alsoArchive.forEach((messageId) => { // eslint-disable-line no-loop-func
-                        if (isEventByIdValid(messageId)) {
-                            addEventToMessagesToMove(eventsByNum[messageId]);
-                        }
-                    });
+            return new Promise((resolve) => {
+                for (let moveIndex = 0; moveIndex < messagesToMove.length; moveIndex++) {
+                    const moveRequest = messagesToMove[moveIndex];
+                    if (moveRequest.event.alsoArchive) {
+                        moveRequest.event.alsoArchive.forEach((messageId) => { // eslint-disable-line no-loop-func
+                            if (isEventByIdValid(messageId)) {
+                                addEventToMessagesToMove(eventsByNum[messageId]);
+                            }
+                        });
+                    }
                 }
-            }
 
-            if (!messagesToMove.length) {
-                nodes.indicator.value = 'no ' + (messagesToMove.length > 0 ? 'additional ' : '') + 'messages found';
+                if (!messagesToMove.length) {
+                    nodes.indicator.value = 'no ' + (messagesToMove.length > 0 ? 'additional ' : '') + 'messages found';
+                    nodes.progresswrp.style.display = 'none';
+                    nodes.progress.style.width = '';
+                    nodes.cancel.disabled = false;
+                    setShowToBeMovedScanCount();
+                    resolve();
+                    return false;
+                } // else
+                //Remove any duplicates
+                //Should really look into why we're getting duplicates. It looks like it's FireAlarm messages.
+                var dupCheck = {};
+                messagesToMove = messagesToMove.filter(function(message) {
+                    if (dupCheck[message.msg]) {
+                        return false;
+                    } //else
+                    dupCheck[message.msg] = true;
+                    return true;
+                }).sort(function(a, b) {
+                    return a.event.time_stamp - b.event.time_stamp;
+                });
+
+                setMessagesFound();
+                nodes.movebtn.style.display = '';
+                nodes.cancel.disabled = false;
                 nodes.progresswrp.style.display = 'none';
                 nodes.progress.style.width = '';
-                nodes.cancel.disabled = false;
-                setShowToBeMovedScanCount();
-                return false;
-            }
-            //Remove any duplicates
-            //Should really look into why we're getting duplicates. It looks like it's FireAlarm messages.
-            var dupCheck = {};
-            messagesToMove = messagesToMove.filter(function(message) {
-                if (dupCheck[message.msg]) {
-                    return false;
-                } //else
-                dupCheck[message.msg] = true;
-                return true;
-            }).sort(function(a, b) {
-                return a.event.time_stamp - b.event.time_stamp;
+                showToBeMoved();
+                resolve();
             });
-
-            setMessagesFound();
-            nodes.movebtn.style.display = '';
-            nodes.cancel.disabled = false;
-            nodes.progresswrp.style.display = 'none';
-            nodes.progress.style.width = '';
-            showToBeMoved();
         }
 
         function setMessagesFound() {
@@ -1439,21 +1530,55 @@
             return chunkedArray;
         }
 
-        function getMoreEvents(moreCount) {
-            //Clear the requests and events, as there's no need to re-process what we've already done.
-            requests = [];
-            events = [];
-            var currentCount = +nodes.count.value;
-            totalEventsToFetch = currentCount + moreCount;
-            nodes.count.value = totalEventsToFetch;
-            getEvents(moreCount, nextBefore);
-        }
-
         var shownToBeMoved;
         var priorMessagesShown = [];
         var manualMoveList = getLSManualMoveList();
         var noUserIdList = getLSnoUserIdList();
         var scanCountSpan;
+
+        function fillMoveListFromPopupTo100(priorManualMoveListLength) {
+            if (manualMoveList.length < 100) {
+                addToLSManualMoveList($('.message:not(.SOCVR-Archiver-multiMove-selected)', shownToBeMoved).slice(manualMoveList.length - 100).map(function() {
+                    return getMessageIdFromMessage(this);
+                }).get());
+            }
+            const manualMoveListLengthPriorToGetMore = manualMoveList.length;
+            if (priorManualMoveListLength === manualMoveListLengthPriorToGetMore) {
+                //We've fetched more events, but found no new events to archive.
+                setStorage('fillFromMessage-tentative', nextBefore);
+                setStorage('fillFromMessage-tentative-check', Math.min.apply(null, manualMoveList));
+            } else {
+                if (!priorManualMoveListLength) {
+                    setStorage('fillFromMessage-tentative', +getStorage('fillFromMessage'));
+                }
+                //Remember the youngest.
+                setStorage('fillFromMessage-tentative-check', Math.min.apply(null, manualMoveList));
+            }
+            if (manualMoveListLengthPriorToGetMore < 100) {
+                //XXX Need to handle getting to the end of the total events.
+                //XXX Should track the last event added, so we can come back to it to short-circuit any large amount of scanning. However, this then means
+                //      we need some way to clear that record when things break.
+                var maxNextBefore = +getStorage('fillFromMessage');
+                maxNextBefore = maxNextBefore > 0 ? maxNextBefore + 500 : 0;
+                return getMoreEvents(5000, Math.min(nextBefore, maxNextBefore) || nextBefore).then(() => fillMoveListFromPopupTo100(priorManualMoveListLength ? priorManualMoveListLength : manualMoveListLengthPriorToGetMore));
+            }
+            return Promise.resolve();
+        }
+
+        function getMoreEvents(moreCount, newNextBefore) {
+            //Clear the requests and events, as there's no need to re-process what we've already done.
+            requests = [];
+            const originalEvents = events;
+            events = [];
+            var currentCount = +nodes.count.value;
+            totalEventsToFetch = currentCount + moreCount;
+            nodes.count.value = totalEventsToFetch;
+            return getEvents(moreCount, typeof newNextBefore === 'number' ? newNextBefore : nextBefore).then((result) => {
+                //Add the events we just fetched to the overall list
+                events = originalEvents.concat(events);
+                return result;
+            });
+        }
 
         function setShowToBeMovedScanCount() {
             if (scanCountSpan && scanCountSpan.length) {
@@ -1608,6 +1733,7 @@
                 '                <button class="SOCVR-Archiver-button-set-as-move-list" title="Set the Manual Move List to these messages.">Set</button>',
                 '                <button class="SOCVR-Archiver-button-add-to-move-list" title="Add these messages to the Manual Move List.">Add</button>',
                 '                <button class="SOCVR-Archiver-button-remove-from-move-list" title="Remove these messages from the Manual Move List.">Remove</button>',
+                //'                <button class="SOCVR-Archiver-button-fill-move-list" title="Fill the Manual Move List to 100.">Fill</button>',
                 '                <button class="SOCVR-Archiver-button-grave-move-list" title="Move all messages on the Manual Move List to the Graveyard.">Grave</button>',
                 '                <button class="SOCVR-Archiver-button-san-move-list" title="Move all messages on the Manual Move List to the Sanitarium.">San</button>',
                 '            </span>',
@@ -1651,6 +1777,12 @@
             $('.SOCVR-Archiver-button-remove-from-move-list', shownToBeMoved).first().on('click', function() {
                 //Remove those messages displayed in the popup from the manual move list.
                 removeFromLSManualMoveList(convertRequestsListToMessageIds(messagesToMove));
+                this.blur();
+            });
+            $('.SOCVR-Archiver-button-fill-move-list', shownToBeMoved).first().on('click', function() {
+                //Remove those messages displayed in the popup from the manual move list.
+                fillMoveListFromPopupTo100();
+                //If fillMoveListFromPopupTo100() doesn't complete immediately, then the popup is destroyed and recreated, which means that blurring doesn't matter.
                 this.blur();
             });
             $('.SOCVR-Archiver-button-grave-move-list', shownToBeMoved).first().on('click', moveMoveListAndResetOnSuccess.bind(null, 90230)); //Graveyard
@@ -2105,7 +2237,18 @@
                 // already be selected.  Clearing it feels more like what people
                 // would expect.
                 if (moved) {
-                    //If the move was successful, clear the list. Keep the list if it wasn't.
+                    //The move was successful
+                    const tentative = +getStorage('fillFromMessage-tentative');
+                    const tentativeCheck = +getStorage('fillFromMessage-tentative-check');
+                    if (manualMoveList.indexOf(tentativeCheck) !== -1) {
+                        //This will be imperfect, but it should cover the case where the user hasn't adjusted which message is the the youngest
+                        //  contained in the manual move list. Should really check the entirety of the list instead of just the youngest.
+                        //XXX Given that this is imperfect, there needs to be some way to reset the number.
+                        setStorage('fillFromMessage', tentative);
+                    }
+                    //Only get one chance to set fillFromMessage
+                    setStorage('fillFromMessage-tentative', -1);
+                    //Clear the list. Keep the list if it wasn't.
                     clearLSManualMoveList();
                     //Clear the list again, in case there's delays between tabs.
                     setTimeout(clearLSManualMoveList, 2000);
