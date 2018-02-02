@@ -1631,18 +1631,18 @@
             $('.SOCVR-Archiver-button-100kmore', shownToBeMoved).first().on('click', getMoreEvents.bind(null, 100000));
             $('.SOCVR-Archiver-button-add-to-move-list', shownToBeMoved).first().on('click', function() {
                 //Add those messages displayed in the popup to the manual move list.
-                addToLSManualMoveList(messagesToMove.map((value) => value.msg));
+                addToLSManualMoveList(convertRequestsListToMessageIds(messagesToMove));
                 this.blur();
             });
             $('.SOCVR-Archiver-button-set-as-move-list', shownToBeMoved).first().on('click', function() {
                 //Set the manual move list to those messages displayed in the popup.
                 clearLSManualMoveList();
-                addToLSManualMoveList(messagesToMove.map((value) => value.msg));
+                addToLSManualMoveList(convertRequestsListToMessageIds(messagesToMove));
                 this.blur();
             });
             $('.SOCVR-Archiver-button-remove-from-move-list', shownToBeMoved).first().on('click', function() {
                 //Remove those messages displayed in the popup from the manual move list.
-                removeFromLSManualMoveList(messagesToMove.map((value) => value.msg));
+                removeFromLSManualMoveList(convertRequestsListToMessageIds(messagesToMove));
                 this.blur();
             });
             $('.SOCVR-Archiver-button-grave-move-list', shownToBeMoved).first().on('click', moveMoveListAndResetOnSuccess.bind(null, 90230)); //Graveyard
@@ -1856,7 +1856,7 @@
                 url: 'https://' + window.location.hostname + '/messages/' + messageId + '/history',
                 success: callback,
                 error: function(xhr, status, error) {
-                    console.error('AJAX Error Getting history', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  room:', room, '\n::  fkey,:', fkey);
+                    console.error('AJAX Error Getting history', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  room:', room, '\n::  fkey,:', fkey, '\n::  messageId:', messageId);
                 },
             });
         }
@@ -2369,11 +2369,11 @@
             values.forEach(function(value) {
                 //Convert value to number.
                 value = +value;
-                let found = list.indexOf(value);
-                while (found > -1) {
-                    list.splice(found, 1);
-                    didChange = true;
-                    found = list.indexOf(value);
+                for (let index = list.length - 1; index >= 0; index--) {
+                    if (value === +list[index]) {
+                        list.splice(index, 1);
+                        didChange = true;
+                    }
                 }
             });
             return didChange;
