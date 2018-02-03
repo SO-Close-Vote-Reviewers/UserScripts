@@ -1298,8 +1298,8 @@
                         }
                     });
                 }
-                //Remove the handled requests, from the end of the array to the front.
-                Object.keys(indexesToDelete).sort().reverse().forEach((index) => requestsToHandle.splice(index, 1));
+                //Remove the handled requests, from the end of the array to the front (sort in reverse numerical order).
+                Object.keys(indexesToDelete).sort((a, b) => b - a).forEach((index) => requestsToHandle.splice(index, 1));
             }
 
             function checkXhrStatus(responseData, textStatus, jqXHR) {
@@ -1471,10 +1471,7 @@
                     } //else
                     dupCheck[message.msg] = true;
                     return true;
-                }).sort(function(a, b) {
-                    return a.event.time_stamp - b.event.time_stamp;
-                });
-
+                }).sort((a, b) => a.event.message_id - b.event.message_id);
                 setMessagesFound();
                 nodes.movebtn.style.display = '';
                 nodes.cancel.disabled = false;
@@ -1756,7 +1753,7 @@
             scanCountSpan = $('.SOCVR-Archiver-scan-count', shownToBeMoved).first();
             //Build the HTML for all the messages and add them to the DOM.
             var messagesHtml = '';
-            messagesToMove.forEach(function(message) {
+            messagesToMove.sort((a, b) => a.event.message_id - b.event.message_id).forEach(function(message) {
                 messagesHtml += makeMonologueHtml(message.event);
             });
             moveMessagesDiv[0].insertAdjacentHTML('beforeend', messagesHtml);
