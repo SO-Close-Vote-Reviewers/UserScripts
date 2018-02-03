@@ -767,7 +767,8 @@
             }
             this.time = _event.time_stamp;
             this.type = _event.type;
-            this.onlyQuestions = _event.type.onlyQuestions;
+            this.onlyQuestions = (_event.type && _event.type.onlyQuestions) || (Array.isArray(_event.underAgeTypes) && _event.underAgeTypes.some((underAgeType) => underAgeType.onlyQuestions));
+            this.onlyComments = (_event.type && _event.type.onlyComments) || (Array.isArray(_event.underAgeTypes) && _event.underAgeTypes.some((underAgeType) => underAgeType.onlyComments));
             this.event = _event;
         }
 
@@ -1185,12 +1186,15 @@
                 return false;
             }
 
+            event.onlyQuestions = (event.type && event.type.onlyQuestions) || (Array.isArray(event.underAgeTypes) && event.underAgeTypes.some((underAgeType) => underAgeType.onlyQuestions));
+            event.onlyComments = (event.type && event.type.onlyComments) || (Array.isArray(event.underAgeTypes) && event.underAgeTypes.some((underAgeType) => underAgeType.onlyComments));
+
             // Handle non-expired primary requests, which require getting question/answer data.
             //  We really should do a full parse of the URL, including making a choice based on request type as to considering the question, answer, or comment
             //  for longer formats.
             var matches = event.contentNoCode.match(/stackoverflow\.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/g); // eslint-disable-line no-useless-escape
             //For a cv-pls we assume it's the associated question when the URL is to an answer or to a comment.
-            if (!type.onlyQuestions) {
+            if (!event.onlyQuestions) {
                 //The above will preferentially obtain questions over some answer URL formats: e.g.
                 //    https://stackoverflow.com/questions/7654321/foo-my-baz/1234567#1234567
                 //  That's good for cv-pls/reopen-pls, but for other types of requests we should be considering the answer instead, if the URL is the alternate answer URL.
@@ -1200,7 +1204,7 @@
                     matches = answerMatches.map((match) => match.replace(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"'])/, 'stackoverflow.com/a/$1')); // eslint-disable-line no-useless-escape
                 }
             }
-            const isComment = type.onlyComments || (Array.isArray(event.underAgeTypes) && event.underAgeTypes.some((uaType) => uaType.onlyComments));
+            const isComment = event.onlyComments;
             if (matches !== null && isComment) {
                 //There are URLs, but this type, or a type from which this was changed due to being too young is only comments
                 const commentMatches = event.contentNoCode.match(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts|a)[^\s#]*#comment(\d+)(?:$|[\s"'_])/g); // eslint-disable-line no-useless-escape
@@ -1354,7 +1358,7 @@
             function convertOnlyQuestionRequestsToQuestion(items, requestsToCheck, idProperty, questionIdProperty) {
                 items.forEach((item) => {
                     requestsToCheck.forEach((request) => {
-                        if (item[idProperty] == request.post && request.event.type.onlyQuestions) { // eslint-disable-line eqeqeq
+                        if (item[idProperty] == request.post && request.onlyQuestions) { // eslint-disable-line eqeqeq
                             //This is a request which is only about questions, but this post was identified as an answer.
                             //  Change the postId for the request to the question_id for this answer.
                             request.post = item[questionIdProperty];
