@@ -107,6 +107,7 @@
             fireAlarm: 6373379,
             smokeDetector: 3735529,
             queen: 6294609,
+            fox9000: 3671802,
         };
         const targetRoomsByRoomNumber = {
             //SOCVR
@@ -207,6 +208,7 @@
         //const sdBangBangCommandsRegEx = /^\s*!!\/(?!blame|lick|wut|coffee|tea|brownie)/i;
         const sdBangBangCommandsRegEx = /^\s*!!\/(?:report)/i;
         const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+(?:\n*(?:k|v|n|naa|fp?|tp?|spam|rude|abusive|offensive|v|vand|vandalism|notspam|true|false|ignore|delete|del|remove|gone|postgone|why))u?-?)+\s*$/i;
+        const editMonitorRegEx = /bad edit/i;
 
         const RequestTypes = {
             DELETE: {
@@ -275,6 +277,14 @@
                 ],
                 underAgeTypeKey: 'DELETE',
                 onlyComments: true,
+            },
+            EDITMONITOR: {
+                name: 'Edit Monitor reports',
+                userIdMatch: knownUserIds.fox9000,
+                regexes: [editMonitorRegEx],
+                alwaysArchiveAfterSeconds: 2 * 60 * 60, //2 hours
+                //This really should have a separate call the the SE API to get review information, where possible.
+                underAgeTypeKey: 'DELETE',
             },
             SMOKEDETECTOR: {
                 name: 'SmokeDetector',
