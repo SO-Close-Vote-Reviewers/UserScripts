@@ -1603,10 +1603,26 @@
             });
         }
 
+        function removeMessageIdFromPopupAndMoveList(messageId) {
+            //Remove a message from the popup and move list.
+            messagesToMove = messagesToMove.filter((message) => message.msg != messageId); // eslint-disable-line eqeqeq
+            updateMessagesToMove();
+            setMessagesFound();
+            if (shownToBeMoved) {
+                $('.SOCVR-Archiver-monologue-for-message-' + messageId, shownToBeMoved).first().remove();
+            }
+        }
+
         function setShowToBeMovedScanCount() {
+            //Set the displayed number of events which have been scanned.
             if (scanCountSpan && scanCountSpan.length) {
                 scanCountSpan.text(nodes.count.value);
             }
+        }
+
+        function updateMessagesToMove() {
+            //Update the number of messages to move in the popup.
+            $('.SOCVR-Archiver-moveCount', shownToBeMoved).first().text(messagesToMove.length + ' message' + (messagesToMove.length > 1 ? 's' : '') + ' to move');
         }
 
         function showToBeMoved() {
@@ -1771,7 +1787,6 @@
                 /* eslint-enable indent */
             ].join('\n'));
             var moveMessagesDiv = $('.SOCVR-Archiver-moveMessages', shownToBeMoved).first();
-            var moveCountDiv = $('.SOCVR-Archiver-moveCount', shownToBeMoved).first();
             scanCountSpan = $('.SOCVR-Archiver-scan-count', shownToBeMoved).first();
             //Build the HTML for all the messages and add them to the DOM.
             var messagesHtml = '';
@@ -1810,10 +1825,6 @@
             });
             $('.SOCVR-Archiver-button-grave-move-list', shownToBeMoved).first().on('click', moveMoveListAndResetOnSuccess.bind(null, 90230)); //Graveyard
             $('.SOCVR-Archiver-button-san-move-list', shownToBeMoved).first().on('click', moveMoveListAndResetOnSuccess.bind(null, 126195)); //Sanitarium
-            function updateMessagesToMove() {
-                //Update the number of messages to move in the popup.
-                moveCountDiv.text(messagesToMove.length + ' message' + (messagesToMove.length > 1 ? 's' : '') + ' to move');
-            }
             moveMessagesDiv.on('click', function(event) {
                 //A click somewhere in the messages div.
                 var target = $(event.target);
@@ -1822,15 +1833,7 @@
                     event.preventDefault();
                     event.stopPropagation();
                     const messageId = target.data('messageId');
-                    messagesToMove = messagesToMove.filter(function(message) {
-                        if (message.msg == messageId) { // eslint-disable-line eqeqeq
-                            return false;
-                        } //else
-                        return true;
-                    });
-                    updateMessagesToMove();
-                    setMessagesFound();
-                    $('.SOCVR-Archiver-monologue-for-message-' + messageId, moveMessagesDiv).first().remove();
+                    removeMessageIdFromPopupAndMoveList(messageId);
                 } else if (target.hasClass('newreply')) {
                     //Let the user reply to a message displayed in the popup.
                     event.preventDefault();
@@ -1957,6 +1960,8 @@
                 //  This depends on having a tab open to chat.
                 var movedMessageId = chatInfo.message_id;
                 removeFromLSManualMoveList(movedMessageId);
+                //Remove it from the popup
+                removeMessageIdFromPopupAndMoveList(movedMessageId);
             }
         }
         if (!isTranscript && !isSearch) {
