@@ -1983,11 +1983,14 @@
 
         function addDeletedContentToMessageId(message, deletedContent) {
             //Actually add the deleted content to the message
-            var newContent = $('.content', message);
-            deletedContent.removeClass('content').addClass('SOCVR-Archiver-deleted-content');
-            newContent.append(deletedContent);
-            //Indicate to the user that the content is available.
-            newContent.find('.deleted').append('<span> &#128065;</span>');
+            const newContent = $('.content', message);
+            if(!newContent.find('SOCVR-Archiver-deleted-content').length) {
+                //Be sure to not double-add, as this can be called asynchronously after the prior check for the existence of the deleted content.
+                deletedContent.removeClass('content').addClass('SOCVR-Archiver-deleted-content');
+                newContent.append(deletedContent);
+                //Indicate to the user that the content is available.
+                newContent.find('.deleted').append('<span> &#128065;</span>');
+            }
         }
 
         function fechHistoryForMessage(messageId, callback) {
