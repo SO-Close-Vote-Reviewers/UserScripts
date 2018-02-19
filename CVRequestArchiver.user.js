@@ -2491,7 +2491,7 @@
             var length = manualMoveList.length;
             var newText = '[List has ' + length + ' message' + (length === 1 ? '' : 's') + '.]';
             $(selector, element).each(function() {
-                this.title = this.title.replace(/^((?:.(?!\[))+)(?:\s*\[.*)?$/, '$1 ' + newText);
+                this.title = this.title.replace(/^((?:.(?!\[))+)(?:\s*\[List.*)?$/, '$1 ' + newText);
             });
         }
 
