@@ -1858,13 +1858,15 @@
             //This is a hack to try to eliminate the problem. The issue has not been reliably duplicated, so it's unclear if this will actually solve the issue.
             //It'd be better to find out what's causing the problem, but it looks like it's something in SE's code
             //  adding the style (probably a .hide() ) for some reason.
-            setTimeout(function() {
-                $('.tiny-signature', moveMessagesDiv).removeAttr('style');
-            }, 50);
             //Temporarily do this again.  This should give enough time to notice that the problem exists and wasn't corrected by the first run one.
-            setTimeout(function() {
-                $('.tiny-signature', moveMessagesDiv).removeAttr('style');
-            }, 5000);
+            //  Even with doing this at 50 and 5000, the problem still prevented the tiny-signature from showing.
+            [50, 1000, 5000, 10000].forEach((time) => {
+                setTimeout(() => {
+                    if (moveMessagesDiv) {
+                        $('.tiny-signature', moveMessagesDiv).removeAttr('style');
+                    }
+                }, time);
+            });
         }
 
         function removeShownToBeMoved() {
