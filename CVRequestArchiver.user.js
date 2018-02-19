@@ -807,7 +807,7 @@
                 if (before) {
                     data.before = before;
                 }
-                $.ajax({
+                const ajaxOptions = {
                     type: 'POST',
                     url: '/chats/' + room + '/events',
                     data: data,
@@ -837,7 +837,14 @@
                         resolve(getEvents(count - 500, response.events[0].message_id, promised, needParentList));
                     },
                     error: function(xhr, status, error) {
-                        console.error('AJAX Error getting events:', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  count:', count, '\n::  before:', before);
+                        console.error('AJAX Error getting events:',
+                            '\n::  xhr:', xhr,
+                            '\n::  status:', status,
+                            '\n::  error:', error,
+                            '\n::  ajaxOptions:', ajaxOptions,
+                            '\n::  count:', count,
+                            '\n::  before:', before
+                        );
                         if (confirm('$.ajax encountered an error getting events. See console for data.' + (error && error.length < 100 ? ' error: ' + error : '') +
                                 '\n\ncount:' + count + '::  before:' + before + '\n\nRetry fetching these?')) {
                             //Allow the user to retry.
@@ -846,7 +853,8 @@
                             reject(new Error('AJAX Error getting events: ' + error));
                         }
                     },
-                });
+                };
+                $.ajax(ajaxOptions);
             });
         }
 
