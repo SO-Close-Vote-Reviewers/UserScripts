@@ -638,11 +638,13 @@
             //  has a link which is not clickable due to the controls obscuring it.
             //  Now: Press & hold Caps-Lock to not show the meta controls.
             //Show the meta options for your own posts (have to be able to move them).
+            '#chat-body .monologue.mine:hover .messages .timestamp:hover + div.message .meta,',
             '#chat-body .monologue.mine:hover .messages .message:hover .meta {',
             '    background-color: #fbf2d9;',
             '    display: inline-block;',
             '}',
             //Page JavaScript is not functional for these
+            '#chat-body .monologue.mine:hover .messages .timestamp:hover + div.message .meta .vote-count-container,',
             '#chat-body .monologue.mine:hover .messages .message:hover .meta .vote-count-container {',
             '    display: none;',
             '}',
