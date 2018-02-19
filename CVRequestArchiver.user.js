@@ -1549,9 +1549,11 @@
 
         function fillMoveListFromPopupTo100(priorManualMoveListLength) {
             if (manualMoveList.length < 100) {
-                addToLSManualMoveList($('.message:not(.SOCVR-Archiver-multiMove-selected)', shownToBeMoved).slice(manualMoveList.length - 100).map(function() {
-                    return getMessageIdFromMessage(this);
-                }).get());
+                if(shownToBeMoved) {
+                    addToLSManualMoveList($('.message:not(.SOCVR-Archiver-multiMove-selected)', shownToBeMoved).slice(manualMoveList.length - 100).map(function() {
+                        return getMessageIdFromMessage(this);
+                    }).get());
+                }
             }
             const manualMoveListLengthPriorToGetMore = manualMoveList.length;
             if (priorManualMoveListLength === manualMoveListLengthPriorToGetMore) {
