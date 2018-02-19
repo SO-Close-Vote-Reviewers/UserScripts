@@ -839,7 +839,8 @@
                         resolve(getEvents(count - 500, response.events[0].message_id, promised, needParentList));
                     },
                     error: function(xhr, status, error) {
-                        console.error('AJAX Error getting events:',
+                        console.error(
+                            'AJAX Error getting events:',
                             '\n::  xhr:', xhr,
                             '\n::  status:', status,
                             '\n::  error:', error,
@@ -1559,7 +1560,7 @@
 
         function fillMoveListFromPopupTo100(priorManualMoveListLength) {
             if (manualMoveList.length < 100) {
-                if(shownToBeMoved) {
+                if (shownToBeMoved) {
                     addToLSManualMoveList($('.message:not(.SOCVR-Archiver-multiMove-selected)', shownToBeMoved).slice(manualMoveList.length - 100).map(function() {
                         return getMessageIdFromMessage(this);
                     }).get());
@@ -2013,7 +2014,7 @@
         function addDeletedContentToMessageId(message, deletedContent) {
             //Actually add the deleted content to the message
             const newContent = $('.content', message);
-            if(!newContent.find('SOCVR-Archiver-deleted-content').length) {
+            if (!newContent.find('SOCVR-Archiver-deleted-content').length) {
                 //Be sure to not double-add, as this can be called asynchronously after the prior check for the existence of the deleted content.
                 deletedContent.removeClass('content').addClass('SOCVR-Archiver-deleted-content');
                 newContent.append(deletedContent);
