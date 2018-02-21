@@ -3126,7 +3126,7 @@
                          '}' +
                          '.diffbody {' +
                          '    white-space: pre-wrap;' +
-                         '    font-family: "courier new", "lucida sans typewriter", mono, monospace' +
+                         '    font-family: "courier new", "lucida sans typewriter", mono, monospace' + 
                          '}' +
                          '.add {' +
                          '    background: #CFC;' +
