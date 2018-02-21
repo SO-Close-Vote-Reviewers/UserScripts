@@ -2855,8 +2855,8 @@
         App.funcs.createButton = function() {
             if (!App.selections.redoButton.length) return false;
 
-            App.selections.buttonWrapper = $('<li class="wmd-magic-edit"/>');
-            App.selections.buttonFix = $('<img src="//i.stack.imgur.com/Om5pL.png" class="wmd-button ToolkitFix" title="Fix the content!" />');
+            App.selections.buttonWrapper = $('<li class="wmd-magic-edit wmd-button"/>');
+            App.selections.buttonFix = $('<span class="ToolkitFix" title="Fix the content!" style="background-size:contain !important"></span>');
             App.selections.buttonInfo = $('<div class="ToolkitInfo">');
 
             // Build the button
@@ -2870,19 +2870,14 @@
             App.selections.buttonFix.click(App.funcs.fixEvent);
 
             App.selections.buttonWrapper.css({
-                'position': 'relative',
-                'left': '410px',
+                'margin-left': '40px',
                 'display': 'inline-block',
                 'overflow': 'visible',
-                //'height': '55%',
-                'height': '90%',  // Temporary? 21-Apr-2016 Stack changed their CSS.
                 'white-space': 'nowrap'
             });
             App.selections.buttonFix.css({
-                'position': 'static',
                 'display': 'inline-block',
-                'width': 'auto',
-                'height': '100%'
+                'background-image': 'url("//i.stack.imgur.com/Om5pL.png")',
             });
             App.selections.buttonInfo.css({
                 'position': 'static',
