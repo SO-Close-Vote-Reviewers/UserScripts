@@ -219,9 +219,14 @@
                 replacement: "jQuery",
                 reason: App.consts.reasons.trademark
             },
-            angular: {
-                expr: /\bangular(?:js)?\b(?![.-]\w)/gi,
+            angularjs: {
+                expr: /\bangularjs\b(?![.-]\w)/gi, //Updated as Angular and AngularJS are two different things.
                 replacement: "AngularJS",
+                reason: App.consts.reasons.trademark
+            },
+            angular: {
+                expr: /\bangular\b(?![.-]\w)/gi,
+                replacement: "Angular",
                 reason: App.consts.reasons.trademark
             },
             php: {
@@ -404,7 +409,7 @@
                 reason: App.consts.reasons.trademark
             },
             chrome: {
-                expr: /\bchrome\b/gi,
+                expr: /\bchrome\b(?![-.]\w)/gi, //Don't match chrome.* namespace and chrome-* schemes
                 replacement: "Chrome",
                 reason: App.consts.reasons.trademark
             },
@@ -723,6 +728,121 @@
                 replacement: "$1Perl",
                 reason: App.consts.reasons.trademark
             },
+            htc: {
+                expr: /\bhtc\b/gi,
+                replacement: "HTC",
+                reason: App.consts.reasons.trademark
+            },
+            greasemonkey: {
+                expr: /\bgre[ea]semonkey\b/gi, //Should this also be correcting spelling, or should that be a separate rule?
+                replacement: "Greasemonkey",
+                reason: App.consts.reasons.trademark
+            },
+            tampermonkey: {
+                expr: /\btampermonkey\b/gi,
+                replacement: "Tampermonkey",
+                reason: App.consts.reasons.trademark
+            },
+            mozilla: {
+                expr: /\bmozill?a\b/gi,
+                replacement: "Mozilla",
+                reason: App.consts.reasons.trademark
+            },
+            webextensions: {
+                expr: /\bweb-*extension(s*)\b/gi,
+                replacement: "WebExtension$1",
+                reason: App.consts.reasons.trademark
+            },
+            firefoxWebextensions: {
+                expr: /\bfirefox[ \-]*web[ \-]*exten[st]ion(s*)\b/gi,
+                replacement: "Firefox WebExtension$1",
+                reason: App.consts.reasons.trademark
+            },
+            microsoftedge: {
+                expr: /\bmicrosoft[ \-]*edge\b/gi,
+                replacement: "Microsoft Edge",
+                reason: App.consts.reasons.trademark
+            },
+            typescript: {
+                expr: /\btypescript\b/gi,
+                replacement: "TypeScript",
+                reason: App.consts.reasons.trademark
+            },
+            xulrunner: {
+                expr: /\bxulrunner\b/gi,
+                replacement: "XULRunner",
+                reason: App.consts.reasons.trademark
+            },
+            xul: {
+                expr: /\bxul\b/gi,
+                replacement: "XUL",
+                reason: App.consts.reasons.trademark
+            },
+            webrtc: {
+                expr: /\bwebrtc\b/gi,
+                replacement: "WebRTC",
+                reason: App.consts.reasons.trademark
+            },
+            cakephp: {
+                expr: /\bcakephp\b/gi,
+                replacement: "CakePHP",
+                reason: App.consts.reasons.trademark
+            },
+            usps: {
+                expr: /\busps\b/gi,
+                replacement: "USPS",
+                reason: App.consts.reasons.trademark
+            },
+            ups: {
+                expr: /\bups\b/gi,
+                replacement: "UPS",
+                reason: App.consts.reasons.trademark
+            },
+            fedex: {
+                expr: /\bFedEx\b/gi,
+                replacement: "FedEx",
+                reason: App.consts.reasons.trademark
+            },
+            shopify: {
+                expr: /\bshopify\b/gi,
+                replacement: "Shopify",
+                reason: App.consts.reasons.trademark
+            },
+            xcode: {
+                expr: /\bxcode\b/gi,
+                replacement: "Xcode",
+                reason: App.consts.reasons.trademark
+            },
+            imagemagic: {
+                expr: /\bimagemagic\b/gi,
+                replacement: "ImageMagic",
+                reason: App.consts.reasons.trademark
+            },
+            openfire: {
+                expr: /\bopenfire\b/gi,
+                replacement: "Openfire",
+                reason: App.consts.reasons.trademark
+            },
+            wifi: {
+                expr: /\bwi-?fi\b/gi,
+                replacement: "Wi-Fi",
+                reason: App.consts.reasons.trademark
+            },
+            springboot: {
+                expr: /\bspring ?boot\b/gi,
+                replacement: "Spring Boot",
+                reason: App.consts.reasons.trademark
+            },
+            springcloud: {
+                expr: /\bspring ?cloud\b/gi,
+                replacement: "Spring Cloud",
+                reason: App.consts.reasons.trademark
+            },
+            jmeter: {
+                expr: /\bjmeter\b/gi,
+                replacement: "JMeter",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
@@ -988,6 +1108,31 @@
             },
             ram_rom: {
                 expr: /(?:[^\w.\-/\\_]|^)r[ao]m\b(?![.\-]\w|[/\\_])/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            sdk: {
+                expr: /(?:[^\b\w.]|^)sdk\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            usb: {
+                expr: /(?:[^\b\w.]|^)usb\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            utf: {
+                expr: /(?:[^\b\w.]|^)utf\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            xmpp: {
+                expr: /(?:[^\b\w.]|^)xmpp\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            seo: {
+                expr: /(?:[^\b\w.]|^)seo\b/gi,
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.acronym
             },
@@ -1867,9 +2012,10 @@
                 reason: App.consts.reasons.spelling
             },
             un_initialize: { // >4K instances https://regex101.com/r/lY2hY1/1
-                expr: /\b((?:un-?|re-?)?i)n?i?t[ia]+li?[zs](e|ed|[eo]r|es|ing)\b/gi,
-                replacement: function(match, prefix, suffix) {
-                    return (prefix+'nitializ'+suffix).replace("-","");
+                //Should not change from/to British <-> American English.
+                expr: /\b((?:un-?|re-?)?i)n?i?t[ia]+li?([zs])(e|ed|[eo]r|es|ing)\b/gi,
+                replacement: function(match, prefix, engAmer, suffix) {
+                    return (prefix+'nitiali' + engAmer + suffix).replace("-","");
                 },
                 reason: App.consts.reasons.spelling
             },
@@ -1893,9 +2039,9 @@
                 replacement: "$1 read",
                 reason: App.consts.reasons.spelling
             },
-            customize: {  // http://grammarist.com/spelling/customise-customize/
-                expr: /\b(c)u[st]+[oui]mi[zs](e)?/gi,
-                replacement: "$1ustomiz$2",
+            customize: {  // http://grammarist.com/spelling/customise-customize/    Don't change AME/BRE usage.
+                expr: /\b(c)u[st]+[oui]mi([zs])(e)?/gi,
+                replacement: "$1ustomi$2$3",
                 reason: App.consts.reasons.spelling
             },
             customizable: {  // Common errors are to retain 'e', and/or to use ible, not able
@@ -2230,13 +2376,38 @@
                 reason: App.consts.reasons.spelling
             },
             background: {  // 1,583+ posts
-                expr: /\b(b)a[ck]+ ?gr[ou]+[nd]+\b/gi,
-                replacement: "$1ackground",
+                expr: /\b(b)a[ck]+ ?gr[ou]+[nd]+(s?)s*\b/gi,
+                replacement: "$1ackground$2",
                 reason: App.consts.reasons.spelling
             },
             preempt: {
                 expr: /\b(p)r[e -]+m[pt]+/gi,
                 replacement: "$1reempt",
+                reason: App.consts.reasons.spelling
+            },
+            extension: {
+                expr: /\b(e)xten[st]ion(s?)s*\b/gi,
+                replacement: "$1xtension$2",
+                reason: App.consts.reasons.spelling
+            },
+            addon: {
+                expr: /\b(a)ddon(s?)s*\b/gi,
+                replacement: "$1dd-on$2",
+                reason: App.consts.reasons.spelling
+            },
+            addonsdk: {
+                expr: /\b(a)ddon-?sdk\b/gi,
+                replacement: "$1dd-on SDK",
+                reason: App.consts.reasons.spelling
+            },
+            thankful: {
+                expr: /\b(t)hankfull?\b/gi,
+                replacement: "$1hankful",
+                reason: App.consts.reasons.spelling
+            },
+            know: {
+                expr: /\b(k)now?\b/gi,
+                replacement: "$1now",
                 reason: App.consts.reasons.spelling
             },
             /*
