@@ -45,34 +45,20 @@
 
         App.globals.reasons = {};
 
-        App.globals.replacedStrings = {
-            "auto":   [],
-            "quote":  [],
-            "inline": [],
-            "block":  [],
-            "lsec":   [],
-            "links":  [],
-            "tags":   []
-        };
         App.globals.placeHolders = {
-            "auto":   "_xAutoxInsertxTextxPlacexHolder_",
-            "quote":  "_xBlockxQuotexPlacexHolderx_",
-            "inline": "_xCodexInlinexPlacexHolderx_",
-            "block":  "_xCodexBlockxPlacexHolderx_",
-            "lsec":   "_xLinkxSectionxPlacexHolderx_",
-            "links":  "_xLinkxPlacexHolderx_",
-            "tags":   "_xTagxPlacexHolderx_"
+            "auto":        "_xAutoxInsertxTextxPlacexHolderx_",
+            "quote":       "_xBlockxQuotexPlacexHolderx_",
+            "inline":      "_xCodexInlinexPlacexHolderx_",
+            "block":       "_xCodexBlockxPlacexHolderx_",
+            "blockStart":  "_xCodexBlockxStartxPlacexHolderx_",
+            "lsec":        "_xLinkxSectionxPlacexHolderx_",
+            "links":       "_xLinkxPlacexHolderx_",
+            "tags":        "_xTagxPlacexHolderx_"
         };
-        App.globals.placeHolderChecks = {
-            "auto":   /_xAutoxInsertxTextxPlacexHolder_/gi,
-            "quote":  /_xBlockxQuotexPlacexHolderx_/gi,
-            "inline": /_xCodexInlinexPlacexHolderx_/gi,
-            "block":  /_xCodexBlockxPlacexHolderx_/gi,
-            "lsec":   /_xLinkxSectionxPlacexHolderx_/gi,
-            "links":  /_xLinkxPlacexHolderx_/gi,
-            "tags":   /_xTagxPlacexHolderx_/gi
-        };
-        App.globals.placeHolderChecksKeys = Object.keys(App.globals.placeHolderChecks);
+        App.globals.replacedStrings = {};
+        App.globals.replacedStringsOriginal = {};
+        App.globals.placeHolderChecks = {};
+        App.globals.placeHolderKeys = Object.keys(App.globals.placeHolders);
         App.globals.checks = {
             //automatically inserted text
             //        https://regex101.com/r/cI6oK2/1
@@ -84,35 +70,37 @@
             //        https://regex101.com/r/lL6fH3/1
             "inline": /`[^`\n]+`/g,
             //code blocks and multiline inline code.
-            //        https://regex101.com/r/eC7mF7/3
-            "block":  /(?:(?:^ *(?:[\r\n]|\r\n))?`[^`]+`|(?:^ *(?:[\r\n]|\r\n))^(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ ]+\n)*)+)+)/gm,
+            //        https://regex101.com/r/eC7mF7/4
+            "block":  /(?:(?:^[ \t]*(?:[\r\n]|\r\n))?`[^`]+`|(?:^[ \t]*(?:[\r\n]|\r\n))^(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ \t]+\n)*)+)+)/gm,
+            //code blocks at the start of the post.
+            //        https://regex101.com/r/vu7fBd/1
+            "blockStart":  /(?:^(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ ]+\n)*)+)+)/g,
             //link-sections
             //  Testing of this and the "links" RegExp were done within the same regex101.com "regex".
             //  The prior version of this was https://regex101.com/r/tZ4eY3/7 it was saved and became version 21.
             //  It was then forked into it's own regex:
-            //        https://regex101.com/r/C7nXfd/1
+            //        https://regex101.com/r/C7nXfd/2
             "lsec":   /(?:^ *(?:[\r\n]|\r\n))?(?:  (?:\[\d\]): \w*:+\/\/.*\n*)+/gm,
             //links and pathnames
             //  See comment above the "lsec" RegExp regarding testing sharing the same "regex" on regex101.com
-            //        https://regex101.com/r/tZ4eY3/20
-            //  There is a version 21 of this regex101.com "regex", which is a non-current version of the "lsec" (above) RegExp.
-            //  If you need to make changes, just go ahead and save them there. The "lsec" testing has been forked into another regex101.com regex.
-            "links":  /\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d:/?#\[\]@!$&'()*+,;=\-~%]*/g,
+            //        https://regex101.com/r/tZ4eY3/22
+            "links":  /!?\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])(?:\](?:\([^\)\n]+\)|\[[^\]\n]+\]))?|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d:/?#\[\]@!$&'()*+,;=\-~%]*/gi,
             //        https://regex101.com/r/bF0iQ0/2   tags and html comments
             "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>|\[tag:[\w.-]+\]/gi
         };
-        App.globals.checksr = (function(o1){
-            var o2 = {};
-            var k= Object.keys(o1);
-            for(var i = k.length-1; i >= 0; --i) o2[k[i]] = o1[k[i]];
-            return o2;
+        //Make a shallow copy of the App.globals.checks Object
+        App.globals.checksr = (function(objIn){
+            var objOut = {};
+            var keys = Object.keys(objIn);
+            for(var i = keys.length-1; i >= 0; --i) objOut[keys[i]] = objIn[keys[i]];
+            return objOut;
         })(App.globals.checks);
 
         // Assign modules here
         App.pipeMods = {};
 
         // Define order in which mods affect  here
-        App.globals.order = ["omit", "codefix", "edit", "diff", "replace", "output"];
+        App.globals.order = ["omit", "codefix", "inlineImages", "edit", "diff", "replace", "output"];
 
         // Define reason constant strings
         App.consts.reasons = {
@@ -127,7 +115,8 @@
             punctuation:   "punctuation",
             layout:        "layout",
             silent:        "",                              // Unreported / uncounted
-            titleSaysAll:  "replicated title in body"
+            titleSaysAll:  "replicated title in body",
+            inlineImage:   "inline image"
         };
 
 
@@ -2711,11 +2700,21 @@
             }
         };
 
+        //Clear the global values which hold replacements
+        App.funcs.clearPlaceHolders = function(before, after) {
+            App.globals.placeHolderKeys.forEach(function(key) {
+                App.globals.replacedStrings[key] = [];
+                App.globals.replacedStringsOriginal[key] = [];
+                App.globals.placeHolderChecks[key] = new RegExp(App.globals.placeHolders[key],'gi');
+            });
+        };
+        App.funcs.clearPlaceHolders();
+
         // Check if the placeholders are the same in two pieces of text.
         App.funcs.didPlaceholdersChange = function(before, after) {
             //Currently, we only check that the number of instances for each type of placeholder is the
             //  same in both texts.
-            return App.globals.placeHolderChecksKeys.some(function(key) {
+            return App.globals.placeHolderKeys.some(function(key) {
                 var regEx = App.globals.placeHolderChecks[key];
                 var beforeMatches = before.match(regEx);
                 var afterMatches = after.match(regEx);
@@ -2893,6 +2892,7 @@
         };
 
         App.funcs.fixEvent = function() {
+            App.funcs.clearPlaceHolders();
             return App.funcs.popItems(), App.pipe(App.items, App.pipeMods, App.globals.order), false;
         };
 
@@ -2968,6 +2968,7 @@
             for (var type in App.globals.checks) {
                 data.body = data.body.replace(App.globals.checks[type], function(match) {
                     App.globals.replacedStrings[type].push(match);
+                    App.globals.replacedStringsOriginal[type].push(match);
                     return App.globals.placeHolders[type];
                 });
             }
@@ -2980,6 +2981,42 @@
                 // https://regex101.com/r/tX9pM3/1              https://regex101.com/r/tX9pM3/2                 https://regex101.com/r/tX9pM3/3
                 if (/^`[^]+`$/.test(replaced[i])) replaced[i] = '\n\n' + /(?!`)((?!`)[^])+/.exec(replaced[i])[0].replace(/(.+)/g, '    $1');
             }
+        };
+
+        App.pipeMods.inlineImages = function(data) {
+            //This only attempts to substitute image links in the format [foo][n]. It doesn't do [foo](URL.png)
+            if (!data.body) return false;
+            var links = App.globals.replacedStrings.links.filter(function(link) {
+                return /^\s*\[[^\[]*\]\s*\[\d+\]\s*$/.test(link);
+            });
+            var linkNumbers = links.map(function(link) {
+                return link.match(/^\s*\[[^\[]*\]\s*\[(\d+)\]\s*$/)[1];
+            });
+            //Find if matching https://i.stack.imgur.com/*.png link.
+            var imageNumbers = linkNumbers.filter(function(link, index) {
+                var testPng = new RegExp('^\\s*\\[' + linkNumbers[index] + '\\]:\\s*https?:\\/\\/i\\.stack\\.imgur\\.com\\/.*\\.(?:png|gif|jpg|jpeg|tif|tiff|bmp)\s*$', 'm');
+                return App.globals.replacedStrings.lsec.some(function(section) {
+                    return testPng.test(section);
+                });
+            });
+            var replacements = 0;
+            imageNumbers.forEach(function(num) {
+                var replaceLink = new RegExp('^(\\s*)\\[([^\\[]*)\\](\\s*\\[' + num + '\\])(\\s*)$','');
+                App.globals.replacedStrings.links.forEach(function(link, index, array) {
+                    array[index] = link.replace(replaceLink, '$2:  \n$1[![$2]$3][' + num + ']$4').replace(/^enter image description here:  \n/,'');
+                    if(array[index] !== link) {
+                        replacements++;
+                    }
+                });
+            });
+            if(replacements) {
+                if ('inlineImage' in App.globals.reasons) {
+                    App.globals.reasons.inlineImage.count += replacements;
+                } else {
+                    App.globals.reasons.inlineImage = { reason:'inline image' + (replacements > 1 ? 's' : ''), editId:'inlineImage', count:replacements };
+                }
+            }
+            return data
         };
 
         App.pipeMods.edit = function(data) {
