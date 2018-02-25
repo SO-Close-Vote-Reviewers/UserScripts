@@ -3206,6 +3206,10 @@
             '.request-info > a[data-post-status="answer"] {',
             '    margin-left: -2px;',
             '}',
+            // Add a pixel of space for request info that is "cld" or "closed" due to the "c" being too close to the "l".
+            '.request-info > a[data-post-status="closed"]::first-letter {',
+            '    margin-right: 1px;',
+            '}',
             '.request-info.urrsRequestNoRequestTag {',
             '    border-left: 5px solid #f6f6f6;',
             '}',
