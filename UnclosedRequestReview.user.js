@@ -2546,7 +2546,7 @@
 
     funcs.getTranscriptDate = () => {
         //Get the date for the transcript
-        const bodyDate = document.body.dataset.uursTranscriptDate;
+        const bodyDate = document.body.dataset.urrsTranscriptDate;
         if (bodyDate) {
             return new Date(bodyDate);
         }
@@ -2565,7 +2565,7 @@
         //Days are UTC days
         const transcriptDate = new Date(Date.UTC(year, monthIndex, dayNumber, hour, minute));
         //Store the date for the page, so we don't have to parse it more than once.
-        document.body.dataset.uursTranscriptDate = transcriptDate.toJSON();
+        document.body.dataset.urrsTranscriptDate = transcriptDate.toJSON();
         return transcriptDate;
     };
 
@@ -3397,7 +3397,7 @@
             '#urrsOptionsDialogInner td:not(:first-child) {',
             '    padding-left: 35px;',
             '}',
-            '#urrsOptionsDialogInner #uursModalOptionsExcludeTagsCell {',
+            '#urrsOptionsDialogInner #urrsModalOptionsExcludeTagsCell {',
             '    width: 30%;',
             '}',
             '.urrsOptionsRangeContainer {',
@@ -3414,18 +3414,18 @@
             '#urrsOptionsDialogInner input[type="range"] {',
             '    width: 350px;',
             '}',
-            '.uursModalOptionsTagControlButton:not(:first-child) {',
+            '.urrsModalOptionsTagControlButton:not(:first-child) {',
             '    margin-left: 5px;',
             '}',
-            '.uursModalOptionsTagControlButton {',
+            '.urrsModalOptionsTagControlButton {',
             '    display: inline;',
             '    margin-left: 10px;',
             '}',
-            '.uursModalOptionsTagControlButtonContainer {',
+            '.urrsModalOptionsTagControlButtonContainer {',
             '    display: block;',
             '    margin-top: 9px;',
             '}',
-            '.uursBlur {',
+            '.urrsBlur {',
             '    opacity: .4;',
             '}',
             '.urrsModalDialogInner .urrsOptionsCheckboxLabel-inline {',
@@ -3611,18 +3611,18 @@
             '                    </div>',
             '                </td>',
             //Excluded/hidden tags list.
-            '                <td id="uursModalOptionsExcludeTagsCell">',
+            '                <td id="urrsModalOptionsExcludeTagsCell">',
             '                    <div class="urrsModalOptionsOptionGroupDescriptionContainer" title="This list is not dynamically synchronized between tabs. Like all UI selections, if you want the changes you make in one tab to show up in another tab, you will need to reload the other tab(s) for changes to take effect in that tab. Only the state of the UI for the tab in which you made the most recent change are kept. This means you will loose any UI settings made in a tab if you then make changes in another tab.\r\n\r\nThe position of tags is not dynamically changed when you check/uncheck them, because doing so is annoying in a very long list. The separation of &quot;Will be hidden&quot;/&quot;Won\'t be hidden&quot; will be updated the next time the options dialog is opened.">',
             '                        <div class="urrsModalOptionsOptionHeader">',
             '                            Tags to hide (search page)',
             '                        </div>',
             '                        <div class="urrsModalOptionsOptionGroup">',
             '                            <div class="urrsModalOptionsTagsInfo">Select the tags you desire to be hidden when the "tags" criteria is not selected. A match is checked against all tags on the question, not just the primary tag displayed in the request.</div>',
-            '                            <div class="uursModalOptionsTagControlButtonContainer">',
-            '                                <button class="uursModalOptionsTagControlButton" title="Check all boxes">all</button>',
-            '                                <button class="uursModalOptionsTagControlButton" title="Uncheck all boxes">none</button>',
-            '                                <button class="uursModalOptionsTagControlButton" title="Invert the boxes that are checked">invert</button>',
-            '                                <button class="uursModalOptionsTagControlButton" title="Check all tags that are actually displayed in the visible messages. This is not all tags which are contained in the questions. It is only the tags which you can see on the page, which will generally be the primary tag for the question.">visible</button>',
+            '                            <div class="urrsModalOptionsTagControlButtonContainer">',
+            '                                <button class="urrsModalOptionsTagControlButton" title="Check all boxes">all</button>',
+            '                                <button class="urrsModalOptionsTagControlButton" title="Uncheck all boxes">none</button>',
+            '                                <button class="urrsModalOptionsTagControlButton" title="Invert the boxes that are checked">invert</button>',
+            '                                <button class="urrsModalOptionsTagControlButton" title="Check all tags that are actually displayed in the visible messages. This is not all tags which are contained in the questions. It is only the tags which you can see on the page, which will generally be the primary tag for the question.">visible</button>',
             '                            </div>',
             '                            <div id="urrsModalOptionsExcludeTagCheckboxesContainer" title="">',
             '                            </div>',
@@ -3843,7 +3843,7 @@
             funcs.config.saveNonUi(config.nonUi);
         }
         if (targetId === '' && target.nodeName === 'BUTTON') {
-            if (target.classList.contains('uursModalOptionsTagControlButton')) {
+            if (target.classList.contains('urrsModalOptionsTagControlButton')) {
                 let setCheck = false;
                 let unsetCheck = false;
                 let invertCheck = false;
