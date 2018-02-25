@@ -553,9 +553,45 @@
             //  as that just causes a notification to be shown.
             ignoreWindowClicks = false;
         }, 100);
-        if (event.isTrusted && event.ctrlKey && event.button === 2) {
+        const target = event.target;
+        if (target.classList.contains('urrs-receiveAllClicks')) {
+            const detail = {};
+            [
+                // These are of primary interest
+                'ctrlKey',
+                'shiftKey',
+                'altKey',
+                'metaKey',
+                'button',
+                // The rest aren't of that much interest
+                'screenX',
+                'screenY',
+                'clientX',
+                'clientY',
+                'buttons',
+                'relatedTarget',
+                'region',
+                'layerX',
+                'layerY',
+                'movementX',
+                'movementY',
+                'offsetX',
+                'offsetY',
+                'detail',
+                'composed',
+                'mozInputSource',
+                'mozPresure',
+            ].forEach((prop) => {
+                detail[prop] = event[prop];
+            });
+            const newEvent = new CustomEvent('urrs-allClicks', {
+                detail: detail,
+                bubbles: true,
+                cancelable: true,
+            });
+            target.dispatchEvent(newEvent);
+        } else if (config.nonUi.clickTagTagToOpenCVQ && event.isTrusted && Object.keys(config.nonUi.clickTagTagToOpenCVQButtonInfo).every((key) => event[key] === config.nonUi.clickTagTagToOpenCVQButtonInfo[key])) {
             //A real user Ctrl-click on button 2
-            const target = event.target;
             if (target.classList.contains('ob-post-tag')) {
                 const tagName = target.textContent;
                 //Force this to SO. Other sites don't have chat in a separate domain, so would need to find the domain for
@@ -567,8 +603,8 @@
             }
         }
     };
-    //Now done by monitoring mousedown and mouseup in order to get around a Chrome "feature" which results in click events not
-    //  being fired for any button other than button 1.
+    //Now done by monitoring mousedown and mouseup, and click and auxclick in order to get around a Chrome "feature" which results in click events not
+    //  being fired for any button other than button 1. Chrome recently implemented that non-button 1 clicks are an "auxclick".
 
 
     //Remembering visited questions.
@@ -584,17 +620,53 @@
     };
 
     funcs.visited.listenForLinkMouseUp = (event) => {
+        //If a mouseup occurs, consider it a click, if the target is the same as the last mousedown.
+        //  This will have issues with detecting clicks when the user presses multiple buttons at the same time.
         if (mostRecentMouseDownEvent.target === event.target && mostRecentMouseDownEvent.button === event.button) {
             //Delay so the 'click' event can fire. If not, we may make the message display:none prior to the
             //  click taking effect.
-            setTimeout(() => {
-                funcs.windowCtrlClickListener(event);
-                if (!event.defaultPrevented) {
-                    funcs.visited.listenForLinkClicks(event);
-                }
-            }, 10);
+            funcs.visited.listenForClicks(event);
         }
     };
+
+    var mostRecentClick = null;
+
+    funcs.visited.listenForClicks = (event) => {
+        //Clicks are sometimes detected through mousedown/mouseup pairs, click events, or auxclick events.
+        //  But, we want to fire our listeners only once per user action. In addition, we want to have the
+        //  same effect of preventing the default action, on associated events (i.e. click), if our action called preventDefault().
+        if (mostRecentClick) {
+            //There has been a prior event, which may be the same user action.
+            const mustMatch = [
+                'target',
+                'button',
+                'screenX',
+                'screenY',
+                'clientX',
+                'clientY',
+                'buttons',
+                'ctrlKey',
+                'shiftKey',
+                'altKey',
+                'metaKey',
+            ];
+            if (mustMatch.every((key) => mostRecentClick[key] === event[key]) && (event.timeStamp - mostRecentClick.timeStamp) < 50) {
+                //Same action
+                if (mostRecentClick.defaultPrevented) {
+                    event.preventDefault();
+                }
+                return;
+            } //else
+        }
+        //New action
+        funcs.windowCtrlClickListener(event);
+        if (!event.defaultPrevented) {
+            funcs.visited.listenForLinkClicks(event);
+        }
+        mostRecentClick = event;
+    };
+    window.addEventListener('click', funcs.visited.listenForClicks, false);
+    window.addEventListener('auxclick', funcs.visited.listenForClicks, false);
 
     funcs.visited.listenForLinkClicks = (event) => {
         //Intended as main listener for clicks on links. Because Chrome doesn't fire click events for buttons other than the main one
@@ -1182,6 +1254,14 @@
         obj.addMisingTagTags = true;
         obj.add20kTag = true;
         obj.add10kTagToo = false;
+        obj.clickTagTagToOpenCVQ = true;
+        obj.clickTagTagToOpenCVQButtonInfo = {
+            ctrlKey: false,
+            shiftKey: false,
+            altKey: true,
+            metaKey: false,
+            button: 2,
+        };
         obj.chatShowPostStatus = true;
         obj.chatShowModeratorDiamond = true;
         obj.visitedLinkStyleActive = true;
@@ -3358,7 +3438,7 @@
             '}',
             '#urrsModalOptionsExcludeTagCheckboxesContainer {',
             '    width: 250px;',
-            '    height: 330px;',
+            '    height: 382px;',
             '    max-height: 100%;',
             '    overflow: auto;',
             '    margin-top: 5px;',
@@ -3558,6 +3638,22 @@
             '                                <input type="checkbox" id="urrsOptionsCheckbox-trackVisitedLinks"/>',
             '                                Remember "visited" posts. Unchecking <em>immediately</em> deletes visited list.',
             '                            </label>',
+            //Select click for jump to Tag's filtered CVQ
+            '                            <span class="urrsOptionsMultiCheckboxLine">',
+            '                                <label  class="urrsOptionsCheckboxLabel-inline" title="When you use an alternative click on a Tag-tag the Close Vote Queue (CVQ) will be opened with that tag filtered. Click on the tag here with the combination of alt-keys and click-button which you want to use to open the CVQ with the tag filtered.\nNote that your browser\'s default action is not prevented for these clicks, so you will want to select something where the side-effects are something you can live with.">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-clickTagTagToOpenCVQ"/>',
+            '                                    Tag-tag click to open filtered CVQ. Set: ',
+            '                                </label>',
+            (() => {
+                const theTag = funcs.makeTagTagElement('click here', true, 'Click here with the type of click you want to use on Tag-Tags to open the CVQ with that tag filtered.');
+                const innerTag = theTag.firstChild;
+                innerTag.classList.add('urrs-receiveAllClicks');
+                innerTag.id = 'urrsOptions-setTagTagOpenCVQ';
+                return theTag.outerHTML;
+            })(),
+            '                                is:',
+            '                                <span id="urrsOptions-clickTagTagToOpenCVQ-clickInfo"/>',
+            '                            </span>',
             '                        </div>',
             //SEARCH/review pages
             '                        <div class="urrsModalOptionsOptionHeader">',
@@ -3708,14 +3804,19 @@
         //Get the current styles for the background-color and text color. Generally, accounts for people using other themes.
         dialog.style.backgroundColor = funcs.getMainBackgroundColor();
         dialog.style.color = funcs.getMainTextColor();
+        //Add event handlers
         dialog.addEventListener('click', funcs.ui.handleOptionsClick, false);
         dialog.addEventListener('input', funcs.ui.handleOptionsClick, false);
         dialog.addEventListener('transitionend', funcs.ui.optionsTransitionend);
+        [].slice.call(dialog.querySelectorAll('.urrs-receiveAllClicks')).forEach((el) => {
+            el.addEventListener('urrs-allClicks', funcs.ui.optionDialogHandleCustomAllClicks, false);
+        });
         funcs.ui.setGeneralOptionsDialogCheckboxesToConfig(dialog);
         return dialog;
     };
 
     funcs.ui.optionsSetOptionsEnabledDisabled = () => {
+        //Some options should be disabled when others are not selected. Go through the options and disable/enable as configured.
         const enableRequired = {
             'urrsOptionsCheckbox-add20kTag': [
                 'urrsOptionsCheckbox-add10kTagToo',
@@ -3818,6 +3919,7 @@
         funcs.ui.positionOptionDialog();
         funcs.ui.setOptionDialogBackgroundColor();
         funcs.ui.setGeneralOptionsDialogCheckboxesToConfig();
+        funcs.ui.optionDialogSetTagTagClickDescriptorToConfig();
         const optionsDiv = document.getElementById('urrsOptionsDialog');
         const optionsAbsDiv = document.getElementById('urrsOptionsDialogInner');
         optionsDiv.style.display = 'block';
@@ -3895,9 +3997,40 @@
         document.getElementById('urrsOptionsDialogInner').style.backgroundColor = funcs.getMainBackgroundColor();
     };
 
-    //XXX Should do a better job of maintaining options-sync across potentially open tabs.
-    //XXX Need to re-verify that the visited list gets updated/not updated. Hmmmm... It may be best just to
-    //break the visited list into it's own storage location. That would make it easier to not have to worry about it not being synced
+    funcs.ui.optionDialogSetTagTagClickDescriptorToConfig = () => {
+        //In the Options Dialog show text indicating what the config is set to for the click combo used for opening the CVQ with a tag filtered.
+        const clickDescription = config.nonUi.clickTagTagToOpenCVQButtonInfo;
+        const descriptionText = clickDescription.button + ', ' + Object.keys(clickDescription).sort().map((key) => {
+            if (key === 'button' || !clickDescription[key]) {
+                return null;
+            }
+            return key.replace(/Key/g, '').replace(/^(.)/, ((value) => value.toUpperCase()));
+        }).filter((value) => value).join(', ').replace(/,\s*$/, '');
+        document.getElementById('urrsOptions-clickTagTagToOpenCVQ-clickInfo').textContent = descriptionText;
+    };
+
+    funcs.ui.optionDialogHandleCustomAllClicks = (event) => {
+        //Handle the custom event indicating that the window event handler detected a click.
+        const target = event.target;
+        const detail = event.detail;
+        const targetId = target.id;
+        if (targetId === 'urrsOptions-setTagTagOpenCVQ') {
+            //Having this be on a custom event guarantees that the event is one which the window listener will detect.
+            const clickDescription = {
+                ctrlKey: detail.ctrlKey,
+                shiftKey: detail.shiftKey,
+                altKey: detail.altKey,
+                metaKey: detail.metaKey,
+                button: detail.button,
+            };
+            Object.assign(config.nonUi.clickTagTagToOpenCVQButtonInfo, clickDescription);
+            funcs.config.saveNonUi(config.nonUi);
+            funcs.addRequestStylesToDOM();
+            funcs.ui.optionDialogSetTagTagClickDescriptorToConfig();
+        }
+    };
+
+    //XXX It may be best just to break the visited list into it's own storage location. That would make it easier to not have to worry about it not being synced
     //prior to updating anything else in nonUI.
     funcs.ui.handleOptionsClick = (event) => {
         //Deal with a click in the exclusion tag dialog.
@@ -3996,6 +4129,7 @@
         }
         funcs.ui.optionsSetOptionsEnabledDisabled();
         funcs.addRequestStylesToDOM();
+        funcs.ui.optionDialogSetTagTagClickDescriptorToConfig();
     };
 
     funcs.ui.invalidateAllDatasetExcludedTags = () => {
@@ -5225,7 +5359,6 @@
             messageCountText.innerHTML += '<br/><br/><br/>';
         }
 
-        //XXX This should be a user option to mark them, or remove them. See Archiver.
         funcs.mp.removeMessagesNotFromThisRoom = () => {
             //Look through the messages and remove those which are not from this room's transcript.
             [].slice.call(document.querySelectorAll('.message .action-link')).forEach((actionSpan) => {
