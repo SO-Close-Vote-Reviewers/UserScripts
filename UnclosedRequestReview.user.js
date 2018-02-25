@@ -100,17 +100,6 @@
         timeActivated: 0,
         milliseconds: 0,
     };
-    //The CSS to use for visited links.
-    const visitedStyle = [
-        'a:visited {',
-        '    color: #0480DE;',
-        '}',
-        //Normal has moderators colored blue. We are using that for visited links. So, show moderators another way.
-        '.username.moderator::before {',
-        '    content: "♦\\00202f";', //This is a thin non-breaking space
-        '    font-size: 120%;',
-        '}',
-    ].join('\n');
     //State for message processing
     const messageProcessing = {
         throttle: 0,
@@ -1193,6 +1182,12 @@
         obj.addMisingTagTags = true;
         obj.add20kTag = true;
         obj.add10kTagToo = false;
+        obj.chatShowPostStatus = true;
+        obj.chatShowModeratorDiamond = true;
+        obj.visitedLinkStyleActive = true;
+        obj.visitedLinksShowUsers = false;
+        obj.visitedLinksShowInSidebar = true;
+        obj.visitedLinksShowInSidebarUser = true;
         obj.chatCompleteRequestsFade = true;
         obj.chatCompleteRequestsHide = false;
         obj.chatCompleteRequestsDoNothing = false; //This is really just a placeholder. It's value isn't actually used.
@@ -1204,8 +1199,6 @@
         obj.transcriptMessagesNotInRoomMark = true;
         obj.transcriptMessagesNotInRoomDoNothing = false; //This is really just a placeholder. It's value isn't actually used.
         obj.useQuestionTitleAsLink = true;
-        obj.chatShowPostStatus = true;
-        obj.chatUseVisitedLinkStyle = true;
         obj.trackVisitedLinks = true;
         obj.chatAutoUpdateRate = DEFAULT_AUTO_UPDATE_RATE; //In minutes, 0=disabled
         obj.chatMinimumUpdateDelay = DEFAULT_MINIMUM_UPDATE_DELAY; //seconds minimum between updates.
@@ -3284,7 +3277,32 @@
                 '    display: none;',
                 '}',
             ].join('\n') : ''),
-        ].join('\n') + (config.nonUi.chatUseVisitedLinkStyle ? visitedStyle : ''));
+            //The CSS to use for visited links.
+            (config.nonUi.visitedLinkStyleActive ? [
+                //Transcript
+                'body#transcript-body #transcript .message a:visited:not(.button):not(.mobile-on),',
+                'body#transcript-body #sidebar a:visited:not(.button):not(.mobile-on),',
+                (config.nonUi.visitedLinksShowUsers ? 'body#transcript-body #transcript a:visited:not(.button):not(.mobile-on),' : ''),
+                //Search page
+                'body.outside .messages a:visited:not(.button):not(.mobile-on),',
+                'body.outside .searchroom a:visited:not(.button):not(.mobile-on),',
+                'body.outside #footer a:visited:not(.button):not(.mobile-on),',
+                (config.nonUi.visitedLinksShowUsers ? 'body.outside .signature a:visited:not(.button):not(.mobile-on),' : ''),
+                //Chat page
+                (config.nonUi.visitedLinksShowInSidebar ? 'body#chat-body #sidebar a:visited:not(.button):not(#leave):not(#leave-all):not(#room-menu):not(#toggle-notify)' + (config.nonUi.visitedLinksShowInSidebarUser ? '' : ':not([href^="/users/"])') + ',' : ''),
+                'body#chat-body #input-area a:visited:not(.button):not(#blame-id):not(.mobile-on),',
+                'body#chat-body #chat a:visited:not(.button)' + (config.nonUi.visitedLinksShowUsers ? '' : ':not(.signature)') + ' {',
+                '    color: #0480DE;',
+                '}',
+            ].join('\n') : ''),
+            //Normal has moderators colored blue. We are using that for visited links. So, show moderators another way.
+            (config.nonUi.chatShowModeratorDiamond ? [
+                '.username.moderator::before {',
+                '    content: "♦\\00202f";', //This is a thin non-breaking space
+                '    font-size: 120%;',
+                '}',
+            ].join('\n') : ''),
+        ].join('\n'));
     };
 
 
@@ -3423,6 +3441,10 @@
             '    display: block;',
             '    margin-top: 9px;',
             '}',
+            '.urrsOptionsMultiCheckboxLine {',
+            '    display: block;',
+            '    margin-bottom: 5px;',
+            '}',
             '.urrsBlur {',
             '    opacity: .4;',
             '}',
@@ -3509,9 +3531,32 @@
             '                                <input type="checkbox" id="urrsOptionsCheckbox-useQuestionTitleAsLink"/>',
             '                                Change bare question URLs to the question\'s title.',
             '                            </label>',
+            //Chat visited link style
+            '                            <span class="urrsOptionsMultiCheckboxLine">',
+            '                                <label title="Color visited links blue. If neither of the sub-options are selected, only the visited links within messages are blue. On the search page, all visited links have been blue since 2015. These options are applied on the main chat pages, transcripts, and searches for SOCVR (and associated rooms)." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-visitedLinkStyleActive"/>',
+            '                                    Blue visited links:',
+            '                                </label>',
+            //Blue Visited Links: User profiles (left of messages)
+            '                                <label title="Show blue visited links for the links to the left of chat messages which are to the author\'s chat-profile.\nFor many people this is confusing, as they are expecting a blue username to indicate that the user is a moderator. However, there\'s also another option to show a diamond next to moderators (see Chat section, as moderators are only indicated on the chat page)." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-visitedLinksShowUsers"/>',
+            '                                    chat user',
+            '                                </label>',
+            //Blue Visited Links: Sidebar
+            '                                <label title="Show blue visited links in the sidebar (including starboard)." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-visitedLinksShowInSidebar"/>',
+            '                                    sidebar',
+            '                                </label>',
+            //Blue Visited Links: User in sidebar
+            '                                <label title="Show blue visited links for users in the sidebar (i.e. the starboard). The information as to the user being a moderator doesn\'t exist in the link. The links to users in the starboard are not never colored blue in the stock chat functionality." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-visitedLinksShowInSidebarUser"/>',
+            '                                    sidebar user',
+            '                                </label>',
+            '                            </span>',
+            //Remember visited posts.
             '                            <label title=\'Remembers the question links you click in the SOCVR room and request search pages, considering them "visited". You can select to not display "visited" questions. "Visited" questions are remembered for 7 days. They are stored only on your machine. When you disable this, it will immediately delete the list of "visited" questions. You may need to reload the appropriate pages to enable this.\'>',
             '                                <input type="checkbox" id="urrsOptionsCheckbox-trackVisitedLinks"/>',
-            '                                Remember "visited" questions. Unchecking this will <em>immediately</em> delete the list of visited questions.',
+            '                                Remember "visited" posts. Unchecking <em>immediately</em> deletes visited list.',
             '                            </label>',
             '                        </div>',
             //SEARCH/review pages
@@ -3670,6 +3715,33 @@
         return dialog;
     };
 
+    funcs.ui.optionsSetOptionsEnabledDisabled = () => {
+        const enableRequired = {
+            'urrsOptionsCheckbox-add20kTag': [
+                'urrsOptionsCheckbox-add10kTagToo',
+            ],
+            'urrsOptionsCheckbox-visitedLinkStyleActive': [
+                'urrsOptionsCheckbox-visitedLinksShowUsers',
+                'urrsOptionsCheckbox-visitedLinksShowInSidebar',
+            ],
+            'urrsOptionsCheckbox-visitedLinksShowInSidebar': [
+                'urrsOptionsCheckbox-visitedLinksShowInSidebarUser',
+            ],
+        };
+        Object.keys(enableRequired).forEach((checkingKey) => {
+            const checkingEl = document.getElementById(checkingKey);
+            if (checkingEl) {
+                const isChecked = checkingEl.checked;
+                enableRequired[checkingKey].forEach((disableKey) => {
+                    const disableEl = document.getElementById(disableKey);
+                    if (disableEl) {
+                        disableEl.disabled = !isChecked;
+                    }
+                });
+            }
+        });
+    };
+
     funcs.ui.setGeneralOptionsDialogCheckboxesToConfig = (dialog) => {
         //Set the General options to match what is in the config.
         //This execution path needs to not store the nonUi config. It is called from the event handler for listening to changes
@@ -3693,6 +3765,7 @@
             }
             input.parentNode.querySelector('.urrsOptionsPluralValue').textContent = input.value == 1 ? '' : 's'; // eslint-disable-line eqeqeq
         });
+        funcs.ui.optionsSetOptionsEnabledDisabled();
     };
 
     funcs.ui.replaceOptionsDialogExcludeTagsList = () => {
@@ -3852,7 +3925,6 @@
             funcs.config.saveNonUi(config.nonUi);
             funcs.executeIfIsFunction(funcs.ui.setVisitedButtonEnabledDisabledByConfig);
             funcs.config.clearVisitedPostsInConfigIfSetNoTracking();
-            funcs.addRequestStylesToDOM();
         }
         if (targetId.indexOf('urrsOptionsRange-') > -1) {
             //Update all the stored values of the range inputs.
@@ -3922,6 +3994,8 @@
             //Hide/show any affected messages.
             funcs.ui.showHideMessagesPerUI();
         }
+        funcs.ui.optionsSetOptionsEnabledDisabled();
+        funcs.addRequestStylesToDOM();
     };
 
     funcs.ui.invalidateAllDatasetExcludedTags = () => {
