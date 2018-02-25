@@ -1191,6 +1191,7 @@
         obj = funcs.ifNotNonNullObjectUseDefault(obj, config.nonUi);
         obj.visitedPosts = {};
         obj.addMisingTagTags = true;
+        obj.add20kTag = true;
         obj.add10kTagToo = false;
         obj.chatCompleteRequestsFade = true;
         obj.chatCompleteRequestsHide = false;
@@ -2757,7 +2758,7 @@
     funcs.fixN0kTagsInDeleteRequests = () => {
         //Make all delete/undelete requests which have a >3k reputation requirement have a tag indicating that requirement.
         //  If 10k+ tags are added is a user configurable option.
-        if (!config.nonUi.addMisingTagTags) {
+        if (!config.nonUi.add20kTag) {
             return;
         }
         funcs.doForAllMessages((message) => {
@@ -2832,7 +2833,8 @@
                 tag.remove();
             });
             if (!invalidReason) {
-                if (is20k || config.nonUi.add10kTagToo) { //Removing this if results in both 10k+ and 20k+ tags being inserted.
+                if (is20k || config.nonUi.add10kTagToo) {
+                    //Actually add the 20k+ tag, and/or 10k+, if the user has selected that option.
                     const nKValue = (is20k ? '2' : '1') + '0k+';
                     requestTag.parentNode.insertBefore(funcs.makeTagTagElementWithSpace(nKValue, true, 'This ' + nKValue + ' tag was not included in the original message posted by the user. It was added for your convenience to indicate that the post can only be delete-voted by users with more than 20k reputation.'), requestTag.nextSibling);
                     const newTag = funcs.getFirstN0kTagInElement(content);
@@ -3490,9 +3492,15 @@
             //Add/correct tag-tag and 20k+ tags.
             '                            <label title="You will need to reload the page to see messages in their original form. On the SOCVR chat room page, new messages will obey this selection even without reloading the page.">',
             '                                <input type="checkbox" id="urrsOptionsCheckbox-addMisingTagTags"/>',
-            '                                In requests: add, or correct, the tag indicating the question\'s primary tag. Also, add/remove 20k+ tags for (un)delete requests.',
+            '                                Requests: add, or correct, the tag indicating the question\'s primary tag.',
             '                            </label>',
-            '                            <label title="For delete/undelete requests, if it doesn\'t require 20k+ add a 10k+ tag. You will need to reload the page to see messages in their original form. On the SOCVR chat room page, new messages will obey this selection even without reloading the page.">',
+            //Add 20k+ tags.
+            '                            <label title="If acting on a request requires 20k+ reputation, then indicate that with a tag. On the SOCVR chat room page, new messages will obey this selection even without reloading the page.">',
+            '                                <input type="checkbox" id="urrsOptionsCheckbox-add20kTag"/>',
+            '                                Requests: add/remove 20k+ tags for (un)delete requests.',
+            '                            </label>',
+            //Add 10k+ tags.
+            '                            <label title="For delete/undelete requests, if it doesn\'t require 20k+ add a 10k+ tag (i.e. add a 10k+ tag when 10k+ is required). You will need to reload the page to see messages in their original form. On the SOCVR chat room page, new messages will obey this selection even without reloading the page.">',
             '                                <input type="checkbox" id="urrsOptionsCheckbox-add10kTagToo"/>',
             '                                Requests: Also, add 10k+ tags for (un)delete requests.',
             '                            </label>',
