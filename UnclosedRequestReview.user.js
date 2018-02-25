@@ -778,7 +778,7 @@
         //Listen to changes to localStorage. Only call handlers for those storage locations which are being listened to.
         const handlers = {
             [LSPREFIX + 'nonUiConfig']: funcs.config.handleNonUiConfigChange,
-            [LSPREFIX + 'backoff']: funcs.config.handleNonUiConfigChange,
+            [LSPREFIX + 'backoff']: funcs.config.handleBackoffTimerChange,
         };
         if (handlers.hasOwnProperty(event.key)) {
             const handler = handlers[event.key];
@@ -1415,8 +1415,8 @@
         const monologue = funcs.getContainingMonologue(message);
         const content = funcs.getContentFromMessage(message);
         const isReopen = !!funcs.getFirstReopenRequestTagInElement(content);
-        var isEdited = false;
-        var shiftTextLeft = false;
+        let isEdited = false;
+        let shiftTextLeft = false;
         if (!isDeleted) {
             //Answer/Question is not deleted
             //Determine if the post has been edited.
@@ -1437,7 +1437,7 @@
                 //Question is closed
                 //Short text
                 textShort = 'closed';
-                if (info.reopen_vote_count) {
+                if (+info.reopen_vote_count) {
                     textShort = 'cld r:(' + info.reopen_vote_count + ')';
                     shiftTextLeft = true;
                 }
@@ -1489,7 +1489,7 @@
                 return;
             }
         }
-        var link = document.createElement('a');
+        let link = document.createElement('a');
         if (isEdited) {
             link.title = 'The ' + (isAnswer ? 'answer' : 'question') + ' was edited after the message was posted.';
         }
@@ -2018,7 +2018,7 @@
                     //Should we add a link to the question in the request?
                     if (config.nonUi.useQuestionTitleAsLink) {
                         const newSpan = document.createElement('span');
-                        newSpan.title = 'This link did not exist in the original message. It has been added for the post linked in the comment to which this message is a reply.';
+                        newSpan.title = 'This link did not exist in the original message. It has been added from the post linked in the message to which this message is a reply.';
                         newSpan.className = 'urrsAddedQuestionLink';
                         newSpan.appendChild(document.createTextNode(' '));
                         const newLink = document.createElement('a');
