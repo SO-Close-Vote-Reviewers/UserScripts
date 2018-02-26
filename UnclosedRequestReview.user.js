@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      1.1.1.0
+// @version      1.1.2.0
 // @description  Adds buttons to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request, or delete request query, then it scans the results and displays them along with additional information.
 // @author       @TinyGiant @rene @mogsdad @Makyen
 // @include      /^https?://chat\.stackoverflow\.com/rooms/(?:41570|90230|126195|68414|111347)(?:\b.*$|$)/
@@ -3640,12 +3640,12 @@
             '                            </label>',
             //Select click for jump to Tag's filtered CVQ
             '                            <span class="urrsOptionsMultiCheckboxLine">',
-            '                                <label  class="urrsOptionsCheckboxLabel-inline" title="When you use an alternative click on a Tag-tag the Close Vote Queue (CVQ) will be opened with that tag filtered. Click on the tag here with the combination of alt-keys and click-button which you want to use to open the CVQ with the tag filtered.\nNote that your browser\'s default action is not prevented for these clicks, so you will want to select something where the side-effects are something you can live with.">',
+            '                                <label  class="urrsOptionsCheckboxLabel-inline" title="When you use the click you select on a tag, the Close Vote Queue (CVQ) will be opened in a new tab with that tag filtered. Click on the &quot;click here&quot; tag with the combination of button with, or without, Alt/Ctrl/Meta/Shift-keys which you want to use to open the CVQ with the tag filtered.\nNote that your browser\'s default action *may* not be prevented for these clicks (browsers sometimes don\'t permit the default action to be prevented). So, you will want to select something where the side-effects, if any, are something you can live with.">',
             '                                    <input type="checkbox" id="urrsOptionsCheckbox-clickTagTagToOpenCVQ"/>',
-            '                                    Tag-tag click to open filtered CVQ. Set: ',
+            '                                    Tag click opens filtered CVQ. Set:&nbsp;',
             '                                </label>',
             (() => {
-                const theTag = funcs.makeTagTagElement('click here', true, 'Click here with the type of click you want to use on Tag-Tags to open the CVQ with that tag filtered.');
+                const theTag = funcs.makeTagTagElement('click here', true, 'Click here with the type of click you want to use on tags to open the CVQ with that tag filtered.\nYou should be able to use (almost) any mouse button combined with Alt, Ctrl, Meta, and/or Shift. Exactly what combinations will work may be limited by the capabilities of your browser and/or operating system (e.g. Firefox no longer maps any key to Meta. Thus, no combination with Meta is possible in Firefox.).');
                 const innerTag = theTag.firstChild;
                 innerTag.classList.add('urrs-receiveAllClicks');
                 innerTag.id = 'urrsOptions-setTagTagOpenCVQ';
@@ -4000,12 +4000,12 @@
     funcs.ui.optionDialogSetTagTagClickDescriptorToConfig = () => {
         //In the Options Dialog show text indicating what the config is set to for the click combo used for opening the CVQ with a tag filtered.
         const clickDescription = config.nonUi.clickTagTagToOpenCVQButtonInfo;
-        const descriptionText = clickDescription.button + ', ' + Object.keys(clickDescription).sort().map((key) => {
+        const descriptionText = (Object.keys(clickDescription).sort().map((key) => {
             if (key === 'button' || !clickDescription[key]) {
                 return null;
             }
             return key.replace(/Key/g, '').replace(/^(.)/, ((value) => value.toUpperCase()));
-        }).filter((value) => value).join(', ').replace(/,\s*$/, '');
+        }).filter((value) => value).join('-') + '-' + (clickDescription.button < 3 ? ['Left', 'Middle', 'Right'][clickDescription.button] : clickDescription.button) + '-Click').replace(/^-\s*/, '');
         document.getElementById('urrsOptions-clickTagTagToOpenCVQ-clickInfo').textContent = descriptionText;
     };
 
