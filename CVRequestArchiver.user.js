@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         CV Request Archiver
-// @namespace    https://github.com/Tiny-Giant/
-// @version      2.0.0.4
-// @description  Scans the chat transcript and checks all cv requests for status, then moves the closed ones.
-// @author       @TinyGiant @rene
+// @namespace    https://github.com/SO-Close-Vote-Reviewers/
+// @version      2.0.1.11
+// @description  Scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests for status, then moves the closed/deleted/undeleted/reopened ones. Possible dupe requests (and their replies) are moved after 30 minutes.
+// @author       @TinyGiant @rene @Tunaki
 // @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/rooms\/.*/
 // @grant        none
 // ==/UserScript==
 /* jshint -W097 */
+/* global $:true */
 'use strict';
 
 var me = (/\d+/.exec($('#active-user').attr('class'))||[false])[0];
@@ -30,13 +31,13 @@ function CVRequestArchiver(info){
     if(!info.users[0].is_owner && !info.users[0].is_moderator) {
         return false;
     }
-    
+
     var count = 0, total = 0, num = 0, rnum = 0, rlen = 0;
     var requests = [];
-    var closed = [];
+    var messagesToMove = [];
     var events = [];
     var ids = [];
-    
+
     var target = 90230;
     var nodes = {};
 
@@ -73,6 +74,11 @@ function CVRequestArchiver(info){
     nodes.cancel.textContent = 'cancel';
     nodes.cancel.style.display = 'none';
     nodes.scope.appendChild(nodes.cancel);
+
+    nodes.scandate = document.createElement('span');
+    nodes.scandate.textContent = '';
+    nodes.scandate.style.display = 'none';
+    nodes.scope.appendChild(nodes.scandate);
 
     nodes.scope.appendChild(document.createElement('br'));
 
@@ -174,6 +180,7 @@ function CVRequestArchiver(info){
         nodes.count.style.display = '';
         nodes.gobtn.style.display = '';
         nodes.cancel.style.display = '';
+        nodes.scandate.style.display = '';
         nodes.count.focus();
     }, false);
 
@@ -201,7 +208,7 @@ function CVRequestArchiver(info){
         count = 0;
         num = 0;
         requests = [];
-        closed = [];
+        messagesToMove = [];
         events = [];
         ids = [];
         nodes.count.style.display = 'none';
@@ -210,6 +217,8 @@ function CVRequestArchiver(info){
         nodes.gobtn.style.display = 'none';
         nodes.gobtn.disabled = false;
         nodes.cancel.style.display = 'none';
+        nodes.scandate.style.display = 'none';
+        nodes.scandate.textContent = '';
         nodes.indicator.style.display = 'none';
         nodes.indicator.textContent = '';
         nodes.movebtn.style.display = 'none';
@@ -244,10 +253,12 @@ function CVRequestArchiver(info){
                     return false;
                 }
 
+                nodes.scandate.textContent = new Date(1000 * response.events[0].time_stamp).toISOString();
+
                 getEvents(count - 500, response.events[0].message_id);
             }
         });
-    };
+    }
 
     function scanEvents(){
         nodes.progress.style.width = '';
@@ -266,36 +277,113 @@ function CVRequestArchiver(info){
 
         rlen = requests.length;
         requests = chunkArray(requests, 100);
-        
+
         checkRequests();
     }
-    
-    var regexes = [
-        /(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\]).*(?:q[^\/]*|posts)\/(\d+)/,
-        /(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\])/,
+
+    var cvRegexes = [
+        /(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\]).*stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+)/,
+        /stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/cv-pl(?:ease|s|z)|\[cv-pl(?:ease|s|z)\])/,
     ];
-    
+
+    var deleteRegexes = [
+        /(?:tagged\/del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\]).*stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/,
+        /stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+).*(?:tagged\/del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[del(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\])/,
+    ];
+
+    var undeleteRegexes = [
+        /(?:tagged\/undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\]).*stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/,
+        /stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+).*(?:tagged\/undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)|\[undel(?:ete)?(?:v)?-?(?:vote)?-pl(?:ease|s|z)\])/,
+    ];
+
+    var reopenRegexes = [
+        /(?:tagged\/reopen-pl(?:ease|s|z)|\[reopen-pl(?:ease|s|z)\]).*stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+)/,
+        /stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/reopen-pl(?:ease|s|z)|\[reopen-pl(?:ease|s|z)\])/,
+    ];
+
+    var dupeRegexes = [
+        /(?:tagged\/possible-duplicate).*stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+)/,
+        /stackoverflow.com\/(?:q[^\/]*|posts)\/(\d+).*(?:tagged\/possible-duplicate)/,
+    ];
+
+    var repliesRegexes = [
+        /@queen (?:f|k)/
+    ];
+    // FireAlarm reports
+    var faRegexes = [
+        /(?:\/\/stackapps.com\/q\/7183">FireAlarm-Swift)/,
+        /(?:\[ <a href="\/\/github.com\/SOBotics\/FireAlarm\/tree\/swift" rel="nofollow noopener noreferrer">FireAlarm-Swift<\/a> \])/
+    ];
+    // matches replies to FireAlarm
+    var faRepliesRegexes = [
+        /^@FireAlarm(?:.*)(?:.*\/tagged\/cv-pls)|(?:cv-pls)/
+    ];
+
+    var RequestType = {
+        CLOSE: { regexes: cvRegexes },
+        DELETE: { regexes: deleteRegexes },
+        UNDELETE: { regexes: undeleteRegexes },
+        REOPEN: { regexes: reopenRegexes },
+        DUPE: { regexes: dupeRegexes },
+        REPLY: { regexes: repliesRegexes },
+        FA: { regexes: faRegexes },
+        FAREPLY: { regexes: faRepliesRegexes }
+    };
+
+    function matchesRegex(message, regexes) {
+        for(var j in regexes) {
+            if(regexes[j].test(message)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     function checkEvent(event, current, total) {
         nodes.indicator.value = 'checking events... (' + current + ' / ' + total + ')';
         nodes.progress.style.width = Math.ceil((current * 100) / total) + '%';
         var message = event.content;
-        var isreq = false;
-        for(var j in regexes) {
-            if(regexes[j].test(message)) {
-                isreq = true;
+        var type;
+
+        for (var i in RequestType) {
+            if (matchesRegex(message, RequestType[i].regexes)) {
+                type = RequestType[i];
                 break;
             }
         }
-        if (!isreq) return false;
-        var matches = message.match(/http.*?(?:q[^\/]*|posts)\/(\d+)/g);
-        var posts = [];
-        // matches will be null if an user screws up the formatting
-        if (matches !== null) {
-            for(var k in Object.keys(matches)) {
-                posts.push(/(?:q[^\/]*|posts)\/(\d+)/.exec(matches[k])[1]);
+
+        if (!type) return false;
+
+        // don't handle replies
+        if ((type != RequestType.REPLY) && (type != RequestType.FAREPLY)) {
+            var matches = message.match(/stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/g);
+            var posts = [];
+            // matches will be null if an user screws up the formatting
+            if (matches !== null) {
+                for(var k in Object.keys(matches)) {
+                    posts.push(/stackoverflow.com\/(?:q[^\/]*|posts|a[^\/]*)\/(\d+)/.exec(matches[k])[1]);
+                }
+            }
+            for(var l in posts) requests.push({ msg: event.message_id, post: posts[l], time: event.time_stamp, type: type });
+        } else {
+            // if this is a cv-pls reply for firealarm
+            if (type == RequestType.FAREPLY ) {
+                // find its parent, aka the message it replies to
+                if (event.parent_id) {
+                    for(var r=0; r < requests.length; r++) {
+                        if (requests[r].msg === event.parent_id ) {
+                            // and make sure both parent and this reply are the same so the check for if the post is closed will work
+                            // store parent as well, we need it later
+                            requests.push({ msg: event.message_id, parent:event.parent_id, post: requests[r].post, time: event.time_stamp, type: type });
+                        }
+                    }
+                } else {
+                    // do nothing for non-sense replies to FireAlarm
+                }
+            } else {
+                requests.push({ msg: event.message_id, post: -1, time: event.time_stamp, type: type });
             }
         }
-        for(var l in posts) requests.push({ msg: event.message_id, post: posts[l], time: event.time_stamp });
     }
 
     function checkRequests() {
@@ -303,14 +391,89 @@ function CVRequestArchiver(info){
 
         var left = [rlen,rlen - (requests.length * 100)][+(rlen > 100)];
 
-        nodes.indicator.value = 'checking requests... (' + left + ' / ' + rlen + ')'; 
+        nodes.indicator.value = 'checking requests... (' + left + ' / ' + rlen + ')';
         nodes.progress.style.width = Math.ceil((left * 100) / rlen) + '%';
 
+        checkRequestsQueen(currentreq);
+        checkRequestsFireAlarm(currentreq);
+        checkRequestsOthers(currentreq);
+    }
+
+    // FireAlarm handling (those are complex message-reply patterns)
+    function checkRequestsFireAlarm(currentreq) {
+        for(var j in currentreq) {
+            // handle FireAlarm
+            if(currentreq[j].type == RequestType.FA) {
+                // we want to keep requests that have a cv-pls reply
+                var keep = false;
+                // loop over all requests again
+                for(var fa in currentreq) {
+                    // if we have a reply
+                    if (currentreq[fa].parent && currentreq[fa].parent === currentreq[j].msg) {
+                        // keep it
+                        keep = true;
+                        break;
+                    }
+                }
+                // if we can loose it ...
+                if (!keep) {
+                    // do so if the timelimit has exceeded
+                    if ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 30)) {
+                        messagesToMove.push(currentreq[j]);
+                    } else {
+                        // maybe next time
+                        delete currentreq[j];
+                    }
+                }
+            }
+        }
+    }
+
+    function checkRequestsQueen(currentreq) {
+        // just move all possible-dupe and replies posted more than 30 minutes ago
+        for(var j in currentreq) {
+            if((currentreq[j].type == RequestType.DUPE || currentreq[j].type == RequestType.REPLY)) {
+                if ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 30)) {
+                    messagesToMove.push(currentreq[j]);
+                } else {
+                    delete currentreq[j];
+                     // if we have deleted it
+                    // we better move on
+                    continue;
+                }
+            }
+            // handle FireAlarm 
+            if(currentreq[j].type == RequestType.FA) {
+                // we want to keep requests that have a cv-pls reply
+                var keep = false;
+                // loop over all requests again
+                for(var fa in currentreq) {
+                    // if we have a reply 
+                    if (currentreq[fa].parent && currentreq[fa].parent === currentreq[j].msg) {
+                        // keep it
+                        keep = true;
+                        break;
+                    }
+                }
+                // if we can loose it ...
+                if (!keep) {
+                    // do so if the timelimit has exceeded
+                    if ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 30)) {
+                        messagesToMove.push(currentreq[j]);
+                    } else {
+                        // maybe next time
+                        delete currentreq[j];
+                    }
+                }
+            }
+        }
+    }
+
+    function checkRequestsOthers(currentreq) {
         var xhr = new XMLHttpRequest();
 
         xhr.addEventListener("load", function(){
             if(this.status !== 200) {
-                console.log(this);
                 checkDone();
                 return false;
             }
@@ -319,56 +482,112 @@ function CVRequestArchiver(info){
             var items = response.items;
 
             for(var i in items) {
+                for(var j in currentreq) {
+                    if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.DELETE) delete currentreq[j];
+                }
                 if(!items[i].closed_date) {
                     for(var j in currentreq) {
-                        if(items[i].close_vote_count == 0 && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
-                        if(currentreq[j].post == items[i].question_id) delete currentreq[j];
+                        if(currentreq[j].type == RequestType.CLOSE && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
+                        if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.CLOSE) delete currentreq[j];
+                    }
+                }
+                if(items[i].closed_date) {
+                    for(var j in currentreq) {
+                        if(currentreq[j].type == RequestType.REOPEN && ((Date.now() - (currentreq[j].time * 1000)) > (1000 * 60 * 60 * 24 * 3))) continue;
+                        if(currentreq[j].post == items[i].question_id && currentreq[j].type == RequestType.REOPEN) delete currentreq[j];
                     }
                 }
             }
 
-            for(var i in currentreq) closed.push(currentreq[i]);
-
-            if(!requests.length) {
-                checkDone();
-                return false;
+            for(var j in currentreq) {
+                var didApiReturnPost = false;
+                for(var i in items) {
+                    if(currentreq[j].post == items[i].question_id) { didApiReturnPost = true; break; }
+                }
+                currentreq[j].undeleteAndNotReturnedAsQuestion = !didApiReturnPost && currentreq[j].type == RequestType.UNDELETE;
             }
 
-            setTimeout(checkRequests, response.backoff * 1000);
+            var xhr2 = new XMLHttpRequest();
+            xhr2.addEventListener("load", function(){
+                if(this.status !== 200) {
+                    checkDone();
+                    return false;
+                }
+
+                var response = JSON.parse(this.response);
+                var items = response.items;
+
+                for(var i in items) {
+                    for(var j in currentreq) {
+                        if(currentreq[j].post == items[i].answer_id && currentreq[j].type == RequestType.DELETE) delete currentreq[j];
+                    }
+                }
+
+                for(var j in currentreq) {
+                    var didApiReturnPost = false;
+                    for(var i in items) {
+                        if(currentreq[j].post == items[i].answer_id) { didApiReturnPost = true; break; }
+                    }
+                    if (!didApiReturnPost && currentreq[j].type == RequestType.UNDELETE && currentreq[j].undeleteAndNotReturnedAsQuestion) {
+                        delete currentreq[j];
+                    }
+                }
+
+                for(var i in currentreq) {
+                    if (currentreq[i].type != RequestType.DUPE && currentreq[i].type != RequestType.REPLY) {
+                        messagesToMove.push(currentreq[i]);
+                    }
+                }
+                if(!requests.length) {
+                    checkDone();
+                    return false;
+                }
+                setTimeout(checkRequests, response.backoff * 1000);
+            });
+
+            var url = 'https://api.stackexchange.com/2.2/answers/' + formatPosts(currentreq) + '?' + [
+                'pagesize=100',
+                'site=stackoverflow',
+                'key=qhq7Mdy8)4lSXLCjrzQFaQ((',
+                'filter=!Wn5py8CX('
+            ].join('&');
+
+            xhr2.open("GET", url);
+            xhr2.send();
+
         });
 
-        var url = '//api.stackexchange.com/2.2/questions/' + formatPosts(currentreq) + '?' + [
+        var url = 'https://api.stackexchange.com/2.2/questions/' + formatPosts(currentreq) + '?' + [
             'pagesize=100',
             'site=stackoverflow',
             'key=qhq7Mdy8)4lSXLCjrzQFaQ((',
-            'filter=!gB66oJbwf2oAg19qt9k287Kesk6)y5u4M_f'
+            'filter=!5RCJFFV3*1idqdx)f2XdVzdib'
         ].join('&');
 
         xhr.open("GET", url);
-
         xhr.send();
     }
 
     function checkDone() {
-        rnum = closed.length;
-        
+        rnum = messagesToMove.length;
+
         if(!rnum) {
-            nodes.indicator.value = 'no closed requests found';
+            nodes.indicator.value = 'no requests found';
             nodes.progresswrp.style.display = 'none';
             nodes.progress.style.width = '';
             nodes.cancel.disabled = false;
             return false;
         }
-        
-        ids = chunkArray(formatMsgs(closed), 100);
 
-        nodes.indicator.value = closed.length + ' closed request' + ['','s'][+(closed.length > 1)] + ' found';
+        ids = chunkArray(formatMsgs(messagesToMove), 100);
+
+        nodes.indicator.value = messagesToMove.length + ' request' + ['','s'][+(messagesToMove.length > 1)] + ' found';
         nodes.movebtn.style.display = '';
         nodes.cancel.disabled = false;
         nodes.progresswrp.style.display = 'none';
         nodes.progress.style.width = '';
     }
-    
+
     function movePosts() {
         var currentids = ids.pop();
 
@@ -376,7 +595,7 @@ function CVRequestArchiver(info){
 
         nodes.indicator.value = 'moving requests... (' + left + ' / ' + rnum + ')';
         nodes.progress.style.width = Math.ceil((left * 100) / rnum) + '%';
-        
+
         $.ajax({
             type: 'POST',
             data: 'ids=' + currentids.join('%2C') + '&to=' + target + '&fkey=' + fkey,
@@ -389,10 +608,10 @@ function CVRequestArchiver(info){
                     nodes.movebtn.style.display = 'none';
                     return false;
                 }
-                    
+
                 setTimeout(movePosts, 5000);
             }
-        }); 
+        });
     }
 
     function formatPosts(arr) {
@@ -406,7 +625,7 @@ function CVRequestArchiver(info){
         for(var i in arr) tmp.push(arr[i].msg);
         return tmp;
     }
-    
+
     function chunkArray(arr, len) {
         var tmp = [];
         var num = Math.ceil(arr.length / len);

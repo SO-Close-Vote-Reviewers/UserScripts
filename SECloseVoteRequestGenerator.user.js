@@ -1,35 +1,44 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.5.7
-// @description    This script generates formatted close vote requests and sends them to a specified chat room
+// @version        1.5.26
+// @description    This script generates formatted close vote requests and sends them to a specified chat room, fixes #65
 // @author         @TinyGiant
+// @contributor    @rene @Tunaki @Makyen @paulroub
 // @include        /^https?:\/\/\w*.?(stackexchange.com|stackoverflow.com|serverfault.com|superuser.com|askubuntu.com|stackapps.com|mathoverflow.net)\/q(uestions)?\/\d+/
 // @require        https://code.jquery.com/jquery-2.1.4.min.js
+// @require        https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/gm4-polyfill.js
+// @connect        rawgit.com
+// @connect        raw.githubusercontent.com
+// @connect        chat.stackoverflow.com
+// @connect        chat.stackexchange.com
 // @grant          GM_xmlhttpRequest
+// @grant          GM.xmlHttpRequest
 // ==/UserScript==
 
 if(typeof StackExchange === "undefined")
     var StackExchange = unsafeWindow.StackExchange;
 
 (function(){
+    var isclosed = $(".close-question-link").data("isclosed"),
+        isdeleted = $(".question .post-menu .deleted-post").length > 0;
+
     var reasons = {
-        't': 'too broad', 
+        't': 'too broad',
         'u': 'unclear',
-        'p': 'pob', 
+        'p': 'pob',
         'd': 'duplicate',
         'm': 'no mcve',
         'r': 'no repro',
         's': 'superuser',
         'f': 'serverfault',
         'l': 'library/tool/resource',
-        'g': 'gimme-teh-codez',
-        get: function(r) {  
+        get: function(r) {
             var a = r.split(' ');
-            a.forEach(function(v,i){ 
-                a[i] = reasons[v] && v !== 'get' ? reasons[v] : v; 
+            a.forEach(function(v,i){
+                a[i] = reasons.hasOwnProperty(v) && v !== 'get' ? reasons[v] : v;
             });
-            return a.join(' '); 
+            return a.join(' ');
         }
     };
 
@@ -68,13 +77,13 @@ if(typeof StackExchange === "undefined")
         return false;
     }
 
-    function checkUpdates(force) { 
-        GM_xmlhttpRequest({
+    function checkUpdates(force) {
+        GM.xmlHttpRequest({
             method: 'GET',
             url: 'https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version',
             onload: function(response) {
                 var VERSION = response.responseText.trim();
-                if(isVersionNewer(VERSION,GM_info.script.version)) {
+                if(isVersionNewer(VERSION,GM.info.script.version)) {
                     var lastAcknowledgedVersion = getStorage('LastAcknowledgedVersion');
                     if(lastAcknowledgedVersion != VERSION || force) {
                         if(confirm('A new version of The Close Vote Request Generator is available, would you like to install it now?'))
@@ -95,32 +104,92 @@ if(typeof StackExchange === "undefined")
 
     function sendRequest(result) {
         RoomList.getRoom(function(room){
-            GM_xmlhttpRequest({
+
+            function displayRequestText (requestText, message) {
+                message += '' +
+                    '<br/><br/>' +
+                    '<span>' +
+                    '    Request text ' +
+                    '    (<a href="#" class="SECVR-copy-to-clipboard" title="Click here to copy the request text to the clipboard.">copy</a>):' +
+                    '</span>' +
+                    '<br/>' +
+                    '<textarea class="SECVR-request-text" style="width: 95%;">' +
+                        requestText +
+                    '</textarea>'+
+                    '<br/>' +
+                    '';
+                notify(message);
+                // Select the notification for Ctrl + C copy.
+                var requestTextInput = $('textarea.SECVR-request-text').last();
+                requestTextInput.select();
+                // Bind a click handler on the "copy" anchor to copy the text manually.
+                var copyButton = $('a.SECVR-copy-to-clipboard');
+                var thisNotification = copyButton.closest('[id^="notify-"]').filter(function() {
+                    //Make sure we're putting it on the notification, not the notify-container
+                    return /notify-\d+/.test(this.id);
+                }).last().on('click', function(event) {
+                    //Prevent the cv-pls GUI from closing for clicks within the notification.
+                    event.stopPropagation();
+                    event.preventDefault();
+                });
+                copyButton.last().on('click', function(event) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    requestTextInput.select();
+                    var success = document.execCommand('copy');
+                    if(!success) {
+                        alert('Failed to copy the request text! Please copy it manually.');
+                        //Restore the selection and focus. (not normally needed, but doesn't hurt)
+                        requestTextInput.select();
+                        requestTextInput.focus();
+                        //The GUI is left open here because we don't have a way to determine if the user is actually
+                        //  done with the request.
+                    } else {
+                        //Copy succeeded. Send another notification to cause the original notification to be dismissed.
+                        //  This really should be handled by creating a function which dismisses the current notification.
+                        notify('',10);
+                        hideMenu();
+                    }
+                });
+            }
+
+            function handleError(message, error) {
+                var seeConsole = '<br/>See the console for more details.';
+                console.error(message, error);
+                displayRequestText(result, message + seeConsole);
+            }
+            GM.xmlHttpRequest({
                 method: 'GET',
                 url: room.url,
                 onload: function(response) {
-                    var fkey = response.responseText.match(/hidden" value="([\dabcdef]{32})/)[1];
+                    var matches = response.responseText.match(/hidden" value="([\dabcdef]{32})/);
+                    var fkey = matches ? matches[1] : '';
                     if(!fkey) {
-                        notify('Failed retrieving key, is the room URL valid?');
+                        handleError('responseText did not contain fkey. Is the room URL valid?', response);
                         return false;
-                    }
-                    GM_xmlhttpRequest({
+                    } // else
+                    GM.xmlHttpRequest({
                         method: 'POST',
                         url: room.host + '/chats/' + room.id + '/messages/new',
                         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                         data: 'text=' + encodeURIComponent(result) + '&fkey=' + fkey,
-                        onload: function() {
-                            notify('Close vote request sent.',1000);
-                            hideMenu();
+                        onload: function(newMessageResponse) {
+                            if(newMessageResponse.status != 200) {
+                                var responseText = newMessageResponse.responseText;
+                                var shownResponseText = newMessageResponse.responseText.length < 100 ? ' ' + newMessageResponse.responseText : '';
+                                handleError('Failed sending chat request message.' + shownResponseText, newMessageResponse);
+                            } else {
+                                notify('Close vote request sent.',1000);
+                                hideMenu();
+                            }
                         },
-                        onerror: function() {
-                            notify('Failed sending close vote request.');
-                            hideMenu();
+                        onerror: function(error) {
+                            handleError('Got an error when sending chat request message.', error);
                         }
                     });
                 },
-                onerror: function() {
-                    notify('Failed retrieving fkey from chat.');
+                onerror: function(response) {
+                    handleError('Failed to retrieve fkey from chat. (Error Code: ' + response.status + ')', response);
                 }
             });
         });
@@ -129,6 +198,10 @@ if(typeof StackExchange === "undefined")
     function appendInfo() {
         if(getStorage('appendInfo') === "1") return true;
         return false;
+    }
+
+    if (isdeleted) {
+      return;
     }
 
     var RoomList = {};
@@ -156,7 +229,7 @@ if(typeof StackExchange === "undefined")
     RoomList.name = function(name)  { return this.search('name',name);  };
     RoomList.index = function(name) { return this.search('index',name); };
     RoomList.id = function(name)    { return this.search('id',name);    };
-    RoomList.url = function(name)   { return this.search('url',name);   };
+    RoomList.url = function(url)    { return this.search('url',RoomList.useHttpsForStackExchangeAndTrim(url));};
     RoomList.insert = function(room) {
         if(!RoomList.url(room.url)) {
             this.rooms[room.url] = room;
@@ -166,8 +239,9 @@ if(typeof StackExchange === "undefined")
     };
     RoomList.getRoom = function(callback,url) {
         var rooms = this.rooms;
-        if(!url) 
-            url = getStorage(base + 'room');
+        if(!url)
+            url = getCurrentRoom();
+        url = RoomList.useHttpsForStackExchangeAndTrim(url);
         var m = /(https?:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)\/rooms\/(.*)\/.*/.exec(url);
         if(m) {
             var room = RoomList.url(url);
@@ -175,7 +249,7 @@ if(typeof StackExchange === "undefined")
                 if(callback) callback(room);
                 return false;
             }
-            GM_xmlhttpRequest({
+            GM.xmlHttpRequest({
                 method: 'GET',
                 url: url,
                 onload: function(response){
@@ -184,7 +258,7 @@ if(typeof StackExchange === "undefined")
                         notify('Failed finding room name. Is it a valid room?');
                         if(callback) callback(false);
                     } else {
-                        if(callback) callback(RoomList.insert({ 
+                        if(callback) callback(RoomList.insert({
                             host: m[1],
                             url: url,
                             id: m[4],
@@ -205,11 +279,12 @@ if(typeof StackExchange === "undefined")
     };
     RoomList.setRoom = function(url) {
         var exists;
+        url = RoomList.useHttpsForStackExchangeAndTrim(url);
         if(this.url(url))
             exists = true;
         RoomList.getRoom(function(room) {
-            if(room && getStorage(base + 'room') !== room.url) {
-                setStorage(base + 'room',room.url);
+            if(room && getCurrentRoom() !== room.url) {
+                setCurrentRoom(room.url);
                 CVRGUI.roomList.find('[type="checkbox"]').prop('checked',false);
                 if(!exists)
                     CVRGUI.roomList.append($('<dd><label><input type="radio" name="target-room" value="' + room.url + '" checked>' + room.name + '</label><form><button>-</button></form></dd>'));
@@ -225,23 +300,44 @@ if(typeof StackExchange === "undefined")
         else
             RoomList.rooms = JSON.parse(getStorage('rooms'));
     };
+    RoomList.useHttpsForStackExchangeAndTrim = function(url) {
+        //Change a SE/SO URL to HTTPS instead of HTTP.
+        return /(https?:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)/.test(url) ? url.replace(/http:/ig, 'https:').replace(/(https:\/\/chat\.stack(?:exchange|overflow)\.com\/rooms\/\d+)\b.*$/ig, '$1/') : url;
+    };
+    RoomList.changeToHttpsForStackExchange = function() {
+        //Just change the JSON (pass it through parse/stringify to remove any duplicates):
+        // The RegExp is probably overly restrictive, as the rooms should never already contain non-stackexchange/stackoverflow URLs, as such are considered invalid.
+        try {
+            setStorage('rooms', JSON.stringify(JSON.parse(getStorage('rooms').replace(/http:\/\/chat\.stack(exchange|overflow)\.com/ig, 'https://chat.stack$1.com').replace(/(https:\/\/chat\.stack(?:exchange|overflow)\.com\/rooms\/\d+)\b[^"]*/ig, '$1/'))));
+        } catch (e) {
+            //No storage or Invalid JSON in 'rooms'
+            setStorage('rooms', JSON.stringify({}));
+        }
+        var roomStorage = getCurrentRoom();
+        roomStorage = roomStorage ? roomStorage : '';
+        setCurrentRoom(RoomList.useHttpsForStackExchangeAndTrim(roomStorage));
+    };
+
 
     //Wrap local storage access so that we avoid collisions with other scripts
     var prefix = "SECloseVoteRequestGenerator_"; //prefix to avoid clashes in localstorage
     function getStorage(key) { return localStorage[prefix + key]; }
     function setStorage(key, val) { return (localStorage[prefix + key] = val); }
+    function getCurrentRoom(){ return getStorage(base + 'room'); }
+    function setCurrentRoom(url){ return setStorage(base + 'room', url); }
 
-    var base = 'http://' + window.location.hostname;
+    var base = 'https://' + window.location.hostname;
 
-    if(!getStorage(base + 'room'))
-        setStorage(base + 'room', 'http://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers');
-    
-    
+    if(!getCurrentRoom())
+        setCurrentRoom('https://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers');
+    //Change the localStorage to HTTPS prior to initializing the RoomList.
+    RoomList.changeToHttpsForStackExchange();
+
     RoomList.init();
 
     var CVRGUI = {};
     CVRGUI.wrp    = $('<span class="cvrgui" />');
-    CVRGUI.button = $('<a href="javascript:void(0)" class="cv-button">cv-pls</a>');
+    CVRGUI.button = $('<a href="javascript:void(0)" class="cv-button">' + (isclosed?'reopen-pls':'cv-pls') + '</a>');
     CVRGUI.list   = $('<dl class="cv-list" />');
     CVRGUI.css    = $('<style>.post-menu > span > a{padding:0 3px 2px 3px;color:#888}.post-menu > span > a:hover{color:#444;text-decoration:none} .cvrgui { position:relative;display:inline-block } .cvrgui * { box-sizing: border-box } .cv-list { display: none; margin:0; z-index:1; position:absolute; white-space:nowrap; border:1px solid #ccc;border-radius:3px;background:#FFF;box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5) } .cv-list dd, .cv-list dl { margin: 0; padding: 0; } .cv-list dl dd { padding: 0px; margin: 0; width: 100%; display: table } .cv-list dl label, .cv-list dl form { display: table-cell } .cv-list dl button { margin: 2.5px 0; } .cv-list dl label { width: 100%; padding: 0px; }  .cv-list * { vertical-align: middle; } .cv-list dd > div { padding: 0px 15px; padding-bottom: 15px; } .cv-list dd > div > form { white-space: nowrap } .cv-list dd > div > form > input { display: inline-block; vertical-align: middle } .cv-list dd > div > form > input[type="text"] { width: 300px; margin-right: 5px; } .cv-list hr { margin:0 15px; border: 0px; border-bottom: 1px solid #ccc; } .cv-list a { display: block; padding: 10px 15px;}  .cv-list label { display: inline-block; padding: 10px 15px;} .cv-list label:last-child { padding-left: 0; }</style>');
     CVRGUI.target = (function(){
@@ -252,7 +348,7 @@ if(typeof StackExchange === "undefined")
                 div.show().find('[type="text"]').focus();
                 $(this).html('Set target room:');
             } else closeTarget();
-        })
+        });
         RoomList.getRoom(function(room){
             link.html(room.name);
         });
@@ -265,7 +361,7 @@ if(typeof StackExchange === "undefined")
         $('input[type="text"]', CVRGUI.items.send).focus();
     }
     CVRGUI.items  = {
-        send:    $('<dd><a href="javascript:void(0)">Send request</a><div style="display:none"><form><input type="text"/><input type="submit" value="Send"></form></div><hr></dd>'),
+        send:    $('<dd><a href="javascript:void(0)">Send request</a><div style="display:none"><form><input type="text" placeholder="Close reason"/><input type="submit" value="Send"></form></div><hr></dd>'),
         room:    (function(){
             var item = $('<dd></dd>');
             var list = $('<dl>');
@@ -317,7 +413,7 @@ if(typeof StackExchange === "undefined")
     CVRGUI.wrp.append(CVRGUI.css);
 
     $('#question .post-menu').append(CVRGUI.wrp);
-    
+
     $('.question').on('click', '[type="submit"], .new-post-activity a', function(e){
         var self = this;
         var menuCheck = setInterval(function(){
@@ -334,17 +430,17 @@ if(typeof StackExchange === "undefined")
     });
 
     $('a:not(.cvrgui a)').on('click',function(){
-        if(CVRGUI.list.is(':visible')) 
+        if(CVRGUI.list.is(':visible'))
             hideMenu();
     });
     $('.cv-list *:not(a)').on('click',function(e){
         e.stopPropagation();
     });
 
-    CVRGUI.button.on('click', function(e){ 
+    CVRGUI.button.on('click', function(e){
         e.stopPropagation();
         $('div', CVRGUI.list).hide();
-        CVRGUI.list.toggle(); 
+        CVRGUI.list.toggle();
     });
 
     CVRGUI.items.send.on('click',function(e){
@@ -359,11 +455,13 @@ if(typeof StackExchange === "undefined")
         var reason = $('input[type="text"]', CVRGUI.items.send).val();
         if(!reason) return false;
         reason = reasons.get(reason);
-        var tit = '[' + $('#question-header h1 a').text().replace(/\[(.*)\]/g, '($1)') + '](' + base + $('#question .short-link').attr('href') + ')'; 
-        var usr = $('.post-signature:not([align="right"]) .user-details').text().trim().match(/[^\n]+/)[0].trim(), tim;
-        if($('#question .owner a').length) usr = '[' + usr + '](' + base + $('#question .owner a').attr('href') + ')';
-        if($('#question .owner .relativetime').length) tim = $('#question .owner .relativetime').attr('title');
-        var result = '[tag:cv-pls] ' + reason + ' ' + tit + ' - ' + usr + (tim ? ' - ' + tim : '');
+        var tit = '[' + $('#question-header h1 a').text().replace(/(\[|\])/g, '\\$1').replace(/^\s+|\s+$/gm, '') + '](' + base + $('#question .short-link').attr('href') + ')';
+        var usr = $('.post-signature:not([align="right"],#popup-close-question .post-signature) .user-details').text().trim().match(/[^\n]+/)[0].trim(), tim;
+        var tag = $('#question a.post-tag').first().text(); //huh, sponsored tags have images =/ and off-topic tag like C++ are URL encoded -> get the text only
+		// for duplicate cv-pls, when the dupe is selected, the mini-review messes up the selector for username and date: it is removed with :not
+        if($('#question .owner:not(#popup-close-question .owner) a').length) usr = '[' + usr + '](' + base + $('#question .owner:not(#popup-close-question .owner) a').attr('href') + ')';
+        if($('#question .owner:not(#popup-close-question .owner) .relativetime').length) tim = $('#question .owner:not(#popup-close-question .owner) .relativetime').attr('title');
+        var result = '[tag:'+ (isclosed?'reopen-pls':'cv-pls') +'] [tag:' + tag + '] ' + reason + ' ' + tit + ' - ' + usr + (tim ? '\u200E - ' + tim : ''); //username can be RTL... need to insert a LTR marker to have proper direction
         sendRequest(result);
     });
 
@@ -389,12 +487,12 @@ if(typeof StackExchange === "undefined")
             } else {
                 hideMenu();
             }
-        } 
+        }
     });
     setTimeout(checkUpdates);
     var closereasons = {
         4: "General Computing",
-        7: "Serverfault.com",
+        7: "Server / Networking",
         16: "Request for Off-Site Resource",
         13: "No MCVE",
         11: "Typo or Cannot Reproduce",
@@ -403,28 +501,28 @@ if(typeof StackExchange === "undefined")
     };
     $('.close-question-link').click(function(){
         var cpcheck = setInterval(function(){
-            var popup = $('#popup-close-question'), selected;
+            var popup = $('#popup-close-question'), selected, discard;
             if(!popup.length) return;
             clearInterval(cpcheck);
             var remainingvotes = $('.remaining-votes', popup);
-            
+
             if($('input', remainingvotes).length) return false;
-            
+
             var checkbox = $('<label><input type="checkbox" style="vertical-align:middle;margin-left: 5px;">Send cv-pls request</label>');
-            
+
             $('.remaining-votes', popup).append(checkbox);
             $('[name="close-reason"]').change(function(){
-                this.checked && (selected = $(this)) && $('input[type="text"]', CVRGUI.items.send).val(this.value.replace(/(?!^)([A-Z])/g, ' $1'));
+               discard = this.checked && (selected = $(this)) && $('input[type="text"]', CVRGUI.items.send).val(this.value.replace(/(?!^)([A-Z])/g, ' $1'));
             });
             $('[name="close-as-off-topic-reason"]').change(function(){
-                this.checked && (selected = $(this)) && $('input[type="text"]', CVRGUI.items.send).val(closereasons[this.value]);
+               discard = this.checked && (selected = $(this)) && $('input[type="text"]', CVRGUI.items.send).val(closereasons[this.value]);
             });
             $('.popup-submit').click(function() {
                 if(selected.val() === '3') {
                     var parent = selected.parent().parent();
                     $('input[type="text"]', CVRGUI.items.send).val($('textarea',parent).val().replace($('[type="hidden"]',parent).val(),''));
                 }
-                checkbox.find('input').is(':checked') && $('form', CVRGUI.items.send).submit();
+                discard= checkbox.find('input').is(':checked') && $('form', CVRGUI.items.send).submit();
             });
         }, 100);
     });

@@ -6,10 +6,11 @@
 // @contributor    Unihedron
 // @contributor    Tiny Giant
 // @contributor    Mogsdad
+// @contributor    Makyen
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.5.2.70
+// @version        1.6.0.0
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com\/(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
@@ -44,62 +45,63 @@
 
         App.globals.reasons = {};
 
-        App.globals.replacedStrings = {
-            "auto":   [],
-            "quote":  [],
-            "inline": [],
-            "block":  [],
-            "lsec":   [],
-            "links":  [],
-            "tags":   []
-        };
         App.globals.placeHolders = {
-            "auto":   "_xAutoxInsertxTextxPlacexHolder_",
-            "quote":  "_xBlockxQuotexPlacexHolderx_",
-            "inline": "_xCodexInlinexPlacexHolderx_",
-            "block":  "_xCodexBlockxPlacexHolderx_",
-            "lsec":   "_xLinkxSectionxPlacexHolderx_",
-            "links":  "_xLinkxPlacexHolderx_",
-            "tags":   "_xTagxPlacexHolderx_"
+            "auto":        "_xAutoxInsertxTextxPlacexHolderx_",
+            "quote":       "_xBlockxQuotexPlacexHolderx_",
+            "inline":      "_xCodexInlinexPlacexHolderx_",
+            "block":       "_xCodexBlockxPlacexHolderx_",
+            "blockStart":  "_xCodexBlockxStartxPlacexHolderx_",
+            "lsec":        "_xLinkxSectionxPlacexHolderx_",
+            "links":       "_xLinkxPlacexHolderx_",
+            "tags":        "_xTagxPlacexHolderx_"
         };
-        App.globals.placeHolderChecks = {
-            "auto":   /_xAutoxInsertxTextxPlacexHolder_/gi,
-            "quote":  /_xBlockxQuotexPlacexHolderx_/gi,
-            "inline": /_xCodexInlinexPlacexHolderx_/gi,
-            "block":  /_xCodexBlockxPlacexHolderx_/gi,
-            "lsec":   /_xLinkxSectionxPlacexHolderx_/gi,
-            "links":  /_xLinkxPlacexHolderx_/gi,
-            "tags":   /_xTagxPlacexHolderx_/gi
-        };
+        App.globals.replacedStrings = {};
+        App.globals.replacedStringsOriginal = {};
+        App.globals.placeHolderChecks = {};
+        App.globals.placeHolderKeys = Object.keys(App.globals.placeHolders);
         App.globals.checks = {
-            //        https://regex101.com/r/cI6oK2/1 automatically inserted text
+            //automatically inserted text
+            //        https://regex101.com/r/cI6oK2/1
             "auto":   /[^]*\<\!\-\- End of automatically inserted text \-\-\>/g,
-            //        https://regex101.com/r/fU5lE6/1 blockquotes
+            //blockquotes
+            //        https://regex101.com/r/fU5lE6/1
             "quote":  /^\>(?:(?!\n\n)[^])+/gm,
-            //        https://regex101.com/r/lL6fH3/1 single-line inline code
+            //single-line inline code
+            //        https://regex101.com/r/lL6fH3/1
             "inline": /`[^`\n]+`/g,
-            //        https://regex101.com/r/eC7mF7/2 code blocks and multiline inline code.
-            "block":  /`[^`]+`|^(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ ]+\n)*)+)+/gm,
-            //        https://regex101.com/r/tZ4eY3/7 link-sections 
-            "lsec":   /(?:  (?:\[\d\]): \w*:+\/\/.*\n*)+/g,
-            //        https://regex101.com/r/tZ4eY3/20 links and pathnames
-            "links":  /\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d:/?#\[\]@!$&'()*+,;=\-~%]*/g,
-            //        https://regex101.com/r/bF0iQ0/2   tags and html comments 
+            //code blocks and multiline inline code.
+            //        https://regex101.com/r/eC7mF7/4
+            "block":  /(?:(?:^[ \t]*(?:[\r\n]|\r\n))?`[^`]+`|(?:^[ \t]*(?:[\r\n]|\r\n))^(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ \t]+\n)*)+)+)/gm,
+            //code blocks at the start of the post.
+            //        https://regex101.com/r/vu7fBd/1
+            "blockStart":  /(?:^(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ ]+\n)*)+)+)/g,
+            //link-sections
+            //  Testing of this and the "links" RegExp were done within the same regex101.com "regex".
+            //  The prior version of this was https://regex101.com/r/tZ4eY3/7 it was saved and became version 21.
+            //  It was then forked into it's own regex:
+            //        https://regex101.com/r/C7nXfd/2
+            "lsec":   /(?:^ *(?:[\r\n]|\r\n))?(?:  (?:\[\d\]): \w*:+\/\/.*\n*)+/gm,
+            //links and pathnames
+            //  See comment above the "lsec" RegExp regarding testing sharing the same "regex" on regex101.com
+            //        https://regex101.com/r/tZ4eY3/22
+            "links":  /!?\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])(?:\](?:\([^\)\n]+\)|\[[^\]\n]+\]))?|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d:/?#\[\]@!$&'()*+,;=\-~%]*/gi,
+            //        https://regex101.com/r/bF0iQ0/2   tags and html comments
             "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>|\[tag:[\w.-]+\]/gi
         };
-        App.globals.checksr = (function(o1){
-            var o2 = {};
-            var k= Object.keys(o1);
-            for(var i = k.length-1; i >= 0; --i) o2[k[i]] = o1[k[i]];
-            return o2;
+        //Make a shallow copy of the App.globals.checks Object
+        App.globals.checksr = (function(objIn){
+            var objOut = {};
+            var keys = Object.keys(objIn);
+            for(var i = keys.length-1; i >= 0; --i) objOut[keys[i]] = objIn[keys[i]];
+            return objOut;
         })(App.globals.checks);
 
         // Assign modules here
         App.pipeMods = {};
 
         // Define order in which mods affect  here
-        App.globals.order = ["omit", "codefix", "edit", "diff", "replace", "output"];
-        
+        App.globals.order = ["omit", "codefix", "inlineImages", "edit", "diff", "replace", "output"];
+
         // Define reason constant strings
         App.consts.reasons = {
             legalSO:       "'Stack Overflow' is the legal name",
@@ -113,16 +115,17 @@
             punctuation:   "punctuation",
             layout:        "layout",
             silent:        "",                              // Unreported / uncounted
-            titleSaysAll:  "replicated title in body"
+            titleSaysAll:  "replicated title in body",
+            inlineImage:   "inline image"
         };
 
-        
+
         // Get the original post tags
         App.globals.taglist = [];
         $('a.post-tag').each( function(){
             var newtag = $(this).text();
             if (App.globals.taglist.indexOf(newtag) === -1) {
-                App.globals.taglist.push(newtag);                
+                App.globals.taglist.push(newtag);
             }
         });
 
@@ -205,9 +208,14 @@
                 replacement: "jQuery",
                 reason: App.consts.reasons.trademark
             },
-            angular: {
-                expr: /\bangular(?:js)?\b(?![.-]\w)/gi,
+            angularjs: {
+                expr: /\bangularjs\b(?![.-]\w)/gi, //Updated as Angular and AngularJS are two different things.
                 replacement: "AngularJS",
+                reason: App.consts.reasons.trademark
+            },
+            angular: {
+                expr: /\bangular\b(?![.-]\w)/gi,
+                replacement: "Angular",
                 reason: App.consts.reasons.trademark
             },
             php: {
@@ -390,7 +398,7 @@
                 reason: App.consts.reasons.trademark
             },
             chrome: {
-                expr: /\bchrome\b/gi,
+                expr: /\bchrome\b(?![-.]\w)/gi, //Don't match chrome.* namespace and chrome-* schemes
                 replacement: "Chrome",
                 reason: App.consts.reasons.trademark
             },
@@ -709,6 +717,121 @@
                 replacement: "$1Perl",
                 reason: App.consts.reasons.trademark
             },
+            htc: {
+                expr: /\bhtc\b/gi,
+                replacement: "HTC",
+                reason: App.consts.reasons.trademark
+            },
+            greasemonkey: {
+                expr: /\bgre[ea]semonkey\b/gi, //Should this also be correcting spelling, or should that be a separate rule?
+                replacement: "Greasemonkey",
+                reason: App.consts.reasons.trademark
+            },
+            tampermonkey: {
+                expr: /\btampermonkey\b/gi,
+                replacement: "Tampermonkey",
+                reason: App.consts.reasons.trademark
+            },
+            mozilla: {
+                expr: /\bmozill?a\b/gi,
+                replacement: "Mozilla",
+                reason: App.consts.reasons.trademark
+            },
+            webextensions: {
+                expr: /\bweb-*extension(s*)\b/gi,
+                replacement: "WebExtension$1",
+                reason: App.consts.reasons.trademark
+            },
+            firefoxWebextensions: {
+                expr: /\bfirefox[ \-]*web[ \-]*exten[st]ion(s*)\b/gi,
+                replacement: "Firefox WebExtension$1",
+                reason: App.consts.reasons.trademark
+            },
+            microsoftedge: {
+                expr: /\bmicrosoft[ \-]*edge\b/gi,
+                replacement: "Microsoft Edge",
+                reason: App.consts.reasons.trademark
+            },
+            typescript: {
+                expr: /\btypescript\b/gi,
+                replacement: "TypeScript",
+                reason: App.consts.reasons.trademark
+            },
+            xulrunner: {
+                expr: /\bxulrunner\b/gi,
+                replacement: "XULRunner",
+                reason: App.consts.reasons.trademark
+            },
+            xul: {
+                expr: /\bxul\b/gi,
+                replacement: "XUL",
+                reason: App.consts.reasons.trademark
+            },
+            webrtc: {
+                expr: /\bwebrtc\b/gi,
+                replacement: "WebRTC",
+                reason: App.consts.reasons.trademark
+            },
+            cakephp: {
+                expr: /\bcakephp\b/gi,
+                replacement: "CakePHP",
+                reason: App.consts.reasons.trademark
+            },
+            usps: {
+                expr: /\busps\b/gi,
+                replacement: "USPS",
+                reason: App.consts.reasons.trademark
+            },
+            ups: {
+                expr: /\bups\b/gi,
+                replacement: "UPS",
+                reason: App.consts.reasons.trademark
+            },
+            fedex: {
+                expr: /\bFedEx\b/gi,
+                replacement: "FedEx",
+                reason: App.consts.reasons.trademark
+            },
+            shopify: {
+                expr: /\bshopify\b/gi,
+                replacement: "Shopify",
+                reason: App.consts.reasons.trademark
+            },
+            xcode: {
+                expr: /\bxcode\b/gi,
+                replacement: "Xcode",
+                reason: App.consts.reasons.trademark
+            },
+            imagemagic: {
+                expr: /\bimagemagic\b/gi,
+                replacement: "ImageMagic",
+                reason: App.consts.reasons.trademark
+            },
+            openfire: {
+                expr: /\bopenfire\b/gi,
+                replacement: "Openfire",
+                reason: App.consts.reasons.trademark
+            },
+            wifi: {
+                expr: /\bwi-?fi\b/gi,
+                replacement: "Wi-Fi",
+                reason: App.consts.reasons.trademark
+            },
+            springboot: {
+                expr: /\bspring ?boot\b/gi,
+                replacement: "Spring Boot",
+                reason: App.consts.reasons.trademark
+            },
+            springcloud: {
+                expr: /\bspring ?cloud\b/gi,
+                replacement: "Spring Cloud",
+                reason: App.consts.reasons.trademark
+            },
+            jmeter: {
+                expr: /\bjmeter\b/gi,
+                replacement: "JMeter",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
@@ -974,6 +1097,31 @@
             },
             ram_rom: {
                 expr: /(?:[^\w.\-/\\_]|^)r[ao]m\b(?![.\-]\w|[/\\_])/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            sdk: {
+                expr: /(?:[^\b\w.]|^)sdk\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            usb: {
+                expr: /(?:[^\b\w.]|^)usb\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            utf: {
+                expr: /(?:[^\b\w.]|^)utf\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            xmpp: {
+                expr: /(?:[^\b\w.]|^)xmpp\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            seo: {
+                expr: /(?:[^\b\w.]|^)seo\b/gi,
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.acronym
             },
@@ -1340,7 +1488,7 @@
             whether_not_weather: { // https://regex101.com/r/oS1xE5/3
                 expr: /\b(w)eather(?= (?:it|we|I|or not|they|[^.?!]*(?:works?|helps?))\b)/gi,
                 replacement: "$1hether",
-                reason: App.consts.reasons.spelling                
+                reason: App.consts.reasons.spelling
             },
             through: {  // https://regex101.com/r/gQ0dZ1/4
                 expr: /\b(t)(?:hru|rough|hroug)\b/gi,
@@ -1843,9 +1991,10 @@
                 reason: App.consts.reasons.spelling
             },
             un_initialize: { // >4K instances https://regex101.com/r/lY2hY1/1
-                expr: /\b((?:un-?|re-?)?i)n?i?t[ia]+li?[zs](e|ed|[eo]r|es|ing)\b/gi,
-                replacement: function(match, prefix, suffix) {
-                    return (prefix+'nitializ'+suffix).replace("-","");
+                //Should not change from/to British <-> American English.
+                expr: /\b((?:un-?|re-?)?i)n?i?t[ia]+li?([zs])(e|ed|[eo]r|es|ing)\b/gi,
+                replacement: function(match, prefix, engAmer, suffix) {
+                    return (prefix+'nitiali' + engAmer + suffix).replace("-","");
                 },
                 reason: App.consts.reasons.spelling
             },
@@ -1869,9 +2018,9 @@
                 replacement: "$1 read",
                 reason: App.consts.reasons.spelling
             },
-            customize: {  // http://grammarist.com/spelling/customise-customize/
-                expr: /\b(c)u[st]+[oui]mi[zs](e)?/gi,
-                replacement: "$1ustomiz$2",
+            customize: {  // http://grammarist.com/spelling/customise-customize/    Don't change AME/BRE usage.
+                expr: /\b(c)u[st]+[oui]mi([zs])(e)?/gi,
+                replacement: "$1ustomi$2$3",
                 reason: App.consts.reasons.spelling
             },
             customizable: {  // Common errors are to retain 'e', and/or to use ible, not able
@@ -2125,12 +2274,12 @@
                 replacement: "$1se $2ase",
                 reason: App.consts.reasons.spelling
             },
-            matches: {  // 
+            matches: {  //
                 expr: /\b(m)atc[he]s/gi,
                 replacement: "$1atches",
                 reason: App.consts.reasons.spelling
             },
-            specific: {  // 
+            specific: {  //
                 expr: /\b(s)pe[cs]i?fic/gi,
                 replacement: "$1pecific",
                 reason: App.consts.reasons.spelling
@@ -2140,27 +2289,27 @@
                 replacement: "$1omputer",
                 reason: App.consts.reasons.spelling
             },
-            something_like: {  // Some thing like -- 6,468 posts 
+            something_like: {  // Some thing like -- 6,468 posts
                 expr: /\b(s)ome thing like/gi,
                 replacement: "$1omething like",
                 reason: App.consts.reasons.spelling
             },
-            maybe_something: {  // May be something -- 4,259 posts 
+            maybe_something: {  // May be something -- 4,259 posts
                 expr: /\b(m)ay be some ?thing/gi,
                 replacement: "$1aybe something",
                 reason: App.consts.reasons.spelling
             },
-            targeting: {  // 3,151 posts 
+            targeting: {  // 3,151 posts
                 expr: /\b(t)argetting/gi,
                 replacement: "$1argeting",
                 reason: App.consts.reasons.spelling
             },
-            column: {  // 1,363 posts 
+            column: {  // 1,363 posts
                 expr: /\b(c)olou?mn?(s)?/gi,
                 replacement: "$1olumn$2",
                 reason: App.consts.reasons.spelling
             },
-            array: { 
+            array: {
                 expr: /\b(a)(?:rry|ray)(s)?/gi,
                 replacement: "$1rray$2",
                 reason: App.consts.reasons.spelling
@@ -2206,13 +2355,38 @@
                 reason: App.consts.reasons.spelling
             },
             background: {  // 1,583+ posts
-                expr: /\b(b)a[ck]+ ?gr[ou]+[nd]+\b/gi,
-                replacement: "$1ackground",
+                expr: /\b(b)a[ck]+ ?gr[ou]+[nd]+(s?)s*\b/gi,
+                replacement: "$1ackground$2",
                 reason: App.consts.reasons.spelling
             },
             preempt: {
                 expr: /\b(p)r[e -]+m[pt]+/gi,
                 replacement: "$1reempt",
+                reason: App.consts.reasons.spelling
+            },
+            extension: {
+                expr: /\b(e)xten[st]ion(s?)s*\b/gi,
+                replacement: "$1xtension$2",
+                reason: App.consts.reasons.spelling
+            },
+            addon: {
+                expr: /\b(a)ddon(s?)s*\b/gi,
+                replacement: "$1dd-on$2",
+                reason: App.consts.reasons.spelling
+            },
+            addonsdk: {
+                expr: /\b(a)ddon-?sdk\b/gi,
+                replacement: "$1dd-on SDK",
+                reason: App.consts.reasons.spelling
+            },
+            thankful: {
+                expr: /\b(t)hankfull?\b/gi,
+                replacement: "$1hankful",
+                reason: App.consts.reasons.spelling
+            },
+            know: {
+                expr: /\b(k)now?\b/gi,
+                replacement: "$1now",
                 reason: App.consts.reasons.spelling
             },
             /*
@@ -2230,7 +2404,7 @@
                     var res = AvsAnOverride_(input) || AvsAnSimple.query(input);
                     var newArticle = article[0] + res.substr(1);  // Preserve existing capitalization
                     return newArticle+' '+following;
-                    
+
                     // Hack alert: Due to the technical nature of SO subjects, many common terms
                     // are not well-represented in the data used by AvsAnSimple, so we need to
                     // provide a way to override it.
@@ -2247,10 +2421,10 @@
                 reason: App.consts.reasons.grammar
             },
             firstcaps: {
-                //    https://regex101.com/r/qR5fO9/42
+                //    https://regex101.com/r/JnSYVw/1
                 // Regex finds all sentences; replacement must determine whether it needs to capitalize.
-                expr: /(([A-Za-z]|\d(?!\d*\. )|[.$_]\w+)(\S*))((?:(?:etc\.|i\.e\.|e\.g\.|vs\.|\.\.\.|\w*\.(?![\s")])|[*-]+|\n(?![ \t]*\n| *(?:[*-]|\d+\.))|[^.?!\n]?))+(?:([.?!])(?=[\s")]|$)|\n\n|\n(?= *[*-])|\n(?= *\d+\.)|$))/gi,
-                replacement: function(sentence, fWord, fChar, fWordPost, sentencePost, endpunc) { 
+                expr: /(([A-Za-z]|\d(?!\d*\. )|[.$_]\w+)(\S*))((?:(?:etc\.|i\.e\.|e\.g\.|vs\.|\.\.\.|\w*\.(?![\s")])|[*-]+|\n(?![ \t]*\n| *(?:[*-]|\d+\.))|[^.?!\n]?))+(?:([.?!]+)(?=[\s")]|$)|\n\n|\n(?= *[*-])|\n(?= *\d+\.)|$))/gi,
+                replacement: function(sentence, fWord, fChar, fWordPost, sentencePost, endpunc) {
                     var capChar = fChar.toUpperCase();
                     if (sentence === "undefined"||capChar == fChar) return sentence;  // MUST match sentence, or gets counted as a change.
                     if (!fWord) fWord = '';
@@ -2401,8 +2575,8 @@
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
-            complimentaryClose: {  // https://regex101.com/r/hL3kT5/6
-                expr: /^\s*(?:(?:kind(?:est)* |best )*regards?|cheers?|greetings?|thanks|thank you|peace)\b,?.*[\r\n]{0,2}.*(?:[.!?: ]*|$)/gim,
+            complimentaryClose: {  // https://regex101.com/r/hL3kT5/7
+                expr: /^\s*(?:(?:kind(?:est)* |best )*regards?|cheers?|greetings?|thanks|thank you|peace)\b,?(?:[^_\r\n]|_(?:[^x\r\n]|$))*(?: *[\r\n]){0,2}(?:[^_\r\n]|_(?:[^x\r\n]|$))*(?:[.!?: ]*|$)/gim,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
@@ -2516,16 +2690,39 @@
             }
         };
 
+        //Clear the global values which hold replacements
+        App.funcs.clearPlaceHolders = function(before, after) {
+            App.globals.placeHolderKeys.forEach(function(key) {
+                App.globals.replacedStrings[key] = [];
+                App.globals.replacedStringsOriginal[key] = [];
+                App.globals.placeHolderChecks[key] = new RegExp(App.globals.placeHolders[key],'gi');
+            });
+        };
+        App.funcs.clearPlaceHolders();
+
+        // Check if the placeholders are the same in two pieces of text.
+        App.funcs.didPlaceholdersChange = function(before, after) {
+            //Currently, we only check that the number of instances for each type of placeholder is the
+            //  same in both texts.
+            return App.globals.placeHolderKeys.some(function(key) {
+                var regEx = App.globals.placeHolderChecks[key];
+                var beforeMatches = before.match(regEx);
+                var afterMatches = after.match(regEx);
+                return !((beforeMatches === null && afterMatches === null) || (beforeMatches !== null && afterMatches !== null && beforeMatches.length === afterMatches.length));
+            });
+        };
+
         // This is where the magic happens: this function takes a few pieces of information and applies edits to the post
-        App.funcs.fixIt = function(input, edit) {
+        App.funcs.fixIt = function(input, edit, editRule) {
             var expression = edit.expr;
             var replacement = edit.replacement;
             var reasoning = edit.reason;
             var debug = edit.debug;
-            
+
             if (debug) {
-                console.log(input);
-                console.log(expression.toString());
+                console.log('editRule:', editRule);
+                console.log('input:', input);
+                console.log('expression.toString():', expression.toString());
                 console.log("replacement: '"+replacement+"'");
             }
             // If there is nothing to search, exit
@@ -2535,22 +2732,36 @@
             if (debug) console.log(matches, expression.exec(input));
             if (!matches) return false;
             var count = 0;  // # replacements to do
-            input = input.replace(expression, function(before){ 
+            var deniedCount = 0;  // # replacements not to do
+            input = input.replace(expression, function(before){
                 var after = before.replace(expression, replacement);
-                if(after !== before) ++count; 
-                if (debug) console.log(before, after, after !== before, count);
+                if(after !== before) ++count;
+                //Check to see if the quantity of the place holders changed between the input and output.
+                if(App.funcs.didPlaceholdersChange(before, after)) {
+                    //An edit rule should never change the quantity of placeholders in the text. If it does, we deny making the change.
+                    console.log('PREVENTED change: edit rule:', editRule, ': Placeholders changed:  before:', before, '::  after:', after, '::  count:', count);
+                    count--;
+                    deniedCount++;
+                    return before;
+                }
+                if (debug) console.log('before:', before, '::  after:', after, '::  after !== before:', after !== before, '::  count:', count);
                 return after;
             });
-            if (!count) {
+            if (!count && !deniedCount) {
                 // Seems like no replacements, check.
                 // In some cases, the expression matches on the initial input, but
                 // fails to on the individual matches. In that case, we can't count
                 // the total changes accurately, but we can still complete the
                 // replacement on the initial input.
                 var after = input.replace(expression, replacement);
+                if(App.funcs.didPlaceholdersChange(input, after)) {
+                    //An edit rule should never change the quantity of placeholders in the text. If it does, we deny making the change.
+                    console.log('PREVENTED global change: edit rule:', editRule, ': Placeholders changed:  input:', input, '::  after:', after, '::  count:', count);
+                    after = input;
+                }
                 if (debug) console.log("zero-count: ", input, after, after !== input);
                 if(after !== input) {
-                    ++count; 
+                    ++count;
                     input = after;
                 }
             }
@@ -2591,28 +2802,28 @@
             App.selections.preview.show();
             App.selections.previewToggle.text('hide preview');
         }
-        
+
         App.funcs.showDiff = function() {
             App.selections.preview.hide();
             App.selections.previewToggle.text('show preview');
             App.selections.diff.show();
             App.selections.diffToggle.text('hide diff');
         }
-        
+
         App.funcs.togglePreview = function() {
             App.selections.diff.hide();
             App.selections.diffToggle.text('show diff');
             if(/hide/.test(App.selections.previewToggle.text())) return App.selections.previewToggle.text('show preview'), App.selections.preview.toggle(), true;
             if(/show/.test(App.selections.previewToggle.text())) return App.selections.previewToggle.text('hide preview'), App.selections.preview.toggle(), true;
         }
-        
+
         App.funcs.toggleDiff = function() {
             App.selections.preview.hide();
             App.selections.previewToggle.text('show preview');
             if(/hide/.test(App.selections.diffToggle.text())) return App.selections.diffToggle.text('show diff'), App.selections.diff.toggle(), true;
             if(/show/.test(App.selections.diffToggle.text())) return App.selections.diffToggle.text('hide diff'), App.selections.diff.toggle(), true;
         }
-        
+
         // Populate edit item sets from DOM selections
         App.funcs.popItems = function() {
             var i = App.items, s = App.selections;
@@ -2628,13 +2839,13 @@
                 i[v] = s[v];
             });
         }
-        
+
         // Insert editing button
         App.funcs.createButton = function() {
             if (!App.selections.redoButton.length) return false;
 
-            App.selections.buttonWrapper = $('<li class="wmd-magic-edit"/>');
-            App.selections.buttonFix = $('<img src="//i.stack.imgur.com/Om5pL.png" class="wmd-button ToolkitFix" title="Fix the content!" />');
+            App.selections.buttonWrapper = $('<li class="wmd-magic-edit wmd-button"/>');
+            App.selections.buttonFix = $('<span class="ToolkitFix" title="Fix the content!" style="background-size:contain !important"></span>');
             App.selections.buttonInfo = $('<div class="ToolkitInfo">');
 
             // Build the button
@@ -2646,21 +2857,16 @@
 
             // Attach the event listener to the button
             App.selections.buttonFix.click(App.funcs.fixEvent);
-            
+
             App.selections.buttonWrapper.css({
-                'position': 'relative',
-                'left': '410px',
+                'margin-left': '40px',
                 'display': 'inline-block',
                 'overflow': 'visible',
-                //'height': '55%',
-                'height': '90%',  // Temporary? 21-Apr-2016 Stack changed their CSS.
                 'white-space': 'nowrap'
             });
             App.selections.buttonFix.css({
-                'position': 'static',
                 'display': 'inline-block',
-                'width': 'auto',
-                'height': '100%'
+                'background-image': 'url("//i.stack.imgur.com/Om5pL.png")',
             });
             App.selections.buttonInfo.css({
                 'position': 'static',
@@ -2676,6 +2882,7 @@
         };
 
         App.funcs.fixEvent = function() {
+            App.funcs.clearPlaceHolders();
             return App.funcs.popItems(), App.pipe(App.items, App.pipeMods, App.globals.order), false;
         };
 
@@ -2703,7 +2910,7 @@
                     }
                 }
             }
-            
+
             a1 = a1.split(/(?=\b|\W|_)/g);
             a2 = a2.split(/(?=\b|\W|_)/g);
 
@@ -2751,6 +2958,7 @@
             for (var type in App.globals.checks) {
                 data.body = data.body.replace(App.globals.checks[type], function(match) {
                     App.globals.replacedStrings[type].push(match);
+                    App.globals.replacedStringsOriginal[type].push(match);
                     return App.globals.placeHolders[type];
                 });
             }
@@ -2765,6 +2973,42 @@
             }
         };
 
+        App.pipeMods.inlineImages = function(data) {
+            //This only attempts to substitute image links in the format [foo][n]. It doesn't do [foo](URL.png)
+            if (!data.body) return false;
+            var links = App.globals.replacedStrings.links.filter(function(link) {
+                return /^\s*\[[^\[]*\]\s*\[\d+\]\s*$/.test(link);
+            });
+            var linkNumbers = links.map(function(link) {
+                return link.match(/^\s*\[[^\[]*\]\s*\[(\d+)\]\s*$/)[1];
+            });
+            //Find if matching https://i.stack.imgur.com/*.png link.
+            var imageNumbers = linkNumbers.filter(function(link, index) {
+                var testPng = new RegExp('^\\s*\\[' + linkNumbers[index] + '\\]:\\s*https?:\\/\\/i\\.stack\\.imgur\\.com\\/.*\\.(?:png|gif|jpg|jpeg|tif|tiff|bmp)\s*$', 'm');
+                return App.globals.replacedStrings.lsec.some(function(section) {
+                    return testPng.test(section);
+                });
+            });
+            var replacements = 0;
+            imageNumbers.forEach(function(num) {
+                var replaceLink = new RegExp('^(\\s*)\\[([^\\[]*)\\](\\s*\\[' + num + '\\])(\\s*)$','');
+                App.globals.replacedStrings.links.forEach(function(link, index, array) {
+                    array[index] = link.replace(replaceLink, '$2:  \n$1[![$2]$3][' + num + ']$4').replace(/^enter image description here:  \n/,'');
+                    if(array[index] !== link) {
+                        replacements++;
+                    }
+                });
+            });
+            if(replacements) {
+                if ('inlineImage' in App.globals.reasons) {
+                    App.globals.reasons.inlineImage.count += replacements;
+                } else {
+                    App.globals.reasons.inlineImage = { reason:'inline image' + (replacements > 1 ? 's' : ''), editId:'inlineImage', count:replacements };
+                }
+            }
+            return data
+        };
+
         App.pipeMods.edit = function(data) {
             App.funcs.popOriginals();
 
@@ -2774,28 +3018,28 @@
 
             // List of fields to be edited
             var fields = {body:'body',title:'title'};
-            
+
             // Loop through all editing rules
             for (var j in App.edits) for (var field in fields) {
                 var debug = App.edits[j].debug;
                 if (debug) console.log("edit "+j+" in "+field);
                 if (App.edits[j].titleOnly && 'title' !== field)
                     continue;  // Skip title-only edits if not editing title.
-                var fix = App.funcs.fixIt(data[field], App.edits[j]);
+                var fix = App.funcs.fixIt(data[field], App.edits[j], j);
                 if (!fix) continue;
                 if (fix.reason in App.globals.reasons) App.globals.reasons[fix.reason].count += fix.count;
                 else App.globals.reasons[fix.reason] = { reason:fix.reason, editId:j, count:fix.count };
                 data[field] = fix.fixed;
                 App.edits[j].fixed = true;
             }
-            
+
             // Remove silent change reason
             delete App.globals.reasons[App.consts.reasons.silent];
-            
+
             // If there are no reasons, exit
             if (App.globals.reasons == {}) return false;
 
-            // We need a place to store the reasons being applied to the summary. 
+            // We need a place to store the reasons being applied to the summary.
             var reasons = [];
             App.globals.changes = 0;
 
@@ -2822,8 +3066,8 @@
             if (data.summary.length > 300) data.summary = data.summary.substr(0,300-3) + '...';
 
             return data;
-        };   
-        
+        };
+
         // Populate the diff
         App.pipeMods.diff = function() {
             App.selections.diff.empty().append('<div class="difftitle">' + App.funcs.diff(App.originals.title, App.items.title, true) + '</div>' +
@@ -2838,7 +3082,7 @@
                 var i = 0;
                 data.body = data.body.replace(App.globals.placeHolderChecks[type], function(match) {
                     var replace = App.globals.replacedStrings[type][i++];
-                    if(literal && /block|lsec/.test(type)) { 
+                    if(literal && /block|lsec/.test(type)) {
                         var after = replace.replace(/^\n\n/,'');
                         var prepend = after !== replace ? '<span class="add">\n\n</span><span class="del">`</span>' : '';
                         var append  = after !== replace ? '<span class="del">`</span>' : '';
@@ -2852,7 +3096,7 @@
             }
             return data;
         };
-        
+
         // Handle pipe output
         App.pipeMods.output = function(data) {
             App.selections.title.val(data.title);
@@ -2882,7 +3126,7 @@
     try {
         var test = window.location.href.match(/.posts.(\d+).edit/);
         if(test) extendEditor($('form[action^="/posts/' + test[1] + '"]'));
-        else $(document).ajaxComplete(function() { 
+        else $(document).ajaxComplete(function() {
             test = arguments[2].url.match(/posts.(\d+).edit-inline/);
             if(!test) {
                 test = arguments[2].url.match(/review.inline-edit-post/);
@@ -2918,7 +3162,7 @@
     }
 })();
 
-/* 
+/*
   * To Title Case 2.1 – http://individed.com/code/to-title-case/
   * Copyright © 2008–2013 David Gouch. Licensed under the MIT License.
  */
