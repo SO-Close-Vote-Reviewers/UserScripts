@@ -10,7 +10,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.6.0.0
+// @version        1.6.0.1
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com\/(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
@@ -1180,9 +1180,9 @@
                 replacement: "$1seudo",
                 reason: App.consts.reasons.spelling
             },
-            application: {
-                expr: /\b(a)pp?l[ia]ca(?:ti|it)on\b/gi,
-                replacement: "$1pplication",
+            application: {  // https://regex101.com/r/bO4dP4/3
+                expr: /\b(a)p[plia]+ca?[tio]+n(s)?\b/gi,
+                replacement: "$1pplication$2",
                 reason: App.consts.reasons.spelling
             },
             calendar: {
@@ -1378,16 +1378,6 @@
             width: {
                 expr: /\b(w)it?dh?t\b/gi,
                 replacement: "$1idth",
-                reason: App.consts.reasons.spelling
-            },
-            centered: {
-                expr: /\b(c)ent(?:red|erd)\b/gi,
-                replacement: "$1entered",
-                reason: App.consts.reasons.spelling
-            },
-            center: {
-                expr: /\b(c)entre\b/gi,    // "Centre" is a word, however in most cases on SO "center" is meant
-                replacement: "$1enter",
                 reason: App.consts.reasons.spelling
             },
             aint_isnt: {
@@ -2168,8 +2158,8 @@
                 replacement: "$1dditional$2",
                 reason: App.consts.reasons.spelling
             },
-            automatic: {  // https://regex101.com/r/fU2hF1/2
-                expr: /\b(a)(?:uto[ma]+[tic]+|tomatic)(?!e|[io]+n)/gi,
+            automatic: {  // https://regex101.com/r/fU2hF1/3
+                expr: /\b(a)(?:uto[ma]+[tic]+|tomatic)(?!e|[io]+[nr])/gi,
                 replacement: "$1utomatic",
                 reason: App.consts.reasons.spelling
             },
@@ -2262,8 +2252,8 @@
                 },
                 reason: App.consts.reasons.spelling
             },
-            actual: {  // https://regex101.com/r/mT1cL7/1
-                expr: /\b(a)(?:ct[ua]+|[ct]ua)l*(ly)?\b/gi,
+            actual: {  // https://regex101.com/r/mT1cL7/2
+                expr: /\b(a)(?:c+t{0,1}[ua]+|[ct]ua)l*(ly)?\b/gi,
                 replacement: "$1ctual$2",
                 reason: App.consts.reasons.spelling
             },
@@ -2786,7 +2776,7 @@
         App.funcs.popSelections = function() {
             App.selections.redoButton     = App.globals.root.find('[id^="wmd-redo-button"]');
             App.selections.body           = App.globals.root.find('[id^="wmd-input"]');
-            App.selections.title          = App.globals.root.find('[class*="title-field"]');
+            App.selections.title          = App.globals.root.find('#title');
             App.selections.summary        = App.globals.root.find('[id^="edit-comment"], .edit-comment');
             App.selections.tagField       = App.globals.root.find(".tag-editor");
             App.selections.submitButton   = App.globals.root.find('[id^="submit-button"]');
