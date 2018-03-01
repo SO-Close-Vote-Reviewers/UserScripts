@@ -10,7 +10,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.6.0.2
+// @version        1.6.0.3
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com\/(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
@@ -832,6 +832,11 @@
                 replacement: "JMeter",
                 reason: App.consts.reasons.trademark
             },
+            doxygen: {
+                expr: /\bdoxygen\b/gi,
+                replacement: "Doxygen",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
@@ -1333,6 +1338,11 @@
             any1: {
                 expr: /\b(a)ny1\b/gi,
                 replacement: "$1nyone",
+                reason: App.consts.reasons.spelling
+            },
+            smth: { // 9,959 posts
+                expr: /\b(s)mth\b/gi,
+                replacement: "$1omething",
                 reason: App.consts.reasons.spelling
             },
             allways: {
