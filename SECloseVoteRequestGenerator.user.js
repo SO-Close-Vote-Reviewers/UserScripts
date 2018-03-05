@@ -456,7 +456,7 @@ if(typeof StackExchange === "undefined")
         if(!reason) return false;
         reason = reasons.get(reason);
         var tit = '[' + $('#question-header h1 a').text().replace(/(\[|\])/g, '\\$1').replace(/^\s+|\s+$/gm, '') + '](' + base + $('#question .short-link').attr('href') + ')';
-        var usr = $('.post-signature:not([align="right"],#popup-close-question .post-signature) .user-details').text().trim().match(/[^\n]+/)[0].trim(), tim;
+        var usr = $('.post-signature.owner:not([align="right"],#popup-close-question .post-signature) .user-details').text().trim().match(/[^\n]+/)[0].trim(), tim;
         var tag = $('#question a.post-tag').first().text(); //huh, sponsored tags have images =/ and off-topic tag like C++ are URL encoded -> get the text only
 		// for duplicate cv-pls, when the dupe is selected, the mini-review messes up the selector for username and date: it is removed with :not
         if($('#question .owner:not(#popup-close-question .owner) a').length) usr = '[' + usr + '](' + base + $('#question .owner:not(#popup-close-question .owner) a').attr('href') + ')';
