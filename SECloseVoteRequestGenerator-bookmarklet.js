@@ -1,5 +1,5 @@
 //
-// Version 1.0.2
+// Version 1.0.3
 //
 //The bookmarklet is minified in order to fit in the 2088 character limit imposed by some browsers (e.g. IE, Edge).
 //The minified bookmarklet was produced by running the code below through:
@@ -54,7 +54,7 @@ javascript:void((function() {
     }
     reason = reasons.get(reason);
     var title = '[' + $('#question-header h1 a').text().replace(/(\[|\])/g, '\\$1').replace(/^\s+|\s+$/gm, '') + '\u202D](' + base + $('#question .short-link').attr('href') + ')';
-    var user = $('.post-signature:not([align=\'right\'],#popup-close-question .post-signature) .user-details').text().trim().match(/[^\n]+/)[0].trim();
+    var user = $('.post-signature.owner:not([align=\'right\'],#popup-close-question .post-signature) .user-details').text().trim().match(/[^\n]+/)[0].trim();
     var time;
     var tag = $('#question a.post-tag').first().text();
     var owner = $('#question .owner:not(#popup-close-question .owner)');
