@@ -832,6 +832,16 @@
                 replacement: "JMeter",
                 reason: App.consts.reasons.trademark
             },
+            digitalocean: {
+                expr: /\bdigital\W?ocean\b/gi,
+                replacement: "DigitalOcean",
+                reason: App.consts.reasons.trademark
+            },
+            orangehrm: {
+                expr: /\borange\W?hrm\b/gi,
+                replacement: "OrangeHRM",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
