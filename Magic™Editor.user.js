@@ -842,6 +842,11 @@
                 replacement: "OrangeHRM",
                 reason: App.consts.reasons.trademark
             },
+            codeigniter: {
+                expr: /\bcode\W?igniter\b/gi,
+                replacement: "CodeIgniter",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
