@@ -847,6 +847,11 @@
                 replacement: "CodeIgniter",
                 reason: App.consts.reasons.trademark
             },
+            openvpn: {
+                expr: /\bopenvpn(\d?)\b/gi,
+                replacement: "OpenVPN$1",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
