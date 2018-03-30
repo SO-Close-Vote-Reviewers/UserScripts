@@ -852,6 +852,11 @@
                 replacement: "OpenVPN$1",
                 reason: App.consts.reasons.trademark
             },
+            tensorflow: {
+                expr: /\btensor\W?flow\b/gi,
+                replacement: "TensorFlow",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
