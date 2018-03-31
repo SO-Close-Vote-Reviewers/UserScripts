@@ -1151,7 +1151,7 @@
                 reason: App.consts.reasons.acronym
             },
             gps: {
-                expr: /(?:\bgps\b/gi,
+                expr: /\bgps\b/gi,
                 replacement: "GPS",
                 reason: App.consts.reasons.acronym
             },
