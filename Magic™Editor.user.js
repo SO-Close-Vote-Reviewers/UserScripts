@@ -1145,6 +1145,11 @@
                 replacement: function (match) { return match.toUpperCase(); },
                 reason: App.consts.reasons.acronym
             },
+            seo: {
+                expr: /(?:[^\b\w.]|^)seo\b/gi,
+                replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
             gps: {
                 expr: /(?:\bgps\b/gi,
                 replacement: "GPS",
