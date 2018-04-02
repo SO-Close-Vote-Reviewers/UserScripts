@@ -857,6 +857,11 @@
                 replacement: "TensorFlow",
                 reason: App.consts.reasons.trademark
             },
+            netsuite: {
+                expr: /\bnetsuite\b/gi,
+                replacement: "NetSuite",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
