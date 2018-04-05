@@ -832,6 +832,36 @@
                 replacement: "JMeter",
                 reason: App.consts.reasons.trademark
             },
+            digitalocean: {
+                expr: /\bdigital\W?ocean\b/gi,
+                replacement: "DigitalOcean",
+                reason: App.consts.reasons.trademark
+            },
+            orangehrm: {
+                expr: /\borange\W?hrm\b/gi,
+                replacement: "OrangeHRM",
+                reason: App.consts.reasons.trademark
+            },
+            codeigniter: {
+                expr: /\bcode\W?igniter\b/gi,
+                replacement: "CodeIgniter",
+                reason: App.consts.reasons.trademark
+            },
+            openvpn: {
+                expr: /\bopenvpn(\d?)\b/gi,
+                replacement: "OpenVPN$1",
+                reason: App.consts.reasons.trademark
+            },
+            tensorflow: {
+                expr: /\btensor\W?flow\b/gi,
+                replacement: "TensorFlow",
+                reason: App.consts.reasons.trademark
+            },
+            netsuite: {
+                expr: /\bnetsuite\b/gi,
+                replacement: "NetSuite",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
@@ -1123,6 +1153,11 @@
             seo: {
                 expr: /(?:[^\b\w.]|^)seo\b/gi,
                 replacement: function (match) { return match.toUpperCase(); },
+                reason: App.consts.reasons.acronym
+            },
+            gps: {
+                expr: /\bgps\b/gi,
+                replacement: "GPS",
                 reason: App.consts.reasons.acronym
             },
             /*
