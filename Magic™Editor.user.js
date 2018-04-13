@@ -2744,7 +2744,9 @@
             //  same in both texts.
             return App.globals.placeHolderKeys.some(function(key) {
                 var regEx = App.globals.placeHolderChecks[key];
+                regEx.lastIndex = 0;
                 var beforeMatches = before.match(regEx);
+                regEx.lastIndex = 0;
                 var afterMatches = after.match(regEx);
                 return !((beforeMatches === null && afterMatches === null) || (beforeMatches !== null && afterMatches !== null && beforeMatches.length === afterMatches.length));
             });
@@ -2766,8 +2768,9 @@
             // If there is nothing to search, exit
             if (!input) return false;
             // Scan the post text using the expression to see if there are any matches
+            var originalInput = input;
             var matches = input.match(expression);
-            if (debug) console.log(matches, expression.exec(input));
+            if (debug) console.log('matches:', matches, ':: expression.exec(input)', expression.exec(input));
             if (!matches) return false;
             var count = 0;  // # replacements to do
             var deniedCount = 0;  // # replacements not to do
@@ -2776,8 +2779,10 @@
                 if(after !== before) ++count;
                 //Check to see if the quantity of the place holders changed between the input and output.
                 if(App.funcs.didPlaceholdersChange(before, after)) {
-                    //An edit rule should never change the quantity of placeholders in the text. If it does, we deny making the change.
-                    console.log('PREVENTED change: edit rule:', editRule, ': Placeholders changed:  before:', before, '::  after:', after, '::  count:', count);
+                    //An edit rule should never change the quantity of placeholders in the text. If it does, we prevent making the change.
+                    //This will prevent individual changes where they affect an entire placeholder, but won't catch changes where the part
+                    //  of a placeholder is changed. To prevent that we have to also check all the changes vs. the original, complete input.
+                    console.log('PREVENTED change: edit rule:', editRule, ': Placeholders changed:  before:\n', before, '::  after:\n', after, '\n::  count:', count);
                     count--;
                     deniedCount++;
                     return before;
@@ -2785,6 +2790,10 @@
                 if (debug) console.log('before:', before, '::  after:', after, '::  after !== before:', after !== before, '::  count:', count);
                 return after;
             });
+            if(App.funcs.didPlaceholdersChange(originalInput, input)) {
+                console.log('PREVENTED change group: edit rule:', editRule, ': Placeholders changed:  originalInput:\n', originalInput, '\n::  input:\n', input, '\n::  count:', count);
+                input = originalInput;
+            }
             if (!count && !deniedCount) {
                 // Seems like no replacements, check.
                 // In some cases, the expression matches on the initial input, but
@@ -2793,8 +2802,8 @@
                 // replacement on the initial input.
                 var after = input.replace(expression, replacement);
                 if(App.funcs.didPlaceholdersChange(input, after)) {
-                    //An edit rule should never change the quantity of placeholders in the text. If it does, we deny making the change.
-                    console.log('PREVENTED global change: edit rule:', editRule, ': Placeholders changed:  input:', input, '::  after:', after, '::  count:', count);
+                    //An edit rule should never change the quantity of placeholders in the text. If it does, we prevent making the change.
+                    console.log('PREVENTED global change: edit rule:', editRule, ': Placeholders changed:  input:\n', input, '\n::  after:\n', after, '\n::  count:', count);
                     after = input;
                 }
                 if (debug) console.log("zero-count: ", input, after, after !== input);
