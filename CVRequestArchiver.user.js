@@ -605,7 +605,7 @@
             //A clearer indicator of separation between controls and message text.
             '    border-left: 1px solid;',
             '}',
-            '.SOCVR-Archiver-hide-message-meta-menu div.message:hover .meta {',
+            '.SOCVR-Archiver-hide-message-meta-menu .meta {',
             '    display: none !important;',
             '}',
             '.SOCVR-Archiver-in-message-move-button:first-of-type {',
