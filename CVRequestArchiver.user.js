@@ -108,6 +108,7 @@
             smokeDetector: 3735529,
             queen: 6294609,
             fox9000: 3671802,
+            yam: 5285668,
         };
         const targetRoomsByRoomNumber = {
             //SOCVR
@@ -212,6 +213,7 @@
         // https://regex101.com/r/RJbnbS/1
         const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why))?u?-?)+\s*$/i;
         const editMonitorRegEx = /bad edit/i;
+        const yamMonitorRegEx = /\d+%\s*changed\b/i;
 
         const RequestTypes = {
             DELETE: {
@@ -288,6 +290,12 @@
                 alwaysArchiveAfterSeconds: 2 * SECONDS_IN_HOUR, //2 hours
                 //This really should have a separate call to the SE API to get review information, where possible.
                 underAgeTypeKey: 'DELETE',
+            },
+            YAM: { // Monitors posts which have a completed request for edits
+                name: 'Yam requested question change reports',
+                userIdMatch: knownUserIds.yam,
+                textRegexes: [yamMonitorRegEx],
+                alwaysArchiveAfterSeconds: 4 * SECONDS_IN_HOUR, //4 hours
             },
             SMOKEDETECTOR: {
                 name: 'SmokeDetector',
