@@ -123,8 +123,10 @@
         };
         //The current room is not a valid room target.
         delete targetRoomsByRoomNumber[room];
-        const SECONDS_IN_DAY = 24 * 60 * 60;
-        const timezoneOffsetMs = (new Date()).getTimezoneOffset() * 60 * 1000;
+        const SECONDS_IN_MINUTE = 60;
+        const SECONDS_IN_HOUR = 60 * SECONDS_IN_MINUTE;
+        const SECONDS_IN_DAY = 24 * SECONDS_IN_HOUR;
+        const timezoneOffsetMs = (new Date()).getTimezoneOffset() * SECONDS_IN_MINUTE * 1000;
         //The endpoint supports movePosts with up to 2048 messages.
         //  However, when the chunk size is larger than 100 it causes the chat interface to not properly
         //  delete moved messages from the chat display. Thus, the chunk size is kept at < 100 for moves of displayed messages.
@@ -243,14 +245,14 @@
                 regexes: flagRegexes.concat(spamRegexes, offensiveRegexes),
                 //"spam" and "offensive" are too generic. We need to require that they are actually in tags.
                 andRegexes: flagAsTagRegexes.concat(spamAsTagRegexes, offensiveAsTagRegexes),
-                alwaysArchiveAfterSeconds: 2 * 60 * 60, //2 hours
+                alwaysArchiveAfterSeconds: 2 * SECONDS_IN_HOUR, //2 hours
                 underAgeTypeKey: 'DELETE',
             },
             APPROVE_REJECT: {
                 name: 'Approve/Reject',
                 primary: true,
                 regexes: approveRejectRegexes,
-                alwaysArchiveAfterSeconds: 2 * 60 * 60, //2 hours
+                alwaysArchiveAfterSeconds: 2 * SECONDS_IN_HOUR, //2 hours
                 //This really should have a separate call the the SE API to get review information, where possible.
                 underAgeTypeKey: 'DELETE',
             },
@@ -264,13 +266,13 @@
                 name: 'FireAlarm',
                 regexes: faRegexes,
                 userIdMatch: knownUserIds.fireAlarm,
-                alwaysArchiveAfterSeconds: 30 * 60, //30 minutes
+                alwaysArchiveAfterSeconds: 30 * SECONDS_IN_MINUTE, //30 minutes
                 underAgeTypeKey: 'CLOSE',
                 archiveParentWithThis: true,
             },
             QUEEN: {
                 name: 'Queen',
-                alwaysArchiveAfterSeconds: 30 * 60, //30 minutes
+                alwaysArchiveAfterSeconds: 30 * SECONDS_IN_MINUTE, //30 minutes
                 userIdMatch: knownUserIds.queen,
                 regexes: [
                     /Heat Detector/,
@@ -278,18 +280,18 @@
                 underAgeTypeKey: 'DELETE',
                 onlyComments: true,
             },
-            EDITMONITOR: {
+            EDITMONITOR: { // Monitors edits in the suggested edit queue
                 name: 'Edit Monitor reports',
                 userIdMatch: knownUserIds.fox9000,
                 regexes: [editMonitorRegEx],
-                alwaysArchiveAfterSeconds: 2 * 60 * 60, //2 hours
-                //This really should have a separate call the the SE API to get review information, where possible.
+                alwaysArchiveAfterSeconds: 2 * SECONDS_IN_HOUR, //2 hours
+                //This really should have a separate call to the SE API to get review information, where possible.
                 underAgeTypeKey: 'DELETE',
             },
             SMOKEDETECTOR: {
                 name: 'SmokeDetector',
                 userIdMatch: knownUserIds.smokeDetector,
-                alwaysArchiveAfterSeconds: 4 * 60 * 60, //4 hours
+                alwaysArchiveAfterSeconds: 4 * SECONDS_IN_HOUR, //4 hours
                 underAgeTypeKey: 'DELETE',
                 textRegexes: [
                     /\[\s*SmokeDetector\s*[|\]]/,
@@ -334,7 +336,7 @@
             SMOKEDETECTOR_REPLYING: {
                 name: 'SmokeDetector replying',
                 userIdMatch: knownUserIds.smokeDetector,
-                alwaysArchiveAfterSeconds: 4 * 60 * 60, //4 hours
+                alwaysArchiveAfterSeconds: 4 * SECONDS_IN_HOUR, //4 hours
                 replyToTypeKeys: [
                     'SMOKEDETECTOR_FEEDBACK',
                     'SMOKEDETECTOR_COMMAND',
@@ -344,14 +346,14 @@
             SMOKEDETECTOR_FEEDBACK: {
                 name: 'SmokeDetector feedback',
                 regexes: [sdFeedbacksRegEx],
-                alwaysArchiveAfterSeconds: 4 * 60 * 60, //4 hours
+                alwaysArchiveAfterSeconds: 4 * SECONDS_IN_HOUR, //4 hours
                 archiveWithParent: true,
                 archiveWithPreviousFromUserId: knownUserIds.smokeDetector,
             },
             SMOKEDETECTOR_COMMAND: {
                 name: 'SmokeDetector commands',
                 regexes: [sdBangBangCommandsRegEx],
-                alwaysArchiveAfterSeconds: 4 * 60 * 60, //4 hours
+                alwaysArchiveAfterSeconds: 4 * SECONDS_IN_HOUR, //4 hours
                 archiveWithNextFromUserId: knownUserIds.smokeDetector,
                 archiveWithChildren: true,
             },
