@@ -215,6 +215,60 @@
         const editMonitorRegEx = /bad edit/i;
         const yamMonitorRegEx = /\d+%\s*changed\b/i;
 
+        /* The RequestTypes Object contains definitions for the detections which are used to determine if a message should be archived.
+           Each detection should be a separate key containing an Object which defines the detection. The keys within that Object define
+           how messages are matched to the detection and what criteria must be met in order for the message to be archived.
+           There are "primary" types of detections, which have some known criteria about the condition of the linked post/comment
+           which must be met for them to be archived prior to their `alwaysArchiveAfterSeconds` time expiring. Those types are:
+             DELETE: The post must be deleted (i.e. no data is received from the SE API).
+             REOPEN: The question must be open.
+             CLOSE: The question must be closed.
+             UNDELETE: The post must not be deleted (i.e. we must get data from the SE API).
+             FLAG_SPAM_OFFENSIVE
+             APPROVE_REJECT
+           Only primary types are permitted to be created by combining a reply with its parent.
+
+           The available keys to describe a detection are:
+                additionalRequestCompleteTests: Array of Function
+                    An array of additional test functions which if any are passed, then the request is considered complete.
+                alwaysArchiveAfterSeconds: Number
+                    If the request was posted more than this many seconds ago, then it is considered complete. Very small fractional values can be used to always archive.
+                andRegexes: Array of RegExp | RegExp
+                    Additional RegExps which must also have a match
+                archiveParentWithThis: Boolean (truthy)
+                    If true, then parents (messages to which these are a direct reply) are archive which the matching messages.
+                archiveWithChildren: Boolean (truthy)
+                    Archive this message when any direct response to it (it's children) are archived.
+                archiveWithNextFromUserId: userId (Number)
+                    Archive this message when the next message which was posted by a specified userId.
+                archiveWithParent: Boolean (truthy)
+                    Archive this message when the message to which it is a direct response (it's parent) is archived.
+                archiveWithPreviousFromUserId: userId (Number)
+                    Archive this message when the previous message which was posted by a specified userId.
+                name: String
+                    A human readable name for the type. This is not used in the code, but helps for debugging, as it's visible when viewing the type.
+                noContent: Boolean (truthy)
+                    Match if there is no content (i.e. post is deleted)
+                onlyComments: Boolean (truthy)
+                    The posts associated with this type can only point to comments.
+                onlyQuestions: Boolean (truthy)
+                    The posts associated with this type can only point to questions. Any URLs which include information about both the question
+                    and an answer, a comment or an answer and a comment will be reduced the the question. This does not, currently, look for questions
+                    associated with answers when only the answer is specified in the URL (e.g. //stackoverflow/a/123456)
+                primary: Boolean (truthy)
+                    This type is considered primary (not currently used, theses are manually defined, so there is a known order).
+                regexes: Array of RegExp | RegExp
+                    An Array of RegExp where at least one must match the HTML for the message content (as delivered by the API, but with text in <code> removed).
+                replyToTypeKeys: Array of String
+                    Matches if this is a reply to the specified type.
+                textRegexes: Array of RegExp | RegExp
+                    At least one of which must match the `.text()` content of the message with all <code> removed.
+                underAgeTypeKey: String (a RequestTypes key)
+                    When the message is under the "alwaysArchiveAfterSeconds", treat matching messages as if they were of the specified type.
+                    The RequestTypes is specified as the type's key.
+                userIdMatch: userId (Number)
+                    Match if the message was posted by the specified userId.
+         */
         const RequestTypes = {
             DELETE: {
                 name: 'Delete',
