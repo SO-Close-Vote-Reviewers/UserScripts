@@ -726,13 +726,18 @@
                 reason: App.consts.reasons.trademark
             },
             greasemonkey: {
-                expr: /\bgre[ea]semonkey\b/gi, //Should this also be correcting spelling, or should that be a separate rule?
+                expr: /\bgre[ea]se\W?monkey\b/gi, //Should this also be correcting spelling, or should that be a separate rule?
                 replacement: "Greasemonkey",
                 reason: App.consts.reasons.trademark
             },
             tampermonkey: {
-                expr: /\btampermonkey\b/gi,
+                expr: /\btamper\W?monkey\b/gi,
                 replacement: "Tampermonkey",
+                reason: App.consts.reasons.trademark
+            },
+            violentmonkey: {
+                expr: /\bviolent\W?monkey\b/gi,
+                replacement: "Violentmonkey",
                 reason: App.consts.reasons.trademark
             },
             mozilla: {
