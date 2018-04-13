@@ -46,14 +46,17 @@
         App.globals.reasons = {};
 
         App.globals.placeHolders = {
-            "auto":        "_xAutoxInsertxTextxPlacexHolderx_",
-            "quote":       "_xBlockxQuotexPlacexHolderx_",
-            "inline":      "_xCodexInlinexPlacexHolderx_",
-            "block":       "_xCodexBlockxPlacexHolderx_",
-            "blockStart":  "_xCodexBlockxStartxPlacexHolderx_",
-            "lsec":        "_xLinkxSectionxPlacexHolderx_",
-            "links":       "_xLinkxPlacexHolderx_",
-            "tags":        "_xTagxPlacexHolderx_"
+            //The text here is staticly used in some edit RegExp to prevent substitution of placeholders.
+            //  See:
+            //    badphrases
+            "auto":        "_xPlacexHolderxAutoxInsertxTextxPlacexHolderx_",
+            "quote":       "_xPlacexHolderxBlockxQuotexPlacexHolderx_",
+            "inline":      "_xPlacexHolderxCodexInlinexPlacexHolderx_",
+            "block":       "_xPlacexHolderxCodexBlockxPlacexHolderx_",
+            "blockStart":  "_xPlacexHolderxCodexBlockxStartxPlacexHolderx_",
+            "lsec":        "_xPlacexHolderxLinkxSectionxPlacexHolderx_",
+            "links":       "_xPlacexHolderxLinkxPlacexHolderx_",
+            "tags":        "_xPlacexHolderxTagxPlacexHolderx_"
         };
         App.globals.replacedStrings = {};
         App.globals.replacedStringsOriginal = {};
@@ -2621,8 +2624,8 @@
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
-            badphrases: { // https://regex101.com/r/gE2hH6/17
-                expr: /[^\n.!?:]*(?:thanks|thank[ -]you|please|help|suggest(?:ions))\b(?:[ .?!]*$|[^\n.!?:]*\b(?:help|ap+reciat\w*|me|advan\w*|a ?lot|beforehand)\b[^\n.!?:]*)[.!?_*]*/gim,
+            badphrases: { // https://regex101.com/r/gE2hH6/18
+                expr: /[^\n.!?:]*(?:thanks|thank[ -]you|please|help|suggest(?:ions))\b(?:[ .?!]*$|[^\n.!?:]*\b(?:help|ap+reciat\w*|me|advan\w*|a ?lot|beforehand)\b[^\n.!?:]*)[.!?_*]*(?!xPlacexHolder)/gim,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
