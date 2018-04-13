@@ -190,16 +190,16 @@
 
         const cvRegexes = makeTagRegExArray('cv-', please);
         const deleteRegexes = makeTagRegExArray('d(?:el(?:ete)?)?(?:v)?-?(?:vote)?-', please);
-        const undeleteRegexes = makeTagRegExArray('un-?del(?:ete)?(?:v)?-?(?:vote)?-', please);
-        const reopenRegexes = makeTagRegExArray('re-?open-', please);
+        const undeleteRegexes = makeTagRegExArray('un-?del(?:ete)?(?:v)?-?(?:vote)?(?:-?answers?|-?questions?)?-', please);
+        const reopenRegexes = makeTagRegExArray('(?:re-?)?open-', please);
         const duplicateRegexes = makeTagRegExArray('pos?sib(?:le|el)-dup(?:e|licate)?');
-        const flagRegexes = makeTagRegExArray('flag-', please);
-        const flagAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('flag-', please);
+        const flagRegexes = makeTagRegExArray('(?:re-?)?flag-', please);
+        const flagAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('(?:re-?)?flag-', please);
         const spamRegexes = makeTagRegExArray('spam');
         const spamAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('spam');
         const offensiveRegexes = makeTagRegExArray('(?:off?en[cs]ive|rude|abb?u[cs]ive)');
         const offensiveAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('(?:off?en[cs]ive|rude|abb?u[cs]ive)');
-        const approveRejectRegexes = makeTagRegExArray('(?:app?rove?|reject)-', please, true);
+        const approveRejectRegexes = makeTagRegExArray('(?:app?rove?|reject)-(?:edit-?)?', please, true);
         // FireAlarm reports
         const faRegexes = [
             /(?:\/\/stackapps\.com\/q\/7183\">FireAlarm-Swift)/, // eslint-disable-line no-useless-escape
@@ -208,8 +208,9 @@
         //We need to choose if we want more SD commands to be archived.
         //We probably don't want to archive: (?!blame|lick|wut|coffee|tea|brownie)
         //const sdBangBangCommandsRegEx = /^\s*!!\/(?!blame|lick|wut|coffee|tea|brownie)/i;
-        const sdBangBangCommandsRegEx = /^\s*!!\/(?:report)/i;
-        const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+(?:\n*(?:k|v|n|naa|fp?|tp?|spam|rude|abusive|offensive|v|vand|vandalism|notspam|true|false|ignore|delete|del|remove|gone|postgone|why))u?-?)+\s*$/i;
+        const sdBangBangCommandsRegEx = /^\s*!!\/(?:report|scan|feedback)/i;
+        // https://regex101.com/r/RJbnbS/1
+        const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why))?u?-?)+\s*$/i;
         const editMonitorRegEx = /bad edit/i;
 
         const RequestTypes = {
