@@ -3185,7 +3185,11 @@
     }
     try {
         var test = window.location.href.match(/.posts.(\d+).edit/);
-        if(test) extendEditor($('form[action^="/posts/' + test[1] + '"]'));
+        if(test) {
+            StackExchange.ready(function() {
+                extendEditor($('form[action^="/posts/' + test[1] + '"]'));
+            });
+        }
         else $(document).ajaxComplete(function() {
             test = arguments[2].url.match(/posts.(\d+).edit-inline/);
             if(!test) {
@@ -3194,7 +3198,9 @@
                 test = arguments[2].data.match(/id=(\d+)/);
                 if(!test) return;
             }
-            extendEditor($('form[action^="/posts/' + test[1] + '"]'));
+            StackExchange.ready(function() {
+                extendEditor($('form[action^="/posts/' + test[1] + '"]'));
+            });
         });
         if($('#post-form').length) $('#post-form').each(function(){ extendEditor($(this)); });
         // This is the styling for the diff output.
