@@ -172,7 +172,7 @@
                 (hrefUrlTag + prefix + endHrefPrefixToSpanText + prefix + additional + endSpanTextToPlainText + prefix + additional + (includeReviews ? endPlainTextToEndWithQuestionOrReview : endPlainTextToEndWithQuestion)),
                 //Tag after question: match tag in the <span>, not in the href (which could be encoded)
                 ((includeReviews ? questionOrReviewUrlToHrefTag : questionUrlToHrefTag) + prefix + endHrefPrefixToSpanText + prefix + additional + endSpanTextToPlainText + prefix + additional + endPlainTextToEnd),
-            ].join('|')) + ')';
+            ].join('|')) + ')(?!.*\\?\\s*$)'; //As long as it doesn't end with a "?", which is more likely to indicate a question, than a request.
             return [new RegExp(regexText, 'i')];
             //Example RegExp generated for approve/reject with considering reviews:
             //https://regex101.com/r/18x5ZH/1
