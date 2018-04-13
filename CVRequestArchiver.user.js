@@ -297,7 +297,6 @@
                 textRegexes: [
                     /\[\s*SmokeDetector\s*[|\]]/,
                 ],
-                textMatchNoContent: true,
                 additionalRequestCompleteTests: [
                     // Take advantage of AIM, if installed, to get number of FP feedbacks.
                     function(event) {
@@ -357,6 +356,7 @@
                 alwaysArchiveAfterSeconds: 4 * SECONDS_IN_HOUR, //4 hours
                 archiveWithNextFromUserId: knownUserIds.smokeDetector,
                 archiveWithChildren: true,
+                underAgeTypeKey: 'DELETE',
             },
         };
         const RequestTypeKeys = Object.keys(RequestTypes);
