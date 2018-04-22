@@ -1622,6 +1622,7 @@
         var noUserIdList = getLSnoUserIdList();
         var scanCountSpan;
 
+        /* No longer needed. The transcript has been cleaned per current detections.
         function fillMoveListFromPopupTo100(priorManualMoveListLength) {
             if (manualMoveList.length < 100) {
                 if (shownToBeMoved) {
@@ -1652,6 +1653,7 @@
             }
             return Promise.resolve();
         }
+        */
 
         function getMoreEvents(moreCount, newNextBefore) {
             //Clear the requests and events, as there's no need to re-process what we've already done.
@@ -1837,7 +1839,7 @@
                 '                <button class="SOCVR-Archiver-button-set-as-move-list" title="Set the Manual Move List to these messages.">Set</button>',
                 '                <button class="SOCVR-Archiver-button-add-to-move-list" title="Add these messages to the Manual Move List.">Add</button>',
                 '                <button class="SOCVR-Archiver-button-remove-from-move-list" title="Remove these messages from the Manual Move List.">Remove</button>',
-                //'                <button class="SOCVR-Archiver-button-fill-move-list" title="Fill the Manual Move List to 100.">Fill</button>',
+                //'                <button class="SOCVR-Archiver-button-fill-move-list" title="Fill the Manual Move List to 100. If needed, additional events are fetched and classified.\nThe first time you click this, it will take a while for it to go through the events back to where the transcript has been cleaned out. If you then move those it finds, where you left off will be remembered.\nThis can be used to slowly clean out the transcript.\nHowever, the transcript could be cleaned out in bulk. Up to 2,048 messages can be moved in one move-message.\nIf you\'re moving messages which are currently displayed in chat, then the move containing those is limited to 100, due to a display bug in SE chat. If you try to move more than 100, then additional individual moves are made. If you\'re not moving any messages which are visible in chat, then the maximum is 2048.\nIf you select more than those numbers, then the messages will be grouped in chunks and multiple moves will be made.">Fill</button>',
                 '                <button class="SOCVR-Archiver-button-grave-move-list" title="Move all messages on the Manual Move List to the Graveyard.">Grave</button>',
                 '                <button class="SOCVR-Archiver-button-san-move-list" title="Move all messages on the Manual Move List to the Sanitarium.">San</button>',
                 '            </span>',
@@ -1882,12 +1884,14 @@
                 removeFromLSManualMoveList(convertRequestsListToMessageIds(messagesToMove));
                 this.blur();
             });
+            /* The entirety of the transcript has been bulk archived. This is no longer needed.
             $('.SOCVR-Archiver-button-fill-move-list', shownToBeMoved).first().on('click', function() {
                 //Remove those messages displayed in the popup from the manual move list.
                 fillMoveListFromPopupTo100();
                 //If fillMoveListFromPopupTo100() doesn't complete immediately, then the popup is destroyed and recreated, which means that blurring doesn't matter.
                 this.blur();
             });
+            */
             $('.SOCVR-Archiver-button-grave-move-list', shownToBeMoved).first().on('click', moveMoveListAndResetOnSuccess.bind(null, 90230)); //Graveyard
             $('.SOCVR-Archiver-button-san-move-list', shownToBeMoved).first().on('click', moveMoveListAndResetOnSuccess.bind(null, 126195)); //Sanitarium
             moveMessagesDiv.on('click', function(event) {
