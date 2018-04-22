@@ -203,7 +203,7 @@
         const approveRejectRegexes = makeTagRegExArray('(?:app?rove?|reject)-(?:edit-?)?', please, true);
         // FireAlarm reports
         const faRegexes = [
-            /(?:\/\/stackapps\.com\/q\/7183\">FireAlarm-Swift)/, // eslint-disable-line no-useless-escape
+            /(?:\/\/stackapps\.com\/q\/7183\">FireAlarm(?:-Swift)?)/, // eslint-disable-line no-useless-escape
             /(?:\[ <a href="\/\/github\.com\/SOBotics\/FireAlarm\/tree\/swift" rel="nofollow noopener noreferrer">FireAlarm-Swift<\/a> \])/,
         ];
         //We need to choose if we want more SD commands to be archived.
