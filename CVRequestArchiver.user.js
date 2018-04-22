@@ -174,9 +174,9 @@
                 ((includeReviews ? questionOrReviewUrlToHrefTag : questionUrlToHrefTag) + prefix + endHrefPrefixToSpanText + prefix + additional + endSpanTextToPlainText + prefix + additional + endPlainTextToEnd),
             ].join('|')) + ')(?!.*\\?\\s*$)'; //As long as it doesn't end with a "?", which is more likely to indicate a question, than a request.
             return [new RegExp(regexText, 'i')];
-            //Example RegExp generated for approve/reject with considering reviews:
-            //https://regex101.com/r/18x5ZH/1
-            //(?:(?:tagged\/(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*stackoverflow\.com\/(?:[qa][^\/]*|posts|review\/[\w-]+)\/(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts|review\/[\w-]+)\/(\d+).*(?:tagged\/(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\])|(?:tagged\/(?:app?rove?|reject)-[^>]*><span[^>]*>(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*stackoverflow\.com\/(?:[qa][^\/]*|posts|review\/[\w-]+)\/(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts|review\/[\w-]+)\/(\d+).*(?:tagged\/(?:app?rove?|reject)-[^>]*><span[^>]*>(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:app?rove?|reject)-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]))
+            //Example produced from cv-pls:
+            //https://regex101.com/r/bkZ9DX/1
+            //(?:(?:tagged\/cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+).*(?:tagged\/cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\])|(?:tagged\/cv-[^>]*><span[^>]*>cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+).*(?:tagged\/cv-[^>]*><span[^>]*>cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]))(?!.*\?$)
         }
 
         function makeActualTagWithoutQuestionmarkRegExArray(prefix, additional) {
@@ -233,7 +233,7 @@
                 alwaysArchiveAfterSeconds: Number
                     If the request was posted more than this many seconds ago, then it is considered complete. Very small fractional values can be used to always archive.
                 andRegexes: Array of RegExp | RegExp
-                    Additional RegExps which must also have a match
+                    Additional RegExps which must also have a match. The RegExp are tested against the HTML with <code> removed.
                 archiveParentWithThis: Boolean (truthy)
                     If true, then parents (messages to which these are a direct reply) are archive which the matching messages.
                 archiveWithChildren: Boolean (truthy)
