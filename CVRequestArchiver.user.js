@@ -213,7 +213,6 @@
         // https://regex101.com/r/RJbnbS/1
         const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why))?u?-?)+\s*$/i;
         const editMonitorRegEx = /bad edit/i;
-        const yamMonitorRegEx = /\d+%\s*changed\b/i;
 
         /* The RequestTypes Object contains definitions for the detections which are used to determine if a message should be archived.
            Each detection should be a separate key containing an Object which defines the detection. The keys within that Object define
@@ -345,10 +344,10 @@
                 //This really should have a separate call to the SE API to get review information, where possible.
                 underAgeTypeKey: 'DELETE',
             },
-            YAM: { // Monitors posts which have a completed request for edits
+            YAM: { // Monitors cv-pls requests for edits above a threshold.
                 name: 'Yam requested question change reports',
                 userIdMatch: knownUserIds.yam,
-                textRegexes: [yamMonitorRegEx],
+                textRegexes: [/\d+%\s*changed\b/i],
                 alwaysArchiveAfterSeconds: 4 * SECONDS_IN_HOUR, //4 hours
             },
             SMOKEDETECTOR: {
