@@ -202,7 +202,7 @@
                 reason: App.consts.reasons.spelling
             },
             javascript: {
-                expr: /([^\b\w.]|^)(java?scr?ipt?|js|java script?)\b/gi,
+                expr: /([^\b\w.]|^)(java?scr?ipt?|js|java(?:[^\w.]|_)?script?)\b/gi,
                 replacement: "$1JavaScript",
                 reason: App.consts.reasons.trademark
             },
@@ -870,6 +870,21 @@
                 replacement: "NetSuite",
                 reason: App.consts.reasons.trademark
             },
+            cpanel: {
+                expr: /\bcpanel\b/gi,
+                replacement: "cPanel",
+                reason: App.consts.reasons.trademark
+            },
+            putty: {
+                expr: /\bputty\b/gi,
+                replacement: "PuTTY",
+                reason: App.consts.reasons.trademark
+            },
+            godaddy: {
+                expr: /\bgodaddy\b/gi,
+                replacement: "GoDaddy",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
@@ -1166,6 +1181,11 @@
             gps: {
                 expr: /\bgps\b/gi,
                 replacement: "GPS",
+                reason: App.consts.reasons.acronym
+            },
+            vps: {
+                expr: /\bvps\b/gi,
+                replacement: "VPS",
                 reason: App.consts.reasons.acronym
             },
             /*
