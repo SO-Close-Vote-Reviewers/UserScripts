@@ -455,7 +455,7 @@ if(typeof StackExchange === "undefined")
         var reason = $('input[type="text"]', CVRGUI.items.send).val();
         if(!reason) return false;
         reason = reasons.get(reason);
-        var tit = '[' + $('#question-header h1 a').text().replace(/(\[|\])/g, '\\$1').replace(/^\s+|\s+$/gm, '') + '](' + base + $('#question .short-link').attr('href') + ')';
+        var tit = '[' + $('#question-header h1 a').text().replace(/(\[|\])/g, '\\$1').replace(/^\s+|\s+$/gm, '') + '](' + base + $('#question .short-link').attr('href').replace(/(\/\d+)\/\d+$/, '$1') + ')';
         var usr = $('.post-signature.owner:not([align="right"],#popup-close-question .post-signature) .user-details').text().trim().match(/[^\n]+/)[0].trim(), tim;
         var tag = $('#question a.post-tag').first().text(); //huh, sponsored tags have images =/ and off-topic tag like C++ are URL encoded -> get the text only
 		// for duplicate cv-pls, when the dupe is selected, the mini-review messes up the selector for username and date: it is removed with :not
