@@ -10,7 +10,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.6.0.2
+// @version        1.6.0.3
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com\/(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
@@ -46,14 +46,17 @@
         App.globals.reasons = {};
 
         App.globals.placeHolders = {
-            "auto":        "_xAutoxInsertxTextxPlacexHolderx_",
-            "quote":       "_xBlockxQuotexPlacexHolderx_",
-            "inline":      "_xCodexInlinexPlacexHolderx_",
-            "block":       "_xCodexBlockxPlacexHolderx_",
-            "blockStart":  "_xCodexBlockxStartxPlacexHolderx_",
-            "lsec":        "_xLinkxSectionxPlacexHolderx_",
-            "links":       "_xLinkxPlacexHolderx_",
-            "tags":        "_xTagxPlacexHolderx_"
+            //The text here is staticly used in some edit RegExp to prevent substitution of placeholders.
+            //  See:
+            //    badphrases
+            "auto":        "_xPlacexHolderxAutoxInsertxTextxPlacexHolderx_",
+            "quote":       "_xPlacexHolderxBlockxQuotexPlacexHolderx_",
+            "inline":      "_xPlacexHolderxCodexInlinexPlacexHolderx_",
+            "block":       "_xPlacexHolderxCodexBlockxPlacexHolderx_",
+            "blockStart":  "_xPlacexHolderxCodexBlockxStartxPlacexHolderx_",
+            "lsec":        "_xPlacexHolderxLinkxSectionxPlacexHolderx_",
+            "links":       "_xPlacexHolderxLinkxPlacexHolderx_",
+            "tags":        "_xPlacexHolderxTagxPlacexHolderx_"
         };
         App.globals.replacedStrings = {};
         App.globals.replacedStringsOriginal = {};
@@ -199,7 +202,7 @@
                 reason: App.consts.reasons.spelling
             },
             javascript: {
-                expr: /([^\b\w.]|^)(java?scr?ipt?|js|java script?)\b/gi,
+                expr: /([^\b\w.]|^)(java?scr?ipt?|js|java(?:[^\w.]|_)?script?)\b/gi,
                 replacement: "$1JavaScript",
                 reason: App.consts.reasons.trademark
             },
@@ -723,13 +726,18 @@
                 reason: App.consts.reasons.trademark
             },
             greasemonkey: {
-                expr: /\bgre[ea]semonkey\b/gi, //Should this also be correcting spelling, or should that be a separate rule?
+                expr: /\bgre[ea]se\W?monkey\b/gi, //Should this also be correcting spelling, or should that be a separate rule?
                 replacement: "Greasemonkey",
                 reason: App.consts.reasons.trademark
             },
             tampermonkey: {
-                expr: /\btampermonkey\b/gi,
+                expr: /\btamper\W?monkey\b/gi,
                 replacement: "Tampermonkey",
+                reason: App.consts.reasons.trademark
+            },
+            violentmonkey: {
+                expr: /\bviolent\W?monkey\b/gi,
+                replacement: "Violentmonkey",
                 reason: App.consts.reasons.trademark
             },
             mozilla: {
@@ -860,6 +868,21 @@
             netsuite: {
                 expr: /\bnetsuite\b/gi,
                 replacement: "NetSuite",
+                reason: App.consts.reasons.trademark
+            },
+            cpanel: {
+                expr: /\bcpanel\b/gi,
+                replacement: "cPanel",
+                reason: App.consts.reasons.trademark
+            },
+            putty: {
+                expr: /\bputty\b/gi,
+                replacement: "PuTTY",
+                reason: App.consts.reasons.trademark
+            },
+            godaddy: {
+                expr: /\bgodaddy\b/gi,
+                replacement: "GoDaddy",
                 reason: App.consts.reasons.trademark
             },
             /*
@@ -1158,6 +1181,11 @@
             gps: {
                 expr: /\bgps\b/gi,
                 replacement: "GPS",
+                reason: App.consts.reasons.acronym
+            },
+            vps: {
+                expr: /\bvps\b/gi,
+                replacement: "VPS",
                 reason: App.consts.reasons.acronym
             },
             /*
@@ -2621,8 +2649,8 @@
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
-            badphrases: { // https://regex101.com/r/gE2hH6/17
-                expr: /[^\n.!?:]*(?:thanks|thank[ -]you|please|help|suggest(?:ions))\b(?:[ .?!]*$|[^\n.!?:]*\b(?:help|ap+reciat\w*|me|advan\w*|a ?lot|beforehand)\b[^\n.!?:]*)[.!?_*]*/gim,
+            badphrases: { // https://regex101.com/r/gE2hH6/18
+                expr: /[^\n.!?:]*(?:thanks|thank[ -]you|please|help|suggest(?:ions))\b(?:[ .?!]*$|[^\n.!?:]*\b(?:help|ap+reciat\w*|me|advan\w*|a ?lot|beforehand)\b[^\n.!?:]*)[.!?_*]*(?!xPlacexHolder)/gim,
                 replacement: "",
                 reason: App.consts.reasons.noise
             },
@@ -2741,7 +2769,9 @@
             //  same in both texts.
             return App.globals.placeHolderKeys.some(function(key) {
                 var regEx = App.globals.placeHolderChecks[key];
+                regEx.lastIndex = 0;
                 var beforeMatches = before.match(regEx);
+                regEx.lastIndex = 0;
                 var afterMatches = after.match(regEx);
                 return !((beforeMatches === null && afterMatches === null) || (beforeMatches !== null && afterMatches !== null && beforeMatches.length === afterMatches.length));
             });
@@ -2763,8 +2793,9 @@
             // If there is nothing to search, exit
             if (!input) return false;
             // Scan the post text using the expression to see if there are any matches
+            var originalInput = input;
             var matches = input.match(expression);
-            if (debug) console.log(matches, expression.exec(input));
+            if (debug) console.log('matches:', matches, ':: expression.exec(input)', expression.exec(input));
             if (!matches) return false;
             var count = 0;  // # replacements to do
             var deniedCount = 0;  // # replacements not to do
@@ -2773,8 +2804,10 @@
                 if(after !== before) ++count;
                 //Check to see if the quantity of the place holders changed between the input and output.
                 if(App.funcs.didPlaceholdersChange(before, after)) {
-                    //An edit rule should never change the quantity of placeholders in the text. If it does, we deny making the change.
-                    console.log('PREVENTED change: edit rule:', editRule, ': Placeholders changed:  before:', before, '::  after:', after, '::  count:', count);
+                    //An edit rule should never change the quantity of placeholders in the text. If it does, we prevent making the change.
+                    //This will prevent individual changes where they affect an entire placeholder, but won't catch changes where the part
+                    //  of a placeholder is changed. To prevent that we have to also check all the changes vs. the original, complete input.
+                    console.log('PREVENTED change: edit rule:', editRule, ': Placeholders changed:  before:\n', before, '::  after:\n', after, '\n::  count:', count);
                     count--;
                     deniedCount++;
                     return before;
@@ -2782,6 +2815,10 @@
                 if (debug) console.log('before:', before, '::  after:', after, '::  after !== before:', after !== before, '::  count:', count);
                 return after;
             });
+            if(App.funcs.didPlaceholdersChange(originalInput, input)) {
+                console.log('PREVENTED change group: edit rule:', editRule, ': Placeholders changed:  originalInput:\n', originalInput, '\n::  input:\n', input, '\n::  count:', count);
+                input = originalInput;
+            }
             if (!count && !deniedCount) {
                 // Seems like no replacements, check.
                 // In some cases, the expression matches on the initial input, but
@@ -2790,8 +2827,8 @@
                 // replacement on the initial input.
                 var after = input.replace(expression, replacement);
                 if(App.funcs.didPlaceholdersChange(input, after)) {
-                    //An edit rule should never change the quantity of placeholders in the text. If it does, we deny making the change.
-                    console.log('PREVENTED global change: edit rule:', editRule, ': Placeholders changed:  input:', input, '::  after:', after, '::  count:', count);
+                    //An edit rule should never change the quantity of placeholders in the text. If it does, we prevent making the change.
+                    console.log('PREVENTED global change: edit rule:', editRule, ': Placeholders changed:  input:\n', input, '\n::  after:\n', after, '\n::  count:', count);
                     after = input;
                 }
                 if (debug) console.log("zero-count: ", input, after, after !== input);
@@ -2880,7 +2917,15 @@
             if (!App.selections.redoButton.length) return false;
 
             App.selections.buttonWrapper = $('<li class="wmd-magic-edit wmd-button"/>');
-            App.selections.buttonFix = $('<span class="ToolkitFix" title="Fix the content!" style="background-size:contain !important"></span>');
+            App.selections.buttonFix = $('' +
+                '<span class="ToolkitFix" title="Fix the content!" style="background-size:contain !important">' +
+                '    <svg viewBox="0 0 319 318" >' +
+                '        <g transform="translate(-216,-363)">' +
+                '            <path style="fill:#444444" d="m 263,680 c -1,-1 -12,-11 -23,-22 l -21,-21 -1,-3 -1,-3 2,-4 2,-4 128,-128 128,-128 5,0 5,0 23,23 23,23 0,6 0,6 -128,128 -128,128 -4,1 -4,1 -3,-1 z m 237,-263 c 0,-1 -15,-17 -18,-18 l -2,-1 -28,28 c -15,15 -28,28 -28,28 0,0 4,5 10,10 l 10,10 28,-28 c 15,-15 28,-28 28,-29 z m 9,110 c -1,-4 -2,-8 -3,-9 l -1,-2 -8,-2 c -10,-3 -10,-3 1,-7 l 9,-3 2,-8 2,-8 1,0 1,0 2,8 2,8 9,3 9,3 -1,1 c -1,1 -4,2 -8,3 l -7,2 -3,8 -3,8 -1,0 -1,0 -2,-7 z M 323,470 c -0,-1 -3,-8 -5,-16 -3,-8 -5,-16 -6,-17 l -1,-2 -4,-1 c -2,-1 -10,-3 -18,-6 l -13,-4 2,-1 c 1,-1 9,-4 18,-6 l 16,-5 2,-4 c 1,-2 3,-10 6,-18 l 4,-14 1,10e-4 1,10e-4 5,17 c 3,9 5,17 6,18 l 1,1 16,5 c 14,4 20,7 19,8 -0,0 -8,3 -17,5 l -17,5 -1,2 c -1,2 -11,30 -11,33 0,2 -2,2 -3,1 z m -63,-63 c -0,-1 -2,-5 -3,-8 l -2,-7 -7,-2 c -4,-1 -8,-3 -8,-3 l -1,-1 9,-3 9,-3 2,-8 2,-8 1,-0 1,-0 2,8 2,8 9,3 9,3 -1,1 c -1,1 -5,2 -9,4 l -7,2 -3,8 -3,8 -1,0 c -1,0 -1,-1 -2,-2 z m 123,-5 c -1,-4 -2,-7 -3,-8 l -1,-2 -6,-2 c -3,-1 -7,-2 -8,-3 l -2,-2 9,-3 9,-3 2,-8 2,-8 1,0 1,0 2,8 2,8 9,3 9,3 -1,1 c -1,1 -4,2 -8,3 l -7,2 -3,8 -3,8 -1,0 -1,0 -2,-7 z"/>' +
+                '        </g>' +
+                '    </svg>' +
+                '</span>' +
+                '');
             App.selections.buttonInfo = $('<div class="ToolkitInfo">');
 
             // Build the button
@@ -2901,7 +2946,7 @@
             });
             App.selections.buttonFix.css({
                 'display': 'inline-block',
-                'background-image': 'url("//i.stack.imgur.com/Om5pL.png")',
+                'background-image': 'none',
             });
             App.selections.buttonInfo.css({
                 'position': 'static',
@@ -3159,19 +3204,29 @@
         return App.init();
     }
     try {
-        var test = window.location.href.match(/.posts.(\d+).edit/);
-        if(test) extendEditor($('form[action^="/posts/' + test[1] + '"]'));
-        else $(document).ajaxComplete(function() {
-            test = arguments[2].url.match(/posts.(\d+).edit-inline/);
+        StackExchange.using('inlineEditing', function() {
+            StackExchange.ready(function() {
+                var test = window.location.href.match(/.posts.(\d+).edit/);
+                if(test) {
+                    extendEditor($('form[action^="/posts/' + test[1] + '"]'));
+                }
+                $('#post-form').each(function(){
+                    extendEditor($(this));
+                });
+            });
+        });
+        $(document).ajaxComplete(function() {
+            var test = arguments[2].url.match(/posts.(\d+).edit-inline/);
             if(!test) {
                 test = arguments[2].url.match(/review.inline-edit-post/);
                 if(!test) return;
                 test = arguments[2].data.match(/id=(\d+)/);
                 if(!test) return;
             }
-            extendEditor($('form[action^="/posts/' + test[1] + '"]'));
+            StackExchange.ready(function() {
+                extendEditor($('form[action^="/posts/' + test[1] + '"]'));
+            });
         });
-        if($('#post-form').length) $('#post-form').each(function(){ extendEditor($(this)); });
         // This is the styling for the diff output.
         $('body').append('<style>' +
                          '.difftitle {' +
