@@ -3204,14 +3204,19 @@
         return App.init();
     }
     try {
-        var test = window.location.href.match(/.posts.(\d+).edit/);
-        if(test) {
+        StackExchange.using('inlineEditing', function() {
             StackExchange.ready(function() {
-                extendEditor($('form[action^="/posts/' + test[1] + '"]'));
+                var test = window.location.href.match(/.posts.(\d+).edit/);
+                if(test) {
+                    extendEditor($('form[action^="/posts/' + test[1] + '"]'));
+                }
+                $('#post-form').each(function(){
+                    extendEditor($(this));
+                });
             });
-        }
-        else $(document).ajaxComplete(function() {
-            test = arguments[2].url.match(/posts.(\d+).edit-inline/);
+        });
+        $(document).ajaxComplete(function() {
+            var test = arguments[2].url.match(/posts.(\d+).edit-inline/);
             if(!test) {
                 test = arguments[2].url.match(/review.inline-edit-post/);
                 if(!test) return;
@@ -3222,7 +3227,6 @@
                 extendEditor($('form[action^="/posts/' + test[1] + '"]'));
             });
         });
-        if($('#post-form').length) $('#post-form').each(function(){ extendEditor($(this)); });
         // This is the styling for the diff output.
         $('body').append('<style>' +
                          '.difftitle {' +
