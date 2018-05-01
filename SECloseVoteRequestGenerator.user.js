@@ -28,6 +28,7 @@ if(typeof StackExchange === "undefined")
 (function(){
     var isclosed = $(".close-question-link").data("isclosed");
     var isdeleted = $(".question .post-menu .deleted-post").length > 0;
+    var alreadyPostedRequest = false;
 
     function QuickSubstitutions(_substitutions) {
         this.substitutions = _substitutions;
@@ -252,6 +253,7 @@ if(typeof StackExchange === "undefined")
                                 var shownResponseText = newMessageResponse.responseText.length < 100 ? ' ' + newMessageResponse.responseText : '';
                                 handleError('Failed sending chat request message.' + shownResponseText, newMessageResponse);
                             } else {
+                                alreadyPostedRequest = true;
                                 notify('Close vote request sent.',1000);
                                 hideMenu();
                             }
@@ -536,6 +538,9 @@ if(typeof StackExchange === "undefined")
         if($('#question .owner:not(#popup-close-question .owner) a').length) usr = '[' + usr + '](' + base + $('#question .owner:not(#popup-close-question .owner) a').attr('href') + ')';
         if($('#question .owner:not(#popup-close-question .owner) .relativetime').length) tim = $('#question .owner:not(#popup-close-question .owner) .relativetime').attr('title');
         var result = '[tag:'+ (isclosed?'reopen-pls':'cv-pls') +'] [tag:' + tag + '] ' + reason + ' ' + tit + ' - ' + usr + (tim ? '\u200E - ' + tim : ''); //username can be RTL... need to insert a LTR marker to have proper direction
+        if(alreadyPostedRequest && !window.confirm('You\'ve already sent a request about this question. Do you want to send another?')) {
+            return;
+        } // else
         sendRequest(result);
     });
 
