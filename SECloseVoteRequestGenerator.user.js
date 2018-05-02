@@ -1,17 +1,23 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.5.27
-// @description    This script generates formatted close vote requests and sends them to a specified chat room, fixes #65
+// @version        1.6.0
+// @description    This script generates formatted close vote requests and sends them to a specified chat room.
 // @author         @TinyGiant
 // @contributor    @rene @Tunaki @Makyen @paulroub
-// @include        /^https?:\/\/\w*.?(stackexchange.com|stackoverflow.com|serverfault.com|superuser.com|askubuntu.com|stackapps.com|mathoverflow.net)\/q(uestions)?\/\d+/
+// @include        /^https?:\/\/([^/.]+\.)*(stackexchange.com|stackoverflow.com|serverfault.com|superuser.com|askubuntu.com|stackapps.com|mathoverflow.net)\/(?:q(uestions)?\/\d+)/
+// @exclude        *://chat.stackoverflow.com/*
+// @exclude        *://chat.stackexchange.com/*
+// @exclude        *://chat.*.stackexchange.com/*
+// @exclude        *://api.*.stackexchange.com/*
+// @exclude        *://data.stackexchange.com/*
 // @require        https://code.jquery.com/jquery-2.1.4.min.js
 // @require        https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/gm4-polyfill.js
 // @connect        rawgit.com
 // @connect        raw.githubusercontent.com
 // @connect        chat.stackoverflow.com
 // @connect        chat.stackexchange.com
+// @connect        chat.meta.stackexchange.com
 // @grant          GM_xmlhttpRequest
 // @grant          GM.xmlHttpRequest
 // ==/UserScript==
@@ -20,27 +26,95 @@ if(typeof StackExchange === "undefined")
     var StackExchange = unsafeWindow.StackExchange;
 
 (function(){
-    var isclosed = $(".close-question-link").data("isclosed"),
-        isdeleted = $(".question .post-menu .deleted-post").length > 0;
+    var isclosed = $(".close-question-link").data("isclosed");
+    var isdeleted = $(".question .post-menu .deleted-post").length > 0;
+    var alreadyPostedRequest = false;
 
-    var reasons = {
-        't': 'too broad',
-        'u': 'unclear',
-        'p': 'pob',
-        'd': 'duplicate',
-        'm': 'no mcve',
-        'r': 'no repro',
-        's': 'superuser',
-        'f': 'serverfault',
-        'l': 'library/tool/resource',
-        get: function(r) {
-            var a = r.split(' ');
-            a.forEach(function(v,i){
-                a[i] = reasons.hasOwnProperty(v) && v !== 'get' ? reasons[v] : v;
-            });
-            return a.join(' ');
-        }
+    function QuickSubstitutions(_substitutions) {
+        this.substitutions = _substitutions;
+    }
+    QuickSubstitutions.prototype.get = function(r) {
+        //Substitute space separated words in the input text which
+        // match the properties above with the property's value.
+        var a = r.split(' ');
+        a.forEach(function(v, i) {
+            a[i] = this.substitutions.hasOwnProperty(v) && v !== 'get' ? this.substitutions[v] : v;
+        }, this);
+        return a.join(' ');
     };
+
+    function SiteConfig(_name, _siteRegExp, _offTopicCloseReasons, _quickSubstitutions, _defaultRoom) {
+        this.name = _name;
+        this.siteRegExp = _siteRegExp;
+        this.offTopicCloseReasons = _offTopicCloseReasons;
+        //this.quickSubstitutions = _quickSubstitutions;
+        this.quickSubstitutions = new QuickSubstitutions(_quickSubstitutions);
+        this.defaultRoom = _defaultRoom;
+    }
+
+    var defaultQuickSubstitutions = {
+        't': 'Too Broad',
+        'u': 'Unclear',
+        'p': 'Primarily Opinion Based',
+        'o': 'Opinion Based',
+        'd': 'Duplicate',
+    };
+    var configsForSites = [];
+    //Stack Overflow
+    configsForSites.push(new SiteConfig('Stack Overflow', /^stackoverflow.com$/, {
+        1: 'Blatantly off-topic (flag dialog)', //In close-flag dialog, but not the close-vote dialog.
+        2: 'Belongs on another site',
+        3: 'custom',
+        4: 'General Computing',
+        7: 'Server / Networking',
+        11: 'Typo or Cannot Reproduce',
+        13: 'No MCVE',
+        16: 'Request for Off-Site Resource',
+    }, Object.assign({
+        'm': 'No MCVE',
+        'r': 'Typo or Cannot Reproduce',
+        'g': 'General Computing',
+        's': 'Super User',
+        'f': 'Server Fault',
+        'l': 'Request for Off-Site Resource',
+        //'c': '(not enough code to duplicate)',
+        //'b': '(no desired behavior)',
+        //'e': '(no specific problem or error)',
+    }, defaultQuickSubstitutions, 'https://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers')));
+    //Meta Stack Exchange
+    configsForSites.push(new SiteConfig('Meta Stack Exchange', /^meta.stackexchange.com$/, {
+        1: 'Blatantly off-topic (flag dialog)', //In close-flag dialog, but not the close-vote dialog.
+        3: 'custom',
+        5: 'Does not seek input or discussion',
+        6: 'Cannot be reproduced',
+        8: 'Not about Stack Exchange Network software',
+        11: 'Specific to a single site',
+    }, Object.assign({
+        'i': 'Does not seek input or discussion',
+        'r': 'Cannot be reproduced',
+        'n': 'Not about Stack Exchange Network software',
+        's': 'Specific to a single site',
+    }, defaultQuickSubstitutions, 'https://chat.meta.stackexchange.com/rooms/89/tavern-on-the-meta')));
+
+    //Default site configuration
+    var currentSiteConfig = new SiteConfig('Default', /./, {
+        1: 'Blatantly off-topic (flag dialog)', //In close-flag dialog, but not the close-vote dialog.
+        2: 'Belongs on another site',
+        3: 'custom',
+    }, defaultQuickSubstitutions, 'https://chat.stackexchange.com/rooms/11254/the-stack-exchange-network');
+
+
+    //If we are not trying to be compatible with IE, then could use .find here.
+    configsForSites.some(function(siteConfig) {
+        if (siteConfig.siteRegExp.test(window.location.hostname)) {
+            currentSiteConfig = siteConfig;
+            return true;
+        } // else
+        return false;
+    });
+
+    var reasons = currentSiteConfig.quickSubstitutions;
+    var offTopicCloseReasons = currentSiteConfig.offTopicCloseReasons;
 
     var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
     var notifyint = 0;
@@ -179,6 +253,7 @@ if(typeof StackExchange === "undefined")
                                 var shownResponseText = newMessageResponse.responseText.length < 100 ? ' ' + newMessageResponse.responseText : '';
                                 handleError('Failed sending chat request message.' + shownResponseText, newMessageResponse);
                             } else {
+                                alreadyPostedRequest = true;
                                 notify('Close vote request sent.',1000);
                                 hideMenu();
                             }
@@ -302,13 +377,13 @@ if(typeof StackExchange === "undefined")
     };
     RoomList.useHttpsForStackExchangeAndTrim = function(url) {
         //Change a SE/SO URL to HTTPS instead of HTTP.
-        return /(https?:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)/.test(url) ? url.replace(/http:/ig, 'https:').replace(/(https:\/\/chat\.stack(?:exchange|overflow)\.com\/rooms\/\d+)\b.*$/ig, '$1/') : url;
+        return /(https?:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)/.test(url) ? url.replace(/http:/ig, 'https:').replace(/(https:\/\/chat\.(?:meta\.)stack(?:exchange|overflow)\.com\/rooms\/\d+)\b.*$/ig, '$1/') : url;
     };
     RoomList.changeToHttpsForStackExchange = function() {
         //Just change the JSON (pass it through parse/stringify to remove any duplicates):
         // The RegExp is probably overly restrictive, as the rooms should never already contain non-stackexchange/stackoverflow URLs, as such are considered invalid.
         try {
-            setStorage('rooms', JSON.stringify(JSON.parse(getStorage('rooms').replace(/http:\/\/chat\.stack(exchange|overflow)\.com/ig, 'https://chat.stack$1.com').replace(/(https:\/\/chat\.stack(?:exchange|overflow)\.com\/rooms\/\d+)\b[^"]*/ig, '$1/'))));
+            setStorage('rooms', JSON.stringify(JSON.parse(getStorage('rooms').replace(/http:\/\/chat\.(meta\.)?stack(exchange|overflow)\.com/ig, 'https://chat.$1stack$2.com').replace(/(https:\/\/chat\.(?:meta\.)?stack(?:exchange|overflow)\.com\/rooms\/\d+)\b[^"]*/ig, '$1/'))));
         } catch (e) {
             //No storage or Invalid JSON in 'rooms'
             setStorage('rooms', JSON.stringify({}));
@@ -320,7 +395,7 @@ if(typeof StackExchange === "undefined")
 
 
     //Wrap local storage access so that we avoid collisions with other scripts
-    var prefix = "SECloseVoteRequestGenerator_"; //prefix to avoid clashes in localstorage
+    var prefix = "SECloseVoteRequestGenerator_"; //prefix to avoid clashes in localStorage
     function getStorage(key) { return localStorage[prefix + key]; }
     function setStorage(key, val) { return (localStorage[prefix + key] = val); }
     function getCurrentRoom(){ return getStorage(base + 'room'); }
@@ -328,8 +403,9 @@ if(typeof StackExchange === "undefined")
 
     var base = 'https://' + window.location.hostname;
 
-    if(!getCurrentRoom())
-        setCurrentRoom('https://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers');
+    if(!getCurrentRoom()) {
+        setCurrentRoom(currentSiteConfig.defaultRoom);
+    }
     //Change the localStorage to HTTPS prior to initializing the RoomList.
     RoomList.changeToHttpsForStackExchange();
 
@@ -455,13 +531,16 @@ if(typeof StackExchange === "undefined")
         var reason = $('input[type="text"]', CVRGUI.items.send).val();
         if(!reason) return false;
         reason = reasons.get(reason);
-        var tit = '[' + $('#question-header h1 a').text().replace(/(\[|\])/g, '\\$1').replace(/^\s+|\s+$/gm, '') + '](' + base + $('#question .short-link').attr('href') + ')';
+        var tit = '[' + $('#question-header h1 a').text().replace(/(\[|\])/g, '\\$1').replace(/^\s+|\s+$/gm, '') + '](' + base + $('#question .short-link').attr('href').replace(/(\/\d+)\/\d+$/, '$1') + ')';
         var usr = $('.post-signature.owner:not([align="right"],#popup-close-question .post-signature) .user-details').text().trim().match(/[^\n]+/)[0].trim(), tim;
         var tag = $('#question a.post-tag').first().text(); //huh, sponsored tags have images =/ and off-topic tag like C++ are URL encoded -> get the text only
 		// for duplicate cv-pls, when the dupe is selected, the mini-review messes up the selector for username and date: it is removed with :not
         if($('#question .owner:not(#popup-close-question .owner) a').length) usr = '[' + usr + '](' + base + $('#question .owner:not(#popup-close-question .owner) a').attr('href') + ')';
         if($('#question .owner:not(#popup-close-question .owner) .relativetime').length) tim = $('#question .owner:not(#popup-close-question .owner) .relativetime').attr('title');
         var result = '[tag:'+ (isclosed?'reopen-pls':'cv-pls') +'] [tag:' + tag + '] ' + reason + ' ' + tit + ' - ' + usr + (tim ? '\u200E - ' + tim : ''); //username can be RTL... need to insert a LTR marker to have proper direction
+        if(alreadyPostedRequest && !window.confirm('You\'ve already sent a request about this question. Do you want to send another?')) {
+            return;
+        } // else
         sendRequest(result);
     });
 
@@ -490,15 +569,6 @@ if(typeof StackExchange === "undefined")
         }
     });
     setTimeout(checkUpdates);
-    var closereasons = {
-        4: "General Computing",
-        7: "Server / Networking",
-        16: "Request for Off-Site Resource",
-        13: "No MCVE",
-        11: "Typo or Cannot Reproduce",
-        3: "custom",
-        2: "Belongs on another site"
-    };
     $('.close-question-link').click(function(){
         var cpcheck = setInterval(function(){
             var popup = $('#popup-close-question'), selected, discard;
@@ -508,6 +578,40 @@ if(typeof StackExchange === "undefined")
 
             if($('input', remainingvotes).length) return false;
 
+            if (currentSiteConfig.name === 'Default') {
+                var offTopicInputs = $('.close-as-off-topic-pane input', popup);
+                offTopicInputs.each(function() {
+                    var value = this.value;
+                    var thisParent = this.parentNode;
+                    if (!offTopicCloseReasons[value]) {
+                        offTopicCloseReasons[value] = '';
+                        if (thisParent.textContent.indexOf('scope defined in the help center') > -1) {
+                            offTopicCloseReasons[value] = 'Not in scope for ' + window.location.hostname.replace(/\.(com|net)$/, '');
+                        }
+                        offTopicCloseReasons[value] = offTopicCloseReasons[value].replace(/\s+/, ' ').trim();
+                        if (!offTopicCloseReasons[value]) {
+                            $('b,i', thisParent).each(function() {
+                                offTopicCloseReasons[value] += ' ' + this.innerText;
+                            });
+                        }
+                        offTopicCloseReasons[value] = offTopicCloseReasons[value].replace(/\s+/, ' ').trim();
+                        var parentText = thisParent.innerText;
+                        if (!offTopicCloseReasons[value]) {
+                            var matches = parentText.match(/"([^"]+)"/g);
+                            if(matches) {
+                                offTopicCloseReasons[value] = matches.join(' ');
+                            }
+                        }
+                        offTopicCloseReasons[value] = offTopicCloseReasons[value].replace(/\s+/, ' ').trim();
+                        if (!offTopicCloseReasons[value]) {
+                            console.log('Found Off-topic type:', value, ', but did not deduce the reason: parentText:', parentText, '::  thisParent:', thisParent);
+                            offTopicCloseReasons[value] = 'Off Topic';
+                        }
+                    }
+                });
+            }
+
+
             var checkbox = $('<label><input type="checkbox" style="vertical-align:middle;margin-left: 5px;">Send cv-pls request</label>');
 
             $('.remaining-votes', popup).append(checkbox);
@@ -515,7 +619,7 @@ if(typeof StackExchange === "undefined")
                discard = this.checked && (selected = $(this)) && $('input[type="text"]', CVRGUI.items.send).val(this.value.replace(/(?!^)([A-Z])/g, ' $1'));
             });
             $('[name="close-as-off-topic-reason"]').change(function(){
-               discard = this.checked && (selected = $(this)) && $('input[type="text"]', CVRGUI.items.send).val(closereasons[this.value]);
+               discard = this.checked && (selected = $(this)) && $('input[type="text"]', CVRGUI.items.send).val(offTopicCloseReasons[this.value]);
             });
             $('.popup-submit').click(function() {
                 if(selected.val() === '3') {
