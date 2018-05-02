@@ -80,7 +80,7 @@ if(typeof StackExchange === "undefined")
         //'c': '(not enough code to duplicate)',
         //'b': '(no desired behavior)',
         //'e': '(no specific problem or error)',
-    }, defaultQuickSubstitutions, 'https://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers')));
+    }, defaultQuickSubstitutions), 'https://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers'));
     //Meta Stack Exchange
     configsForSites.push(new SiteConfig('Meta Stack Exchange', /^meta.stackexchange.com$/, {
         1: 'Blatantly off-topic (flag dialog)', //In close-flag dialog, but not the close-vote dialog.
@@ -94,7 +94,7 @@ if(typeof StackExchange === "undefined")
         'r': 'Cannot be reproduced',
         'n': 'Not about Stack Exchange Network software',
         's': 'Specific to a single site',
-    }, defaultQuickSubstitutions, 'https://chat.meta.stackexchange.com/rooms/89/tavern-on-the-meta')));
+    }, defaultQuickSubstitutions), 'https://chat.meta.stackexchange.com/rooms/89/tavern-on-the-meta'));
 
     //Default site configuration
     var currentSiteConfig = new SiteConfig('Default', /./, {
