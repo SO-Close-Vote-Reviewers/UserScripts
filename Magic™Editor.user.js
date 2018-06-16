@@ -1515,16 +1515,6 @@
                 replacement: "$1eird$2",
                 reason: App.consts.reasons.spelling
             },
-            believe: {
-                expr: /\b(b)eleive(r|s|d)?\b/gi,
-                replacement: "$1elieve$2",
-                reason: App.consts.reasons.spelling
-            },
-            piece: {
-                expr: /\b(p)eice(s|d)?\b/gi,
-                replacement: "$1iece$2",
-                reason: App.consts.reasons.spelling
-            },
             sample: {
                 expr: /\b(s)maple(s|d)?\b/gi,
                 replacement: "$1ample$2",
@@ -1715,11 +1705,6 @@
                 replacement: "$1llotted",
                 reason: App.consts.reasons.spelling
             },
-            every_time: {
-                expr: /\b(e)ve?rytime\b/g,
-                replacement: "$1very time",
-                reason: App.consts.reasons.spelling
-            },
             straight: {
                 expr: /\b(s)traig?h?t\b/g,
                 replacement: "$1traight",
@@ -1788,11 +1773,6 @@
             pattern: {
                 expr: /\b(p)at?(?:trn|tren|tern)(s)?\b/gi,
                 replacement: "$1attern$2",
-                reason: App.consts.reasons.spelling
-            },
-            function_: { // https://regex101.com/r/xF3jU3/1
-                expr: /\b(f)u[ncti]+onn?(s|ing|ed|al)?\b/gi,
-                replacement: "$1unction$2",
                 reason: App.consts.reasons.spelling
             },
             syntax: {
@@ -2139,7 +2119,7 @@
                 reason: App.consts.reasons.spelling
             },
             believe: {  // http://www.oxforddictionaries.com/words/common-misspellings https://regex101.com/r/pM1cC6/1
-                expr: /\b(b)e?l[ei]+v(e|ing|able)/gi,
+                expr: /\b(b)e?l[ei]+v(e|ing|able)/gi, // Note lack of \b at end.
                 replacement: "$1eliev$2",
                 reason: App.consts.reasons.spelling
             },
@@ -2302,9 +2282,9 @@
                 replacement: "$1ariable$2",
                 reason: App.consts.reasons.spelling
             },
-            function_: {  // hhttps://regex101.com/r/sI3lT5/1
+            function_: {  // https://regex101.com/r/kJu78M/1 Old regex101 URL was to RegExp for "variable"
                 //thanks Kyll - http://chat.stackoverflow.com/transcript/message/29352203#29352203
-                expr: /\b(f)[un]+ct[io]+n?/gi,
+                expr: /\b(f)(?:[un]+ct[io]+n*|u[ncti]+onn?)/gi,
                 replacement: "$1unction",
                 reason: App.consts.reasons.spelling
             },
@@ -2409,7 +2389,12 @@
                 replacement: "$1nformation",
                 reason: App.consts.reasons.spelling
             },
-            piece: { // https://regex101.com/r/tZ1fY3/1
+            piece: {
+                expr: /\b(p)eice(s|d)?\b/gi,
+                replacement: "$1iece$2",
+                reason: App.consts.reasons.spelling
+            },
+            peaceToPiece: { // https://regex101.com/r/tZ1fY3/1
                 expr: /\b(p)eace(s)?(?= of [\w -]*(?:code|cake|script|text|string|content|image|file))/gi,
                 replacement: "$1iece$2",
                 reason: App.consts.reasons.spelling
