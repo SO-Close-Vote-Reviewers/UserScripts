@@ -444,7 +444,7 @@
             zend: {
                 expr: /\bzend((?: )?(?:framework|studio|guard))?\b/gi,
                 //replacement: toTitleCase(),  // Doesn't work like built-in toUpperCase, returns 'undefined'. Load order?
-                replacement: function(str,prod) {
+                replacement: function(str) {
                     return toTitleCase(str);
                 },
                reason: App.consts.reasons.trademark
@@ -2509,7 +2509,7 @@
                 //    https://regex101.com/r/JnSYVw/1
                 // Regex finds all sentences; replacement must determine whether it needs to capitalize.
                 expr: /(([A-Za-z]|\d(?!\d*\. )|[.$_]\w+)(\S*))((?:(?:etc\.|i\.e\.|e\.g\.|vs\.|\.\.\.|\w*\.(?![\s")])|[*-]+|\n(?![ \t]*\n| *(?:[*-]|\d+\.))|[^.?!\n]?))+(?:([.?!]+)(?=[\s")]|$)|\n\n|\n(?= *[*-])|\n(?= *\d+\.)|$))/gi,
-                replacement: function(sentence, fWord, fChar, fWordPost, sentencePost, endpunc) {
+                replacement: function(sentence, fWord, fChar, fWordPost, sentencePost/*, endpunc*/) {
                     var capChar = fChar.toUpperCase();
                     if (sentence === "undefined"||capChar == fChar) return sentence;  // MUST match sentence, or gets counted as a change.
                     if (!fWord) fWord = '';
@@ -2776,7 +2776,7 @@
         };
 
         //Clear the global values which hold replacements
-        App.funcs.clearPlaceHolders = function(before, after) {
+        App.funcs.clearPlaceHolders = function() {
             App.globals.placeHolderKeys.forEach(function(key) {
                 App.globals.replacedStrings[key] = [];
                 App.globals.replacedStringsOriginal[key] = [];
@@ -3069,7 +3069,7 @@
         };
 
         App.pipeMods.codefix = function() {
-            var replaced = App.globals.replacedStrings.block, str;
+            var replaced = App.globals.replacedStrings.block;
             for (var i in replaced) {
                 // https://regex101.com/r/tX9pM3/1              https://regex101.com/r/tX9pM3/2                 https://regex101.com/r/tX9pM3/3
                 if (/^`[^]+`$/.test(replaced[i])) replaced[i] = '\n\n' + /(?!`)((?!`)[^])+/.exec(replaced[i])[0].replace(/(.+)/g, '    $1');
@@ -3109,7 +3109,7 @@
                     App.globals.reasons.inlineImage = { reason:'inline image' + (replacements > 1 ? 's' : ''), editId:'inlineImage', count:replacements };
                 }
             }
-            return data
+            return data;
         };
 
         App.pipeMods.edit = function(data) {
@@ -3179,14 +3179,14 @@
             App.selections.diff.empty().append('<div class="difftitle">' + App.funcs.diff(App.originals.title, App.items.title, true) + '</div>' +
                                                '<div class="diffbody">' + App.pipeMods.replace({body:App.funcs.diff(App.originals.body, App.items.body)}, true).body + '</div>');
             App.funcs.showDiff();
-        }
+        };
 
         // Replace the previously omitted code
         App.pipeMods.replace = function(data, literal) {
             if (!data.body) return false;
             for (var type in App.globals.checksr) {
                 var i = 0;
-                data.body = data.body.replace(App.globals.placeHolderChecks[type], function(match) {
+                data.body = data.body.replace(App.globals.placeHolderChecks[type], function() {
                     var replace = App.globals.replacedStrings[type][i++];
                     if(literal && /block|lsec/.test(type)) {
                         var after = replace.replace(/^\n\n/,'');
