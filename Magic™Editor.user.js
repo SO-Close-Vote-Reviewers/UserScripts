@@ -892,6 +892,26 @@
                 replacement: "GoDaddy",
                 reason: App.consts.reasons.trademark
             },
+            pfsense: {
+                expr: /\bpfsense\b/gi,
+                replacement: "pfSense",
+                reason: App.consts.reasons.trademark
+            },
+            mipsN: {
+                expr: /\bmips(32|64)?\b/gi,
+                replacement: "MIPS$1",
+                reason: App.consts.reasons.trademark
+            },
+            armN: {
+                expr: /\barm(32|64)\b/gi, //arm by itself is too generic to automatically capitalize
+                replacement: "ARM$1",
+                reason: App.consts.reasons.trademark
+            },
+            powerpcN: {
+                expr: /\bpowerpc(32|64)?\b/gi,
+                replacement: "PowerPC$1",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
@@ -1193,6 +1213,16 @@
             vps: {
                 expr: /\bvps\b/gi,
                 replacement: "VPS",
+                reason: App.consts.reasons.acronym
+            },
+            cisc: {
+                expr: /\bcisc\b/gi,
+                replacement: "CISC",
+                reason: App.consts.reasons.acronym
+            },
+            risc: {
+                expr: /\brisc\b/gi,
+                replacement: "RISC",
                 reason: App.consts.reasons.acronym
             },
             /*
