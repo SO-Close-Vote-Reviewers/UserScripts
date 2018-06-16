@@ -436,16 +436,16 @@
                 // https://regex101.com/r/dR0pJ7/1
                 expr: /\b(amazon(?: )?(?:redshift|web services|cloudfront|console)?)((?: )?(?:ec2|aws|s3|rds|sqs|iam|elb|emr|vpc))?\b/gi,
                 replacement: function(str,titlecase,uppercase) {
-                    var fixed = titlecase.toTitleCase() + (uppercase ? uppercase.toUpperCase() : '');
+                    var fixed = toTitleCase(titlecase) + (uppercase ? uppercase.toUpperCase() : '');
                     return fixed;
                 },
                 reason: App.consts.reasons.trademark
             },
             zend: {
                 expr: /\bzend((?: )?(?:framework|studio|guard))?\b/gi,
-                //replacement: String.toTitleCase,  // Doesn't work like built-in toUpperCase, returns 'undefined'. Load order?
+                //replacement: toTitleCase(),  // Doesn't work like built-in toUpperCase, returns 'undefined'. Load order?
                 replacement: function(str,prod) {
-                    return str.toTitleCase();
+                    return toTitleCase(str);
                 },
                reason: App.consts.reasons.trademark
             },
@@ -477,7 +477,7 @@
             google_verbed: {
                 expr: /\bgoogl(?:ed|ing|er)\b/gi,
                 replacement: function(str) {
-                    return str.toTitleCase();
+                    return toTitleCase(str);
                 },
                 reason: App.consts.reasons.trademark
             },
@@ -489,7 +489,7 @@
             google_things: { // https://regex101.com/r/iS5fO1/1
                 expr: /\bgoogle\b[ \t]*(?:maps?|sheets?|docs?|drive|sites?|forms?|documents?|spreadsheets?|images?|presentations?|play)?\b/gi,
                 replacement: function(str) {
-                    return str.toTitleCase();
+                    return toTitleCase(str);
                 },
                 reason: App.consts.reasons.trademark
             },
@@ -601,7 +601,7 @@
             gwt: {
                 expr: /([^\b\w.]|^)gwt[- ](mosaic|designer)?\b/gi,
                 replacement: function (str,pre,titlecase) {
-                    var fixed = pre + "GWT" + (titlecase? ' '+titlecase.toTitleCase() : ' ');
+                    var fixed = pre + "GWT" + (titlecase ? ' ' + toTitleCase(titlecase) : ' ');
                     return fixed;
                 },
                 reason: App.consts.reasons.trademark
@@ -702,7 +702,7 @@
             hortonworks: {
                 expr: /([^\b\w.]|^)horton ?works[- ](sandbox|data platform|phoenix|hive)?\b/gi,
                 replacement: function (str,pre,titlecase) {
-                    var fixed = pre + "Hortonworks" + (titlecase? ' '+titlecase.toTitleCase() : ' ');
+                    var fixed = pre + "Hortonworks" + (titlecase ? ' ' + toTitleCase(titlecase) : ' ');
                     return fixed;
                 },
                 reason: App.consts.reasons.trademark
@@ -3265,12 +3265,16 @@
 /*
   * To Title Case 2.1 – http://individed.com/code/to-title-case/
   * Copyright © 2008–2013 David Gouch. Licensed under the MIT License.
+  * It has been modified to be a function call, rather than added to the String prototype.
  */
 
-String.prototype.toTitleCase = function(){
+//This is function call, rather than a method on the String prototype, because a userscript, unless it's intended
+//  purpose is to make such a basic change, shouldn't be making a change to the prototype of a built-in type.
+//  Changing the prototype of a built-in has a significant chance of causing compatibility issues.
+function toTitleCase(text){
   var smallWords = /^(a|an|and|as|at|but|by|en|for|if|in|nor|of|on|or|per|the|to|vs?\.?|via)$/i;
 
-  return this.replace(/[A-Za-z0-9\u00C0-\u00FF]+[^\s-]*/g, function(match, index, title){
+  return text.replace(/[A-Za-z0-9\u00C0-\u00FF]+[^\s-]*/g, function(match, index, title){
     if (index > 0 && index + match.length !== title.length &&
       match.search(smallWords) > -1 && title.charAt(index - 2) !== ":" &&
       (title.charAt(index + match.length) !== '-' || title.charAt(index - 1) === '-') &&
