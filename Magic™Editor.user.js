@@ -2997,19 +2997,17 @@
                 if (type === '-') return strings.push('<span class="del">' + rij.replace(/\</g, '&lt;').replace(/(?=\n)/g,'↵') + '</span>'), true;
             }
 
-            function getDiff(matrix, a1, a2, x, y) {
-                if (x > 0 && y > 0 && a1[y - 1] === a2[x - 1]) {
-                    getDiff(matrix, a1, a2, x - 1, y - 1);
-                    maakRij(false, a1[y - 1]);
+            function getDiff(matrix, b1, b2, x, y) {
+                if (x > 0 && y > 0 && b1[y - 1] === b2[x - 1]) {
+                    getDiff(matrix, b1, b2, x - 1, y - 1);
+                    maakRij(false, b1[y - 1]);
                 } else {
                     if (x > 0 && (y === 0 || matrix[y][x - 1] >= matrix[y - 1][x])) {
-                        getDiff(matrix, a1, a2, x - 1, y);
-                        maakRij('+', a2[x - 1]);
+                        getDiff(matrix, b1, b2, x - 1, y);
+                        maakRij('+', b2[x - 1]);
                     } else if (y > 0 && (x === 0 || matrix[y][x - 1] < matrix[y - 1][x])) {
-                        getDiff(matrix, a1, a2, x, y - 1);
-                        maakRij('-', a1[y - 1]);
-                    } else {
-                        return;
+                        getDiff(matrix, b1, b2, x, y - 1);
+                        maakRij('-', b1[y - 1]);
                     }
                 }
             }
