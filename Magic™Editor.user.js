@@ -3107,17 +3107,20 @@
             var fields = {body:'body',title:'title'};
 
             // Loop through all editing rules
-            for (var j in App.edits) for (var field in fields) {
-                var debug = App.edits[j].debug;
-                if (debug) console.log("edit "+j+" in "+field);
-                if (App.edits[j].titleOnly && 'title' !== field)
+            for (var ruleKey in App.edits) for (var field in fields) {
+                var editRule = App.edits[ruleKey];
+                var debug = editRule.debug;
+                if (debug) console.log("edit " + ruleKey + " in " + field);
+                if (editRule.titleOnly && 'title' !== field)
                     continue;  // Skip title-only edits if not editing title.
-                var fix = App.funcs.fixIt(data[field], App.edits[j], j);
+                var fix = App.funcs.fixIt(data[field], editRule, ruleKey);
                 if (!fix) continue;
+                //A change was made:
+                console.log('Change by edit rule: reason:', editRule.reason, ':: ruleKey:', ruleKey, ':: editRule', editRule, ':: before:', {before: data[field]}, '::  fix:', fix);
                 if (fix.reason in App.globals.reasons) App.globals.reasons[fix.reason].count += fix.count;
-                else App.globals.reasons[fix.reason] = { reason:fix.reason, editId:j, count:fix.count };
+                else App.globals.reasons[fix.reason] = { reason:fix.reason, editId:ruleKey, count:fix.count };
                 data[field] = fix.fixed;
-                App.edits[j].fixed = true;
+                editRule.fixed = true;
             }
 
             // Remove silent change reason
