@@ -2895,14 +2895,14 @@
             App.selections.diffToggle.text('show diff');
             App.selections.preview.show();
             App.selections.previewToggle.text('hide preview');
-        }
+        };
 
         App.funcs.showDiff = function() {
             App.selections.preview.hide();
             App.selections.previewToggle.text('show preview');
             App.selections.diff.show();
             App.selections.diffToggle.text('hide diff');
-        }
+        };
 
         App.funcs.togglePreview = function() {
             App.selections.diff.hide();
@@ -2910,14 +2910,14 @@
             if(/hide/.test(App.selections.previewToggle.text())) return App.selections.previewToggle.text('show preview'), App.selections.preview.toggle(), false;
             if(/show/.test(App.selections.previewToggle.text())) return App.selections.previewToggle.text('hide preview'), App.selections.preview.toggle(), false;
             return false;
-        }
+        };
 
         App.funcs.toggleDiff = function() {
             App.selections.preview.hide();
             App.selections.previewToggle.text('show preview');
             if(/hide/.test(App.selections.diffToggle.text())) return App.selections.diffToggle.text('show diff'), App.selections.diff.toggle(), false;
             if(/show/.test(App.selections.diffToggle.text())) return App.selections.diffToggle.text('hide diff'), App.selections.diff.toggle(), false;
-        }
+        };
 
         // Populate edit item sets from DOM selections
         App.funcs.popItems = function() {
@@ -2933,7 +2933,7 @@
             ['title', 'body', 'summary'].forEach(function(v) {
                 i[v] = s[v];
             });
-        }
+        };
 
         // Insert editing button
         App.funcs.createButton = function() {
