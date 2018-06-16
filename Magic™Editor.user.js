@@ -134,6 +134,13 @@
 
         // Define edit rules
         // See https://regex101.com/r/fC3bY5/2 for a basic RegExp that excludes matches in filenames, paths, library names, etc.
+        // The following properties are available for each edit rule:
+        //    expr:        RegExp                Used as the argument for the String methods .match() and the first argument for .replace().
+        //    replacement: String or function    Used as the second argument for the String method .replace(). e.g. "$1 want".
+        //    reason:      String                Should be one of the constants defined as a reason. e.g.:  App.consts.reasons.grammar
+        //    rerun:       Array of String       The keys of rules which will be re-run if there are any changes made by this current rule.
+        //    titleOnly:   truthy (Boolean)      If evaluates to true, then the rule is only applied to titles.
+        //    debug:       truthy (Boolean)      If evaluates to true, then debug output is logged to the console for this rule.
         App.edits = {
             // Handle all-caps posts first
             noneedtoyell: {
