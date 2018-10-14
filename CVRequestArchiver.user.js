@@ -749,7 +749,12 @@
             nodes.indicator.style.display = '';
             nodes.indicator.value = 'getting events... (0 / ' + count + ')';
             nodes.progresswrp.style.display = '';
-            getEvents(count);
+            getEventsAndScan(count).then(() => {
+                console.log('getEventsAndScan.then: JSON.parse(JSON.stringify(messagesToMove)):', JSON.parse(JSON.stringify(messagesToMove)));
+            }).catch((error) => {
+                console.error(error);
+                alert('There was an error in getting and/or processing the messages. You will need to try again.\n\nMore information is available in the console.');
+            });
         }, false);
 
         nodes.movebtn.addEventListener('click', saveMoveInformationAndMovePosts, false);
@@ -852,7 +857,33 @@
 
         var nextBefore;
 
-        function getEvents(count, before, promised, needParentList) {
+        function getEvents(roomNumber, userFkey, count, before) {
+            if (count > 500 || count < 1) {
+                return Promise.reject(new Error('Count not in range (500 >= n >= 1)'));
+            } // else
+            if (!room) {
+                return Promise.reject(new Error('Invalid room'));
+            } // else
+            if (!fkey) {
+                return Promise.reject(new Error('Invalid fkey'));
+            } // else
+            const data = {
+                fkey: userFkey,
+                msgCount: count,
+                mode: 'Messages',
+            };
+            if (before) {
+                data.before = before;
+            }
+            const ajaxOptions = {
+                type: 'POST',
+                url: '/chats/' + roomNumber + '/events',
+                data: data,
+            };
+            return $.ajax(ajaxOptions);
+        }
+
+        function getEventsAndScan(count, before, promised, needParentList) {
             //Get events from Chat. Chat returns up to 500 events per call going backward from the indicated "before" message.
             //  These are directly placed in the events Array as a 2D array.
             // @promised is the tail of a Promise which contains the processing tasks.
@@ -867,63 +898,48 @@
                     resolve(promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents)));
                     return false;
                 }
-                var data = {
-                    fkey: fkey,
-                    msgCount: count > 500 ? 500 : count,
-                    mode: 'Messages',
-                };
-                if (before) {
-                    data.before = before;
-                }
-                const ajaxOptions = {
-                    type: 'POST',
-                    url: '/chats/' + room + '/events',
-                    data: data,
-                    success: function(response) {
-                        var respEvents = response.events;
-                        if (respEvents.length) {
-                            respEvents.forEach(function(event) {
-                                event.timeStampUTC = (new Date(event.time_stamp * 1000)).toJSON();
-                            });
-                        }
-                        events.push(response.events);
-                        //Adding 'reply-request' to this doesn't appear to help make the process significantly faster.
-                        promised = promised
-                            .then(() => delay(0, addEventsToByNumber, response.events, '', '', 'By Id'))
-                            .then(() => delay(0, scanStageEventChunk, response.events, assignEventBaseTypeAndContentWithoutCode, needParentList, 'typing............', totalEventsToFetch - count, totalEventsToFetch));
+                const msgCount = count > 500 ? 500 : count;
+                getEvents(room, fkey, msgCount, before).then(function(response) {
+                    var respEvents = response.events;
+                    if (respEvents.length) {
+                        respEvents.forEach(function(event) {
+                            event.timeStampUTC = (new Date(event.time_stamp * 1000)).toJSON();
+                        });
+                    }
+                    events.push(response.events);
+                    //Adding 'reply-request' to this doesn't appear to help make the process significantly faster.
+                    promised = promised
+                        .then(() => delay(0, addEventsToByNumber, response.events, '', '', 'By Id'))
+                        .then(() => delay(0, scanStageEventChunk, response.events, assignEventBaseTypeAndContentWithoutCode, needParentList, 'typing............', totalEventsToFetch - count, totalEventsToFetch));
 
-                        if (!response.events[0]) {
-                            // No more events in the transcript
-                            // Re-type those that need to have a parent found.
-                            resolve(promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents)));
-                            return false;
-                        }
+                    if (!response.events[0]) {
+                        // No more events in the transcript
+                        // Re-type those that need to have a parent found.
+                        resolve(promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents)));
+                        return false;
+                    }
 
-                        nodes.scandate.textContent = new Date(1000 * response.events[0].time_stamp).toISOString();
+                    nodes.scandate.textContent = new Date(1000 * response.events[0].time_stamp).toISOString();
 
-                        nextBefore = response.events[0].message_id;
-                        resolve(getEvents(count - 500, response.events[0].message_id, promised, needParentList));
-                    },
-                    error: function(xhr, status, error) {
-                        console.error(
-                            'AJAX Error getting events:',
-                            '\n::  xhr:', xhr,
-                            '\n::  status:', status,
-                            '\n::  error:', error,
-                            '\n::  ajaxOptions:', ajaxOptions,
-                            '\n::  count:', count,
-                            '\n::  before:', before
-                        );
-                        if (confirm('$.ajax encountered an error getting events. See console for data.' + (error && error.length < 100 ? ' error: ' + error : '') +
-                                '\n\ncount:' + count + '::  before:' + before + '\n\nRetry fetching these?')) {
-                            //Allow the user to retry.
-                            resolve(getEvents(count, before, promised, needParentList));
-                        } else {
-                            reject(new Error('AJAX Error getting events: ' + error));
-                        }
-                    },
-                };
-                $.ajax(ajaxOptions);
+                    nextBefore = response.events[0].message_id;
+                    resolve(getEventsAndScan(count - 500, response.events[0].message_id, promised, needParentList));
+                }, function(xhr, status, error) {
+                    console.error(
+                        'AJAX Error getting events:',
+                        '\n::  xhr:', xhr,
+                        '\n::  status:', status,
+                        '\n::  error:', error,
+                        '\n::  count:', count,
+                        '\n::  before:', before
+                    );
+                    if (confirm('$.ajax encountered an error getting events. See console for data.' + (error && error.length < 100 ? ' error: ' + error : '') +
+                            '\n\ncount:' + count + '::  before:' + before + '\n\nRetry fetching these?')) {
+                        //Allow the user to retry.
+                        resolve(getEventsAndScan(count, before, promised, needParentList));
+                    } else {
+                        reject(new Error('AJAX Error getting events: ' + error));
+                    }
+                });
             });
         }
 
@@ -1665,7 +1681,7 @@
             var currentCount = +nodes.count.value;
             totalEventsToFetch = currentCount + moreCount;
             nodes.count.value = totalEventsToFetch;
-            return getEvents(moreCount, typeof newNextBefore === 'number' ? newNextBefore : nextBefore).then((result) => {
+            return getEventsAndScan(moreCount, typeof newNextBefore === 'number' ? newNextBefore : nextBefore).then((result) => {
                 //Add the events we just fetched to the overall list
                 events = originalEvents.concat(events);
                 return result;
