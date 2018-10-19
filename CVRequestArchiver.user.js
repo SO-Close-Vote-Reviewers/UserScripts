@@ -330,8 +330,8 @@
                 //This really should have a separate call the the SE API to get review information, where possible.
                 underAgeTypeKey: 'DELETE',
             },
-            DUPLICATE: {
-                name: 'Duplicate',
+            QUEEN_SOCVFINDER: { //QUEEN: SOCVFinder
+                name: 'Queen: SOCVFinder',
                 regexes: duplicateRegexes,
                 alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
                 underAgeTypeKey: 'CLOSE',
@@ -344,8 +344,8 @@
                 underAgeTypeKey: 'CLOSE',
                 archiveParentWithThis: true,
             },
-            QUEEN: {
-                name: 'Queen',
+            QUEEN_HEAT: {
+                name: 'Queen: HeatDetector',
                 alwaysArchiveAfterSeconds: 30 * SECONDS_IN_MINUTE, //30 minutes
                 userIdMatch: knownUserIds.queen,
                 regexes: [
