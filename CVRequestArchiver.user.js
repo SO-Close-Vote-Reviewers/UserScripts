@@ -2090,22 +2090,35 @@
 
         function addNextDeletedContent() {
             //Get the content for the next deleted message and insert it into the DOM.
+            function doMoreDeletedContentIfNeeded(noDelay) {
+                const delayToGetNextDeleted = noDelay ? 0 : delayBetweenGettingDeletedContent;
+                if (deletedMessagesWithoutDeletedContent.length) {
+                    gettingDeletedContent = setTimeout(addNextDeletedContent, delayToGetNextDeleted);
+                } else {
+                    gettingDeletedContent = 0;
+                    setTimeout(addAllDeletedContent, delayToGetNextDeleted);
+                }
+            }
             gettingDeletedContent = 1;
             if (deletedMessagesWithoutDeletedContent.length) {
-                var message = deletedMessagesWithoutDeletedContent.last();
+                const message = deletedMessagesWithoutDeletedContent.last();
                 //Remove the message we're working on.
                 deletedMessagesWithoutDeletedContent.splice(deletedMessagesWithoutDeletedContent.length - 1, 1);
-                var messageId = getMessageIdFromMessage(message);
+                const isInProcessOrHasDeletedContent = message.hasClass('SOCVR-Archiver-deleted-content-in-process') || !!message.find('.SOCVR-Archiver-deleted-content').length;
+                if (isInProcessOrHasDeletedContent) {
+                    //Skip this message
+                    doMoreDeletedContentIfNeeded(true);
+                    return;
+                }
+                //Mark this message as in the process of being handled, so there isn't duplicate fetches of history, should another script be doing the same thing.
+                message.addClass('SOCVR-Archiver-deleted-content-in-process');
+                const messageId = getMessageIdFromMessage(message);
                 getMessageMostRecentVersionFromHistory(messageId, function(deletedContent) {
+                    message.removeClass('SOCVR-Archiver-deleted-content-in-process');
                     if (deletedContent) {
                         addDeletedContentToMessageId(message, deletedContent);
                     }
-                    if (deletedMessagesWithoutDeletedContent.length) {
-                        gettingDeletedContent = setTimeout(addNextDeletedContent, delayBetweenGettingDeletedContent);
-                    } else {
-                        gettingDeletedContent = 0;
-                        setTimeout(addAllDeletedContent, delayBetweenGettingDeletedContent);
-                    }
+                    doMoreDeletedContentIfNeeded();
                 });
             } else {
                 gettingDeletedContent = 0;
@@ -2116,7 +2129,7 @@
         function addDeletedContentToMessageId(message, deletedContent) {
             //Actually add the deleted content to the message
             const newContent = $('.content', message);
-            if (!newContent.find('SOCVR-Archiver-deleted-content').length) {
+            if (!newContent.find('.SOCVR-Archiver-deleted-content').length) {
                 //Be sure to not double-add, as this can be called asynchronously after the prior check for the existence of the deleted content.
                 deletedContent.removeClass('content').addClass('SOCVR-Archiver-deleted-content');
                 newContent.append(deletedContent);
