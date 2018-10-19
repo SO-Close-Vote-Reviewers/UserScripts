@@ -40,54 +40,68 @@
     if (window !== window.top) {
         return false;
     }
-    var room = (/chat\.stackoverflow\.com\/rooms\/(\d+)/.exec(window.location.href) || [false, false])[1];
-    var isChat = !!room;
-    var isSearch = false;
-    if (/^\/search/.test(window.location.pathname)) {
-        isSearch = true;
-        room = (/^.*\broom=(\d+)\b.*$/i.exec(window.location.search) || [false, false])[1];
-    }
-    var isTranscript = false;
-    if (/\/transcript\//.test(window.location.pathname)) {
-        isTranscript = true;
-        var roomNameLink = $('#sidebar-content .room-mini .room-mini-header .room-name a');
-        if (roomNameLink.length) {
-            room = (/^(?:https?:)?(?:\/\/chat\.stackoverflow\.com)?\/rooms\/(\d+)/.exec(roomNameLink[0].href) || [false, false])[1];
-        }
-    }
-    if (!room) {
-        return false;
-    }
+    let room;
+    let me;
+    let fkey;
+    let isChat = false;
+    let isSearch = false;
+    let isTranscript = false;
 
-    var fkey = $('#fkey');
-    //fkey is not available in search
-    if (isSearch) {
-        fkey = isSearch ? getStorage('fkey') : fkey;
-    } else {
-        if (!fkey.length) {
+    function startup() {
+        if (typeof $ !== 'function') {
+            //jQuery doesn't exist yet. Try again later.
+            //Should put a limit on the number of times this is retried.
+            setTimeout(startup, 250);
+        }
+        room = (/(?:chat(?:\.meta)?\.stack(?:overflow|exchange).com)\/rooms\/(\d+)/.exec(window.location.href) || [false, false])[1];
+        isChat = !!room;
+        if (/^\/search/.test(window.location.pathname)) {
+            isSearch = true;
+            room = (/^.*\broom=(\d+)\b.*$/i.exec(window.location.search) || [false, false])[1];
+        }
+        isTranscript = false;
+        if (/\/transcript\//.test(window.location.pathname)) {
+            isTranscript = true;
+            const roomNameLink = $('#sidebar-content .room-mini .room-mini-header .room-name a');
+            if (roomNameLink.length) {
+                room = (/^(?:https?:)?(?:\/\/chat(?:\.meta)?\.stack(?:overflow|exchange)\.com)?\/rooms\/(\d+)/.exec(roomNameLink[0].href) || [false, false])[1];
+            }
+        }
+        room = +room;
+        if (!room) {
             return false;
         }
-        fkey = fkey.val();
-    }
-    if (!fkey) {
-        return false;
-    }
-    setStorage('fkey', fkey);
 
-    var me = (/\d+/.exec($('#active-user').attr('class')) || [false])[0];
-    //Get me from localStorage. (transcript doesn't contain who you are).
-    me = me ? me : getStorage('me');
-    if (!me) {
-        return false;
-    }
-    //Save me in localStorage.
-    setStorage('me', me);
+        fkey = $('#fkey');
+        //fkey is not available in search
+        if (isSearch) {
+            fkey = isSearch ? getStorage('fkey') : fkey;
+        } else {
+            if (!fkey.length) {
+                return false;
+            }
+            fkey = fkey.val();
+        }
+        if (!fkey) {
+            return false;
+        }
+        setStorage('fkey', fkey);
 
-    $.ajax({
-        type: 'POST',
-        url: '/user/info?ids=' + me + '&roomId=' + room,
-        success: CVRequestArchiver,
-    });
+        me = (/\d+/.exec($('#active-user').attr('class')) || [false])[0];
+        //Get me from localStorage. (transcript doesn't contain who you are).
+        me = me ? me : getStorage('me');
+        if (!me) {
+            return false;
+        }
+        //Save me in localStorage.
+        setStorage('me', me);
+
+        $.ajax({
+            type: 'POST',
+            url: '/user/info?ids=' + me + '&roomId=' + room,
+            success: CVRequestArchiver,
+        });
+    }
 
     function CVRequestArchiver(info) {
         if (!info.users[0].is_owner && !info.users[0].is_moderator) {
@@ -2748,4 +2762,5 @@
             }
         });
     }
+    startup();
 })();
