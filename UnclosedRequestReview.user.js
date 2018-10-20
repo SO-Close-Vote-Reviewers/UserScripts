@@ -4613,9 +4613,9 @@
             optionsButtonContainer.insertAdjacentHTML('beforeend', '<button id="urrsOpenAllVisibleButton" title="Open all the requests which are currently visible in new tabs.">Open all visible requests</button>');
             optionsButtonContainer.querySelector('#urrsOpenAllVisibleButton').addEventListener('click', funcs.ui.openAllVisibleRequests, true);
             optionsButtonContainer.insertAdjacentHTML('beforeend', [
-                '<div id="urrsButtonSetUIOptionsGroup-div" title="Set the group of UI options to use for this tab. Each UI group can hold a different configuration of UI options. These configuration storage groups are different locations for close and delete searches.">',
-                '    <span>UI group</span>',
-                '    <div id="urrsButtonSetUIOptionsGroup-div-inner" title="Set the group of UI options to use for this tab. Each UI group can hold a different configuration of UI options. These configuration storage groups are different locations for close and delete searches.">',
+                '<div id="urrsButtonSetUIOptionsGroup-div" title="Set the group of UI options to use for this tab. Each filter preset can hold a different configuration of UI options. These configuration storage groups are different locations for close and delete searches.">',
+                '    <span>Filter preset</span>',
+                '    <div id="urrsButtonSetUIOptionsGroup-div-inner" title="Set the group of UI options to use for this tab. Each filter preset can hold a different configuration of UI options. These configuration storage groups are different locations for close and delete searches.">',
                          ((new Array(NUMBER_UI_GROUPS).fill(0)).reduce((result, value, index) => result + '<a id="urrsButtonSetUIOptionsGroup-' + (index + 1) + '" class="urrsButtonSetUIOptionsGroup" value="' + (index + 1) + '">' + (index + 1) + '</a>', '')), // eslint-disable-line indent
                 '    </div>',
                 '</div>',
