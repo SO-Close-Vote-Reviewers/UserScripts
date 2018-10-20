@@ -1725,7 +1725,11 @@
     };
 
     //Format the IDs in the array as they need to be when sending the SE API call.
-    funcs.formatPosts = (arr) => arr.map((item) => item.post).join(';');
+    funcs.formatPosts = (arr) => arr.map((item) => item.post).filter((postId) => {
+        const postIdNum = +postId;
+        //SE API returns an error if the postId doesn't fit into 63 bits (e.g. an int).
+        return (postIdNum && postIdNum <= 2147483647 && /^\d+$/.test(postId));
+    }).join(';');
 
     funcs.chunkArray = (array, chunkSize) => {
         //Chop a single array into an array of arrays. Each new array contains chunkSize number of
