@@ -1886,8 +1886,8 @@
             //  moved out of this script, then partially pruned back, then expanded a bit, without double
             //  checking that all requested information is used.
             //  It doesn't hurt to get the extra data, but it is not needed.
-            //Add getting user information.
-            'filter=!SCZ)Qj6o*_pKaNWAjw16mY_JwuDGPKRS35PRc60R0dslXXuTTwyfYSER3d5E2ok9',
+            //Add bounties & things for Roomba
+            'filter=!m)9LJxKwexI9h92EPpSH6vR(2S7pz3L9cXWiH9ar04WP8BSWy0Mtyl7P',
         ].join('&');
         xhr.open('GET', url);
         xhr.send();
