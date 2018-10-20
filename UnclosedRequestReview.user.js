@@ -660,15 +660,41 @@
                 return;
             } //else
         }
-        //New action
+        //It's a new user action
         funcs.windowCtrlClickListener(event);
         if (!event.defaultPrevented) {
             funcs.visited.listenForLinkClicks(event);
+        }
+        if (event.target.classList.contains('action-link') || event.target.parentNode.classList.contains('action-link')) {
+            funcs.ui.listenForActionLinkClicks(event);
         }
         mostRecentClick = event;
     };
     window.addEventListener('click', funcs.visited.listenForClicks, false);
     window.addEventListener('auxclick', funcs.visited.listenForClicks, false);
+
+    funcs.ui.listenForActionLinkClicks = (event) => {
+        const target = event.target;
+        const message = funcs.getContainingMessage(target);
+        if (!message || !message.classList.contains('urrsRequestComplete')) {
+            return;
+        }
+        setTimeout(() => {
+            const popup = message.querySelector('.message > .popup');
+            if (popup) {
+                message.classList.add('urrsRequestComplete-temp-disable');
+                const popupObserver = new MutationObserver(function(mutations, observer) {
+                    if (mutations.some((mutation) => (mutation.removedNodes && [].slice.call(mutation.removedNodes).some((node) => node.classList.contains('popup'))))) {
+                        observer.disconnect();
+                        message.classList.remove('urrsRequestComplete-temp-disable');
+                    }
+                });
+                popupObserver.observe(message, {
+                    childList: true,
+                });
+            }
+        }, 100);
+    };
 
     funcs.visited.listenForLinkClicks = (event) => {
         //Intended as main listener for clicks on links. Because Chrome doesn't fire click events for buttons other than the main one
@@ -3301,7 +3327,7 @@
             '}',
             (config.nonUi.chatCompleteRequestsFade ? [
                 //Complete requests transition for low opacity and shrunk.
-                '.message.urrsRequestComplete {',
+                '.message.urrsRequestComplete:not(.urrsRequestComplete-temp-disable) {',
                 '    transition: transform cubic-bezier(.165, .84, .44, 1) .15s, opacity cubic-bezier(.165, .84, .44, 1) .15s;',
                 '}',
                 //Have a delay in the translation when moving from fully visible to shrunk/fade
@@ -3309,7 +3335,7 @@
                 '    transition-delay: 1s;',
                 '}',
                 //Complete requests low opacity to combo with scale
-                '.message.urrsRequestComplete:not(:hover):not(.reply-parent):not(.reply-child) {',
+                '.message.urrsRequestComplete:not(:hover):not(.urrsRequestComplete-temp-disable):not(.reply-parent):not(.reply-child) {',
                 '    opacity: .4;',
                 '}',
                 '.monologue.urrsRequestComplete:hover .timestamp.timestamp.timestamp:hover + .message.urrsRequestComplete {',
@@ -3318,8 +3344,13 @@
                 '    transition-delay: 0s;',
                 '}',
                 //Complete requests scale
-                '.message.urrsRequestComplete:not(:hover):not(.reply-parent):not(.reply-child) {',
-                '    transform: scale(0.85) translate(-8%,-8%);',
+                '.message.urrsRequestComplete:not(:hover):not(.urrsRequestComplete-temp-disable):not(.reply-parent):not(.reply-child) {',
+                '    transform: scale(0.85) translate(-8.25%,-8%);',
+                '}',
+                //Complete requests prevent a popup from adjusting
+                '.message.urrsRequestComplete:not(:hover):not(.urrsRequestComplete-temp-disable):not(.reply-parent):not(.reply-child) .popup {',
+                '    opacity: 1;',
+                '    transform: scale(1) translate(0%,0%);',
                 '}',
             ].join('\n') : ''),
             (config.nonUi.chatCompleteRequestsHide ? [
