@@ -1954,7 +1954,7 @@
             });
             updateMessagesToMove();
             $(document.body).prepend(shownToBeMoved);
-            addMoveToInMeta();
+            doOncePerChatChangeAfterDOMUpdate();
             var replyNode = $('.monologue:not(.mine) .message .newreply').first().clone(true);
             moveMessagesDiv.find('.message .meta').filter(function() {
                 return !$(this).children('.newreply').length;
@@ -2045,18 +2045,30 @@
         //CHAT listener
 
         var chatListenerAddMetaTimeout = 0;
+        var debounceGetAvatars = 0;
 
-        function doOncePerChatEventGroup() {
+        function doOncePerChatChangeAfterDOMUpdate(chatInfo) {
             //Things that we do to when the Chat changes to keep the page updated.
             addMoveToInMeta();
             recordOldestMessageInChat();
+            if (!chatInfo || chatInfo.event_type === 10 || chatInfo.event_type === 20) {
+                //This isn't called by a CHAT event, or a message was deleted (10) or moved-in (20) (which might already be deleted).
+                addAllDeletedContent();
+            }
+            showAllManualMoveMessages(true);
+            //There's no reason to do getAvatars rapidly.
+            clearTimeout(debounceGetAvatars);
+            debounceGetAvatars = setTimeout(getAvatars, 1000);
         }
 
         function listenToChat(chatInfo) {
             //Called when an event happens in chat. For add/delete this is called prior to the message being added or deleted.
             //Delay until after the content has been added. Only 0ms is required.
+            //A delay of 100ms groups multiple CHAT events that happen at basically the same time.
+            //  For showing deleted messages, it gives other implementations (e.g. non-privileged saving of deleted content) a chance to
+            //  handle the deletion first.
             clearTimeout(chatListenerAddMetaTimeout);
-            chatListenerAddMetaTimeout = setTimeout(doOncePerChatEventGroup, 50);
+            chatListenerAddMetaTimeout = setTimeout(doOncePerChatChangeAfterDOMUpdate, 100, chatInfo);
             if (chatInfo.event_type === 19) {
                 //A message was moved out. We want to remove it from the moveList.
                 //This tracks messages which other people move. The user's own moves should be handled elsewhere.
@@ -2356,9 +2368,6 @@
                 //Add the moveList length to this message.
                 addManualMoveListLength(null, this);
             });
-            showAllManualMoveMessages(true);
-            addAllDeletedContent();
-            getAvatars();
         }
 
         function getMessageIdFromMessage(message) {
@@ -2498,27 +2507,23 @@
         });
 
         //Add to meta when the page announces it's ready. (This is supposed to work, but doesn't actually help).
-        window.addEventListener('message', addMoveToInMeta, true);
+        window.addEventListener('message', doOncePerChatChangeAfterDOMUpdate, true);
         //Accept notifications specific to this script that the page has changed.
-        window.addEventListener('SOCVR-Archiver-Messages-Changed', addMoveToInMeta, true);
+        window.addEventListener('SOCVR-Archiver-Messages-Changed', doOncePerChatChangeAfterDOMUpdate, true);
         var ajaxCompleteTimer;
         //Global jQuery AJAX listener: Catches user requesting older chat messages
         $(document).ajaxComplete(function(event, jqXHR, ajaxSettings) {
             if (!/(?:messages\/\d+\/history)/i.test(ajaxSettings.url)) {
                 clearTimeout(ajaxCompleteTimer);
-                ajaxCompleteTimer = setTimeout(addMoveToInMeta, 500);
+                ajaxCompleteTimer = setTimeout(doOncePerChatChangeAfterDOMUpdate, 500);
             }
         });
         //Lazy way of adding moveInMeta after messages load
         $(document).on('click', '.SOCVR-Archiver-in-message-move-button', moveToInMetaHandler);
         //Add meta when room is ready
-        if (!isSearch) {
-            CHAT.Hub.roomReady.add(function() {
-                addMoveToInMeta();
-                addAllDeletedContent();
-            });
+        if (CHAT && CHAT.Hub && CHAT.Hub.roomReady && typeof CHAT.Hub.roomReady.add === 'function') {
+            CHAT.Hub.roomReady.add(doOncePerChatChangeAfterDOMUpdate);
         }
-        addMoveToInMeta();
 
         //Keep various values stored in localStorage consistent with what's stored there.
         window.addEventListener('storage', function(event) {
@@ -2776,6 +2781,8 @@
                 $body.removeClass('SOCVR-Archiver-hide-message-meta-menu');
             }
         });
+
+        doOncePerChatChangeAfterDOMUpdate();
     }
     startup();
 })();
