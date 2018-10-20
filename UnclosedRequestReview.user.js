@@ -2886,12 +2886,20 @@
         });
     };
 
+    const invalidRequestText = ': invalid-request';
+    const invalidRequestTextRegExp = new RegExp(invalidRequestText + '.*$');
+    funcs.removeInvalidRequestTextFromRequest = (requestInfo, tagSpan) => {
+        if (requestInfo && tagSpan) {
+            tagSpan.textContent = tagSpan.textContent.replace(invalidRequestTextRegExp, '');
+            tagSpan.title = tagSpan.title.replace(invalidRequestTextRegExp, '');
+            requestInfo.classList.remove('urrsRequestNoRequestTag');
+        }
+    };
+
     funcs.fixN0kTagsInDeleteRequests = () => {
         //Make all delete/undelete requests which have a >3k reputation requirement have a tag indicating that requirement.
         //  If 10k+ tags are added is a user configurable option.
-        if (!config.nonUi.add20kTag) {
-            return;
-        }
+        //  Also adjusts del-pls to indicate an invalid request.
         funcs.doForAllMessages((message) => {
             const requestInfo = funcs.getRequestInfoFromMessage(message);
             if (!requestInfo) {
@@ -2904,6 +2912,7 @@
             if (!requestTag) {
                 return;
             } //else
+            const tagSpan = requestTag.querySelector('.ob-post-tag');
             let is20k = false;
             let invalidReason = 'open Q';
             const requestInfoFirstLink = requestInfo.querySelector('a');
@@ -2911,7 +2920,8 @@
             const postScore = +reqData.score;
             if (deleteRequest) {
                 if (reqData.postStatus === 'deleted') {
-                    //Don't do anything to deleted posts
+                    //Just remove any existing invalid request text for deleted posts
+                    funcs.removeInvalidRequestTextFromRequest(requestInfo, tagSpan);
                     return;
                 } //else
                 if (reqData.postStatus === 'answer') {
@@ -2930,7 +2940,8 @@
             } else {
                 //Undelete
                 if (reqData.postStatus !== 'deleted') {
-                    //Don't do anything to non-deleted posts
+                    //Just remove any existing invalid request text for non-deleted posts
+                    funcs.removeInvalidRequestTextFromRequest(requestInfo, tagSpan);
                     return;
                 } //else
                 //reqData.postStatus has no information for deleted questions
@@ -2954,35 +2965,38 @@
             if (reqData.isLocked === 'true') {
                 invalidReason = 'locked';
             }
-            //Remove all existing 20k tags
-            funcs.getAllN0kTagsInElement(content).forEach((tag) => {
-                const sib = tag.previousSibling;
-                if (sib.nodeName === '#text' && sib.textContent.trim() === '') {
-                    //If we have added a N0k+ tag there is also a single space text node.
-                    sib.remove();
-                }
-                tag.remove();
-            });
-            if (!invalidReason) {
-                if (is20k || config.nonUi.add10kTagToo) {
-                    //Actually add the 20k+ tag, and/or 10k+, if the user has selected that option.
-                    const nKValue = (is20k ? '2' : '1') + '0k+';
-                    requestTag.parentNode.insertBefore(funcs.makeTagTagElementWithSpace(nKValue, true, 'This ' + nKValue + ' tag was not included in the original message posted by the user. It was added for your convenience to indicate that the post can only be delete-voted by users with more than 20k reputation.'), requestTag.nextSibling);
-                    const newTag = funcs.getFirstN0kTagInElement(content);
-                    const newTagSibling = newTag.nextSibling;
-                    if (newTagSibling === null || newTagSibling.nodeName !== '#text') {
-                        //Add a space between the tag and anything that is not text (e.g. another tag).
-                        newTag.parentNode.insertBefore(document.createTextNode(' '), newTagSibling);
+            //If the user has selected to add N0K+ tags, then remove all current ones and add a new one.
+            if (config.nonUi.add20kTag) {
+                //Remove all existing 20k tags
+                funcs.getAllN0kTagsInElement(content).forEach((tag) => {
+                    const sib = tag.previousSibling;
+                    if (sib.nodeName === '#text' && sib.textContent.trim() === '') {
+                        //If we have added a N0k+ tag there is also a single space text node.
+                        sib.remove();
+                    }
+                    tag.remove();
+                });
+                //Add a new n0k+ tag
+                if (!invalidReason) {
+                    if (is20k || config.nonUi.add10kTagToo) {
+                        //Actually add the 20k+ tag, and/or 10k+, if the user has selected that option.
+                        const nKValue = (is20k ? '2' : '1') + '0k+';
+                        requestTag.parentNode.insertBefore(funcs.makeTagTagElementWithSpace(nKValue, true, 'This ' + nKValue + ' tag was not included in the original message posted by the user. It was added for your convenience to indicate that the post can only be delete-voted by users with more than 20k reputation.'), requestTag.nextSibling);
+                        const newTag = funcs.getFirstN0kTagInElement(content);
+                        const newTagSibling = newTag.nextSibling;
+                        if (newTagSibling === null || newTagSibling.nodeName !== '#text') {
+                            //Add a space between the tag and anything that is not text (e.g. another tag).
+                            newTag.parentNode.insertBefore(document.createTextNode(' '), newTagSibling);
+                        }
                     }
                 }
             }
-            const tagSpan = requestTag.querySelector('.ob-post-tag');
             //Mark invalid requests, and un-mark any requests previously marked as invalid, which are now valid.
             if (tagSpan) {
-                tagSpan.textContent = tagSpan.textContent.replace(/: invalid-request: .*$/, ''); //Needs to match text added below when invalid.
-                requestInfo.classList.remove('urrsRequestNoRequestTag');
+                funcs.removeInvalidRequestTextFromRequest(requestInfo, tagSpan);
                 if (invalidReason) {
-                    tagSpan.textContent = tagSpan.textContent + ': invalid-request: ' + invalidReason; //Added text needs to match the RegExp above.
+                    tagSpan.textContent += invalidRequestText;
+                    tagSpan.title = tagSpan.title + invalidRequestText + ': ' + invalidReason;
                     if (funcs.getRequestInfoLinksFromMessage(message).length === 1) {
                         requestInfo.classList.add('urrsRequestNoRequestTag');
                     }
