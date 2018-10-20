@@ -138,7 +138,8 @@
     const reopenRequestTagInTextContent = /\b(?:re-?open)\b/i;
     const spamRequestTagInTextContent = /\bspam\b/i;
     const offensiveRequestTagInTextContent = /\b(?:off?en[cs]ive|rude|abb?u[cs]ive)\b/i;
-    //const flagRequestTagInTextContent = /\bflag-?(?:pls)\b/i;
+    const flagRequestTagInTextContent = /\b(?:re)?-?flag-?(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\b/i;
+    const rejectReviewRequestTagInTextContent = /\b(?:reject|review)\b/i;
     //20k+ tags
     const tag20kInTextContent = /^(?:20k\+?(?:-only)?)$/i;
     const tagN0kInTextContent = /^(?:\d0k\+?(?:-only)?)$/i;
@@ -2025,8 +2026,10 @@
                     deleteRequestTagInTextContent.test(tagText)        ||    //del-pls
                     reopenRequestTagInTextContent.test(tagText)        ||    //reopen-pls
                     undeleteRequestTagInTextContent.test(tagText)      ||    //undel-pls
+                    flagRequestTagInTextContent.test(tagText)          ||    //flag
                     offensiveRequestTagInTextContent.test(tagText)     ||    //offensive
-                    spamRequestTagInTextContent.test(tagText));              //spam
+                    spamRequestTagInTextContent.test(tagText)          ||    //spam
+                    rejectReviewRequestTagInTextContent.test(tagText));      //rejectReview
                 /* beautify preserve:end */ /* eslint-enable no-multi-spaces */
             });
             if (requestTags.length === 0 && monologue.classList.contains('user-3735529')) {
@@ -2042,8 +2045,8 @@
                 //Someone reporting a post to SmokeDetector
                 requestTags.push(fakeDeleteRequestTag);
             }
-            if (requestTags.length === 0 && monologue.classList.contains('user-6373379')) {
-                //FireAlarm: Treat as a cv-pls request
+            if (requestTags.length === 0 && (monologue.classList.contains('user-6373379') || monologue.classList.contains('user-6294609'))) {
+                //FireAlarm && Queen: Treat as a cv-pls request
                 requestTags.push(fakeCloseVoteRequestTag);
             }
             //Consider it active if it's not a request, or if the request is active.
@@ -2060,13 +2063,15 @@
                     const postIsOpen = postStatus === 'open';
                     const postIsLocked = requestInfoLink.dataset.isLocked === 'true';
                     /* beautify preserve:start *//* eslint-disable no-multi-spaces */
-                    return !postIsLocked && (                                                 //Post isn't locked (can't take action on locked posts)
-                        (closeVoteRequestTagInTextContent.test(tagText) && postIsOpen)     || //cv-pls Question is open
-                        (deleteRequestTagInTextContent.test(tagText) && !postIsDeleted)    || //del-pls Question/answer is not deleted
-                        (reopenRequestTagInTextContent.test(tagText) && !postIsOpen)       || //reopen-pls Question is closed
-                        (undeleteRequestTagInTextContent.test(tagText) && postIsDeleted)   || //undel-pls Question/answer is deleted
-                        (offensiveRequestTagInTextContent.test(tagText) && !postIsDeleted) || //offensive Question/answer is not deleted
-                        (spamRequestTagInTextContent.test(tagText) && !postIsDeleted));       //spam Question/answer is not deleted
+                    return !postIsLocked && (                                                     //Post isn't locked (can't take action on locked posts)
+                        (closeVoteRequestTagInTextContent.test(tagText) && postIsOpen)         || //cv-pls Question is open
+                        (deleteRequestTagInTextContent.test(tagText) && !postIsDeleted)        || //del-pls Question/answer is not deleted
+                        (reopenRequestTagInTextContent.test(tagText) && !postIsOpen)           || //reopen-pls Question is closed
+                        (undeleteRequestTagInTextContent.test(tagText) && postIsDeleted)       || //undel-pls Question/answer is deleted
+                        (flagRequestTagInTextContent.test(tagText) && !postIsDeleted)          || //flag Question/answer is not deleted
+                        (offensiveRequestTagInTextContent.test(tagText) && !postIsDeleted)     || //offensive Question/answer is not deleted
+                        (spamRequestTagInTextContent.test(tagText) && !postIsDeleted)          || //spam Question/answer is not deleted
+                        (rejectReviewRequestTagInTextContent.test(tagText) && !postIsDeleted));   //reject or review Question/answer is not deleted
                     /* beautify preserve:end */ /* eslint-enable no-multi-spaces */
                 });
             });
