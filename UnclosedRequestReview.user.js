@@ -3483,7 +3483,7 @@
             '}',
             '#urrsModalOptionsExcludeTagCheckboxesContainer {',
             '    width: 250px;',
-            '    height: 382px;',
+            '    height: 371px;',
             '    max-height: 100%;',
             '    overflow: auto;',
             '    margin-top: 5px;',
@@ -3514,6 +3514,10 @@
             '    font-size: 130%;',
             '    margin-bottom: 3px;',
             '    margin-top: 10px;',
+            '}',
+            '.urrsModalOptionsOptionHeader > div {',
+            '    font-size: 80%;',
+            '    text-align: center;',
             '}',
             '.urrsModalOptionsOptionSubHeader {',
             '    font-weight: bold;',
@@ -3579,6 +3583,26 @@
             'button {',
             '    cursor: pointer;',
             '}',
+            //Duplicate the style for chat popup close buttons
+            '.urrsOptionsButtonClose:hover {',
+            '    background-color: #ff7b18;',
+            '}',
+            '.urrsOptionsButtonClose {',
+            '    background-color: #ccc;',
+            '    color: #fff;',
+            '    cursor: pointer;',
+            '    float: right;',
+            '    font-size: 8px;',
+            '    font-weight: bold;',
+            '    padding: 2px 4px;',
+            '    -moz-border-radius: 10px;',
+            '    -webkit-border-radius: 10px;',
+            '    border-radius: 10px;',
+            '    line-height: 10px;',
+            '    transform: translateY(-70%) translateX(70%);',
+            '    -webkit-transform: translateY(-70%) translateX(70%);',
+            '    -ms-transform: translateY(-70%) translateX(70%);',
+            '}',
         ].join('\n'));
     };
 
@@ -3626,6 +3650,7 @@
             '<div id="urrsOptionsDialogBehind" class="urrsModalDialogBehind">',
             '</div>',
             '<div id="urrsOptionsDialogInner" class="urrsModalDialogInner">',
+            '    <div class="urrsOptionsButtonClose">X</div>',
             '    <div class="urrsModalOptionsTitle">Unclosed Request Review Options</div>',
             '    <table>',
             '        <tbody>',
@@ -3826,7 +3851,10 @@
             '                <td id="urrsModalOptionsExcludeTagsCell">',
             '                    <div class="urrsModalOptionsOptionGroupDescriptionContainer" title="This list is not dynamically synchronized between tabs. Like all UI selections, if you want the changes you make in one tab to show up in another tab, you will need to reload the other tab(s) for changes to take effect in that tab. Only the state of the UI for the tab in which you made the most recent change are kept. This means you will loose any UI settings made in a tab if you then make changes in another tab.\r\n\r\nThe position of tags is not dynamically changed when you check/uncheck them, because doing so is annoying in a very long list. The separation of &quot;Will be hidden&quot;/&quot;Won\'t be hidden&quot; will be updated the next time the options dialog is opened.">',
             '                        <div class="urrsModalOptionsOptionHeader">',
-            '                            Tags to hide (search page)',
+            '                            Tags to hide',
+            '                            <div>',
+            '                                (search page; current filter preset)',
+            '                            </div>',
             '                        </div>',
             '                        <div class="urrsModalOptionsOptionGroup">',
             '                            <div class="urrsModalOptionsTagsInfo">Select the tags you desire to be hidden when the "tags" criteria is not selected. A match is checked against all tags on the question, not just the primary tag displayed in the request.</div>',
@@ -3853,6 +3881,7 @@
         dialog.addEventListener('click', funcs.ui.handleOptionsClick, false);
         dialog.addEventListener('input', funcs.ui.handleOptionsClick, false);
         dialog.addEventListener('transitionend', funcs.ui.optionsTransitionend);
+        dialog.querySelector('.urrsOptionsButtonClose').addEventListener('click', funcs.ui.hideOptions);
         [].slice.call(dialog.querySelectorAll('.urrs-receiveAllClicks')).forEach((el) => {
             el.addEventListener('urrs-allClicks', funcs.ui.optionDialogHandleCustomAllClicks, false);
         });
