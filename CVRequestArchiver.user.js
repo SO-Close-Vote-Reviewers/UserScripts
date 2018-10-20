@@ -2480,6 +2480,7 @@
                 if (messageId) {
                     messageIdsObject[messageId] = true;
                 }
+                addMessageToNoUserListIfMonologueIsNoUser(message);
             }
             var selection = window.getSelection();
             var selectionText = selection.toString();
