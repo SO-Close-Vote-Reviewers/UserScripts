@@ -18,7 +18,6 @@
 /* jshint -W097 */
 /* jshint -W107 */
 /* jshint esnext:true */
-/* jshint laxbreak:true */
 /* globals CHAT */
 
 (function() {
