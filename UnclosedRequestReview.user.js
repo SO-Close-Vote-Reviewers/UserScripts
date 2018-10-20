@@ -31,7 +31,7 @@
         //This is a transcript without an indicator in the URL that it is a room for which we should be active.
         if (document.title.indexOf('SO Close Vote Reviewers') === -1 &&
             document.title.indexOf('SOCVR Request Graveyard') === -1 &&
-            document.title.indexOf('SOCVR Sanitarium') === -1 &&
+            document.title.indexOf('SOCVR /dev/null') === -1 &&
             document.title.indexOf('SOCVR Testing Facility') === -1 &&
             document.title.indexOf('SOBotics') === -1
         ) {
