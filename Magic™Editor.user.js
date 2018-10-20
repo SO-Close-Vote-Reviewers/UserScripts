@@ -13,7 +13,12 @@
 // @version        1.6.0.3
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
-// @include        /^https?:\/\/\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com\/(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
+// @include        /^https?:\/\/([\w-]*\.)*((stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com|mathoverflow.net)\/(c\/[^\/]*\/)?(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
+// @exclude       *://chat.stackoverflow.com/*
+// @exclude       *://chat.stackexchange.com/*
+// @exclude       *://chat.*.stackexchange.com/*
+// @exclude       *://api.*.stackexchange.com/*
+// @exclude       *://data.stackexchange.com/*
 // ==/UserScript==
 
 (function() {
