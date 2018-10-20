@@ -143,16 +143,18 @@
     const tag20kInTextContent = /^(?:20k\+?(?:-only)?)$/i;
     const tagN0kInTextContent = /^(?:\d0k\+?(?:-only)?)$/i;
     //The extra escapes in RegExp are due to bugs in the syntax highlighter in an editor. They are only there because it helps make the syntax highlighting not be messed up.
-    const getQuestionIdFromURLRegEx = /(?:^|[\s"])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)\/(\d+)/g; // eslint-disable-line no-useless-escape
-    const getSOQuestionIdFfromURLButNotIfAnswerRegEx = /(?:^|[\s"])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*)\/(\d+)(?:\s*|\/[^#]*\s*)#?(?:$|[\s"])/g; // eslint-disable-line no-useless-escape
+    const getQuestionIdFromURLRegEx = /(?:^|[\s"])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)\/+(\d+)/g; // eslint-disable-line no-useless-escape
+    //https://regex101.com/r/QzH8Jf/2
+    const getSOQuestionIdFfromURLButNotIfAnswerRegEx = /(?:^|[\s"(])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*)\/+(\d+)(?:(?:\/[^#\s]*)#?)?(?:$|[\s")])/g; // eslint-disable-line no-useless-escape
     //XXX Temp continue to use above variable name until other uses resolved.
     const getSOQuestionIdFfromURLNotPostsNotAnswerRegEx = getSOQuestionIdFfromURLButNotIfAnswerRegEx;
-    //https://regex101.com/r/SMVJv6/1
+    //https://regex101.com/r/w2wQoC/1/
+    //https://regex101.com/r/SMVJv6/3/
     const getSOAnswerIdFfromURLRegExes = [
-        /(?:^|[\s"])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:a[^\/]*)\/(\d+)(?:\s*|\/[^/#]*\/?\d*\s*)(?:$|[\s"])/g, // eslint-disable-line no-useless-escape
-        /(?:^|[\s"])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"])/g, // eslint-disable-line no-useless-escape
+        /(?:^|[\s"(])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:a[^\/]*)\/+(\d+)(?:\s*|\/[^/#]*\/?\d*\s*)(?:$|[\s")])/g, // eslint-disable-line no-useless-escape
+        /(?:^|[\s"'(])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"')])/g, // eslint-disable-line no-useless-escape
     ];
-    const getSOPostIdFfromURLButNotIfAnswerRegEx = /(?:^|[\s"])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:posts)\/(\d+)(?:\s*|\/[^\/#]*\/?\d*\s*)(?:\s|$|[\s"])/g; // eslint-disable-line no-useless-escape
+    const getSOPostIdFfromURLButNotIfAnswerRegEx = /(?:^|[\s"(])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:posts)\/+(\d+)(?:\s*|\/[^\/#]*\/?\d*\s*)(?:\s|$|[\s")])/g; // eslint-disable-line no-useless-escape
     const getSOQuestionOrAnswerIdFfromURLRegExes = [getSOQuestionIdFfromURLNotPostsNotAnswerRegEx].concat(getSOAnswerIdFfromURLRegExes);
     //Some constants which it helps to have some functions in order to determine
     const isSearch = window.location.pathname === '/search';
