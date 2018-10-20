@@ -3330,9 +3330,14 @@
                 '.message.urrsRequestComplete:not(.urrsRequestComplete-temp-disable) {',
                 '    transition: transform cubic-bezier(.165, .84, .44, 1) .15s, opacity cubic-bezier(.165, .84, .44, 1) .15s;',
                 '}',
-                //Have a delay in the translation when moving from fully visible to shrunk/fade
+                //Have a delay in the translation when moving from fully visible to shrunk/fade.
                 '.message.urrsRequestComplete:not(:hover):not(.reply-parent):not(.reply-child) {',
                 '    transition-delay: 1s;',
+                '}',
+                //A delay in the translation when moving from shrunk/fade to fully visible.
+                //  This allows mouse movement over the page without triggering the expansion and contraction of the message.
+                '.message.urrsRequestComplete:hover:not(.reply-parent):not(.reply-child) {',
+                '    transition-delay: .3s;',
                 '}',
                 //Complete requests low opacity to combo with scale
                 '.message.urrsRequestComplete:not(:hover):not(.urrsRequestComplete-temp-disable):not(.reply-parent):not(.reply-child) {',
