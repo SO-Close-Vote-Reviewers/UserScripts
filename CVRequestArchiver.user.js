@@ -2818,6 +2818,198 @@
             recordOldestMessageInChat();
         }
 
+        //Add Deleted messages to transcript pages
+
+        /* We get transcript events here and in other scripts (other scripts?). The "API" response data is shared, rather than get it twice.
+         *   typeof window.transcriptChatEvents === 'undefined'
+         *     No process has attempted to get the events.
+         *   window.transcriptChatEvents = null
+         *     A process is attempting to get the events.
+         *   Array.isArray(window.transcriptChatEvents) === true
+         *     Getting events is complete in a script.
+         *   Array.isArray(window.transcriptChatEvents) === true && window.transcriptChatEvents.length > 0
+         *     Events are valid on window.transcriptChatEvents
+         *   CustomEvent 'transcript-events-received' is fired from the script which received the transcript events.
+         *   CustomEvent 'transcript-events-received' is received in all scripts not doing the AJAX call to get the transcript events.
+         */
+        let gettingTranscriptEvents = false;
+        function getAndShareTranscriptEvents(event) {
+            //We need the events, because the transcript only contains actual replies, not those which are considered
+            //  replies by the system (just @name), but were not :messageId.
+            if (typeof window.transcriptChatEvents === 'undefined') {
+                window.transcriptChatEvents = null; //Indicate that we are requesting the chat events.
+                gettingTranscriptEvents = true;
+                const lastMessageId = getMessageIdFromMessage($('#transcript .message').last());
+                getEvents(room, fkey, 500, lastMessageId + 15000).then((response) => {
+                    window.transcriptChatEvents = response.events;
+                    getAndShareTranscriptEvents();
+                }, () => {
+                    //We can continue upon failure.
+                    window.transcriptChatEvents = [];
+                    getAndShareTranscriptEvents();
+                });
+                return;
+            }
+            if (window.transcriptChatEvents === null) {
+                if (gettingTranscriptEvents) {
+                    //We are currently getting the events & will be called when they are available.
+                    return;
+                }
+                //Some other process is getting the events.
+                //  We wait to be informed that they are available.
+                window.addEventListener('transcript-events-received', getAndShareTranscriptEvents);
+                return;
+            }
+            window.removeEventListener('transcript-events-received', getAndShareTranscriptEvents);
+            if (gettingTranscriptEvents) {
+                window.dispatchEvent(new CustomEvent('transcript-events-received', {
+                    bubbles: true,
+                    cancelable: true,
+                }));
+            }
+            //The events are available.
+            addDeletedEventsToTranscript();
+        }
+
+        function insertEventBeforeAfter(event, refEl, isAfter) {
+            //This is not a full implementation. It is for "before", but not for after.
+            //  The special cases of After:
+            //    Where the message which should be inserted after is the middle of
+            //      multiple messages in a monologue is not handled (the monologue would
+            //      need to be split, as we do in the "before" case.
+            //    Where the message which should be inserted after is after the current
+            //      monologue, but could be inserted into the next monologue, due to
+            //      being by the same author as the next monologue.
+            //  After is really only tested for inserting after the last message in
+            //    the transcript (i.e. appending to the current monologue, if the same
+            //    user, or as a new monologue if a different user.
+            const beforeAfter = isAfter ? 'after' : 'before';
+            const nextMessageId = +getMessageIdFromMessage(refEl);
+            const nextMessage = $(refEl);
+            const nextMessageMonologue = nextMessage.closest('.monologue');
+            const newMonologueText = makeMonologueHtml(event).replace('SOCVR-Archiver-message-', 'message-');
+            const newMonologue = $('<div></div>)').append(newMonologueText).find('.monologue');
+            const newMessage = newMonologue.find('.message');
+            const monologueUserId = +nextMessageMonologue.attr('class').match(/\buser-(\d+)\b/)[1];
+            if (monologueUserId === event.user_id) {
+                //It's from the same user. Just add the message.
+                nextMessage[beforeAfter](newMessage);
+                return newMessage[0];
+            }// else
+            if (!isAfter && nextMessage.prev().is('.message')) {
+                //The message is not the first one in the monologue.
+                //We need to break the monologue into two.
+                const dupMessageMonologue = nextMessageMonologue.clone(true);
+                dupMessageMonologue.find('.message').filter(function() {
+                    return nextMessageId <= +getMessageIdFromMessage(this);
+                }).remove();
+                nextMessageMonologue.find('.message').filter(function() {
+                    return nextMessageId > +getMessageIdFromMessage(this);
+                }).remove();
+                nextMessageMonologue.find('.timestamp').remove();
+                nextMessageMonologue.before(dupMessageMonologue);
+                nextMessageMonologue.addClass('nextMessageMonologue');
+            }
+            const prevMonologue = nextMessageMonologue.prev();
+            if (!isAfter && prevMonologue.is('.monologue')) {
+                const prevMonologueUserId = +prevMonologue.attr('class').match(/\buser-(\d+)\b/)[1];
+                if (prevMonologueUserId === event.user_id) {
+                    //The previous monologue is from the same user. Just add the message.
+                    prevMonologue.find('.message').last().after(newMessage);
+                    return;
+                }// else
+            }
+            //The message we're inserting before is (now) the first one in the monologue.
+            //  Thus, we just need to insert the new monologue entry.
+            nextMessageMonologue[beforeAfter](newMonologue);
+            return newMessage[0];
+        }
+
+        function addDeletedEventsToTranscript() {
+            //This assumes that all transcript pages have < 500 messages, which in brief testing appears true.
+            //It also assumes that adding 15000 to the last message number will result in both getting any messages
+            //  which are after the last non-deleted one in the day and that it won't result in too few at the
+            //  beginning of the period.
+            const [transcriptDateStart, transcriptDateEnd] = getTranscriptDate();
+            const transcriptStart = transcriptDateStart.getTime() / 1000;//SE Chat events are to the second, not millisecond.
+            const transcriptEnd = transcriptDateEnd.getTime() / 1000;//SE Chat events are to the second, not millisecond.
+            const messages = $('#transcript .message');
+            const transcriptEvents = window.transcriptChatEvents;
+            let eventIndex = 0;
+            for (let messageIndex = 0; messageIndex < messages.length; messageIndex++) {
+                const messageId = +getMessageIdFromMessage(messages[messageIndex]);
+                while (transcriptEvents[eventIndex] && ((messageIndex !== 0 && transcriptEvents[eventIndex].message_id < messageId) || (messageIndex === 0 && transcriptEvents[eventIndex].time_stamp < transcriptStart))) { // eslint-disable-line no-unmodified-loop-condition
+                    eventIndex++;
+                }
+                if (!transcriptEvents[eventIndex]) {
+                    return;
+                }
+                let nextMessageEl = messages[messageIndex + 1];
+                if (transcriptEvents[eventIndex].message_id !== messageId) {
+                    if (messageIndex === 0 && transcriptEvents[eventIndex].time_stamp >= transcriptStart) {
+                        nextMessageEl = messages[messageIndex];
+                        eventIndex--;
+                    } else {
+                        console.log('transcriptEvents[' + eventIndex + '].message_id:', transcriptEvents[eventIndex].message_id, '!=  messageId:', messageId, '::  messageIndex:', messageIndex, '::  transcriptEvents[eventIndex]:', transcriptEvents[eventIndex], '::  messages[messageIndex]:', messages[messageIndex]);
+                        //We could throw here to cause the .then to reject, but then we'd have to handle it.
+                        return;
+                    }
+                }
+                const nextMessageId = +getMessageIdFromMessage(nextMessageEl);
+                while (transcriptEvents[eventIndex + 1] && transcriptEvents[eventIndex + 1].message_id < nextMessageId) {
+                    eventIndex++;
+                    const missingEvent = transcriptEvents[eventIndex];
+                    if (missingEvent.event_type === 1) {
+                        insertEventBeforeAfter(missingEvent, nextMessageEl, false);
+                    }
+                }
+            }
+            let lastMessageEl = messages[messages.length - 1];
+            while (transcriptEvents[eventIndex + 1] && transcriptEvents[eventIndex].time_stamp <= transcriptEnd) {
+                eventIndex++;
+                lastMessageEl = insertEventBeforeAfter(transcriptEvents[eventIndex], lastMessageEl, true);
+            }
+            window.dispatchEvent(new CustomEvent('transcript-messages-updated', {
+                bubbles: true,
+                cancelable: true,
+            }));
+            doOncePerChatChangeAfterDOMUpdate();
+        }
+
+        /*Copied from the Unclosed Request Review Script & modified to get start and end times.*/
+        function getTranscriptDate() {
+            //Get the date for the transcript
+            const bodyDateStart = document.body.dataset.archiverTranscriptDateStart;
+            const bodyDateEnd = document.body.dataset.archiverTranscriptDateEnd;
+            if (bodyDateStart && bodyDateEnd) {
+                return [new Date(bodyDateStart), new Date(bodyDateEnd)];
+            }
+            const months3charLowerCase = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+            const infoDiv = document.getElementById('info');
+            const weekdaySpan = infoDiv.querySelector('.icon .calendar .weekday');
+            const weekdayParsed = /(\w{3})\s*(?:'(\d{2}))?/.exec(weekdaySpan.textContent);
+            const monthText = weekdayParsed[1].toLowerCase();
+            const monthIndex = months3charLowerCase.indexOf(monthText);
+            const year = weekdayParsed[2] ? +weekdayParsed[2] + 2000 : (new Date()).getUTCFullYear();
+            const dayNumber = +weekdaySpan.nextSibling.textContent;
+            const mainDiv = document.getElementById('main');
+            const pageNumberSpan = mainDiv.querySelector('.page-numbers.current');
+            const pageNumberParsed = pageNumberSpan ? /(\d{2})\s*:\s*(\d{2})\s*-\s*(\d{2})\s*:\s*(\d{2})\s*/.exec(pageNumberSpan.textContent) : [0, 0, 0, 0, 0];
+            const hourStart = +pageNumberParsed[1];
+            const minuteStart = +pageNumberParsed[2];
+            const hourEnd = +pageNumberParsed[3];
+            const minuteEnd = +pageNumberParsed[4];
+            //Days are UTC days
+            const transcriptDateStart = new Date(Date.UTC(year, monthIndex, dayNumber, hourStart, minuteStart));
+            const transcriptDateEnd = new Date(Date.UTC(year, monthIndex, (dayNumber + ((hourEnd || minuteEnd) ? 0 : 1)), hourEnd, minuteEnd));
+            //Store the date for the page, so we don't have to parse it more than once.
+            document.body.dataset.archiverTranscriptDateStart = transcriptDateStart.toJSON();
+            document.body.dataset.archiverTranscriptDateEnd = transcriptDateEnd.toJSON();
+            return [transcriptDateStart, transcriptDateEnd];
+        }
+
+        //Handle lists
+
         function addNonDuplicateValuesToList(list, values) {
             //Generic add non-duplicates to an Array..
             const type = typeof values;
@@ -2952,6 +3144,9 @@
             }
         });
 
+        if (isTranscript && showDeleted) {
+            getAndShareTranscriptEvents();
+        }
         doOncePerChatChangeAfterDOMUpdate();
     }
     startup();
