@@ -114,7 +114,6 @@
         let events = [];
         let eventsByNum = {};
 
-        const defaultTargetRoom = 90230;
         const nodes = {};
         let avatarList = getStorageJSON('avatarList') || {};
         const $body = $(document.body);
@@ -126,25 +125,188 @@
             fox9000: 3671802,
             yam: 5285668,
         };
-        const targetRoomsByRoomNumber = {
-            //SOCVR
-            41570: new TargetRoom(41570, 'SOCVR', 'SOCVR', 'R'),
-            //Graveyard
-            90230: new TargetRoom(90230, 'SOCVR Request Graveyard', 'Graveyard', 'G'),
-            //Sanitarium
-            126195: new TargetRoom(126195, 'SOCVR Sanitarium', 'Sanitarium', 'S'),
-            //Testing Facility
-            //68414: new TargetRoom(68414, 'SOCVR Testing Facility', 'Testing', 'T'),
-            //SOBotics
-            //111347: new TargetRoom(111347, 'SOBotics', 'Botics', 'B'),
+
+        //Define Target Room Sets
+
+        const soChat = 'chat.stackoverflow.com';
+        const seChat = 'chat.stackexchange.com';
+        const mseChat = 'chat.meta.stackexchange.com';
+        //const trashcanEmoji = String.fromCodePoint(0x1F5D1) + String.fromCodePoint(0xFE0F);
+        const trashcanEmoji = String.fromCodePoint(0x1F5D1);
+        function TargetRoom(_roomNumber, _server, _fullName, _shortName, _displayed, _classInfo, _options) {
+            //A class for target rooms.
+            _options = (typeof _options === 'object' && _options !== null) ? _options : {};
+            this.roomNumber = _roomNumber;
+            this.server = _server;
+            this.fullName = _fullName;
+            this.shortName = _shortName;
+            this.displayed = _displayed;
+            this.classInfo = _classInfo;
+            this.showAsTarget = _options.showAsTarget;
+            this.showMeta = _options.showMeta;
+            this.showDeleted = _options.showDeleted;
+            this.showUI = _options.showUI;
+        }
+
+        function makeRoomsByNumberObject(roomArray) {
+            return roomArray.reduce((obj, roomObj) => {
+                obj[roomObj.roomNumber] = roomObj;
+                return obj;
+            }, {});
+        }
+
+        const commonRoomOptions = {
+            allTrue: {showAsTarget: true, showMeta: true, showDeleted: true, showUI: true},
+            notTarget: {showAsTarget: false, showMeta: true, showDeleted: true, showUI: true},
+            targetAndDeleted: {showAsTarget: true, showMeta: false, showDeleted: true, showUI: false},
+            noUI: {showAsTarget: true, showMeta: true, showDeleted: true, showUI: false},
+            onlyDeleted: {showAsTarget: false, showMeta: false, showDeleted: true, showUI: false},
         };
+        const targetRoomSets = [
+            {//SO Chat Default
+                name: 'SO Chat Default',
+                primeRoom: 99999999,
+                server: soChat,
+                isSiteDefault: true,
+                defaultTargetRoom: 23262,
+                rooms: makeRoomsByNumberObject([
+                    //Trash can
+                    new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
+                ]),
+            },
+            {//SOCVR
+                name: 'SOCVR',
+                primeRoom: 41570,
+                server: soChat,
+                defaultTargetRoom: 90230,
+                rooms: makeRoomsByNumberObject([
+                    //SOCVR
+                    new TargetRoom(41570, soChat, 'SOCVR', 'SOCVR', 'R', 'SOCVR', commonRoomOptions.allTrue),
+                    //Graveyard
+                    new TargetRoom(90230, soChat, 'SOCVR Request Graveyard', 'Graveyard', 'G', 'Grave', commonRoomOptions.allTrue),
+                    //SOCVR /dev/null
+                    new TargetRoom(126195, soChat, 'SOCVR /dev/null', 'Null', 'N', 'Null', commonRoomOptions.allTrue),
+                    //Testing Facility
+                    new TargetRoom(68414, soChat, 'SOCVR Testing Facility', 'Testing', 'T', 'Test', commonRoomOptions.allTrue),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                ]),
+            },
+            {//SOBotics
+                name: 'SOBotics',
+                primeRoom: 111347,
+                server: soChat,
+                defaultTargetRoom: 170175,
+                rooms: makeRoomsByNumberObject([
+                    //SOBotics
+                    new TargetRoom(111347, soChat, 'SOBotics', 'Botics', 'B', 'Bot', commonRoomOptions.noUI),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                    //Trash can
+                    new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
+                ]),
+            },
+            {//SE Chat Default
+                name: 'SE Chat Default',
+                primeRoom: 99999999,
+                server: seChat,
+                isSiteDefault: true,
+                defaultTargetRoom: 19718,
+                rooms: makeRoomsByNumberObject([
+                    //Trash
+                    new TargetRoom(19718, soChat, 'Trash (room 19718: requires access)', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI), //User must have access.
+                    //Trash
+                    new TargetRoom(82806, seChat, 'Trash (room 82806)', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                ]),
+            },
+            {//Charcoal HQ
+                name: 'Charcoal HQ',
+                primeRoom: 11540,
+                server: seChat,
+                defaultTargetRoom: 82806,
+                rooms: makeRoomsByNumberObject([
+                    //Charcoal HQ
+                    new TargetRoom(11540, seChat, 'Charcoal HQ', 'Charcoal', 'C', 'CHQ', commonRoomOptions.noUI),
+                    //Charcoal Test
+                    new TargetRoom(65945, seChat, 'Charcoal Test', 'Test', 'CT', 'Test', commonRoomOptions.noUI),
+                    //Trash
+                    new TargetRoom(82806, seChat, 'Trash (room 82806)', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    //Trash
+                    new TargetRoom(19718, seChat, 'Trash (room 19718: requires access)', 'Trash', 'T', 'Trash 19', commonRoomOptions.noUI),
+                    //trash
+                    new TargetRoom(57121, seChat, 'trash (room 57121)', 'trash', 't', 'trash 57', commonRoomOptions.noUI),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                ]),
+            },
+            {//Meta SE Chat Default
+                name: 'Meta SE Chat Default',
+                primeRoom: 99999999,
+                server: mseChat,
+                isSiteDefault: true,
+                defaultTargetRoom: 19718,
+                rooms: makeRoomsByNumberObject([
+                    //Sandbox/Trash Bin/Something
+                    new TargetRoom(1196, mseChat, 'Sandbox/Trash Bin/Something', 'Something', trashcanEmoji, 'Something', commonRoomOptions.noUI),
+                ]),
+            },
+            {//Tavern on the Meta
+                name: 'Tavern on the Meta',
+                primeRoom: 89,
+                server: mseChat,
+                defaultTargetRoom: 1037,
+                rooms: makeRoomsByNumberObject([
+                    //Tavern on the Meta
+                    new TargetRoom(89, mseChat, 'Tavern on the Meta', 'Tavern', 'Ta', 'Tavern', commonRoomOptions.noUI),
+                    //Chimney
+                    new TargetRoom(1037, mseChat, 'Chimney', 'Chimney', 'C', 'Chimney', commonRoomOptions.noUI),
+                    //Sandbox/Trash Bin/Something
+                    new TargetRoom(1196, mseChat, 'Sandbox/Trash Bin/Something', 'Something', 'S', 'Something', commonRoomOptions.noUI),
+                    //Trashcan
+                    new TargetRoom(1251, mseChat, 'Trashcan', 'Trashcan', 'Tr', 'Trashcan', commonRoomOptions.noUI),
+                ]),
+            },
+        ];
+        const defaultDisabledTargetRoomSet = {
+            primeRoom: 999999998,
+            server: window.location.hostname,
+            defaultTargetRoom: 999999999,
+            rooms: makeRoomsByNumberObject([
+                //Nowhere
+                new TargetRoom(999999998, window.location.hostname, 'Disabled', 'Disabled', 'D', 'Disabled', commonRoomOptions.onlyDeleted),
+                new TargetRoom(999999999, window.location.hostname, 'Disabled', 'Disabled', 'D', 'Disabled', commonRoomOptions.onlyDeleted),
+            ]),
+        };
+        const siteTargetRoomSets = targetRoomSets.filter(({server}) => server === window.location.hostname);
+
+        // Determine the set of target rooms to use.
+        const targetRoomSet = (siteTargetRoomSets.find((roomSet) => roomSet.rooms[room]) || siteTargetRoomSets.find(({isSiteDefault}) => isSiteDefault) || defaultDisabledTargetRoomSet);
+        const defaultTargetRoom = targetRoomSet.defaultTargetRoom;
+        //Save the default target prior to it, potentially, being deleted.
+        const targetRoomsByRoomNumber = targetRoomSet.rooms;
+        const defaultTargetRoomObject = targetRoomsByRoomNumber[defaultTargetRoom];
+        //Save the current room prior to deleting it as a target.
+        const currentRoomTargetInfo = targetRoomsByRoomNumber[room] || new TargetRoom(room, window.location.hostname, 'Default', 'Default', 'D', 'Default', commonRoomOptions.noUI);
         //The current room is not a valid room target.
         delete targetRoomsByRoomNumber[room];
+        //Remove any target rooms which are not to be used as a target.
+        Object.keys(targetRoomsByRoomNumber).forEach((key) => {
+            if (!targetRoomsByRoomNumber[key].showAsTarget) {
+                delete targetRoomsByRoomNumber[key];
+            }
+        });
+        //The order in which we want to display the controls. As it happens, an alpha-sort based on shortName works well.
+        const targetRoomsByRoomNumberOrder = Object.keys(targetRoomsByRoomNumber).sort((a, b) => targetRoomsByRoomNumber[a].shortName > targetRoomsByRoomNumber[b].shortName);
+        //The UI doesn't currently function on sites other than chat.SO.
+        const showUI = (window.location.hostname === soChat && currentRoomTargetInfo.showUI) && !isTranscript && !isSearch;
+        const showDeleted = currentRoomTargetInfo.showDeleted;
+        const showMeta = currentRoomTargetInfo.showMeta;
+
         const SECONDS_IN_MINUTE = 60;
         const SECONDS_IN_HOUR = 60 * SECONDS_IN_MINUTE;
         const SECONDS_IN_DAY = 24 * SECONDS_IN_HOUR;
         const timezoneOffsetMs = (new Date()).getTimezoneOffset() * SECONDS_IN_MINUTE * 1000;
-        //The endpoint supports movePosts with up to 2048 messages.
+        //The SE Chat endpoint supports movePosts with up to 2048 messages.
         //  However, when the chunk size is larger than 100 it causes the chat interface to not properly
         //  delete moved messages from the chat display. Thus, the chunk size is kept at < 100 for moves of displayed messages.
         //  The size used is 100 for messages which would be  still visible in the most recent chat instance for the user,
@@ -499,13 +661,14 @@
 
         //Build the buttons and UI which is in the Chat input area.
         nodes.scope = document.querySelector('#chat-buttons');
-        nodes.originalScope = nodes.scope;
-        if (isTranscript || isSearch || !nodes.scope) {
-            //Create a dummy element
+        if (!showUI || !nodes.scope) {
+            //Create a dummy element that is used to prevent the UI from being added to the page while still creating the structure and nodes Object.
             nodes.scope = document.createElement('div');
         }
+        nodes.originalScope = nodes.scope;
 
-        if (unclosedRequestReviewerButtons.length > 0) {
+        if (showUI && unclosedRequestReviewerButtons.length > 0) {
+            //Temporarily adjust nodes.scope so that the buttons end up in locations compatible with the URRS.
             nodes.scope = document.createElement('span');
             unclosedRequestReviewerButtons.filter('#urrs-open-options-button').first().after(nodes.scope);
         }
@@ -522,10 +685,8 @@
         nodes.scanNkbtn.title = 'Open the controls for the request archiver and scan ' + (nKButtonEntriesToScan / 1000) + 'k events.';
         nodes.scope.appendChild(nodes.scanNkbtn);
 
-        if (unclosedRequestReviewerButtons.length > 0) {
-            nodes.scope = nodes.originalScope;
-            //nodes.scope.appendChild(document.createElement('br'));
-        }
+        //This is only needed with the URRS, but doesn't hurt at other times.
+        nodes.scope = nodes.originalScope;
 
         nodes.form = document.createElement('form');
         nodes.form.className = 'archiver-form';
@@ -680,10 +841,6 @@
             '.content .deleted ~ .SOCVR-Archiver-deleted-content:hover {',
             '    display: block;',
             '}',
-            'div.message .meta {',
-            //A clearer indicator of separation between controls and message text.
-            '    border-left: 1px solid;',
-            '}',
             '.SOCVR-Archiver-hide-message-meta-menu .meta {',
             '    display: none !important;',
             '}',
@@ -730,6 +887,12 @@
             '#chat-body .monologue.mine:hover .messages .message:hover .meta .vote-count-container {',
             '    display: none;',
             '}',
+            (showMeta ? [
+                'div.message .meta {',
+                //A clearer indicator of separation between controls and message text.
+                '    border-left: 1px solid;',
+                '}',
+            ].join('\n') : ''),
         ].join('\n');
         //Put the styles in the document (nodes.scope can be invalid).
         (document.head || document.documenetElement).appendChild(nodes.style);
@@ -1026,7 +1189,7 @@
                     resolve();
                 }));
             }
-            //needParentList is just dropped. It could be used to fetch parent events from the Graveyard and/or the Sanitarium.
+            //needParentList is just dropped. It could be used to fetch parent events from the Graveyard and/or the /dev/null.
             //  Alternately, we could just fetch events in those two rooms back to some point prior to where the main ones ended.
             mainPromise = mainPromise.then(() => {
                 //All messages have been scanned. A list of posts for which we need data from the SE API has been created.
@@ -1650,6 +1813,9 @@
             return chunkedArray;
         }
 
+
+        // The Popup
+
         var shownToBeMoved;
         var priorMessagesShown = [];
         var manualMoveList = getLSManualMoveList();
@@ -1770,6 +1936,8 @@
                 '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container button,',
                 '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container button {',
                 '            margin: 0px;',
+                '            padding-left: 3px;',
+                '            padding-right: 3px;',
                 '        }',
                 '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container,',
                 '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container {',
@@ -1849,7 +2017,7 @@
                 '    <div class="SOCVR-Archiver-close-icon" title="Cancel"></div>',
                 '    <div class="SOCVR-Archiver-moveMessages-inner">',
                 '        <div>',
-                '            <h1>Move messages to SOCVR Request Graveyard</h1>',
+                '            <h1>Move messages to ' + defaultTargetRoomObject.fullName + '</h1>',
                 '        </div>',
                 '        <div class="SOCVR-Archiver-moveCount-container">',
                 '            <span class="SOCVR-Archiver-moveCount"></span>',
@@ -1861,7 +2029,7 @@
                 '            </span>',
                 '        </div>',
                 '        <div class="SOCVR-Archiver-button-container">',
-                '            <button class="SOCVR-Archiver-button-move" title="Move all of the messages listed in this popup to the Graveyard">Move these to the Graveyard</button>',
+                '            <button class="SOCVR-Archiver-button-move" title="Move all of the messages listed in this popup to the ' + defaultTargetRoomObject.shortName + '">Move these to the ' + defaultTargetRoomObject.shortName + '</button>',
                 '            <span class="SOCVR-Archiver-button-scanMore-container">',
                 '                <span>Scan more:</span>',
                 '                <button class="SOCVR-Archiver-button-1kmore" title="Scan 1,000 more">1k</button>',
@@ -1874,8 +2042,10 @@
                 '                <button class="SOCVR-Archiver-button-add-to-move-list" title="Add all messages shown in this popup to the Manual Move List.">Add</button>',
                 '                <button class="SOCVR-Archiver-button-remove-from-move-list" title="Remove the messages shown in this popup from the Manual Move List.">Remove</button>',
                 //'                <button class="SOCVR-Archiver-button-fill-move-list" title="Fill the Manual Move List to 100. If needed, additional events are fetched and classified.\nThe first time you click this, it will take a while for it to go through the events back to where the transcript has been cleaned out. If you then move those it finds, where you left off will be remembered.\nThis can be used to slowly clean out the transcript.\nHowever, the transcript could be cleaned out in bulk. Up to 2,048 messages can be moved in one move-message.\nIf you\'re moving messages which are currently displayed in chat, then the move containing those is limited to 100, due to a display bug in SE chat. If you try to move more than 100, then additional individual moves are made. If you\'re not moving any messages which are visible in chat, then the maximum is 2048.\nIf you select more than those numbers, then the messages will be grouped in chunks and multiple moves will be made.">Fill</button>',
-                '                <button class="SOCVR-Archiver-button-grave-move-list" title="Move all messages on the Manual Move List to the Graveyard.">Grave</button>',
-                '                <button class="SOCVR-Archiver-button-san-move-list" title="Move all messages on the Manual Move List to the Sanitarium.">San</button>',
+                (targetRoomsByRoomNumberOrder.reduce((htmlText, key) => {
+                    const current = targetRoomsByRoomNumber[key];
+                    return htmlText + `<button class="SOCVR-Archiver-move-list-button SOCVR-Archiver-button-${current.classInfo}-move-list" title="Move all messages on the Manual Move List to ${current.fullName}.">${current.classInfo}</button> `;
+                }, '')),
                 '            </span>',
                 '            <button class="SOCVR-Archiver-button-cancel">Cancel</button>',
                 '        </div>',
@@ -1926,8 +2096,10 @@
                 this.blur();
             });
             */
-            $('.SOCVR-Archiver-button-grave-move-list', shownToBeMoved).first().on('click', moveMoveListAndResetOnSuccess.bind(null, 90230)); //Graveyard
-            $('.SOCVR-Archiver-button-san-move-list', shownToBeMoved).first().on('click', moveMoveListAndResetOnSuccess.bind(null, 126195)); //Sanitarium
+            targetRoomsByRoomNumberOrder.forEach((key) => {
+                const current = targetRoomsByRoomNumber[key];
+                $(`.SOCVR-Archiver-button-${current.classInfo}-move-list`, shownToBeMoved).first().on('click', moveMoveListAndResetOnSuccess.bind(null, current.roomNumber));
+            });
             moveMessagesDiv.on('click', function(event) {
                 //A click somewhere in the messages div.
                 var target = $(event.target);
@@ -2090,6 +2262,10 @@
 
         function addAllDeletedContent() {
             //Go through the DOM and add the content back in for all deleted messages which don't already have it added back in.
+            if (!showDeleted) {
+                //Deleted messages are not to be shown here.
+                return;
+            }
             if (!gettingDeletedContent && (!deletedMessagesWithoutDeletedContent || !deletedMessagesWithoutDeletedContent.length)) {
                 deletedMessagesWithoutDeletedContent = $('.content .deleted').parent().filter(function() {
                     return !$(this).children('.SOCVR-Archiver-deleted-content').length;
@@ -2173,14 +2349,6 @@
         //Manual message MoveTo
 
         var priorSelectionMessageIds = [];
-
-        function TargetRoom(_roomNumber, _fullName, _shortName, _displayed) {
-            //A class for target rooms.
-            this.roomNumber = _roomNumber;
-            this.fullName = _fullName;
-            this.shortName = _shortName;
-            this.displayed = _displayed;
-        }
 
         function moveSomePostsWithConfirm(posts, targetRoomId, callback) {
             //Confirm that the user wants to move the files.
@@ -2310,7 +2478,7 @@
                         '\n::  status:', status,
                         '\n::  error:', error,
                         '\n::  targetRoomId:', targetRoomId,
-                        '\n::  fkey,:', fkey,
+                        '\n::  fkey:', fkey,
                         '\n::  messagesBeingMoved.length:', messagesBeingMoved.length,
                         '\n::  messagesBeingMoved:', messagesBeingMoved,
                         '\n::  formatted messagesBeingMoved:', messagesBeingMoved.join(','),
@@ -2326,16 +2494,14 @@
 
         function makeMetaRoomTargetsHtml() {
             //Create the HTML for the in-question moveTo controls
-            var html = '';
-            Object.keys(targetRoomsByRoomNumber).forEach(function(key) {
+            return targetRoomsByRoomNumberOrder.reduce((htmlText, key) => {
                 var targetRoom = targetRoomsByRoomNumber[key];
-                html += '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-' +
+                return htmlText + '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-' +
                     targetRoom.shortName + '" title="Move this/selected message(s) (and any already in the list) to ' +
                     targetRoom.fullName + '." data-room-id="' +
                     targetRoom.roomNumber + '">' +
                     targetRoom.displayed + '</span>';
-            });
-            return html;
+            }, '');
         }
 
         var addedMetaHtml = [
@@ -2351,6 +2517,10 @@
         ].join('');
 
         function addMoveToInMeta() {
+            if (!showMeta) {
+                //The meta-move UI elements are not to be shown in messages here.
+                return;
+            }
             //Brute force add movement to all messages meta
             var messages = $('.monologue .message');
             var messagesWithoutMeta = messages.filter(function() {
@@ -2621,8 +2791,7 @@
                 this.title = this.title.replace(/^((?:.(?!\[))+)(?:\s*\[List.*)?$/, '$1 ' + newText);
             });
             if (shownToBeMoved) {
-                $('.SOCVR-Archiver-button-grave-move-list', shownToBeMoved).first().prop('disabled', !length);
-                $('.SOCVR-Archiver-button-san-move-list', shownToBeMoved).first().prop('disabled', !length);
+                $('.SOCVR-Archiver-move-list-button', shownToBeMoved).prop('disabled', !length);
                 $('.SOCVR-Archiver-button-remove-from-move-list', shownToBeMoved).first().prop('disabled', !length);
                 const textEl = $('.SOCVR-Archiver-moveList-container-text', shownToBeMoved)[0];
                 textEl.textContent = textEl.textContent.replace(/^([^():]+).*$/, '$1(' + length + '):');
