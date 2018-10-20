@@ -3418,9 +3418,13 @@
             ].join('\n') : ''),
             //Normal has moderators colored blue. We are using that for visited links. So, show moderators another way.
             (config.nonUi.chatShowModeratorDiamond ? [
-                '.username.moderator::before {',
+                '.username.moderator:not(h4)::before {',
                 '    content: "♦\\00202f";', //This is a thin non-breaking space
                 '    font-size: 120%;',
+                '}',
+                'h3 > .username.moderator:not(h4)::before {',
+                '    content: "";', //This is a thin non-breaking space
+                '    font-size: 100%;',
                 '}',
             ].join('\n') : ''),
         ].join('\n'));
