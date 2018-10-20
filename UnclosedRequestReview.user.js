@@ -6061,10 +6061,7 @@
             funcs.mp.clearThrottleAndProcessAll();
         }, true);
 
-        funcs.addStylesToDOM('urrsChatStyles', [
-            '#chat-body #container {',
-            '    padding: 10px 35px 10px 10px;',
-            '}',
+        funcs.addStylesToDOM('urrsChatOptionDialogStyles', [
             '#urrsOptionsDialogInner {',
             '    position: fixed;',
             '    height: auto;',
@@ -6079,6 +6076,11 @@
         funcs.ui.addSharedStylesToDOM();
         funcs.config.listenForConfigChangesIfPossible();
         if (config.nonUi.chatShowPostStatus) {
+            funcs.addStylesToDOM('urrsChatStyles', [
+                '#chat-body #container {',
+                '    padding: 10px 35px 10px 10px;',
+                '}',
+            ].join('\n'));
             //If the element we are going to attach the MutationObserver to does not exist, then just process once.
             if (!document.getElementById('chat') || isSearch || isTranscript) {
                 if (isSearch) {
