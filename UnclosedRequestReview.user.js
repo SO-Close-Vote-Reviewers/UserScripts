@@ -2755,7 +2755,7 @@
         const setMinutes = isChat ? 'setMinutes' : 'setUTCMinutes';
         const setSeconds = isChat ? 'setSeconds' : 'setUTCSeconds';
         const setMilliseconds = isChat ? 'setMilliseconds' : 'setUTCMilliseconds';
-        //The day must to be set prior to the month, as some months may be shorter than the day in the current month.
+        //The day must be set prior to the month, as some months may be shorter than the day in the current month.
         if (typeof day !== 'undefined') {
             date[setDate](day);
         }
@@ -2862,7 +2862,7 @@
             }
             //Make sure the <a> only contains a single text node
             if (link.childNodes.length === 1 && link.firstChild.nodeName === '#text' &&
-                /^\s*stackoverflow.com\/(?:q(?:uestions)?|a(?:answers)?|p(?:osts)?)(?:\/\d+(?:\/\d+)?)?(?:\/…)?\s*$/.test(link.textContent)
+                /^\s*(?:stackoverflow.com\/(?:q(?:uestions)?|a(?:answers)?|p(?:osts)?)(?:\/\d+(?:\/\d+)?)?(?:\/…)?|question|answer)\s*$/i.test(link.textContent)
             ) {
                 let actualTitle = '';
                 let foundRequestLink;
