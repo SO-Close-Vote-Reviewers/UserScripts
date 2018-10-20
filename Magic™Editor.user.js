@@ -327,6 +327,8 @@
                 reason: App.consts.reasons.trademark
             },
             python: {
+                //Given that "python" is a real word, this isn't something we necessarily should be capitalizing all the time.
+                //However, on SO it's far more likely to be the programming language than a snake.
                 expr: /\bpython\b/gi,
                 replacement: "Python",
                 reason: App.consts.reasons.trademark
@@ -499,8 +501,13 @@
                 reason: App.consts.reasons.trademark
             },
             google_apps_script: {
-                expr: /\bgoogle[- ]?(?:apps?)?[- ]?script(?:ing|s)?\b/gi,
-                replacement: "Google Apps Script",
+                expr: /\bgoogle[- ]?(?:apps?)?[- ]?script(ing|s)?\b/gi,
+                replacement: "Google Apps Script$1",
+                reason: App.consts.reasons.trademark
+            },
+            google_app_engine: {
+                expr: /\bgoogle[- ]?(?:apps?)?[- ]?engine(s)?\b/gi,
+                replacement: "Google App Engine$1",
                 reason: App.consts.reasons.trademark
             },
             bluetooth: {
@@ -915,6 +922,20 @@
             powerpcN: {
                 expr: /\bpowerpc(32|64)?\b/gi,
                 replacement: "PowerPC$1",
+                reason: App.consts.reasons.trademark
+            },
+            android_studio: {
+                expr: /\bandroid ?studio\b/gi,
+                replacement: "Android Studio",
+                reason: App.consts.reasons.trademark
+            },
+            google_analytics: {
+                expr: /\bgoogle[- ]?analytics\b/gi,
+                replacement: "Google Analytics",
+            },
+            arduino: {
+                expr: /\barduino(s?)\b/gi,
+                replacement: "Arduino$1",
                 reason: App.consts.reasons.trademark
             },
             /*
