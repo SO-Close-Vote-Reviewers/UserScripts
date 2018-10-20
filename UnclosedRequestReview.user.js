@@ -116,21 +116,21 @@
 
     //Update RegExp from list here: https://github.com/AWegnerGitHub/SE_Zephyr_VoteRequest_bot
     const pleaseRegExText = '(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)';
-    const requestTagRegExStandAlonePermittedTags = '(?:spam|off?en[cs]ive|abb?u[cs]ive|(?:re)?flag(?:-?(?:naa|spam|off?en[cs]ive|rude|abb?u[cs]ive))|(?:(?:naa|spam|off?en[cs]ive|rude|abb?u[cs]ive)-?(?:re)?flag))'; //spam is an actual SO tag, so we're going to need to deal with that.
-    const requestTagRequirePleaseRegExText = '(?:cv|(?:un-?)?(?:del(?:v)?|dv|delete)|rov?|re-?open|app?rove?|reject|rv|review|(?:re)?flag|nuke?|spam|off?en[cs]ive|naa|abbu[cs]ive)';
+    const requestTagRegExStandAlonePermittedTags = '(?:spam|off?en[cs]ive|abb?u[cs]ive|(?:re)?-?flag(?:-?(?:naa|spam|off?en[cs]ive|rude|abb?u[cs]ive))|(?:(?:naa|spam|off?en[cs]ive|rude|abb?u[cs]ive)-?(?:re)?-?flag))'; //spam is an actual SO tag, so we're going to need to deal with that.
+    const requestTagRequirePleaseRegExText = '(?:cv|(?:un-?)?(?:del(?:v)?|dv|delete)|rov?|re-?open|app?rove?|reject|rv|review|(?:re)?-?flag|nuke?|spam|off?en[cs]ive|naa|abbu[cs]ive)';
     const requestTagRequirePleaseOrStandAloneRegExText = '(?:' + requestTagRequirePleaseRegExText + '|' + requestTagRegExStandAlonePermittedTags + ')';
-    const requestTagRequirePleasePleaseFirstRegExText = '(?:' + pleaseRegExText + '-' + requestTagRequirePleaseOrStandAloneRegExText + ')';
-    const requestTagRequirePleasePleaseLastRegExText = '(?:' + requestTagRequirePleaseOrStandAloneRegExText + '-' + pleaseRegExText + ')';
+    const requestTagRequirePleasePleaseFirstRegExText = '(?:' + pleaseRegExText + '[-.]' + requestTagRequirePleaseOrStandAloneRegExText + ')';
+    const requestTagRequirePleasePleaseLastRegExText = '(?:' + requestTagRequirePleaseOrStandAloneRegExText + '[-.]' + pleaseRegExText + ')';
     const requestTagRegExText = '\\b(?:' + requestTagRegExStandAlonePermittedTags + '|' + requestTagRequirePleasePleaseFirstRegExText + '|' + requestTagRequirePleasePleaseLastRegExText + ')\\b';
     //Current, now older, result: https://regex101.com/r/dPtRnS/3
-    /*Need to update with (?:re)? for flags
+    /*Need to update with (?:re\W?)? for flags
     \b(?:(?:spam|off?ensive|abb?usive|flag(?:-?(?:naa|spam|off?ensive|rude|abb?usive))|(?:(?:naa|spam|off?ensive|rude|abb?usive)-?flag))|(?:(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)-(?:(?:cv|(?:un)?(?:del(?:v)?|dv|delete)|rov?|reopen|app?rove?|reject|rv|review|flag|nuke?|spam|off?ensive|naa|abbusive)|(?:spam|off?ensive|abb?usive|flag(?:-?(?:naa|spam|off?ensive|rude|abb?usive))|(?:(?:naa|spam|off?ensive|rude|abb?usive)-?flag))))|(?:(?:(?:cv|(?:un)?(?:del(?:v)?|dv|delete)|rov?|reopen|app?rove?|reject|rv|review|flag|nuke?|spam|off?ensive|naa|abbusive)|(?:spam|off?ensive|abb?usive|flag(?:-?(?:naa|spam|off?ensive|rude|abb?usive))|(?:(?:naa|spam|off?ensive|rude|abb?usive)-?flag)))-(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)))\b
     */
     //For testing:
     const requestTagInTextContent = new RegExp(requestTagRegExText, 'i');
     //Used to look in text to see if there are any messages which contain the action tag as text.
     //Only a limited set of action types are recognized in text format.
-    const getActionTagInTextRegEx = /(?:\[(?:cv|(?:un-?)?del(?:ete|v)?|re-?open)-[^\]]*\])/;
+    const getActionTagInTextRegEx = /(?:\[(?:tag\W?)?(?:cv|(?:un-?)?del(?:ete|v)?|re-?open)-[^\]]*\])/;
     //Delete requests
     const deleteRequestTagInTextContent = /\b(?:delv?|dv|delete)\b/i;
     const undeleteRequestTagInTextContent = /\b(?:un?-?delv?|un?-?dv|un?-?delete)\b/i;
