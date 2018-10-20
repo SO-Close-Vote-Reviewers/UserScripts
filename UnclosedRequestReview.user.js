@@ -1914,13 +1914,18 @@
 
     funcs.mp.getRequestsInMessagesListText = (messages, regexes) => {
         //Modified from original funcs.processMessages
-        //Looks though message HTML searching for text that might indicate a question.
+        //Looks though message HTML searching for text that might indicate a QAP.
+        //Parsing is rudimentary. It only understands the basic /question/id, /a/id, and /posts/id formats.
+        //It does not understand the /question/id/title/answerId/#answerId
         //This is now used as a secondary pass for messages where the question/answer are not found in links.
         //If called with a single RegExp
         if (!Array.isArray(regexes)) {
             regexes = [regexes];
         }
-        const requests = [];
+        const newRequests = {};
+        MESSAGE_PROCESSING_REQUEST_TYPES.forEach((type) => {
+            newRequests[type] = [];
+        });
         for (const message of messages) {
             //Get stripped, cloned content
             const contentEl = funcs.getContentFromMessage(message);
@@ -1928,12 +1933,11 @@
                 //No content.
                 continue;
             }
-            let content = funcs.removeTagsLinksAndCodeFromElement(contentEl.cloneNode(true));
+            const contentNoTagsLinksOrCode = funcs.removeTagsLinksAndCodeFromElement(contentEl.cloneNode(true));
             //If the message has no content, continue.
-            if (content === null || content.textContent.trim() === '') {
+            const content = contentNoTagsLinksOrCode.textContent.trim();
+            if (content === '') {
                 continue;
-            } else {
-                content = content.textContent.trim();
             }
             //Find things that look like they might be URLs to questions/post, but currently not answers
             //Restrict matches to only Stack Overflow
@@ -1945,32 +1949,49 @@
             }
             //For each URL (match) create a requests entry which associates the post with the message.
             const posts = [];
-            //We can have duplicates here due to possible HTML: <a href="questionURL">questionURL</a>
+            //We can have duplicates here. This used to be common, due to possible HTML: <a href="questionURL">questionURL</a>,
+            //  but, at this point in time, we eliminate HTML links prior to processing. However, duplicates are still possible.
+            const idTypesRegexes = {
+                posts: /\/(?:posts)\/(\d+)/,
+                answers: /\/(?:a)\/(\d+)/,
+                questions: /\/(?:q[^/]*)\/(\d+)/,
+            };
             for (const key of Object.keys(matches)) {
-                const post = /\/(?:q[^\/]*|posts|a)\/(\d+)/.exec(matches[key])[1]; // eslint-disable-line no-useless-escape
+                const idType = {};
+                MESSAGE_PROCESSING_REQUEST_TYPES.forEach((type) => {
+                    const idMatch = idTypesRegexes[type].exec(matches[key]);
+                    if (idMatch) {
+                        idType[type] = idMatch[1];
+                    } else {
+                        idType[type] = null;
+                    }
+                });
+                const post = MESSAGE_PROCESSING_REQUEST_TYPES.reduce((sum, type) => (sum ? sum : idType[type]), null);
                 //Don't add duplicate posts for the same question.
                 if (posts.indexOf(post) === -1) {
                     posts.push(post);
+                    MESSAGE_PROCESSING_REQUEST_TYPES.some((type) => {
+                        if (idType[type]) {
+                            const request = new funcs.mp.Request(message, post, type);
+                            newRequests[type].push(request);
+                            return true;
+                        } // else
+                        return false;
+                    });
                 }
             }
-            //For each post found in this message, create a request mapping the post to the message.
-            for (const post of posts) {
-                requests.push(new funcs.mp.Request(message, post, 'question'));
-            }
         }
-        if (requests.length !== 0) {
-            const newRequests = {
-                questions: requests,
-            };
+        if (MESSAGE_PROCESSING_REQUEST_TYPES.some((type) => newRequests[type] && newRequests[type].length)) {
             return newRequests;
         }
+        //Explicitly indicate nothing was found.
         return null;
     };
 
     funcs.mp.markAllRequestInfoOnNonRequests = (searchText) => {
         //Visually differentiate requests from just info on post URLs contained in a message.
         [].slice.call(document.querySelectorAll('.message > .request-info')).forEach((requestInfo) => {
-            //I disagree with searching the text for [cv-pls], etc.  within the text of the message.  It is not
+            //I disagree with searching the text for [cv-pls], etc. within the text of the message.  It is not
             //  something that is searched for on the search pages.  Thus, people should not be given the inaccurate
             //  impression that it will be treated as a request.  Once it goes off the chat transcript, it will be
             //  forgotten.
