@@ -2693,7 +2693,12 @@
         $(document).on('click', '.SOCVR-Archiver-in-message-move-button', moveToInMetaHandler);
         //Add meta when room is ready
         if (CHAT && CHAT.Hub && CHAT.Hub.roomReady && typeof CHAT.Hub.roomReady.add === 'function') {
-            CHAT.Hub.roomReady.add(doOncePerChatChangeAfterDOMUpdate);
+            if (CHAT.Hub.roomReady.fired()) {
+                //The room is ready now.
+                doOncePerChatChangeAfterDOMUpdate();
+            } else {
+                CHAT.Hub.roomReady.add(doOncePerChatChangeAfterDOMUpdate);
+            }
         }
 
         //Keep various values stored in localStorage consistent with what's stored there.
