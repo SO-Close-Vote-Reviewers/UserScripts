@@ -2180,19 +2180,137 @@
             }
         }
 
-        function makeMonologueHtml(event) {
+        function makeMonologueHtml(messageEvent) {
             //Create the HTML for a monologue containing a single message.
-            var userId = event.user_id ? +event.user_id : '';
-            var userAvatar16 = '';
+
+            /* linkifyTextURLs was originally highlight text via RegExp
+             * Copied by Makyen from his use of it in MagicTag2, which was copied from Makyen's
+             * answer to: Highlight a word of text on the page using .replace() at:
+             *     https://stackoverflow.com/a/40712458/3773011
+             * and substantially rewritten here.
+             */
+            function linkifyTextURLs(element, useSpan) {
+                //This changes bare http/https/ftp URLs into links with link-text a shortened version of the URL.
+                //  If useSpan is truthy, then a span with the new elements replaces the text node.
+                //  If useSpan is falsy, then the new nodes are added as children of the same element as the text node being replaced.
+                //  The [\u200c\u200b] characters are added by SE chat to facilitate word-wrapping & should be removed from the URL.
+                const urlSplitRegex = /((?:\b(?:https?|ftp):\/\/)(?:[\w.~:\/?#[\]@!$&'()*+,;=\u200c\u200b-]{2,}))/g; // eslint-disable-line no-useless-escape
+                const urlRegex = /(?:\b(?:https?|ftp):\/\/)([\w.~:\/?#[\]@!$&'()*+,;=\u200c\u200b-]{2,})/g; // eslint-disable-line no-useless-escape
+                if (!element) {
+                    throw new Error('element is invalid');
+                }
+
+                function handleTextNode(textNode) {
+                    const textNodeParent = textNode.parentNode;
+                    if (textNode.nodeName !== '#text' ||
+                        textNodeParent.nodeName === 'SCRIPT' ||
+                        textNodeParent.nodeName === 'STYLE'
+                    ) {
+                        //Don't do anything except on text nodes, which are not children
+                        //  of <script> or <style>.
+                        return;
+                    }
+                    const origText = textNode.textContent;
+                    urlSplitRegex.lastIndex = 0;
+                    const splits = origText.split(urlSplitRegex);
+                    //Only change the DOM if we detected a URL in the text
+                    if (splits.length > 1) {
+                        //Create a span to hold the new elements.
+                        const newSpan = document.createElement('span');
+                        splits.forEach((split) => {
+                            if (!split) {
+                                return;
+                            } //else
+                            urlRegex.lastIndex = 0;
+                            //Remove the extra characters SE chat adds to long character sequences.
+                            split = split.replace(/[\u200c\u200b]/g, '');
+                            const newHtml = split.replace(urlRegex, (match, p1) => {
+                                //Try to match what SE uses.
+                                if (p1.length > 32) {
+                                    //Reduce length & add ellipse.
+                                    p1 = p1.split(/\//g).reduce((sum, part, index) => {
+                                        if (sum[sum.length - 1] === '…' || sum.length >= 31) {
+                                            //We've found all we want.
+                                            return sum;
+                                        }
+                                        if (index === 0) {
+                                            if (part.length > 31) {
+                                                return part.slice(0, 29) + '…';
+                                            }
+                                            return part;
+                                        }
+                                        if ((sum.length + part.length) > 29) {
+                                            return sum + '/…';
+                                        }
+                                        return sum + '/' + part;
+                                    }, '');
+                                }
+                                return `<a href="${match}">${p1}</a>`;
+                            });
+                            //Compare the strings, as it should be faster than a second RegExp operation and
+                            //  lets us use the RegExp in only one place.
+                            if (newHtml !== split) {
+                                newSpan.insertAdjacentHTML('beforeend', newHtml);
+                            } else {
+                                //No text replacement was made; just add a text node.
+                                // These are placed as explicit text nodes because it's possible that the textContent could be valid HTML.
+                                // e.g. what if we're replacing into "You want it to look like <b>https://example.com</b>", where that's
+                                //  the <b> & </b> are actual text, not elements.
+                                newSpan.appendChild(document.createTextNode(split));
+                            }
+                        });
+                        //Replace the textNode with either the new span, or the new nodes.
+                        if (useSpan) {
+                            //Replace the textNode with the new span containing the link.
+                            textNodeParent.replaceChild(newSpan, textNode);
+                        } else {
+                            const textNodeNextSibling = textNode.nextSibling;
+                            while (newSpan.firstChild) {
+                                textNodeParent.insertBefore(newSpan.firstChild, textNodeNextSibling);
+                            }
+                            textNode.remove();
+                        }
+                    }
+                }
+                const textNodes = [];
+                //Create a NodeIterator to get the text nodes in the body of the document
+                const nodeIter = document.createNodeIterator(element, NodeFilter.SHOW_TEXT);
+                let currentNode = nodeIter.nextNode();
+                //Add the text nodes found to the list of text nodes to process, if it's not a child of an <a>, <script>, or <style>.
+                while (currentNode) {
+                    let parent = currentNode.parentNode;
+                    while (
+                        parent && parent.nodeName !== 'A' &&
+                        parent.nodeName !== 'SCRIPT' &&
+                        parent.nodeName !== 'STYLE' &&
+                        parent.nodeName !== 'CODE'
+                    ) {
+                        parent = parent.parentElement;
+                    }
+                    if (!parent && currentNode.textContent.length > 7) {
+                        textNodes.push(currentNode);
+                    }
+                    currentNode = nodeIter.nextNode();
+                }
+                //Process each text node
+                textNodes.forEach(function(el) {
+                    handleTextNode(el);
+                });
+                return element;
+            }
+
+            const userId = messageEvent.user_id ? +messageEvent.user_id : '';
+            let userAvatar16 = '';
             if (userId && avatarList[userId]) {
                 userAvatar16 = avatarList[userId][16];
             }
-            var userName = event.user_name;
-            var messageId = event.message_id;
-            var contentHtml = event.content ? event.content : '<span class="deleted">(removed)</span>';
+            const userName = messageEvent.user_name;
+            const messageId = messageEvent.message_id;
+            let contentHtml = messageEvent.content ? messageEvent.content : '<span class="deleted">(removed)</span>';
+            contentHtml = linkifyTextURLs(getHTMLTextAsDOM(contentHtml)).innerHTML;
             //Get a timestamp in the local time that's in the same format as .toJSON().
-            var timestamp = (new Date((event.time_stamp * 1000) - timezoneOffsetMs)).toJSON().replace(/T(\d\d:\d\d):\d\d\.\d{3}Z/, ' $1');
-            var html = [
+            const timestamp = (new Date((messageEvent.time_stamp * 1000) - timezoneOffsetMs)).toJSON().replace(/T(\d\d:\d\d):\d\d\.\d{3}Z/, ' $1');
+            return [
                 //From transcript
                 /* beautify preserve:start *//* eslint-disable indent */
                 '<div class="monologue user-' + userId + (userId == me ? ' mine' : '') + ' SOCVR-Archiver-monologue-for-message-' + messageId + '">', // eslint-disable-line eqeqeq
@@ -2211,7 +2329,7 @@
                 '        <div class="message" id="SOCVR-Archiver-message-' + messageId + '">',
                 '            <div class="timestamp">' + timestamp + '</div>',
                 '            <a name="' + messageId + '" href="/transcript/' + room + '?m=' + messageId + '#' + messageId + '"><span style="display:inline-block;" class="action-link"><span class="img"> </span></span></a>',
-                             (event.show_parent ? '<a class="reply-info" title="This is a reply to an earlier message" href="/transcript/message/' + event.parent_id + '#' + event.parent_id + '"></a>' : ''),
+                             (messageEvent.show_parent ? '<a class="reply-info" title="This is a reply to an earlier message" href="/transcript/message/' + messageEvent.parent_id + '#' + messageEvent.parent_id + '"></a>' : ''),
                 '            <div class="content">' + contentHtml,
                 '            </div>',
                 '            <span class="flash">',
@@ -2222,7 +2340,6 @@
                 '</div>',
                 /* eslint-enable indent *//* beautify preserve:end */
             ].join('\n');
-            return html;
         }
 
         //CHAT listener
