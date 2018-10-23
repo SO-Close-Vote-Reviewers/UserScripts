@@ -125,6 +125,7 @@
             fox9000: 3671802,
             yam: 5285668,
         };
+        const parser = new DOMParser();
 
         //Define Target Room Sets
 
@@ -1281,6 +1282,16 @@
             return true;
         }
 
+        function getHTMLTextAsDOM(htmlText) {
+            //Converting HTML text into DOM nodes using jQuery causes any resources referenced by that
+            //  HTML to be fetched by the browser (e.g. any <img src="foo"> will result in the image being fetched). This
+            //  causes unwanted and unneeded network traffic.
+            //  The resources are not fetched if jQuery just manipulates the elements once they are created.
+            //This converts HTMLtext to DOM nodes wrapped in a <div> and returns that element.
+            const asDOM = parser.parseFromString('<div>' + htmlText + '</div>', 'text/html');
+            return asDOM.body.firstChild;
+        }
+
         function assignEventBaseTypeAndContentWithoutCode(event, eventIndex, currentEvents, needParentList) {
             //First pass identifying request types. The type is added to the event Object, along with a version of the message without code
             //  in both HTML text, and just text content.
@@ -1288,7 +1299,7 @@
             //Don't match things in code format, as those normally are used to explain, not as intended tags indicating a request.
             //The message content should really be converted to DOM and parsed form there.
             //Note that converting to DOM changes HTML entities into the represented characters.
-            var messageAsDom = $('<div></div>').append(message);
+            var messageAsDom = $(getHTMLTextAsDOM(message));
             messageAsDom.find('code').remove();
             message = messageAsDom.html();
 
