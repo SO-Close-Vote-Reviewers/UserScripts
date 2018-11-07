@@ -299,7 +299,7 @@
         const targetRoomSet = (siteTargetRoomSets.find((roomSet) => roomSet.rooms[room]) || siteTargetRoomSets.find(({isSiteDefault}) => isSiteDefault) || defaultDisabledTargetRoomSet);
         const defaultTargetRoom = targetRoomSet.defaultTargetRoom;
         const siteAllRooms = {};
-        //Reversing the order here gives priority to sets listed first, due to potentially overwritting an entry in siteAllRooms.
+        //Reversing the order here gives priority to sets listed first, due to potentially overwriting an entry in siteAllRooms.
         siteTargetRoomSets.reverse().forEach((roomSet) => {
             roomSet.roomsOrder = Object.keys(roomSet.rooms).sort((a, b) => roomSet.rooms[a].shortName > roomSet.rooms[b].shortName);
             const setRoomsOrder = roomSet.roomsOrder;
@@ -3189,7 +3189,7 @@
             //We have two lists: a list of message elements and a list of events. The list of events should have more
             //  items than the list of message elements. Both lists are sorted in ascending order.
             //We're going to walk through the two lists, adding additional messages in where they don't exist.
-            //  However, we don't want to consider any messages in the event list which are outside of the timeframe
+            //  However, we don't want to consider any messages in the event list which are outside of the time-frame
             //  of this transcript.
             let eventIndex = 0;
             for (let messageIndex = 0; messageIndex < messages.length; messageIndex++) {
