@@ -3083,47 +3083,46 @@
         function addDeletedEventsToTranscript() {
             //This assumes that all transcript pages have < 500 messages, which in brief testing appears true.
             //It also assumes that adding 15000 to the last message number will result in both getting any messages
-            //  which are after the last non-deleted one in the day and that it won't result in too few at the
-            //  beginning of the period.
+            //  which are after the last non-deleted one in the day and that it won't result in too few events at the
+            //  beginning of the period. This really should be replaced with code that makes sure we obtain all
+            //  the relevant events for the period covered by the transcript.
             const [transcriptDateStart, transcriptDateEnd] = getTranscriptDate();
             const transcriptStart = transcriptDateStart.getTime() / 1000;//SE Chat events are to the second, not millisecond.
             const transcriptEnd = transcriptDateEnd.getTime() / 1000;//SE Chat events are to the second, not millisecond.
             const messages = $('#transcript .message');
-            const transcriptEvents = window.transcriptChatEvents;
+            //Get and array of the transcript events which are in the time-frame of this transcript page and are message-insert events (type 1).
+            const transcriptEvents = window.transcriptChatEvents.filter((event) => (event.event_type === 1 && event.time_stamp >= transcriptStart && event.time_stamp <= transcriptEnd));
+            //We have two lists: a list of message elements and a list of events. The list of events should have more
+            //  items than the list of message elements. Both lists are sorted in ascending order.
+            //We're going to walk through the two lists, adding additional messages in where they don't exist.
+            //  However, we don't want to consider any messages in the event list which are outside of the timeframe
+            //  of this transcript.
             let eventIndex = 0;
             for (let messageIndex = 0; messageIndex < messages.length; messageIndex++) {
+                //Loop through all the messages on the page from oldest to newest.
                 const messageId = +getMessageIdFromMessage(messages[messageIndex]);
-                while (transcriptEvents[eventIndex] && ((messageIndex !== 0 && transcriptEvents[eventIndex].message_id < messageId) || (messageIndex === 0 && transcriptEvents[eventIndex].time_stamp < transcriptStart))) { // eslint-disable-line no-unmodified-loop-condition
-                    eventIndex++;
-                }
                 if (!transcriptEvents[eventIndex]) {
+                    //Out of events, which means that for some reason we didn't start getting them at, or beyond, the events on the transcript page.
                     return;
                 }
-                let nextMessageEl = messages[messageIndex + 1];
-                if (transcriptEvents[eventIndex].message_id !== messageId) {
-                    if (messageIndex === 0 && transcriptEvents[eventIndex].time_stamp >= transcriptStart) {
-                        nextMessageEl = messages[messageIndex];
-                        eventIndex--;
-                    } else {
-                        console.log('transcriptEvents[' + eventIndex + '].message_id:', transcriptEvents[eventIndex].message_id, '!=  messageId:', messageId, '::  messageIndex:', messageIndex, '::  transcriptEvents[eventIndex]:', transcriptEvents[eventIndex], '::  messages[messageIndex]:', messages[messageIndex]);
-                        //We could throw here to cause the .then to reject, but then we'd have to handle it.
-                        return;
-                    }
+                if (transcriptEvents[eventIndex].message_id > messageId) {
+                    //We don't have events covering the current message.
+                    console.error('Too few events: event ID:' + transcriptEvents[eventIndex].message_id + ' > messageId: ' + messageId);
+                    continue;
                 }
-                const nextMessageId = +getMessageIdFromMessage(nextMessageEl);
-                while (transcriptEvents[eventIndex + 1] && transcriptEvents[eventIndex + 1].message_id < nextMessageId) {
+                while (transcriptEvents[eventIndex].message_id < messageId) {
+                    insertEventBeforeAfter(transcriptEvents[eventIndex], messages[messageIndex], false);
                     eventIndex++;
-                    const missingEvent = transcriptEvents[eventIndex];
-                    if (missingEvent.event_type === 1) {
-                        insertEventBeforeAfter(missingEvent, nextMessageEl, false);
-                    }
-                }
+                } //else
+                eventIndex++;
             }
             let lastMessageEl = messages[messages.length - 1];
-            while (transcriptEvents[eventIndex + 1] && transcriptEvents[eventIndex].time_stamp <= transcriptEnd) {
-                eventIndex++;
+            while (eventIndex < transcriptEvents.length) {
+                //Add the events that are after the last message on the page
                 lastMessageEl = insertEventBeforeAfter(transcriptEvents[eventIndex], lastMessageEl, true);
+                eventIndex++;
             }
+            //Let anything listening know that the transcript messages were updated.
             window.dispatchEvent(new CustomEvent('transcript-messages-updated', {
                 bubbles: true,
                 cancelable: true,
