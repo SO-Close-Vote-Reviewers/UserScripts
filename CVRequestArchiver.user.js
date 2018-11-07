@@ -197,13 +197,13 @@
                 defaultTargetRoom: 90230,
                 rooms: makeRoomsByNumberObject([
                     //SOCVR
-                    new TargetRoom(41570, soChat, 'SOCVR', 'SOCVR', 'R', 'SOCVR', commonRoomOptions.allTrue),
+                    new TargetRoom(41570, soChat, 'SOCVR', 'SOCVR', 'S', 'SOCVR', commonRoomOptions.allTrue),
                     //Graveyard
                     new TargetRoom(90230, soChat, 'SOCVR Request Graveyard', 'Graveyard', 'G', 'Grave', commonRoomOptions.allTrue),
                     //SOCVR /dev/null
                     new TargetRoom(126195, soChat, 'SOCVR /dev/null', 'Null', 'N', 'Null', commonRoomOptions.allTrue),
                     //Testing Facility
-                    new TargetRoom(68414, soChat, 'SOCVR Testing Facility', 'Testing', 'T', 'Test', commonRoomOptions.allTrue),
+                    new TargetRoom(68414, soChat, 'SOCVR Testing Facility', 'Testing', 'Te', 'Test', commonRoomOptions.allTrue),
                     //Private for SD posts that have especially offensive content.
                     new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
