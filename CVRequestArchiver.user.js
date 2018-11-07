@@ -6,7 +6,7 @@
 // @author       @TinyGiant @rene @Tunaki @Makyen
 // @updateURL    https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/CVRequestArchiver.user.js
 // @downloadURL  https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/CVRequestArchiver.user.js
-// @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/(rooms|search|transcript)(\/|\?).*/
+// @include      /https?:\/\/chat(\.meta)?\.stack(overflow|exchange).com\/(rooms|search|transcript|users)(\/|\?).*/
 // @grant        none
 // ==/UserScript==
 /* jshint -W097 */
@@ -44,8 +44,9 @@
     let me;
     let fkey;
     let isChat = false;
-    let isSearch = false;
-    let isTranscript = false;
+    const isSearch = /^\/+search/.test(window.location.pathname);
+    const isTranscript = /^\/+transcript\//.test(window.location.pathname);
+    const isUsersPage = /^\/+users\//.test(window.location.pathname);
 
     function startup() {
         if (typeof $ !== 'function') {
@@ -55,26 +56,23 @@
         }
         room = (/(?:chat(?:\.meta)?\.stack(?:overflow|exchange).com)\/rooms\/(\d+)/.exec(window.location.href) || [false, false])[1];
         isChat = !!room;
-        if (/^\/search/.test(window.location.pathname)) {
-            isSearch = true;
+        if (isSearch) {
             room = (/^.*\broom=(\d+)\b.*$/i.exec(window.location.search) || [false, false])[1];
         }
-        isTranscript = false;
-        if (/\/transcript\//.test(window.location.pathname)) {
-            isTranscript = true;
+        if (isTranscript) {
             const roomNameLink = $('#sidebar-content .room-mini .room-mini-header .room-name a');
             if (roomNameLink.length) {
                 room = (/^(?:https?:)?(?:\/\/chat(?:\.meta)?\.stack(?:overflow|exchange)\.com)?\/rooms\/(\d+)/.exec(roomNameLink[0].href) || [false, false])[1];
             }
         }
         room = +room;
-        if (!room) {
+        if (!room && !isUsersPage && !isSearch) {
             return false;
         }
 
         fkey = $('#fkey');
-        //fkey is not available in search
-        if (isSearch) {
+        //fkey is not available in search and user pages
+        if (isSearch || isUsersPage) {
             fkey = isSearch ? getStorage('fkey') : fkey;
         } else {
             if (!fkey.length) {
@@ -96,15 +94,27 @@
         //Save me in localStorage.
         setStorage('me', me);
 
-        $.ajax({
+        if (isUsersPage || (isSearch && !room)) {
+            //On user pages, we don't test for being the RO/mod.
+            CVRequestArchiver();
+            return;
+        }
+
+        getUserInfoInRoom(room, me).done(CVRequestArchiver);
+    }
+
+    function getUserInfoInRoom(inRoom, user) {
+        return $.ajax({
             type: 'POST',
-            url: '/user/info?ids=' + me + '&roomId=' + room,
-            success: CVRequestArchiver,
+            url: '/user/info?ids=' + user + '&roomId=' + inRoom,
         });
     }
 
     function CVRequestArchiver(info) {
-        if (!info.users[0].is_owner && !info.users[0].is_moderator) {
+        const roRooms = getStorageJSON('roRooms') || {};
+        let isModerator = false;
+        setIsModeratorRoRoomsByInfo(room, info);
+        if (!(isUsersPage || (isSearch && !room)) && !info.users[0].is_owner && !info.users[0].is_moderator) {
             return false;
         }
 
@@ -288,8 +298,23 @@
         // Determine the set of target rooms to use.
         const targetRoomSet = (siteTargetRoomSets.find((roomSet) => roomSet.rooms[room]) || siteTargetRoomSets.find(({isSiteDefault}) => isSiteDefault) || defaultDisabledTargetRoomSet);
         const defaultTargetRoom = targetRoomSet.defaultTargetRoom;
+        const siteAllRooms = {};
+        //Reversing the order here gives priority to sets listed first, due to potentially overwritting an entry in siteAllRooms.
+        siteTargetRoomSets.reverse().forEach((roomSet) => {
+            roomSet.roomsOrder = Object.keys(roomSet.rooms).sort((a, b) => roomSet.rooms[a].shortName > roomSet.rooms[b].shortName);
+            const setRoomsOrder = roomSet.roomsOrder;
+            const setRoomsOrderOnlyTargets = setRoomsOrder.filter((key) => roomSet.rooms[key].showAsTarget);
+            setRoomsOrder.forEach((roomTarget) => {
+                const roomOrderWithoutCurrent = setRoomsOrderOnlyTargets.filter((key) => +key !== +roomTarget);
+                roomSet.rooms[roomTarget].metaHTML = makeMetaRoomTargetsHtmlByOrderAndRooms(roomOrderWithoutCurrent, roomSet.rooms);
+                siteAllRooms[roomTarget] = roomSet.rooms[roomTarget];
+            });
+        });
+        //Undo in-place reversal.
+        siteTargetRoomSets.reverse();
+
         //Save the default target prior to it, potentially, being deleted.
-        const targetRoomsByRoomNumber = targetRoomSet.rooms;
+        const targetRoomsByRoomNumber = (isUsersPage || (isSearch && !room)) ? siteAllRooms : targetRoomSet.rooms;
         const defaultTargetRoomObject = targetRoomsByRoomNumber[defaultTargetRoom];
         //Save the current room prior to deleting it as a target.
         const currentRoomTargetInfo = targetRoomsByRoomNumber[room] || new TargetRoom(room, window.location.hostname, 'Default', 'Default', 'D', 'Default', commonRoomOptions.noUI);
@@ -303,10 +328,32 @@
         });
         //The order in which we want to display the controls. As it happens, an alpha-sort based on shortName works well.
         const targetRoomsByRoomNumberOrder = Object.keys(targetRoomsByRoomNumber).sort((a, b) => targetRoomsByRoomNumber[a].shortName > targetRoomsByRoomNumber[b].shortName);
+
         //The UI doesn't currently function on sites other than chat.SO.
         const showUI = (window.location.hostname === soChat && currentRoomTargetInfo.showUI) && !isTranscript && !isSearch;
         const showDeleted = currentRoomTargetInfo.showDeleted;
-        const showMeta = currentRoomTargetInfo.showMeta;
+        const showMeta = currentRoomTargetInfo.showMeta || isUsersPage || (isSearch && !room);
+        const addedMetaHtml = makeMetaRoomTargetsHtml();
+        if (isUsersPage || (isSearch && !room)) {
+            //There is no set room, so want to make sure we have user info for at least all the
+            //  rooms for which we have in a room target set for this server.
+            const additionalUserInfoFetches = [];
+            Object.keys(siteAllRooms).forEach((roomId, index) => {
+                if (typeof roRooms[roomId] !== 'boolean') {
+                    additionalUserInfoFetches.push(delay(index * 500).then(() => getUserInfoInRoom(roomId, me)).then((userInfo) => {
+                        setIsModeratorRoRoomsByInfo(roomId, userInfo, true);
+                    }));
+                }
+            });
+            if (additionalUserInfoFetches.length) {
+                //jQuery.when is broken and does not work here. It immediately resolves,
+                //  not waiting for the for the Promises to resolve.
+                //jQuery.when.apply(jQuery, additionalUserInfoFetches).then(() => {
+                Promise.all(additionalUserInfoFetches).then(() => {
+                    addMoveToInMeta();
+                });
+            }
+        }
 
         const SECONDS_IN_MINUTE = 60;
         const SECONDS_IN_HOUR = 60 * SECONDS_IN_MINUTE;
@@ -647,6 +694,23 @@
             });
         }
 
+        function setIsModeratorRoRoomsByInfo(forRoom, userInfo, saveFalse) {
+            //false is not normally saved to the roRooms in order to keep it's length shorter.
+            if (userInfo) {
+                isModerator = userInfo.users[0].is_moderator;
+                if (userInfo.users[0].is_owner) {
+                    roRooms[forRoom] = true;
+                    setStorageJSON('roRooms', roRooms);
+                } else if (saveFalse) {
+                    roRooms[forRoom] = false;
+                    setStorageJSON('roRooms', roRooms);
+                }
+            } else {
+                isModerator = getStorage('isModerator') === 'true';
+            }
+            setStorage('isModerator', isModerator);
+        }
+
         function removeMessagesNotFromThisRoom() {
             //Look through the messages and remove those which are not from this room's transcript;
             //  The transcript/search will have some results which are not actually in the room being
@@ -878,9 +942,11 @@
             '.message.reply-parent.SOCVR-Archiver-multiMove-selected {',
             '    background-color: lightBlue !important;',
             '}',
+            '.message.selected.SOCVR-Archiver-multiMove-selected .meta,',
             '.message.selected.SOCVR-Archiver-multiMove-selected {',
             '    background-color: #c8d8e4 !important;',
             '}',
+            '.SOCVR-Archiver-multiMove-selected .meta,',
             '.SOCVR-Archiver-multiMove-selected {',
             '    background-color: LightSkyBlue !important;',
             '}',
@@ -894,8 +960,9 @@
             //  has a link which is not clickable due to the controls obscuring it.
             //  Now: Press & hold Caps-Lock to not show the meta controls.
             //Show the meta options for your own posts (have to be able to move them).
-            '#chat-body .monologue.mine:hover .messages .timestamp:hover + div.message .meta,',
-            '#chat-body .monologue.mine:hover .messages .message:hover .meta {',
+            '.monologue.mine:hover .messages .timestamp:hover + div.message .meta,',
+            '.monologue.mine:hover .messages .message:hover .meta {',
+            //This color really should be determined at runtime, as it can be different for various room themes (see code in AIM).
             '    background-color: #fbf2d9;',
             '    display: inline-block;',
             '}',
@@ -2395,7 +2462,7 @@
                 removeMessageIdFromPopupAndMoveList(movedMessageId);
             }
         }
-        if (!isTranscript && !isSearch) {
+        if (CHAT && typeof CHAT.addEventHandlerHook === 'function') {
             CHAT.addEventHandlerHook(listenToChat);
         }
 
@@ -2637,28 +2704,36 @@
         }
 
         function makeMetaRoomTargetsHtml() {
-            //Create the HTML for the in-question moveTo controls
-            return targetRoomsByRoomNumberOrder.reduce((htmlText, key) => {
-                var targetRoom = targetRoomsByRoomNumber[key];
+            //Create the HTML for the in-question moveTo controls for the default room.
+            //  This is used for all pages where the messages should be in one room.
+            //  It's insufficient for user pages and searches without restriction to a specific room.
+            return makeMetaRoomTargetsHtmlByOrderAndRooms(targetRoomsByRoomNumberOrder, targetRoomsByRoomNumber);
+        }
+
+        function makeMetaRoomTargetsHtmlByOrderAndRooms(roomOrder, roomsByRoomNumber) {
+            //Create the HTML for the in-question moveTo controls for rooms in an order and given rooms data.
+            return roomOrder.reduce((htmlText, key) => {
+                var targetRoom = roomsByRoomNumber[key];
                 return htmlText + '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-' +
                     targetRoom.shortName + '" title="Move this/selected message(s) (and any already in the list) to ' +
                     targetRoom.fullName + '." data-room-id="' +
                     targetRoom.roomNumber + '">' +
                     targetRoom.displayed + '</span>';
-            }, '');
+            }, '') + [
+                //Add message
+                '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-add-to-list" title="Add this/selected message(s) to the list." data-room-id="add">+</span>',
+                //remove message
+                '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-remove-from-list" title="Remove this/selected message(s) from the list." data-room-id="remove">-</span>',
+                //clear list
+                '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-clear-list" title="Clear the list." data-room-id="clear">*</span>',
+                //Undo/re-select the last moved list
+                '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-reselect" title="Re-select the messages which were last moved. This can be used to undo the last move by reselecting them (this control); going to the room they have been moved to; find one that\'s selected; then, manually moving them back by clicking on the control you want them moved to." data-room-id="reselect">U</span>',
+            ].join('');
         }
 
-        var addedMetaHtml = [
-            makeMetaRoomTargetsHtml(),
-            //Add message
-            '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-add-to-list" title="Add this/selected message(s) to the list." data-room-id="add">+</span>',
-            //remove message
-            '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-remove-from-list" title="Remove this/selected message(s) from the list." data-room-id="remove">-</span>',
-            //clear list
-            '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-clear-list" title="Clear the list." data-room-id="clear">*</span>',
-            //Undo/re-select the last moved list
-            '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-reselect" title="Re-select the messages which were last moved. This can be used to undo the last move by reselecting them (this control); going to the room they have been moved to; find one that\'s selected; then, manually moving them back by clicking on the control you want them moved to." data-room-id="reselect">U</span>',
-        ].join('');
+        function getMessageRoomFromMessage($el) {
+            return +($el.closest('.message').find('.action-link').first().closest('a').attr('href').match(/\/(\d+)/) || ['', ''])[1];
+        }
 
         function addMoveToInMeta() {
             if (!showMeta) {
@@ -2666,22 +2741,41 @@
                 return;
             }
             //Brute force add movement to all messages meta
-            var messages = $('.monologue .message');
-            var messagesWithoutMeta = messages.filter(function() {
+            const messages = $('.monologue .message');
+            const messagesWithoutMeta = messages.filter(function() {
                 return !$(this).children('.meta').length;
             });
             //Add meta to any messages which don't have it.
             messagesWithoutMeta.children('.request-info,.flash:not(.request-info ~ .flash)').before('<span class="meta"></span>');
-            var messagesWithoutAddedMeta = messages.find('.meta').filter(function() {
+            const messagesMetaWithoutAddedMeta = messages.find('.meta').filter(function() {
                 return !$(this).children('.SOCVR-Archiver-in-message-move-button').length;
             });
-            messagesWithoutAddedMeta.each(function() {
+            messagesMetaWithoutAddedMeta.each(function() {
                 //Put the moveTo controls to the left of the normal controls. This leaves the normal controls where they usually are
                 //  and places the reply-to control far away from lesser used controls.
-                $(this).prepend(addedMetaHtml);
-                //Add the moveList length to this message.
-                addManualMoveListLength(null, this);
+                const $this = $(this);
+                let toAdd = '';
+                let doAdd = true;
+                if (isUsersPage || (isSearch && !room)) {
+                    const messageRoomNumber = getMessageRoomFromMessage($this);
+                    toAdd = (siteAllRooms[messageRoomNumber] || {metaHTML: ''}).metaHTML;
+                    if (!isModerator && !roRooms[messageRoomNumber]) {
+                        doAdd = false;
+                    }
+                }
+                if (!toAdd) {
+                    toAdd = addedMetaHtml;
+                }
+                if (doAdd) {
+                    $(this).prepend(toAdd);
+                    //Add the moveList length to this message.
+                    addManualMoveListLength(null, this);
+                }
             });
+            //Remove the meta we added from any of those which we didn't also add the moveToMeta
+            messagesWithoutMeta.find('.meta').filter(function() {
+                return !$(this).children('.SOCVR-Archiver-in-message-move-button').length;
+            }).remove();
         }
 
         function getMessageIdFromMessage(message) {
