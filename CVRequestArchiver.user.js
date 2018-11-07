@@ -2982,14 +2982,20 @@
          *   CustomEvent 'transcript-events-received' is received in all scripts not doing the AJAX call to get the transcript events.
          */
         let gettingTranscriptEvents = false;
-        function getAndShareTranscriptEvents(event) {
-            //We need the events, because the transcript only contains actual replies, not those which are considered
-            //  replies by the system (just @name), but were not :messageId.
+        function getAndShareTranscriptEvents() {
+            //Get the events covering the time-frame shown in this transcript page.
+            //  Currently this does not guarantee to get all messages that are in the time-frame
+            //  of this transcript page. It normally will, but it's not checked for.
+            // It's assumed that the following chatTranscriptEndMessagesOffset offset beyond the last shown in this
+            // transcript page is sufficient, in total messages on the chat server, to get all deleted messages for this
+            // room that are in the time-frame for this transcript page.  While this is often true, it is by no means
+            // guaranteed.
+            const chatTranscriptEndMessagesOffset = 15000;
             if (typeof window.transcriptChatEvents === 'undefined') {
                 window.transcriptChatEvents = null; //Indicate that we are requesting the chat events.
                 gettingTranscriptEvents = true;
                 const lastMessageId = getMessageIdFromMessage($('#transcript .message').last());
-                getEvents(room, fkey, 500, lastMessageId + 15000).then((response) => {
+                getEvents(room, fkey, 500, lastMessageId + chatTranscriptEndMessagesOffset).then((response) => {
                     window.transcriptChatEvents = response.events;
                     getAndShareTranscriptEvents();
                 }, () => {
