@@ -128,6 +128,7 @@
             queen: 6294609,
             fox9000: 3671802,
             yam: 5285668,
+            panta: 1413395,
         };
         const parser = new DOMParser();
 
@@ -603,6 +604,17 @@
                 archiveWithNextFromUserId: knownUserIds.smokeDetector,
                 archiveWithChildren: true,
                 underAgeTypeKey: 'DELETE',
+            },
+            PANTA_SMOKEDETECTOR_FEEDBACK_TRAINING: {
+                name: 'Panta SmokeDetector Training feedback',
+                userIdMatch: knownUserIds.panta,
+                regexes: [
+                    //Regex modified from sdFeedbacksRegEx (above)
+                    /^(?:\s*\d*(?:(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why))?u?-?)\s*(?:\s+\d*(?:(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why))?u?-?)*\s*$/i,
+                ],
+                alwaysArchiveAfterSeconds: 4 * SECONDS_IN_HOUR, //4 hours
+                archiveWithParent: true,
+                archiveWithPreviousFromUserId: knownUserIds.smokeDetector,
             },
         };
         const RequestTypeKeys = Object.keys(RequestTypes);
