@@ -118,6 +118,10 @@
         let avatarList = getStorageJSON('avatarList') || {};
         const $body = $(document.body);
         const nKButtonEntriesToScan = 3000;
+        //XXX User Id's are different on the 3 separate Chat servers. Thus, this needs to be expanded into a record for IDs on all
+        //  servers ans selected based on the one we're on. However, they are currently only used for creating the RequestTypes, which
+        //  are part of the functionality that's currently only enabled on chat.SO. When that is re-written to be usable on other
+        //  sites, or when these are used in some other manner, this will need to be expanded.
         const knownUserIds = {
             fireAlarm: 6373379,
             smokeDetector: 3735529,
