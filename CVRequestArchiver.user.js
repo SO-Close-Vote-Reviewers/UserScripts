@@ -895,32 +895,35 @@
             '    background: #ff7b18;',
             '    height: 100%;',
             '}',
-            '.SOCVR-Archiver-deleted-content {',
+            'body:not(.SOCVR-Archiver-alwaysShowDeleted) .SOCVR-Archiver-deleted-content {',
             '    display: none;',
             '    position: absolute;',
             '    background-color: white;',
-            //'    top: 100%;', //Just below the (deleted). This does not look good with the post as the last in the transcript.
             '    top: 77%;', //With meta-menu just obscuring the border.
-            /*//Vertically centered: Ends up obscured by the meta-menu.
-            '    top: 50%;',
-            '    transform: translateY(-50%);',
-            '    -webkit-transform: translateY(-50%);',
-            '    -ms-transform: translateY(-50%);',
-            //*/
             '    border: 2px solid;',
             '    box-shadow: 0px 0px 20px;',
             '    z-index: 2;',
             '}',
-            //While it's a nice idea to have the reply parent and/or child displayed, it can get confusing as messages can
-            //  display on top of each other. This can result in being unable to read a deleted post.
-            //'.message.reply-parent .SOCVR-Archiver-deleted-content,',
-            //'.message.reply-child .SOCVR-Archiver-deleted-content,',
-            //'.message.reply-parent .content .deleted ~ .SOCVR-Archiver-deleted-content,',
-            //'.message.reply-child .content .deleted ~ .SOCVR-Archiver-deleted-content,',
-            '.message:hover .SOCVR-Archiver-deleted-content,',
-            '.content .deleted:hover ~ .SOCVR-Archiver-deleted-content,',
-            '.content .deleted ~ .SOCVR-Archiver-deleted-content:hover {',
+            'body:not(.SOCVR-Archiver-alwaysShowDeleted) .message:hover .SOCVR-Archiver-deleted-content,',
+            'body:not(.SOCVR-Archiver-alwaysShowDeleted) .content .deleted:hover ~ .SOCVR-Archiver-deleted-content,',
+            'body:not(.SOCVR-Archiver-alwaysShowDeleted) .content .deleted ~ .SOCVR-Archiver-deleted-content:hover {',
             '    display: block;',
+            //'    opacity: 1;', //This is needed in combination with the shrink-fade                                                                                                                                                                                             //WinMerge ignore line
+            '}',
+            '.SOCVR-Archiver-deleted-content-marker {',
+            '    cursor: pointer;',
+            '}',
+            'body:not(.SOCVR-Archiver-alwaysShowDeleted) .content > .SOCVR-Archiver-deleted-content-marker {',
+            '    display: none;',
+            '}',
+            'body.SOCVR-Archiver-alwaysShowDeleted .SOCVR-Archiver-contains-deleted-content .content .deleted {',
+            '    display: none;',
+            '}',
+            'body.SOCVR-Archiver-alwaysShowDeleted .SOCVR-Archiver-contains-deleted-content:not(.reply-parent):not(.reply-child) {',
+            '    background-color: #f4eaea;',
+            '}',
+            'body.SOCVR-Archiver-alwaysShowDeleted .SOCVR-Archiver-contains-deleted-content .SOCVR-Archiver-deleted-content  {',
+            '    display: inline;',
             '}',
             '.SOCVR-Archiver-hide-message-meta-menu .meta {',
             '    display: none !important;',
@@ -2533,7 +2536,9 @@
                 deletedContent.removeClass('content').addClass('SOCVR-Archiver-deleted-content');
                 newContent.append(deletedContent);
                 //Indicate to the user that the content is available.
-                newContent.find('.deleted').append('<span> &#128065;</span>');
+                const marker = $('<span class="SOCVR-Archiver-deleted-content-marker">&#128065;</span>');
+                newContent.find('.deleted').append(' ').append(marker.attr('title', 'Click this icon to show all deleted messages.')).after(marker.clone().attr('title', 'This message was deleted. Click this icon to show deleted content only on hover.'));
+                newContent.closest('.message').addClass('SOCVR-Archiver-contains-deleted-content');
             }
         }
 
@@ -3391,6 +3396,14 @@
                 $body.removeClass('SOCVR-Archiver-hide-message-meta-menu');
             }
         });
+        $body.on('click', '.SOCVR-Archiver-deleted-content-marker', function(event) {
+            if (!event.archiverAlreadyToggledDeleted) {
+                $body.toggleClass('SOCVR-Archiver-alwaysShowDeleted');
+                setStorage('alwaysShowDeleted', $body.hasClass('SOCVR-Archiver-alwaysShowDeleted'));
+                event.archiverAlreadyToggledDeleted = true;
+            }
+        });
+        $body.toggleClass('SOCVR-Archiver-alwaysShowDeleted', getStorage('alwaysShowDeleted') === 'true');
 
         if (isTranscript && showDeleted) {
             getAndShareTranscriptEvents();
