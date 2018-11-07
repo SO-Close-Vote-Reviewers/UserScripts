@@ -96,11 +96,11 @@
 
         if (isUsersPage || (isSearch && !room)) {
             //On user pages, we don't test for being the RO/mod.
-            CVRequestArchiver();
+            cvRequestArchiver();
             return;
         }
 
-        getUserInfoInRoom(room, me).done(CVRequestArchiver);
+        getUserInfoInRoom(room, me).done(cvRequestArchiver);
     }
 
     function getUserInfoInRoom(inRoom, user) {
@@ -110,7 +110,7 @@
         });
     }
 
-    function CVRequestArchiver(info) {
+    function cvRequestArchiver(info) {
         const roRooms = getStorageJSON('roRooms') || {};
         let isModerator = false;
         setIsModeratorRoRoomsByInfo(room, info);
