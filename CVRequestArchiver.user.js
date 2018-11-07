@@ -2196,7 +2196,7 @@
             }
         }
 
-        function makeMonologueHtml(messageEvent) {
+        function makeMonologueHtml(messageEvent, useUTC) {
             //Create the HTML for a monologue containing a single message.
 
             /* linkifyTextURLs was originally highlight text via RegExp
@@ -2325,7 +2325,7 @@
             let contentHtml = messageEvent.content ? messageEvent.content : '<span class="deleted">(removed)</span>';
             contentHtml = linkifyTextURLs(getHTMLTextAsDOM(contentHtml)).innerHTML;
             //Get a timestamp in the local time that's in the same format as .toJSON().
-            const timestamp = (new Date((messageEvent.time_stamp * 1000) - timezoneOffsetMs)).toJSON().replace(/T(\d\d:\d\d):\d\d\.\d{3}Z/, ' $1');
+            const timestamp = (new Date((messageEvent.time_stamp * 1000) - (useUTC ? 0 : timezoneOffsetMs))).toJSON().replace(/T(\d\d:\d\d):\d\d\.\d{3}Z/, ' $1');
             return [
                 //From transcript
                 /* beautify preserve:start *//* eslint-disable indent */
@@ -3042,7 +3042,7 @@
             const nextMessageId = +getMessageIdFromMessage(refEl);
             const nextMessage = $(refEl);
             const nextMessageMonologue = nextMessage.closest('.monologue');
-            const newMonologueText = makeMonologueHtml(event).replace('SOCVR-Archiver-message-', 'message-');
+            const newMonologueText = makeMonologueHtml(event, true).replace('SOCVR-Archiver-message-', 'message-');
             const newMonologue = $('<div></div>)').append(newMonologueText).find('.monologue');
             const newMessage = newMonologue.find('.message');
             const monologueUserId = +nextMessageMonologue.attr('class').match(/\buser-(\d+)\b/)[1];
