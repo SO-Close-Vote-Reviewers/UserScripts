@@ -17,7 +17,7 @@
 /* jshint devel:     true */
 /* jshint esversion: 6 */
 /* jshint esnext: true */
-/* globals CHAT */
+/* globals CHAT, $, jQuery */
 
 (function() {
     'use strict';
