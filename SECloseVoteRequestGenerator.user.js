@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.8.0.0
+// @version        1.8.0.1
 // @description    BETA: This script generates formatted close-/delete-/reopen-/undelete-vote requests, spam/offensive flag requests, Smoke Detector reports, and approve-/reject-pls requests for suggested edits, then sends them to a specified chat room.
 // @author         @TinyGiant @Makyen
 // @contributor    @rene @Tunaki
@@ -1846,8 +1846,7 @@
         },
         updatePreview: function() {
             function arrayToUnorderedListAndToggleVisibility(element, toPluralizePreText, preText, array) {
-                const sanitizedArray = array.map((text) => text.replace(/</g, '&lt;').replace(/>/g, '&gt;'));
-                const htmlText = toPluralizePreText + (array.length === 1 ? '' : 's') + preText + `<ul><li>${(sanitizedArray.join('</li><li>'))}</li></ul>`;
+                const htmlText = toPluralizePreText + (array.length === 1 ? '' : 's') + preText + `<ul><li>${(array.join('</li><li>'))}</li></ul>`;
                 element.html(htmlText).toggle(!!array.length);
             }
             //Remove everything from the preview div.
@@ -2225,9 +2224,6 @@
                 criticalRequestReasons.push(`Request > 500 characters. (${request.length})`);
             }
             return {
-                //request: request,
-                //invalidRequestReasons: invalidRequestReasons,
-                //criticalRequestReasons: criticalRequestReasons,
                 request,
                 invalidRequestReasons,
                 criticalRequestReasons,
