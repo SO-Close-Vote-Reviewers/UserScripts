@@ -3725,28 +3725,6 @@
             '                                <input type="checkbox" id="urrsOptionsCheckbox-useQuestionTitleAsLink"/>',
             '                                Change bare question URLs to the question\'s title.',
             '                            </label>',
-            //Chat visited link style
-            '                            <span class="urrsOptionsMultiCheckboxLine">',
-            '                                <label title="Color visited links blue. If neither of the sub-options are selected, only the visited links within messages are blue. On the search page, all visited links have been blue since 2015. These options are applied on the main chat pages, transcripts, and searches for SOCVR (and associated rooms)." class="urrsOptionsCheckboxLabel-inline">',
-            '                                    <input type="checkbox" id="urrsOptionsCheckbox-visitedLinkStyleActive"/>',
-            '                                    Blue visited links:',
-            '                                </label>',
-            //Blue Visited Links: User profiles (left of messages)
-            '                                <label title="Show blue visited links for the links to the left of chat messages which are to the author\'s chat-profile.\nFor many people this is confusing, as they are expecting a blue username to indicate that the user is a moderator. However, there\'s also another option to show a diamond next to moderators (see Chat section, as moderators are only indicated on the chat page)." class="urrsOptionsCheckboxLabel-inline">',
-            '                                    <input type="checkbox" id="urrsOptionsCheckbox-visitedLinksShowUsers"/>',
-            '                                    chat user',
-            '                                </label>',
-            //Blue Visited Links: Sidebar
-            '                                <label title="Show blue visited links in the sidebar (including starboard)." class="urrsOptionsCheckboxLabel-inline">',
-            '                                    <input type="checkbox" id="urrsOptionsCheckbox-visitedLinksShowInSidebar"/>',
-            '                                    sidebar',
-            '                                </label>',
-            //Blue Visited Links: User in sidebar
-            '                                <label title="Show blue visited links for users in the sidebar (i.e. the starboard). The information as to the user being a moderator doesn\'t exist in the link. The links to users in the starboard are not never colored blue in the stock chat functionality." class="urrsOptionsCheckboxLabel-inline">',
-            '                                    <input type="checkbox" id="urrsOptionsCheckbox-visitedLinksShowInSidebarUser"/>',
-            '                                    sidebar user',
-            '                                </label>',
-            '                            </span>',
             //Remember visited posts.
             '                            <label title=\'Remembers the question links you click in the SOCVR room and request search pages, considering them "visited". You can select to not display "visited" questions. "Visited" questions are remembered for 7 days. They are stored only on your machine. When you disable this, it will immediately delete the list of "visited" questions. You may need to reload the appropriate pages to enable this.\'>',
             '                                <input type="checkbox" id="urrsOptionsCheckbox-trackVisitedLinks"/>',
@@ -3809,8 +3787,30 @@
             //Show post status in chat.
             '                            <label title="To the right of messages with post links, show:\nquestion: # close votes/closed/deleted\nanswer: score/deleted\nIf this was disabled when the SOCVR chat room page was loaded, you will need to reload the page to have this take effect.">',
             '                                <input type="checkbox" id="urrsOptionsCheckbox-chatShowPostStatus"/>',
-            '                                Show the post\'s current status',
+            '                                Show the post\'s current status (also affects transcripts)',
             '                            </label>',
+            //Chat visited link style
+            '                            <span class="urrsOptionsMultiCheckboxLine">',
+            '                                <label title="Color visited links blue. If neither of the sub-options are selected, only the visited links within messages are blue. On the search page, all visited links have been blue since 2015. These options are applied on the main chat pages, transcripts, and searches for SOCVR (and associated rooms)." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-visitedLinkStyleActive"/>',
+            '                                    Blue visited links:',
+            '                                </label>',
+            //Blue Visited Links: User profiles (left of messages)
+            '                                <label title="Show blue visited links for the links to the left of chat messages which are to the author\'s chat-profile.\nFor many people this is confusing, as they are expecting a blue username to indicate that the user is a moderator. However, there\'s also another option to show a diamond next to moderators (see Chat section, as moderators are only indicated on the chat page)." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-visitedLinksShowUsers"/>',
+            '                                    chat user',
+            '                                </label>',
+            //Blue Visited Links: Sidebar
+            '                                <label title="Show blue visited links in the sidebar (including starboard)." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-visitedLinksShowInSidebar"/>',
+            '                                    sidebar',
+            '                                </label>',
+            //Blue Visited Links: User in sidebar
+            '                                <label title="Show blue visited links for users in the sidebar (i.e. the starboard). The information as to the user being a moderator doesn\'t exist in the link. The links to users in the starboard are not never colored blue in the stock chat functionality." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-visitedLinksShowInSidebarUser"/>',
+            '                                    sidebar user',
+            '                                </label>',
+            '                            </span>',
             //Add moderator indicator
             '                            <label title="This is only done on the actual chat page, because the information isn\'t available in transcripts and searches. You will need to reload the SOCVR chat room page for this to take effect.">',
             '                                <input type="checkbox" id="urrsOptionsCheckbox-chatShowModeratorDiamond"/>',
