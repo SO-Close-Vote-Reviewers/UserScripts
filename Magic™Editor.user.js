@@ -885,6 +885,43 @@
                 replacement: "GoDaddy",
                 reason: App.consts.reasons.trademark
             },
+            cryptoapi: {
+                expr: /\bcrypto\s?api\b/gi,
+                replacement: "CryptoAPI",
+                reason: App.consts.reasons.trademark
+            },
+            selenium: {
+                expr: /\bselenium\b/gi,
+                replacement: "Selenium",
+                reason: App.consts.reasons.trademark
+            },
+            testng: {
+                expr: /\btest\s?ng\b/gi,
+                replacement: "TestNG",
+                reason: App.consts.reasons.trademark
+            },
+            ionic: {
+                expr: /\bionic(?:\s?pro)?\b/gi,
+                replacement: function(str) {
+                    return str.toTitleCase();
+                },
+                reason: App.consts.reasons.trademark
+            },
+            opencart: {
+                expr: /\bopen\s?cart\b/gi,
+                replacement: "OpenCart",
+                reason: App.consts.reasons.trademark
+            },
+            woocommerce: {
+                expr: /\bwoo\s?commerce\b/gi,
+                replacement: "WooCommerce",
+                reason: App.consts.reasons.trademark
+            },
+            laravel: {
+                expr: /\blaravel/gi,
+                replacement: "Laravel",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
