@@ -375,8 +375,21 @@
                 reason: App.consts.reasons.trademark
             },
             regex: {
-                expr: /\bregg?[ea]?x(p)?\b/gi,
-                replacement: "RegEx$1",
+                expr: /\b(r)egg?([ea]*)x(p)?\b/gi,
+                replacement: function (match, p1, p2, p3) {
+                    //If this is JavaScript related, then use RegExp
+                    const isRegExp = ['javascript', 'jquery', 'reactjs', 'nodejs'].some(function(testTag) {
+                        return App.globals.taglist.indexOf(testTag) > -1;
+                    });
+                    let result = `${(isRegExp ? 'R' : p1)}eg`;
+                    if ((p2 && p2 === p2.toUpperCase()) || isRegExp) {
+                        result += 'E';
+                    } else {
+                        result += 'e';
+                    }
+                    result += `x${(isRegExp ? 'p' : (p3 || ''))}`;
+                    return result;
+                },
                 reason: App.consts.reasons.trademark
             },
             postgresql: {
