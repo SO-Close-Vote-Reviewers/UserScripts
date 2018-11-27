@@ -494,21 +494,25 @@
                 reason: App.consts.reasons.spelling
             },
             google_things: { // https://regex101.com/r/iS5fO1/1
-                expr: /\bgoogle\b[ \t]*(?:maps?|sheets?|docs?|drive|sites?|forms?|documents?|spreadsheets?|images?|presentations?|play)?\b/gi,
+                expr: /\bgoogle\b[ \t-]*(?:maps?|sheets?|docs?|drive|sites?|forms?|documents?|spreadsheets?|images?|presentations?|play)?\b/gi,
                 replacement: function(str) {
                     return toTitleCase(str);
                 },
                 reason: App.consts.reasons.trademark
             },
-            google_apps_script: {
+            google_apps_script: { //Not in google_things due to possible missing 's' on Apps.
                 expr: /\bgoogle[- ]?(?:apps?)?[- ]?script(ing|s)?\b/gi,
                 replacement: "Google Apps Script$1",
                 reason: App.consts.reasons.trademark
             },
-            google_app_engine: {
+            google_app_engine: { //Not in google_things due to possible 's' on App.
                 expr: /\bgoogle[- ]?(?:apps?)?[- ]?engine(s)?\b/gi,
                 replacement: "Google App Engine$1",
                 reason: App.consts.reasons.trademark
+            },
+            google_analytics: { //Not in google_things due to possible missing 's' on analytics.
+                expr: /\bgoogle[- ]?analytics?\b/gi,
+                replacement: "Google Analytics",
             },
             bluetooth: {
                 expr: /\bbl(?:ue|oo)too?th?\b/gi,
@@ -928,10 +932,6 @@
                 expr: /\bandroid ?studio\b/gi,
                 replacement: "Android Studio",
                 reason: App.consts.reasons.trademark
-            },
-            google_analytics: {
-                expr: /\bgoogle[- ]?analytics\b/gi,
-                replacement: "Google Analytics",
             },
             arduino: {
                 expr: /\barduino(s?)\b/gi,
