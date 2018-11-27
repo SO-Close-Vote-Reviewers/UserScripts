@@ -938,6 +938,16 @@
                 replacement: "Arduino$1",
                 reason: App.consts.reasons.trademark
             },
+            crashlytics: {
+                expr: /\bcrashl[yi]tics?\b/gi,
+                replacement: "Crashlytics",
+                reason: App.consts.reasons.trademark
+            },
+            firebase: {
+                expr: /\bfirebase\b/gi,
+                replacement: "Firebase",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
