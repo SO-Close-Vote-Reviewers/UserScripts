@@ -74,9 +74,9 @@
             //blockquotes
             //        https://regex101.com/r/fU5lE6/1
             "quote":  /^\>(?:(?!\n\n)[^])+/gm,
-            //single-line inline code
-            //        https://regex101.com/r/lL6fH3/1
-            "inline": /`[^`\n]+`/g,
+            //inline code
+            //        https://regex101.com/r/9JOfKb/1/
+            "inline": /(?:```(?:[^`](?!\n\n))+?```|`(?:[^`](?!\n\n))+?`)/g,
             //code blocks and multiline inline code.
             //        https://regex101.com/r/eC7mF7/4
             "block":  /(?:(?:^[ \t]*(?:[\r\n]|\r\n))?`[^`]+`|(?:^[ \t]*(?:[\r\n]|\r\n))^(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ \t]+\n)*)+)+)/gm,
