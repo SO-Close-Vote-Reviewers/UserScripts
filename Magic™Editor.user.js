@@ -249,12 +249,12 @@
                 reason: App.consts.reasons.trademark
             },
             sqlite: {
-                expr: /\bsqlite(\s*[0-9]*)\b/gi,
+                expr: /\bsql*\W?l*ite(\s*[0-9]*)\b/gi,
                 replacement: "SQLite$1",
                 reason: App.consts.reasons.trademark
             },
             android: {
-                expr: /\bandroid\b(?![.-]\w)/gi,
+                expr: /\band(?:roi|ori)d\b(?![.-]\w)/gi,
                 replacement: "Android",
                 reason: App.consts.reasons.trademark
             },
