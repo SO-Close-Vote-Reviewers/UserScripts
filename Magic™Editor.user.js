@@ -2601,11 +2601,6 @@
                 replacement: "etc.",
                 reason: App.consts.reasons.grammar
             },
-            pysanky: {
-                expr: /([^\!])[!]{5}(?!\!)/g,
-                replacement: "$1!",
-                reason: window.atob('IkZpdmUgZXhjbGFtYXRpb24gbWFya3MsIHRoZSBzdXJlIHNpZ24gb2YgYW4gaW5zYW5lIG1pbmQi')
-            },
             multiplesymbols: {  //    https://regex101.com/r/bE9zM6/6
                 expr: /(\b[cC]\+\+|={1,3}(?!=))|([^\w\s*#.\-_:\[\]\</>])\2{1,}/g,
                 replacement: "$1$2",
@@ -2663,6 +2658,14 @@
                 reason: App.consts.reasons.grammar
             },
             /*
+            ** "Five exclamation marks, the sure sign of an insane mind"
+            **/
+            pysanky: {
+                expr: /([^\!])[!]{5}(?!\!)/g,
+                replacement: "$1!",
+                reason: window.atob('IkZpdmUgZXhjbGFtYXRpb24gbWFya3MsIHRoZSBzdXJlIHNpZ24gb2YgYW4gaW5zYW5lIG1pbmQi')
+            },
+            /*
             ** Noise reduction - Remove fluff that adds nothing of technical value to posts.
             **/
             help: {
@@ -2680,15 +2683,15 @@
                 replacement: "$1hanks",
                 reason: App.consts.reasons.silent
             },
-            tia: {  // common acronym; should only remove "thanks in advance" at end of post
-                expr: /\btia$/gi,
-                replacement: "",
-                reason: App.consts.reasons.noise
-            },
             please: {
                 expr: /\b(p)(?:lz+|lse?|l?ease?)\b/gi,
                 replacement: "$1lease",
                 reason: App.consts.reasons.silent
+            },
+            tia: {  // common acronym; should only remove "thanks in advance" at end of post
+                expr: /\btia$/gi,
+                replacement: "",
+                reason: App.consts.reasons.noise
             },
             editupdate: {
                 // https://regex101.com/r/tT2pK6/9
