@@ -88,7 +88,7 @@
             //  The prior version of this was https://regex101.com/r/tZ4eY3/7 it was saved and became version 21.
             //  It was then forked into it's own regex:
             //        https://regex101.com/r/C7nXfd/2
-            "lsec":   /(?:^ *(?:[\r\n]|\r\n))?(?:  (?:\[\d\]): \w*:+\/\/.*\n*)+/gm,
+            "lsec":   /(?:^ *(?:[\r\n]|\r\n))?(?: {2}(?:\[\d\]): \w*:+\/\/.*\n*)+/gm,
             //links and pathnames
             //  See comment above the "lsec" RegExp regarding testing sharing the same "regex" on regex101.com
             //        https://regex101.com/r/tZ4eY3/22
@@ -158,10 +158,13 @@
             // Remove tags from title
             taglist: {  // https://regex101.com/r/wH4oA3/25
                 // WARNING: the expression from regex101 must have backslashes escaped here - wbn to automate this...
-                expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?!\\.\\w)(?:and|[ ,.&+/-])*)+[:. \\)-]*|\\b(?:[:. \\(-]|in|with|using|by|for|from)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
-                                 .replace(/_xTagsx_/g,App.globals.taglist.map(escapeTag).join("|")),
-                                 //.replace(/\\(?=[bsSdDwW])/g,"\\"), // https://regex101.com/r/pY1hI2/1 - WBN to figure this out.
-                                 'gi'),
+                expr: new RegExp(
+                    "(?:^(?:[(]?(?:_xTagsx_)(?!\\.\\w)(?:and|[ ,.&+/-])*)+[:. \\)-]*|\\b(?:[:. \\(-]|in|with|using|by|for|from)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
+                        .replace(/_xTagsx_/g,App.globals.taglist.map(escapeTag).join("|")),
+                    //Consider escaping character classes:
+                    //.replace(/\\(?=[bsSdDwW])/g,"\\"), // https://regex101.com/r/pY1hI2/1 - WBN to figure this out.
+                    'gi'
+                ),
                 replacement: "$1",
                 debug: false,
                 titleOnly: true,
@@ -267,14 +270,14 @@
                 // https://regex101.com/r/jF9zK1/8
                 expr: /\b(?:win(?=(?:\s+(?:2k|[0-9.]+|ce|me|nt|xp|vista|server)))|windows)(?:\s+(2k|[0-9.]+|ce|me|nt|xp|vista|server))?\b/gi,
                 replacement: function(match, ver) {
-                    ver = !ver ? '' : ' '+ver
-                    .replace(/ce/i, 'CE')
-                    .replace(/me/i, 'ME')
-                    .replace(/nt/i, 'NT')
-                    .replace(/xp/i, 'XP')
-                    .replace(/2k/i, '2000')
-                    .replace(/vista/i, 'Vista')
-                    .replace(/server/i, 'Server');
+                    ver = !ver ? '' : ' ' + ver
+                        .replace(/ce/i, 'CE')
+                        .replace(/me/i, 'ME')
+                        .replace(/nt/i, 'NT')
+                        .replace(/xp/i, 'XP')
+                        .replace(/2k/i, '2000')
+                        .replace(/vista/i, 'Vista')
+                        .replace(/server/i, 'Server');
                     return 'Windows' + ver;
                 },
                 reason: App.consts.reasons.trademark
@@ -352,10 +355,10 @@
                 expr: /(?:vb\.net|\bvb|(?:[^\b\w.]|^)\.net)\b(?:\s*[0-9]+)?\s*(?:framework|core)?/gi,
                 replacement: function(str) {
                     return str.replace(/([^.])vb/i, '$1VB')
-                    .replace(/([^.])asp/i, '$1ASP')
-                    .replace(/net/i, 'NET')
-                    .replace(/framework/i, 'Framework')
-                    .replace(/core/i, 'Core');
+                        .replace(/([^.])asp/i, '$1ASP')
+                        .replace(/net/i, 'NET')
+                        .replace(/framework/i, 'Framework')
+                        .replace(/core/i, 'Core');
                 },
                 reason: App.consts.reasons.trademark
             },
@@ -467,7 +470,7 @@
                 replacement: function(str) {
                     return toTitleCase(str);
                 },
-               reason: App.consts.reasons.trademark
+                reason: App.consts.reasons.trademark
             },
             twitter: {
                 expr: /\btwitter\b(?![.-]\w)/gi,
@@ -2321,7 +2324,7 @@
                 expr: /\b(?:(u)nti?l+|(t)il+)\b/gi,
                 replacement: function (match,f1,f2) {
                     var fchar = f1||f2;
-                    return ((fchar.toUpperCase() == fchar) ? "U" : "u") + "ntil";
+                    return ((fchar.toUpperCase() === fchar) ? "U" : "u") + "ntil";
                 },
                 reason: App.consts.reasons.spelling
             },
@@ -2535,7 +2538,7 @@
                 expr: /\b(a|an) ([\(\"'“‘`<-]*\w*)\b/gim,   // https://regex101.com/r/nE1yA4/5
                 replacement: function( match, article, following ) {
                     var input = following.replace(/^[\s\(\"'“‘`<-]+|\s+$/g, "");//strip initial punctuation symbols
-                    var res = AvsAnOverride_(input) || AvsAnSimple.query(input);
+                    var res = AvsAnOverride_(input) || AvsAnSimple.query(input); // eslint-disable-line no-use-before-define
                     var newArticle = article[0] + res.substr(1);  // Preserve existing capitalization
                     return newArticle+' '+following;
 
@@ -2549,7 +2552,7 @@
                         var exceptionsA_ = /^(?:uis?)/i;
                         var exceptionsAn_ = /^(?:[lr]value|a\b|sql|ns|ng|is)/i;
                         return (exceptionsA_.test(fword) ? article[0] :
-                                exceptionsAn_.test(fword) ? article[0]+"n" : false);
+                            exceptionsAn_.test(fword) ? article[0]+"n" : false);
                     }
                 },
                 reason: App.consts.reasons.grammar
@@ -2560,14 +2563,15 @@
                 expr: /(([A-Za-z]|\d(?!\d*\. )|[.$_]\w+)(\S*))((?:(?:etc\.|i\.e\.|e\.g\.|vs\.|\.\.\.|\w*\.(?![\s")])|[*-]+|\n(?![ \t]*\n| *(?:[*-]|\d+\.))|[^.?!\n]?))+(?:([.?!]+)(?=[\s")]|$)|\n\n|\n(?= *[*-])|\n(?= *\d+\.)|$))/gi,
                 replacement: function(sentence, fWord, fChar, fWordPost, sentencePost/*, endpunc*/) {
                     var capChar = fChar.toUpperCase();
-                    if (sentence === "undefined"||capChar == fChar) return sentence;  // MUST match sentence, or gets counted as a change.
+                    if (sentence === "undefined" || capChar === fChar) return sentence;  // MUST match sentence, or gets counted as a change.
                     if (!fWord) fWord = '';
                     var fWordChars = fWord.split('');
                     // Leave some words alone: filenames, camelCase
                     for (var i=0; i<fWordChars.length; i++) {
                         if (fWordChars[i].search(/[._/$]/g) !== -1 ||
-                            (fWordChars[i].search(/[a-z]/gi) !==-1 && fWordChars[i] == fWordChars[i].toUpperCase()))
+                                (fWordChars[i].search(/[a-z]/gi) !==-1 && fWordChars[i] === fWordChars[i].toUpperCase())) {
                             return sentence;
+                        }
                     }
                     var update = capChar + fWordPost + sentencePost;
                     return update;
@@ -3109,11 +3113,13 @@
         App.pipeMods.omit = function(data) {
             if (!data.body) return false;
             for (var type in App.globals.checks) {
-                data.body = data.body.replace(App.globals.checks[type], function(match) {
-                    App.globals.replacedStrings[type].push(match);
-                    App.globals.replacedStringsOriginal[type].push(match);
-                    return App.globals.placeHolders[type];
-                });
+                if (App.globals.checks.hasOwnProperty(type)) {
+                    data.body = data.body.replace(App.globals.checks[type], function(match) { // eslint-disable-line no-loop-func
+                        App.globals.replacedStrings[type].push(match);
+                        App.globals.replacedStringsOriginal[type].push(match);
+                        return App.globals.placeHolders[type];
+                    });
+                }
             }
             return data;
         };
@@ -3146,7 +3152,7 @@
             imageNumbers.forEach(function(num) {
                 var replaceLink = new RegExp('^(\\s*)\\[([^\\[]*)\\](\\s*\\[' + num + '\\])(\\s*)$','');
                 App.globals.replacedStrings.links.forEach(function(link, index, array) {
-                    array[index] = link.replace(replaceLink, '$2:  \n$1[![$2]$3][' + num + ']$4').replace(/^enter image description here:  \n/,'');
+                    array[index] = link.replace(replaceLink, '$2:  \n$1[![$2]$3][' + num + ']$4').replace(/^enter image description here: {2}\n/,'');
                     if(array[index] !== link) {
                         replacements++;
                     }
@@ -3173,20 +3179,30 @@
             var fields = {body:'body',title:'title'};
 
             // Loop through all editing rules
-            for (var ruleKey in App.edits) for (var field in fields) {
-                var editRule = App.edits[ruleKey];
-                var debug = editRule.debug;
-                if (debug) console.log("edit " + ruleKey + " in " + field);
-                if (editRule.titleOnly && 'title' !== field)
-                    continue;  // Skip title-only edits if not editing title.
-                var fix = App.funcs.fixIt(data[field], editRule, ruleKey);
-                if (!fix) continue;
-                //A change was made:
-                console.log('Change by edit rule: reason:', editRule.reason, ':: ruleKey:', ruleKey, ':: editRule', editRule, ':: before:', {before: data[field]}, '::  fix:', fix);
-                if (fix.reason in App.globals.reasons) App.globals.reasons[fix.reason].count += fix.count;
-                else App.globals.reasons[fix.reason] = { reason:fix.reason, editId:ruleKey, count:fix.count };
-                data[field] = fix.fixed;
-                editRule.fixed = true;
+            for (var ruleKey in App.edits) {
+                if (App.edits.hasOwnProperty(ruleKey)) {
+                    for (var field in fields) {
+                        if (fields.hasOwnProperty(field)) {
+                            var editRule = App.edits[ruleKey];
+                            var debug = editRule.debug;
+                            if (debug) console.log("edit " + ruleKey + " in " + field);
+                            if (editRule.titleOnly && 'title' !== field) {
+                                continue;  // Skip title-only edits if not editing title.
+                            }
+                            var fix = App.funcs.fixIt(data[field], editRule, ruleKey);
+                            if (!fix) continue;
+                            //A change was made:
+                            console.log('Change by edit rule: reason:', editRule.reason, ':: ruleKey:', ruleKey, ':: editRule', editRule, ':: before:', {before: data[field]}, '::  fix:', fix);
+                            if (fix.reason in App.globals.reasons) {
+                                App.globals.reasons[fix.reason].count += fix.count;
+                            } else {
+                                App.globals.reasons[fix.reason] = { reason:fix.reason, editId:ruleKey, count:fix.count };
+                            }
+                            data[field] = fix.fixed;
+                            editRule.fixed = true;
+                        }
+                    }
+                }
             }
 
             // Remove silent change reason
@@ -3200,26 +3216,33 @@
             App.globals.changes = 0;
 
             for (var z in App.globals.reasons) {
-                // For each type of change made, add a reason string with the reason text,
-                // optionally the rule ID, and the number of repeats if 2 or more.
-                reasons.push(App.globals.reasons[z].reason
-                             + (App.globals.showRules ? ' ['+ App.globals.reasons[z].editId +']' : '')
-                             + (App.globals.showCounts ? ((App.globals.reasons[z].count > 1) ? ' ('+App.globals.reasons[z].count+')' : '') : '') );
-                App.globals.changes += App.globals.reasons[z].count;
+                if (App.globals.reasons.hasOwnProperty(z)) {
+                    // For each type of change made, add a reason string with the reason text,
+                    // optionally the rule ID, and the number of repeats if 2 or more.
+                    reasons.push(App.globals.reasons[z].reason
+                                 + (App.globals.showRules ? ' ['+ App.globals.reasons[z].editId +']' : '')
+                                 + (App.globals.showCounts ? ((App.globals.reasons[z].count > 1) ? ' ('+App.globals.reasons[z].count+')' : '') : '') );
+                    App.globals.changes += App.globals.reasons[z].count;
+                }
             }
 
             var reasonStr = reasons.length ? reasons.join('; ')+'.' : '';  // Unique reasons separated by ; and terminated by .
 
-            if (!data.hasOwnProperty('summaryOrig')) data.summaryOrig = data.summary.trim() // Remember original summary
-                                                                            .replace(/([^;])[.?!:]?$/,"$1;");
-            if (data.summaryOrig.length)
-                data.summaryOrig = data.summaryOrig + ' ';
-            else
+            if (!data.hasOwnProperty('summaryOrig')) {
+                // Remember original summary
+                data.summaryOrig = data.summary.trim().replace(/([^;])[.?!:]?$/,"$1;");
+            }
+            if (data.summaryOrig.length) {
+                data.summaryOrig += ' ';
+            } else {
                 reasonStr = reasonStr.charAt(0).toUpperCase() + reasonStr.slice(1);  // Cap first letter.
+            }
 
             data.summary = data.summaryOrig + reasonStr;
             // Limit summary to 300 chars
-            if (data.summary.length > 300) data.summary = data.summary.substr(0,300-3) + '...';
+            if (data.summary.length > 300) {
+                data.summary = data.summary.substr(0,300-3) + '...';
+            }
 
             return data;
         };
@@ -3235,20 +3258,22 @@
         App.pipeMods.replace = function(data, literal) {
             if (!data.body) return false;
             for (var type in App.globals.checksr) {
-                var i = 0;
-                data.body = data.body.replace(App.globals.placeHolderChecks[type], function() {
-                    var replace = App.globals.replacedStrings[type][i++];
-                    if(literal && /block|lsec/.test(type)) {
-                        var after = replace.replace(/^\n\n/,'');
-                        var prepend = after !== replace ? '<span class="add">\n\n</span><span class="del">`</span>' : '';
-                        var append  = after !== replace ? '<span class="del">`</span>' : '';
-                        var klass   = /lsec/.test(type) ? ' class="lang-none prettyprint prettyprinted"' : '';
-                        return prepend + '<pre' + klass + '><code>' + after.replace(/</g,'&lt;').replace(/^    /gm,'') + '</code></pre>' + append;
-                    }
-                    if(literal && /quote/.test(type)) return '<blockquote>' + replace.replace(/</g,'&lt;').replace(/^>/gm,'') + '</blockquote>';
-                    if(literal) return '<code>' + replace.replace(/</g,'&lt;').replace(/(?:^`|`$)/g,'') + '</code>';
-                    return replace;
-                });
+                if (App.globals.checksr.hasOwnProperty(type)) {
+                    var i = 0;
+                    data.body = data.body.replace(App.globals.placeHolderChecks[type], function() { // eslint-disable-line no-loop-func
+                        var replace = App.globals.replacedStrings[type][i++];
+                        if(literal && /block|lsec/.test(type)) {
+                            var after = replace.replace(/^\n\n/,'');
+                            var prepend = after !== replace ? '<span class="add">\n\n</span><span class="del">`</span>' : '';
+                            var append  = after !== replace ? '<span class="del">`</span>' : '';
+                            var klass   = /lsec/.test(type) ? ' class="lang-none prettyprint prettyprinted"' : '';
+                            return prepend + '<pre' + klass + '><code>' + after.replace(/</g,'&lt;').replace(/^ {4}/gm,'') + '</code></pre>' + append;
+                        }
+                        if(literal && /quote/.test(type)) return '<blockquote>' + replace.replace(/</g,'&lt;').replace(/^>/gm,'') + '</blockquote>';
+                        if(literal) return '<code>' + replace.replace(/</g,'&lt;').replace(/(?:^`|`$)/g,'') + '</code>';
+                        return replace;
+                    });
+                }
             }
             return data;
         };
@@ -3328,6 +3353,7 @@
     }
 })();
 
+/* eslint-disable */
 /*
   * To Title Case 2.1 – http://individed.com/code/to-title-case/
   * Copyright © 2008–2013 David Gouch. Licensed under the MIT License.
