@@ -86,7 +86,7 @@
                 name: 'Tavern on the Meta',
             },
         },
-        SECRCQ: {
+        CRCQR: {
             roomText: 'SE Code Review Close Questions room',
             roomSite: 'Exchange',
             room: {
@@ -140,7 +140,8 @@
     var knownOptions = {
         checkboxes: {
             onlySocvrModeratedSites:           new CheckboxOption(false, 'Don\'t show this GUI on non-SOCVR moderated sites.', 'SOCVR moderates only ' + socvrModeratedSites.join(',') + '. Checking this prevents the cv-pls/del-pls GUI from being added on sites which SOCVR does not moderate.'),
-            onlyCharcoalSDSpamOnNonSocvrSites: new CheckboxOption(true, 'On non-SOCVR sites, use Charcoal HQ as default & show only SD Reports/spam report options.', 'On sites not moderated by SOCVR (SOCVR moderates only ' + socvrModeratedSites.join(',') + '), use Charcoal HQ as the default room and show only SD Reports, spam and offensive as report options. This will not replace the room currently defined on any site. Basically, for any site you have visited prior to setting this option, the site will have already been defined (used to be SOCVR, then changed to "The Stack Exchange Network"). On those sites, you will need to manually change the room.'),
+            onlyKnownSites:                    new CheckboxOption(false, 'Don\'t show this GUI on sites not pre-configured in this script.', 'Known sites are those moderated by SOCVR: ' + socvrModeratedSites.join(',') + '; Code Review; and Meta Stackexchange. Checking this prevents the cv-pls/del-pls GUI from being added on other sites.'),
+            onlyCharcoalSDSpamOnUnknownSites:  new CheckboxOption(true, 'On sites not specifically configured in this script, use Charcoal HQ as default & show only SD Reports/spam report options.', 'On sites not specifically configured in this script, use Charcoal HQ as the default room and show only SD Reports, spam and offensive as report options. This will not replace the room currently defined on any site. Basically, for any site you have visited prior to setting this option, the site will have already been defined (used to be SOCVR, then changed to "The Stack Exchange Network"). On those sites, you will need to manually change the room.'),
             alwaysCharcoal:                    new CheckboxOption(false, 'Always send SD actions to Charcoal HQ.', 'Regardless of the current room selection, always send SD commands to Charcoal HQ.'),
             alwaysAddNato:                     new CheckboxOption(true, 'Add " (NATO)" to requests from NATO.', 'When submitting a request from New Answers To Old questions (NATO, part of the 10k tools), add " (NATO)" to the request reason to help people see why you\'re submitting a request about an old question.'),
             canReportSmokeDetectorSOCVR:       new CheckboxOption(false, 'SOCVR: Show request types for Smoke Detector.', 'When the target Room is SOCVR, show request type options for reporting to Smoke Detector (SD) that the question is spam/offensive, or that all the user\'s posts are spam/offensive. Using SD in SOCVR requires that you are approved to do so in SOCVR. If you\'re not yet approved, sending such reports will just have SD respond saying that you\'re not approved.'),
@@ -169,11 +170,12 @@
         return a.join(' ');
     };
 
-    function SiteConfig(_name, _siteRegExp, _offTopicCloseReasons, _quickSubstitutions, _defaultRoomKey) {
+    function SiteConfig(_name, _siteRegExp, _offTopicCloseReasons, _quickSubstitutions, _offTopicScrapeMatch, _defaultRoomKey) {
         this.name = _name;
         this.siteRegExp = _siteRegExp;
         this.offTopicCloseReasons = _offTopicCloseReasons;
         this.quickSubstitutions = new QuickSubstitutions(_quickSubstitutions);
+        this.offTopicScrapeMatch = _offTopicScrapeMatch;
         this.defaultRoomKey = _defaultRoomKey;
         this.defaultRoom = JSON.parse(JSON.stringify(knownRooms[_defaultRoomKey].room));
     }
@@ -187,8 +189,9 @@
     };
     var configsForSites = [];
     //Stack Overflow
+    //XXX There's quite a bit of duplication in these. The Objects could be consolidated.
     configsForSites.push(new SiteConfig('Stack Overflow', /^stackoverflow.com$/, {
-        1: 'Blatantly off-topic (flag dialog)', //In close-flag dialog, but not the close-vote dialog.
+        1: 'Blatantly off-topic', //In close-flag dialog, but not the close-vote dialog.
         2: 'Belongs on another site',
         3: 'custom',
         4: 'General Computing',
@@ -204,14 +207,21 @@
         'f': 'Server Fault',
         'l': 'Request for Off-Site Resource',
         'F': '(FireAlarm)',
+        'N': '(NATO)',
         'S': '(SD report)',
         'c': '(not enough code to duplicate)',
         'b': '(no specific expected behavior)',
         'e': '(no specific problem or error)',
-    }, defaultQuickSubstitutions), 'SOCVR'));
+    }, defaultQuickSubstitutions), {
+        'reproduced': 'r',
+        'general': 'g',
+        'recommend': 'l',
+        'server': 'f',
+        'working': 'm',
+    }, 'SOCVR'));
     //Meta Stack Exchange
     configsForSites.push(new SiteConfig('Meta Stack Exchange', /^meta.stackexchange.com$/, {
-        1: 'Blatantly off-topic (flag dialog)', //In close-flag dialog, but not the close-vote dialog.
+        1: 'Blatantly off-topic', //In close-flag dialog, but not the close-vote dialog.
         //This site does not have a 2: 'Belongs on another site'
         3: 'custom',
         5: 'Does not seek input or discussion',
@@ -223,10 +233,14 @@
         'r': 'Cannot be reproduced',
         'n': 'Not about Stack Exchange Network software',
         's': 'Specific to a single site',
-    }, defaultQuickSubstitutions), 'tavern'));
+    }, defaultQuickSubstitutions), {
+        'reproduced': 'r', //Needs verification.
+        'only': 's',
+        'input': 'i',
+    }, 'tavern'));
     //Code Review Stack Exchange
     configsForSites.push(new SiteConfig('Code Review Stack Exchange', /^codereview.stackexchange.com$/, {
-        1: 'Blatantly off-topic (flag dialog)', //In close-flag dialog, but not the close-vote dialog.
+        1: 'Blatantly off-topic', //In close-flag dialog, but not the close-vote dialog.
         2: 'Belongs on another site',
         3: 'custom',
         20: 'Lacks concrete context',
@@ -236,17 +250,19 @@
         'c': 'Lacks concrete context',
         'i': 'Code not implemented or not working as intended',
         'a': 'Authorship of code',
-    }, defaultQuickSubstitutions), 'SECRCQ'));
+    }, defaultQuickSubstitutions), {
+        //The default method of using what's bold or italics works reasonably for this site.
+    }, 'CRCQR'));
 
     //Default site configuration
     var currentSiteConfig = new SiteConfig('Default', /./, {
-        1: 'Blatantly off-topic (flag dialog)', //In close-flag dialog, but not the close-vote dialog.
+        1: 'Blatantly off-topic', //In close-flag dialog, but not the close-vote dialog.
         2: 'Belongs on another site',
         3: 'custom',
-    }, defaultQuickSubstitutions, 'seNetwork');
+    }, defaultQuickSubstitutions, {}, 'seNetwork');
 
     //If we are not trying to be compatible with IE, then could use .find here.
-    configsForSites.some((siteConfig) => {
+    var isKnownSite = configsForSites.some((siteConfig) => {
         if (siteConfig.siteRegExp.test(window.location.hostname)) {
             currentSiteConfig = siteConfig;
             return true;
@@ -264,14 +280,14 @@
     var isSuggestedEditReviewPage = /^\/review\/suggested-edits(?:\/|$)/i.test(window.location.pathname);
     //Restore the options
     var configOptions = getConfigOptions();
-    //If the options are set such that we don't show on non-SOCVR sites, and this is not a SOCVR site, then stop processing.
-    if (configOptions.checkboxes.onlySocvrModeratedSites && !isSocvrSite) {
+    //If the options are set such that we don't show on non-SOCVR sites and this is not a SOCVR site, or we are only to run on known sites and this one isn't known, then stop processing.
+    if ((configOptions.checkboxes.onlySocvrModeratedSites && !isSocvrSite) || (configOptions.checkboxes.onlyKnownSites && !isKnownSite)) {
         return;
     }
     var onlySdSpamOffensive;
 
     function setGlobalVariablesByConfigOptions() {
-        onlySdSpamOffensive = configOptions.checkboxes.onlyCharcoalSDSpamOnNonSocvrSites && !isSocvrSite;
+        onlySdSpamOffensive = configOptions.checkboxes.onlyCharcoalSDSpamOnUnknownSites && !isSocvrSite && !isKnownSite;
         RoomList.defaultRoomUrl = currentSiteConfig.defaultRoom.url;
         if (onlySdSpamOffensive) {
             RoomList.defaultRoomUrl = knownRooms.charcoal.room.url; // charcoal-hq
@@ -1503,7 +1519,7 @@
                 } else {
                     var closeQuestionLink = $('.close-question-link', this.questionContext).first();
                     if (closeQuestionLink.length) {
-                        var closeVoteReason = /^You voted to close as '([^.]+)'\..*$/.exec(closeQuestionLink.first().attr('title'));
+                        var closeVoteReason = /^You voted to close as '([^.]+)'\..*$/.exec(closeQuestionLink.first().attr('title') || '');
                         closeVoteReason = (closeVoteReason === null) ? '' : closeVoteReason[1];
                         //normalize the reasons
                         if (closeVoteReason === 'off-topic') {
@@ -1514,7 +1530,10 @@
                             closeVoteReason = '';
                         }
                         if (closeVoteReason) {
-                            closeVoteReason = reasons[closeVoteReason[0]];
+                            const origCloseVoteReason = closeVoteReason;
+                            closeVoteReason = reasons.substitutions[closeVoteReason[0]];
+                            //If that fails...
+                            closeVoteReason = closeVoteReason ? closeVoteReason : origCloseVoteReason.replace(/\b(\w)/g, (text) => text.toUpperCase());
                         }
                         reasonInput.val(closeVoteReason);
                     }
@@ -1594,15 +1613,39 @@
                     }
                 }
             }
-            const tmpRequestReason = this.requestReasonInput.val();
+            let tmpRequestReason = this.requestReasonInput.val();
             //Add '(No Roomba: ...'
             if (this.guiType === 'question' && newRequestType === 'del-pls' && isQuestionClosed(this.questionContext) &&
                     (didChangeReason || !tmpRequestReason || (cvplsRememberedReason && tmpRequestReason === cvplsRememberedReason.reason)) && !/roomba/i.test(tmpRequestReason)) {
                 let startParan = ' (';
                 let endParan = ')';
                 if (!tmpRequestReason) {
-                    startParan = '';
-                    endParan = '';
+                    const questionStatusH2 = $('.question-status h2', this.questionContext);
+                    if (questionStatusH2.length) {
+                        let closedAsText = questionStatusH2.text().match(/\bas (.*?)(?: what you're asking)? by\b/)[1];
+                        if (closedAsText.indexOf('off-topic') > -1) {
+                            const questionStatusOffTopicReasonText = $('.question-status .close-as-off-topic-status-list li', this.questionContext).map(function() {
+                                let reasonText = $('b, i', this).toArray().map((el) => el.textContent).join(' ').replace(/:/g, '');
+                                //Convert to predetermined text, if applicable.
+                                Object.keys(currentSiteConfig.offTopicScrapeMatch).some((key) => {
+                                    if (reasonText.indexOf(key) > -1) {
+                                        reasonText = reasons.get(currentSiteConfig.offTopicScrapeMatch[key]);
+                                        return true;
+                                    }
+                                    return false;
+                                });
+                                return reasonText;
+                            }).toArray().join(' / ');
+                            closedAsText = questionStatusOffTopicReasonText ? questionStatusOffTopicReasonText : closedAsText;
+                        }
+                        if (closedAsText) {
+                            tmpRequestReason = closedAsText;
+                        }
+                    }
+                    if (!tmpRequestReason) {
+                        startParan = '';
+                        endParan = '';
+                    }
                 }
                 const hasAccepted = !!$('.vote-accepted-on', this.questionContext).length;
                 const questionScore = +$('.question .vote-count-post', this.questionContext).text().trim();
