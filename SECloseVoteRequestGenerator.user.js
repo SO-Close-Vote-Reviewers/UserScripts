@@ -1909,7 +1909,7 @@
                     const untilDate = new Date(rememberedReason.delayedUntil);
                     const until = `${untilDate.toLocaleString()} (${untilDate.toLocaleString(void (0), {weekday: 'long'})})`;
                     const requestDate = new Date(rememberedReason[timeKey]);
-                    invalidRequestReasons.push(`Scheduled ${rememberedReason.requestType}: ${until}.</br>Last modified on ${requestDate.toLocaleString()} (${requestDate.toLocaleString(void (0), {weekday: 'long'})})`);
+                    invalidRequestReasons.push(`Scheduled ${rememberedReason.requestType}: <b>${until}</b>.</br>Last modified on ${requestDate.toLocaleString()} (${requestDate.toLocaleString(void (0), {weekday: 'long'})})`);
                 }
             }
             if (requestTypesWithNoReason.indexOf(requestType) === -1 && requestTypesWithOptionalReason.indexOf(requestType) === -1 && !delayableRequestRegex.test(actualRequestType)) {
