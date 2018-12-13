@@ -2025,11 +2025,16 @@
                 } else {
                     userName = userDetails.text().trim().match(/[^\n]+/);
                     userName = userName ? userName[0].trim() : '';
-                    //username can be RTL... need to insert a LTR Override marker to have proper direction (it still won't look quite correct, but it'll be better).
-                    userName = userName ? userName + '\u202D' : '';
+                    //The username can be RTL... need to insert a LTR Override marker to have proper direction (it still won't look quite correct, but it'll be better).
+                    //  This is done when creating the Markdown.
                 }
                 this.userLink = userLink = postUser.find('a');
-                this.userMarkdown = userMarkdown = userLink.length ? createMarkdownLinkWithText(userName, urlBase + userLink.attr('href')) : userName;
+                const userLinkHref = userLink.first().attr('href');
+                if (!userLink.length || (userName === 'community wiki' && /posts\/\d+\/revisions/.test(userLinkHref))) {
+                    this.userMarkdown = userMarkdown = userName;
+                } else {
+                    this.userMarkdown = userMarkdown = createMarkdownLinkWithText(userName, urlBase + userLinkHref);
+                }
             }
             //Time the answer/question was posted
             var postTime = this.postTime;
