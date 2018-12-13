@@ -1079,12 +1079,12 @@
     //Make access to the current room easier
     /* eslint-disable brace-style */
     /* beautify preserve:start */
-    var base = 'https://' + window.location.hostname;
-    function getCurrentRoom() { return getStorage(base + 'room'); }
-    function setCurrentRoom(url) { return setStorage(base + 'room', url); }
-    function markCurrentRoomTransitionedA() { return markStorageTransitionedA(base + 'room'); }
-    //function unmarkCurrentRoomTransitionedA(){return unmarkStorageTransitionedA(base + 'room');} //Not currently used
-    function isCurrentRoomTransitionedA() { return isStorageTransitionedA(base + 'room'); }
+    var urlBase = 'https://' + window.location.hostname;
+    function getCurrentRoom() { return getStorage(urlBase + 'room'); }
+    function setCurrentRoom(url) { return setStorage(urlBase + 'room', url); }
+    function markCurrentRoomTransitionedA() { return markStorageTransitionedA(urlBase + 'room'); }
+    //function unmarkCurrentRoomTransitionedA(){return unmarkStorageTransitionedA(urlBase + 'room');} //Not currently used
+    function isCurrentRoomTransitionedA() { return isStorageTransitionedA(urlBase + 'room'); }
     function isCurrentRoomSOCVR() { return isSocvrRoomUrlRegEx.test(getCurrentRoom()); }
     /* beautify preserve:end */
     /* eslint-enable brace-style */
@@ -2003,7 +2003,7 @@
                 }
                 //Add domain and scheme
                 if (postLinkHref.indexOf('/') === 0) {
-                    postLinkHref = base + postLinkHref;
+                    postLinkHref = urlBase + postLinkHref;
                 }
                 this.postLinkHref = postLinkHref;
             }
@@ -2029,8 +2029,7 @@
                     userName = userName ? userName + '\u202D' : '';
                 }
                 this.userLink = userLink = postUser.find('a');
-                //this.userMarkdown = userMarkdown = userLink.length ? '[' + userName + '](' + base + userLink.attr('href') + ')' : userName;
-                this.userMarkdown = userMarkdown = userLink.length ? createMarkdownLinkWithText(userName, base + userLink.attr('href')) : userName;
+                this.userMarkdown = userMarkdown = userLink.length ? createMarkdownLinkWithText(userName, urlBase + userLink.attr('href')) : userName;
             }
             //Time the answer/question was posted
             var postTime = this.postTime;
@@ -2212,7 +2211,7 @@
                 request = '!!/scan ' + postLinkHref + (reason ? ' "' + reason + '"' : '');
             }
             if (requestType === 'SD remove blacklisted user') {
-                request = '!!/rmblu ' + base + userLink.attr('href');
+                request = '!!/rmblu ' + urlBase + userLink.attr('href');
             }
             if (requestType === 'SD report user') {
                 request = '!!/reportuser ' + userLink.attr('href').replace(/^\/users/, 'https://' + window.location.hostname + '/users');
