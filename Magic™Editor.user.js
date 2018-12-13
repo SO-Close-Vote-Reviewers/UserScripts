@@ -53,7 +53,7 @@
         App.globals.placeHolders = {
             //The text here is staticly used in some edit RegExp to prevent substitution of placeholders.
             //  See:
-            //    badphrases
+            //    badphrases which relies on "_xPlacexHolderx" starting a placeholder.
             "auto":        "_xPlacexHolderxAutoxInsertxTextxPlacexHolderx_",
             "quote":       "_xPlacexHolderxBlockxQuotexPlacexHolderx_",
             "inline":      "_xPlacexHolderxCodexInlinexPlacexHolderx_",
@@ -61,7 +61,8 @@
             "blockStart":  "_xPlacexHolderxCodexBlockxStartxPlacexHolderx_",
             "lsec":        "_xPlacexHolderxLinkxSectionxPlacexHolderx_",
             "links":       "_xPlacexHolderxLinkxPlacexHolderx_",
-            "tags":        "_xPlacexHolderxTagxPlacexHolderx_"
+            "tags":        "_xPlacexHolderxTagxPlacexHolderx_",
+            "dashes":      "_xPlacexHolderxDashesxPlacexHolderx_"
         };
         App.globals.replacedStrings = {};
         App.globals.replacedStringsOriginal = {};
@@ -94,7 +95,8 @@
             //        https://regex101.com/r/tZ4eY3/22
             "links":  /!?\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])(?:\](?:\([^\)\n]+\)|\[[^\]\n]+\]))?|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d:/?#\[\]@!$&'()*+,;=\-~%]*/gi,
             //        https://regex101.com/r/bF0iQ0/2   tags and html comments
-            "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>|\[tag:[\w.-]+\]/gi
+            "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>|\[tag:[\w.-]+\]/gi,
+            "dashes":   /^(\s*--+\s*?)$/gim
         };
         //Make a shallow copy of the App.globals.checks Object
         App.globals.checksr = (function(objIn){
