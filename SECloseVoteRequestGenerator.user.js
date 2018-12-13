@@ -1314,7 +1314,7 @@
             '                </select>' +
             '            </label>' +
             '            <span class="cvrgDelayLengthSpan" style="display:none;">' +
-            '                <input class="cvrgDelayLengthNumber cvrgDelayLengthDays" type="number" title="Number of days from now that you want to revisit this post." min="0" max="999" value="1">' +
+            '                <input class="cvrgDelayLengthNumber cvrgDelayLengthDays" type="number" title="Number of days from now that you want to revisit this post." min="0" max="999" value="0">' +
             '                    Days' +
             '                </input>' +
             '                <input class="cvrgDelayLengthNumber cvrgDelayLengthHours" type="number" title="Number of hours from now that you want to revisit this post." min="0" max="23" value="0">' +
