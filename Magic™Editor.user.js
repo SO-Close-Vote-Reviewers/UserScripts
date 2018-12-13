@@ -62,6 +62,8 @@
             "blockStart":  "_xPlacexHolderxCodexBlockxStartxPlacexHolderx_",
             "lsec":        "_xPlacexHolderxLinkxSectionxPlacexHolderx_",
             "links":       "_xPlacexHolderxLinkxPlacexHolderx_",
+            "preBlock":    "_xPlacexHolderxPrexBlockxPlacexHolderx_",
+            "codeTag":     "_xPlacexHolderxCodexTagxPlacexHolderx_",
             "tags":        "_xPlacexHolderxTagxPlacexHolderx_",
             "dashes":      "_xPlacexHolderxDashesxPlacexHolderx_"
         };
@@ -94,7 +96,13 @@
             //links and pathnames
             //  See comment above the "lsec" RegExp regarding testing sharing the same "regex" on regex101.com
             //        https://regex101.com/r/tZ4eY3/22
-            "links":  /!?\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])(?:\](?:\([^\)\n]+\)|\[[^\]\n]+\]))?|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d:/?#\[\]@!$&'()*+,;=\-~%]*/gi,
+            "links":  /!?\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])(?:\](?:\([^\)\n]+\)|\[[^\]\n]+\]))?|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d:/?#\[\]@!$&'()*+,;=\-~%]*/gi, // ' fix syntax highlighting in code editor
+            //<pre></pre> blocks
+            //        https://regex101.com/r/KFvgol/1
+            "preBlock": /<pre(?: [^>]*?|)>[\W\w]*?<\/pre>/gi,
+            //<code></code> blocks
+            //        https://regex101.com/r/waCxWR/1
+            "codeTag":  /<code(?: [^>]*?|)>[\W\w]*?<\/code>/gi,
             //        https://regex101.com/r/bF0iQ0/2   tags and html comments
             "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>|\[tag:[\w.-]+\]/gi,
             "dashes":   /^(\s*--+\s*?)$/gim
