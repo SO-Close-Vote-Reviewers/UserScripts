@@ -261,7 +261,6 @@
     var isSocvrSite = socvrModeratedSites.indexOf(window.location.hostname) > -1;
     var isSocvrRoomUrlRegEx = /chat\.stackoverflow\.com\/rooms\/41570(?:$|\/)/;
     var isNato = window.location.pathname.indexOf('tools/new-answers-old-questions') > -1;
-    //var isSuggestedEditReviewPage = /^\/review\/suggested-edits\/\d+/i.test(window.location.pathname);
     var isSuggestedEditReviewPage = /^\/review\/suggested-edits(?:\/|$)/i.test(window.location.pathname);
     //Restore the options
     var configOptions = getConfigOptions();
@@ -1999,6 +1998,11 @@
             if (!postLinkHref) {
                 if (isGuiReviewSE) {
                     postLinkHref = questionTitle.attr('href');
+                    if (postLinkHref.indexOf('#') === -1) {
+                        postLinkHref = postLinkHref.replace(/(\/\d+)\/[^/]*/, '$1');
+                    } else {
+                        postLinkHref = '/a/' + postLinkHref.match(/#(\d+)$/)[1];
+                    }
                 } else {
                     postLinkHref = $('.short-link', post).attr('href');
                     if (!postLinkHref) {
@@ -2254,7 +2258,11 @@
                 request = requestTypePlusSpace + urlBase + userLink.attr('href');
             }
             if (isGuiReviewSE) {
-                request = '[tag:' + requestType + '] ' + reason + ' [Suggested Edit](' + window.location.href + ') by ' + userMarkdown + ' changing: ' + titleMarkdown + (/tag (?:wiki|excerpt)/.test(titleMarkdown) ? ' ' + questionTagMarkdown : '');
+                let suggestedEditUrl = window.location.href;
+                if (window.location.href.indexOf('/question') > -1) {
+                    suggestedEditUrl = urlBase + this.gui.wrapper.closest('.post-menu').children('a[href^="/review"]').attr('href');
+                }
+                request = '[tag:' + requestType + '] ' + reason + ' [Suggested Edit](' + suggestedEditUrl + ') by ' + userMarkdown + ' changing: ' + titleMarkdown + (/tag (?:wiki|excerpt)/.test(titleMarkdown) ? ' ' + questionTagMarkdown : '');
             }
             if (request.length > 500) {
                 criticalRequestReasons.push(`Request > 500 characters. (${request.length})`);
@@ -2984,13 +2992,8 @@
         }
         addCvplsToDomForPostType(CVRGUI.questions, 'question');
         addCvplsToDomForPostType(CVRGUI.answers, 'answer');
-        if (isSuggestedEditReviewPage) {
-            //Suggested Edit Review.
-            const match = window.location.pathname.match(/^\/review\/suggested-edits\/(\d+)\b.*$/i);
-            const reviewId = (match && match.length > 1) ? match[1] : '';
-            const toolsSubHeader = $('.subheader.tools-rev');
-            //Remove any exiting GUI which doesn't match the current review.
-            $('span.cvrgui', toolsSubHeader).each(function() {
+        function removeNonMatchingReviewGui(context, reviewId) {
+            $('span.cvrgui', context).each(function() {
                 const currentGuiId = this.dataset.guiId;
                 if (!currentGuiId || currentGuiId !== reviewId) {
                     const prev = this.previousSibling;
@@ -3002,11 +3005,43 @@
                     this.remove();
                 }
             });
+        }
+        if (isSuggestedEditReviewPage) {
+            //Suggested Edit Review.
+            const match = window.location.pathname.match(/^\/review\/suggested-edits\/(\d+)\b.*$/i);
+            const reviewId = (match && match.length > 1) ? match[1] : '';
+            const toolsSubHeader = $('.subheader.tools-rev');
+            //Remove any exiting GUI which doesn't match the current review.
+            removeNonMatchingReviewGui(toolsSubHeader, reviewId);
             if (!$('span.cvrgui', toolsSubHeader).length) {
                 //No GUI yet.
                 const filterSummary = $('.review-filter-summary', toolsSubHeader);
                 const newGui = new Gui('reviewSE', reviewId, CVRGUI);
                 filterSummary.before(' ').before(newGui.wrapper);
+                CVRGUI.cleanReviews();
+                CVRGUI.reviews.push(newGui);
+            }
+        }
+        const suggestedEditPopup = $('.popup-suggested-edit');
+        if (suggestedEditPopup.length) {
+            const postMenu = suggestedEditPopup.closest('.post-menu');
+            const reviewId = (postMenu.children('a[href^="/review"]').attr('href').match(/\/(\d+)$/) || ['', ''])[1];
+            removeNonMatchingReviewGui(suggestedEditPopup, reviewId);
+            let reviewPlsContainer = $('.cvrg-review-pls-container', suggestedEditPopup);
+            if (!reviewPlsContainer.length) {
+                suggestedEditPopup.find('.suggested-edit-container').prepend('<div class="cvrg-review-pls-container"></div>');
+                reviewPlsContainer = suggestedEditPopup.children('.cvrg-review-pls-container');
+            }
+            if (!$('span.cvrgui', reviewPlsContainer).length) {
+                //No GUI yet.
+                const newGui = new Gui('reviewSE', reviewId, CVRGUI);
+                //Prevent the <a> elements in the GUI from opening a new tab or navigating, except those that have something that might be a valid URL for href.
+                newGui.wrapper[0].addEventListener('click', function(event) {
+                    if (event.target.nodeName === 'A' && (event.target.href || '').indexOf('/') === -1) {
+                        event.preventDefault();
+                    }
+                }, true);
+                reviewPlsContainer.append(newGui.wrapper);
                 CVRGUI.cleanReviews();
                 CVRGUI.reviews.push(newGui);
             }
