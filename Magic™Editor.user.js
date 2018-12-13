@@ -2882,6 +2882,63 @@
             //    debug: false,
             //    reason: App.consts.reasons.layout
             //},
+            //mdash and ndash
+            // See: https://regex101.com/r/vnM5cO/1 for text which was tested.
+            // --- is converted to &mdash;
+            // -- is converted to &ndash;
+            // Not having spaces is enforced around the &mdash; (For those &mdash; which are added here).
+            // Spaces are enforced around the &ndash; (For those &ndash; which are added here).
+            mdash: { //Must follow layout changes, due to adding an HTML tag, which would be mangled as a result of layout substitutions.
+                expr: /([^-]|^)---([^-]|$)/gmi,
+                replacement: "$1&mdash;$2",
+                reason: App.consts.reasons.grammar,
+                runAfter: [
+                    'mdash_clear',
+                    'mdash_clear' //Yes, twice.
+                ]
+            },
+            mdash_clear: { //For an mdash that we've added, make it so there's no space.
+                expr: /(?: *&mdash;(?! *$) +| +&mdash;)/gmi,
+                //expr: /(?: +&mdash;(?! +$) +| +&mdash;|&mdash;(?! +$) +)/gmi,
+                replacement: "&mdash;",
+                reason: App.consts.reasons.silent,
+                notAlone: true
+            },
+            ndash: { //Must follow layout changes, due to adding an HTML tag, which would be mangled as a result of layout substitutions.
+                expr: /([^-]|^)--([^-]|$)/gmi,
+                replacement: "$1&ndash;$2",
+                reason: App.consts.reasons.grammar,
+                runAfter: [ //These are run in the order listed.
+                    'ndash_protect_start',
+                    'ndash_clear_left',
+                    'ndash_unprotect_start',
+                    'ndash_clear_right'
+                ]
+            },
+            ndash_protect_start: { //For an ndash that we've added at the start of the line, make it so we don't add a space
+                expr: /^&ndash;/gmi,
+                replacement: "&qdash;", //Tags have been substituted out, so we don't need to worry about duplication.
+                reason: App.consts.reasons.silent,
+                notAlone: true,
+            },
+            ndash_clear_left: { //For an ndash that we've added, make it so there's a space to the left.
+                expr: / *&ndash;/gmi,
+                replacement: " &ndash;",
+                reason: App.consts.reasons.silent,
+                notAlone: true,
+            },
+            ndash_unprotect_start: { //Reverse the protection
+                expr: /&qdash;/gmi,
+                replacement: "&ndash;", //Tags have been substituted out, so we don't need to worry about duplication.
+                reason: App.consts.reasons.silent,
+                notAlone: true,
+            },
+            ndash_clear_right: { //For an ndash that we've added, make it so there's a space, or whatever spaces already existed and a line-break.
+                expr: /&ndash;(?! +$) */gmi,
+                replacement: "&ndash; ",
+                reason: App.consts.reasons.silent,
+                notAlone: true
+            },
             trailing_space: {  // https://regex101.com/r/iQ0yR8/1
                 expr: /([^ ])[ ]{1}$/gm,
                 replacement: "$1",
