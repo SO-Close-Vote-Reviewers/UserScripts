@@ -20,6 +20,7 @@
 // @exclude       *://api.*.stackexchange.com/*
 // @exclude       *://data.stackexchange.com/*
 // ==/UserScript==
+/* globals StackExchange */
 
 (function() {
     "use strict";
