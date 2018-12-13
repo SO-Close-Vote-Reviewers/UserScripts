@@ -140,12 +140,17 @@
         // Define edit rules
         // See https://regex101.com/r/fC3bY5/2 for a basic RegExp that excludes matches in filenames, paths, library names, etc.
         // The following properties are available for each edit rule:
-        //    expr:        RegExp                Used as the argument for the String methods .match() and the first argument for .replace().
-        //    replacement: String or function    Used as the second argument for the String method .replace(). e.g. "$1 want".
-        //    reason:      String                Should be one of the constants defined as a reason. e.g.:  App.consts.reasons.grammar
-        //    rerun:       Array of String       The keys of rules which will be re-run if there are any changes made by this current rule.
-        //    titleOnly:   truthy (Boolean)      If evaluates to true, then the rule is only applied to titles.
-        //    debug:       truthy (Boolean)      If evaluates to true, then debug output is logged to the console for this rule.
+        //    expr:         RegExp                          Used as the argument for the String methods .match() and the first argument for .replace().
+        //    replacement:  String or function              Used as the second argument for the String method .replace(). e.g. "$1 want".
+        //    reason:       String                          Should be one of the constants defined as a reason. e.g.:  App.consts.reasons.grammar
+        //    rerun:        String or Array of String       The keys of rules which will be re-run if there are any changes made by this current rule. "rerrun" is executed before "runAfter"
+        //    runBefore:    String or Array of String       The keys of rules which will be run, perhaps re-run, immediately before this key.
+        //    runAfter:     String or Array of String       The keys of rules which will be run, perhaps re-run, immediately after this key.
+        //    notAlone:     truthy (Boolean)                If evaluates to true, then the rule is only run when specified in a "rerun", "runBefore", or "runAfter"
+        //    titleOnly:    truthy (Boolean)                If evaluates to true, then the rule is only applied to titles.
+        //    bodyOnly:     truthy (Boolean)                If evaluates to true, then the rule is only applied to bodies.
+        //    debug:        truthy (Boolean)                If evaluates to true, then debug output is logged to the console for this rule.
+        //  WARNING: rerun, runBefore, and runAfter can result in an infinite loop.
         App.edits = {
             // Handle all-caps posts first
             noneedtoyell: {
@@ -3225,32 +3230,61 @@
             // List of fields to be edited
             var fields = {body:'body',title:'title'};
 
-            // Loop through all editing rules
-            for (var ruleKey in App.edits) {
-                if (App.edits.hasOwnProperty(ruleKey)) {
-                    for (var field in fields) {
-                        if (fields.hasOwnProperty(field)) {
-                            var editRule = App.edits[ruleKey];
-                            var debug = editRule.debug;
-                            if (debug) console.log("edit " + ruleKey + " in " + field);
-                            if (editRule.titleOnly && 'title' !== field) {
-                                continue;  // Skip title-only edits if not editing title.
-                            }
-                            var fix = App.funcs.fixIt(data[field], editRule, ruleKey);
-                            if (!fix) continue;
-                            //A change was made:
-                            console.log('Change by edit rule: reason:', editRule.reason, ':: ruleKey:', ruleKey, ':: editRule', editRule, ':: before:', {before: data[field]}, '::  fix:', fix);
-                            if (fix.reason in App.globals.reasons) {
-                                App.globals.reasons[fix.reason].count += fix.count;
-                            } else {
-                                App.globals.reasons[fix.reason] = { reason:fix.reason, editId:ruleKey, count:fix.count };
-                            }
-                            data[field] = fix.fixed;
-                            editRule.fixed = true;
+            function applyEditRules(ruleKeyList, notAlone) {
+                ruleKeyList = typeof ruleKeyList === 'string' ? [ruleKeyList] : ruleKeyList;
+                if (!Array.isArray(ruleKeyList)) {
+                    return false;
+                }
+                var changes = false
+                ruleKeyList.forEach(function(ruleKey) {
+                    changes = applyEditRule(ruleKey, notAlone) || changes;
+                });
+                return changes;
+            }
+
+            function applyEditRule(ruleKey, notAlone) {
+                const editRule = App.edits[ruleKey];
+                const debug = editRule.debug;
+                var rerunChanges = false;
+                var changes = false;
+                if (editRule.notAlone && !notAlone) {
+                    if (debug) console.log("edit " + ruleKey + " skipped: not alone");
+                    return false;
+                }
+                if (debug && editRule.runBefore) console.log("edit " + ruleKey + ": running rules before:", editRule.runBefore);
+                var beforeChanges = applyEditRules(editRule.runBefore, true);
+
+                for (var field in fields) {
+                    if (fields.hasOwnProperty(field)) {
+                        if (debug) console.log("edit " + ruleKey + " in " + field);
+                        if ((editRule.titleOnly && 'title' !== field) || (editRule.bodyOnly && 'body' !== field)) {
+                            continue;  // Skip title-only edits if not editing title, or the same for bodies.
                         }
+                        var fix = App.funcs.fixIt(data[field], editRule, ruleKey);
+                        if (!fix) continue;
+                        changes = true;
+                        //A change was made:
+                        console.log('Change by edit rule: reason:', editRule.reason, ':: ruleKey:', ruleKey, ':: editRule', editRule, ':: before:', {before: data[field]}, '::  fix:', fix);
+                        if (fix.reason in App.globals.reasons) {
+                            App.globals.reasons[fix.reason].count += fix.count;
+                        } else {
+                            App.globals.reasons[fix.reason] = { reason:fix.reason, editId:ruleKey, count:fix.count };
+                        }
+                        data[field] = fix.fixed;
+                        editRule.fixed = true;
                     }
                 }
+                if (changes && editRule.rerun) {
+                    if (debug) console.log("edit " + ruleKey + ": re-running rules:", editRule.rerun);
+                    rerunChanges = applyEditRules(editRule.rerun, true);
+                }
+                if (debug && editRule.runAfter) console.log("edit " + ruleKey + ": running rules After:", editRule.runAfter);
+                var afterChanges = applyEditRules(editRule.runAfter, true);
+                return beforeChanges || changes || rerunChanges || afterChanges;
             }
+
+            // Loop through all editing rules
+            applyEditRules(Object.keys(App.edits));
 
             // Remove silent change reason
             delete App.globals.reasons[App.consts.reasons.silent];
