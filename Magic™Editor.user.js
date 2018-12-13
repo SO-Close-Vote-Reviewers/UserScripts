@@ -231,6 +231,11 @@
                 replacement: "AngularJS",
                 reason: App.consts.reasons.trademark
             },
+            angularcli: {
+                expr: /\bangular\W{0,2}cli\b(?![.-]\w)/gi,
+                replacement: "Angular CLI",
+                reason: App.consts.reasons.trademark
+            },
             angular: {
                 expr: /\bangular\b(?![.-]\w)/gi,
                 replacement: "Angular",
@@ -999,6 +1004,11 @@
             firebase: {
                 expr: /\bfirebase\b/gi,
                 replacement: "Firebase",
+                reason: App.consts.reasons.trademark
+            },
+            whatsapp: {
+                expr: /\bwhatsapp\b/gi,
+                replacement: "WhatsApp",
                 reason: App.consts.reasons.trademark
             },
             /*
