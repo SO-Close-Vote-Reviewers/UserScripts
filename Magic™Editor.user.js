@@ -2586,6 +2586,12 @@
                 replacement: "",
                 reason: App.consts.reasons.grammar
             },
+            protect_column_a_Begin: { // Prevent "Column A" from being changed (Begin); order in App.edits Object does not matter.
+                expr: /(column\s+)(An?)\b/gi,
+                replacement: "$1_xPlacexHolderxColumn$2PlacexHolderx_",
+                notAlone: true, // Don't run unless it's as part of another edit rule.
+                reason: App.consts.reasons.silent
+            },
             a_vs_an: {  // See http://stackoverflow.com/q/34440307/1677912
                 expr: /\b(a|an) ([\(\"'“‘`<-]*\w*)\b/gim,   // https://regex101.com/r/nE1yA4/5
                 replacement: function( match, article, following ) {
@@ -2607,7 +2613,15 @@
                             exceptionsAn_.test(fword) ? article[0]+"n" : false);
                     }
                 },
+                runBefore: ['protect_column_a_Begin'],
+                runAfter: ['protect_column_a_End'],
                 reason: App.consts.reasons.grammar
+            },
+            protect_column_a_End: { // Prevent "Column A" from being changed (End); order in App.edits Object does not matter.
+                expr: /_xPlacexHolderxColumn(An?)PlacexHolderx_/g,
+                replacement: "$1",
+                notAlone: true, // Don't run unless it's as part of another edit rule.
+                reason: App.consts.reasons.silent
             },
             firstcaps: {
                 //    https://regex101.com/r/JnSYVw/1
