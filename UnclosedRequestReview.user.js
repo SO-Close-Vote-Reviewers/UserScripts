@@ -1682,8 +1682,9 @@
                 message.classList.remove('reply-parent');
                 message.classList.remove('reply-child');
             }
-            node.style.backgroundColor = funcs.getBackgroundColor(funcs.getContainingMonologue(content).querySelector('.messages'));
-            node.style.color = funcs.getTextColor(funcs.getContainingMonologue(content).querySelector('.messages'));
+            const messagesNode = funcs.getContainingMonologue(content).querySelector('.messages');
+            node.style.backgroundColor = funcs.getBackgroundColor(messagesNode);
+            node.style.color = funcs.getTextColor(messagesNode);
             if (hasReplyParent) {
                 message.classList.add('reply-parent');
             }
@@ -1694,6 +1695,35 @@
             //Place the request-info prior to the .flash.
             message.insertBefore(node, message.querySelector('.flash'));
         }
+        //The link is now inserted in the request info.
+        //If the request-info extends below the top of the next message then
+        //  adjust the margin-bottom on the current message to give enough room.
+        let nextMessage = message.nextElementSibling;
+        if (!nextMessage || !nextMessage.classList.contains('message')) {
+            let nextMonologue = monologue.nextElementSibling;
+            while (nextMonologue && !nextMonologue.classList.contains('monologue')) {
+                nextMonologue = nextMonologue.nextElementSibling;
+            }
+            if (!nextMonologue || !nextMonologue.classList.contains('monologue')) {
+                nextMessage = null;
+            } else {
+                nextMessage = nextMonologue.querySelector('.message');
+            }
+        }
+        if (nextMessage && nextMessage.classList.contains('message')) {
+            //This does not account for a margin-bottom which might be applied via CSS.
+            message.style.marginBottom = '';
+            let requestInfo = message.querySelector('.request-info');
+            let requestInfoBottom = requestInfo.getBoundingClientRect().bottom;
+            let nextMessageTop = nextMessage.getBoundingClientRect().top;
+            let bottomDiff = Math.round(requestInfoBottom - nextMessageTop);
+            if (bottomDiff > 0) {
+                const currentMarginText = message.style.marginBottom;
+                const currentMargin = currentMarginText ? +currentMarginText.replace(/px/g, '') : 0;
+                message.style.marginBottom = (currentMargin + bottomDiff + 7) + 'px';
+            }
+        }
+        //Add post data to the DOM to enable other functionality.
         //Monologues are used for sorting. While it appears the code otherwise handles the possibility of multiple messages per monologue,
         //  sorting has to assume one message is sorted per monologue (on search results pages, SE delivers each message in a separate monologue).
         //  Messages are used for show/hide determination
