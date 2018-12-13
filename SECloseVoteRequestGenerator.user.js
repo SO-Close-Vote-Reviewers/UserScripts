@@ -53,8 +53,8 @@
     const isQuestionPage = window.location.pathname.indexOf('/questions/') === 0;
     const questionActivityWarningAge = 1000 * 60 * 60 * 24 * 30; //30 days
     let openedAsDelayedRequestNoticeId = [];
-    const requestTypesWithNoReason = ['SD report user', 'SD remove blacklisted user', 'spam'];
-    const requestTypesWithOptionalReason = ['SD report', 'SD scan', 'spam', 'offensive', 'reflag NAA', 'reflag VLQ'];
+    const requestTypesWithNoReason = ['!!/reportuser', '!!/addblu', '!!/rmblu', '!!/addwlu', '!!/rmwlu', 'spam'];
+    const requestTypesWithOptionalReason = ['!!/report', '!!/scan', 'spam', 'offensive', 'reflag NAA', 'reflag VLQ'];
     const knownRooms = {
         SOCVR: {
             roomText: 'SOCVR',
@@ -1656,7 +1656,7 @@
                 }
             }
             if (requestType === 'sd-report') {
-                requestType = 'SD report';
+                requestType = '!!/report';
             }
             if (requestType === 'review-pls') {
                 requestType = 'review-pls';
@@ -1733,11 +1733,14 @@
                 (!isGuiReviewSE ? '<option value="spam" title="Spam flag request">spam</option>' : '') +
                 (!isGuiReviewSE ? '<option value="offensive" title="Rude/offensive flag request">offensive</option>' : '') +
                 ((((isSOCVR && (configOptions.checkboxes.canReportSmokeDetectorSOCVR || configOptions.checkboxes.alwaysCharcoal)) || (!isSOCVR && configOptions.checkboxes.canReportSmokeDetectorOther)) && (this.guiType === 'answer' || this.guiType === 'question')) ? '' +
-                    '<option value="SD report" title="Report this post to SmokeDetector">SD report</option>' +
-                    '<option value="SD scan" title="Have SmokeDetector scan this post">SD scan</option>' +
-                    '<option value="SD remove blacklisted user" title="Have SmokeDetector remove the user from the blacklist.">SD remove blacklisted user</option>' +
+                    '<option value="!!/report" title="Report this post to SmokeDetector">!!/report</option>' +
+                    '<option value="!!/scan" title="Have SmokeDetector scan this post">!!/scan</option>' +
+                    '<option value="!!/addblu" title="Have SmokeDetector add the user to the blacklist.">!!/addblu</option>' +
+                    '<option value="!!/rmblu" title="Have SmokeDetector remove the user from the blacklist.">!!/rmblu</option>' +
+                    '<option value="!!/addwlu" title="Have SmokeDetector add the user to the whitelist.">!!/addwlu</option>' +
+                    '<option value="!!/rmwlu" title="Have SmokeDetector remove the user from the whitelist.">!!/rmwlu</option>' +
                     //SOCVR does not permit reporting of users. See room meeting: https://socvr.org/room-info/room-meetings/2016-08 and https://chat.stackoverflow.com/transcript/message/32060005#32060005
-                    ((isSOCVR && !configOptions.checkboxes.alwaysCharcoal) ? '' : '<option value="SD report user" title="Report this post\'s author to SmokeDetector (all their posts are spam). NOTE: This does not cause SD to make posts about each of the user\'s posts. To do that, you have to individually report each post. You can (manually) report up to 5 posts per !!/report.">SD report user</option>') +
+                    ((isSOCVR && !configOptions.checkboxes.alwaysCharcoal) ? '' : '<option value="!!/reportuser" title="Report this post\'s author to SmokeDetector (all their posts are spam).">!!/reportuser</option>') +
                     '' : ''));
             /* eslint-enable no-nested-ternary */
             //Restore the request type, which would have been cleared by reconstructing the <option> elements.
@@ -2230,17 +2233,25 @@
                 questionTagMarkdown = '';
             }
             request += '[tag:' + useRequestType + '] ' + tag20k + (isNatoWithoutEnhancement ? '' : questionTagMarkdown + ' ') + reason + ' ' + titleMarkdown + ' - ' + userMarkdown + postTime;
-            if (requestType === 'SD report') {
-                request = '!!/report ' + postLinkHref + (reason ? ' "' + reason + '"' : '');
+            //XXX This really should move into an Object that describes SD types and drives both this logic and the <options>.
+            const sdQuotedReason = reason ? ' "' + reason + '"' : '';
+            const sdPostCommandsWithOptionalReason = [
+                '!!/report',
+                '!!/scan',
+            ];
+            const requestTypePlusSpace = requestType + ' ';
+            if (sdPostCommandsWithOptionalReason.indexOf(requestType) > -1) {
+                request = requestTypePlusSpace + postLinkHref + sdQuotedReason;
             }
-            if (requestType === 'SD scan') {
-                request = '!!/scan ' + postLinkHref + (reason ? ' "' + reason + '"' : '');
-            }
-            if (requestType === 'SD remove blacklisted user') {
-                request = '!!/rmblu ' + urlBase + userLink.attr('href');
-            }
-            if (requestType === 'SD report user') {
-                request = '!!/reportuser ' + userLink.attr('href').replace(/^\/users/, 'https://' + window.location.hostname + '/users');
+            const sdUserCommands = [
+                '!!/rmblu',
+                '!!/addblu',
+                '!!/rmwlu',
+                '!!/addwlu',
+                '!!/reportuser',
+            ];
+            if (sdUserCommands.indexOf(requestType) > -1) {
+                request = requestTypePlusSpace + urlBase + userLink.attr('href');
             }
             if (isGuiReviewSE) {
                 request = '[tag:' + requestType + '] ' + reason + ' [Suggested Edit](' + window.location.href + ') by ' + userMarkdown + ' changing: ' + titleMarkdown + (/tag (?:wiki|excerpt)/.test(titleMarkdown) ? ' ' + questionTagMarkdown : '');
