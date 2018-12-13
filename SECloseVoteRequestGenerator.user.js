@@ -1649,7 +1649,7 @@
                 }
                 const hasAccepted = !!$('.vote-accepted-on', this.questionContext).length;
                 const questionScore = +$('.question .vote-count-post', this.questionContext).text().trim();
-                const numberPositiveScoreAnswers = $('.answer .vote-count-post', this.questionContext).map(function() {
+                const numberPositiveScoreAnswers = $('.answer:not(.deleted-answer) .vote-count-post', this.questionContext).map(function() {
                     const votes = +this.textContent.trim();
                     if (votes < 1) {
                         return null;
@@ -1658,26 +1658,29 @@
                 }).length;
                 const closeQuestionLink = $('.close-question-link', this.questionContext);
                 const reopenVotes = closeQuestionLink.text().indexOf('reopen') > -1 ? +closeQuestionLink.find('.existing-flag-count').text() : 0;
-                if (questionScore > 0 || hasAccepted || numberPositiveScoreAnswers || reopenVotes) {
-                    let newRequestReason = tmpRequestReason + `${startParan}No Roomba: `;
+                const roombaForecast = $('body.question-page #roombaField #roombaTableShort > tbody > tr > td:first-of-type b').text();
+                const noRoomba = /\bNo\b/.test(roombaForecast || '');
+                if (questionScore > 0 || hasAccepted || numberPositiveScoreAnswers || reopenVotes || (isQuestionPage && noRoomba)) {
                     let separation = '';
-                    newRequestReason += [
-                        [questionScore > 0, 'question score > 0'],
+                    const additionalNoRoombaInfo = [
+                        [questionScore > 0, ''], //Not showing anything due to people potentially taking it as a reason to down-vote.
                         [hasAccepted, 'accepted answer'],
-                        [numberPositiveScoreAnswers, 'upvoted answer'],
+                        [numberPositiveScoreAnswers, ''], //Not showing anything due to people potentially taking it as a reason to down-vote.
                         [reopenVotes, 'reopen vote'],
                     ].reduce((sum, [testValue, text]) => {
                         //If testValue is > 1, then we also use that to indicate the text should have an 's' appended.
                         if (testValue) {
-                            const toReturn = sum + `${separation}${text}${(testValue > 1 ? 's' : '')}`; //testValue will never be 0 here, but will be Boolean in some cases.
-                            separation = '; ';
-                            return toReturn;
+                            const plural = testValue > 1 ? 's' : ''; //testValue will never be 0 here, but will be Boolean in some cases.
+                            sum += (text ? `${separation}${text}${plural}` : '');
+                            separation = sum ? '; ' : '';
+                            return sum;
                         } //else
                         return sum;
                     }, '');
-                    newRequestReason += endParan;
-                    this.requestReasonInput.val(newRequestReason);
+                    this.requestReasonInput.val(tmpRequestReason + `${startParan}No Roomba${(additionalNoRoombaInfo  ? ': ' : '')}${additionalNoRoombaInfo}${endParan}`);
+                    tmpRequestReason += `${startParan}No Roomba${(additionalNoRoombaInfo  ? ': ' : '')}${additionalNoRoombaInfo}${endParan}`;
                 }
+                this.requestReasonInput.val(tmpRequestReason);
             }
             this.updateDelayUntilTime();
             this.currentRequestType = newRequestType;
