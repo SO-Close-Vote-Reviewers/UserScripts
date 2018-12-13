@@ -50,6 +50,8 @@
     const delayableRequestRegex = / \(in (?:(\d+(?:\.\d+)?)|N) days?\)/;
     const scriptInstanceIdentifier = Math.random().toString(); //Not perfectly unique, but should be close.
     const canListenGMStorage = typeof GM_addValueChangeListener === 'function'; //Not available: Greasemonkey
+    const isQuestionPage = window.location.pathname.indexOf('/questions/') === 0;
+    const questionActivityWarningAge = 1000 * 60 * 60 * 24 * 30; //30 days
     let openedAsDelayedRequestNoticeId = [];
     const requestTypesWithNoReason = ['SD report user', 'SD remove blacklisted user', 'spam'];
     const requestTypesWithOptionalReason = ['SD report', 'SD scan', 'spam', 'offensive', 'reflag NAA', 'reflag VLQ'];
@@ -1172,9 +1174,6 @@
         '        width: 100%;' +
         '        padding: 0px;' +
         '    }' +
-        '    .cv-list * {' +
-        '        vertical-align: middle;' +
-        '    }' +
         '    .cv-list dd > div {' +
         '        padding: 0px 15px;' +
         '        padding-bottom: 15px;' +
@@ -1398,7 +1397,10 @@
                 } // else
                 if (invalidRequestReasons.length) {
                     //The request is invalid and it's not a revisit. Ask the user if they are sure they want to send it.
-                    if (!window.confirm('This ' + requestTypeInput.val() + ' is may have issues because: \r\n\r\n' + invalidRequestReasons.join('\r\n') + '\r\n\r\nAre you sure you want to ' + (delayableRequestRegex.test(requestTypeInput.val()) ? 'save' : 'send') + ' this request?')) {
+                    //Quick and dirty way to remove HTML from request reasons, which makes them appear a bit better in the confirm dialog.
+                    //  It's not intended to be generalized, just handle the invalid request reasons that exist.
+                    const invalidReasonsAsText = invalidRequestReasons.join('\r\n').replace(/<[^>]*?>/g, '').replace(/&quote;/, '"');
+                    if (!window.confirm('This ' + requestTypeInput.val() + ' is may have issues because: \r\n\r\n' + invalidReasonsAsText + '\r\n\r\nAre you sure you want to ' + (delayableRequestRegex.test(requestTypeInput.val()) ? 'save' : 'send') + ' this request?')) {
                         sendButton[0].disabled = false;
                         return false;
                     }
@@ -1538,6 +1540,7 @@
             this.isQuestionBounty = null;
             this.questionRoombaInfo = null;
             this.questionRoombaDays = null;
+            this.questionActiveTime = null;
             this.tag = null;
             //Complete setup
             if (!insertMarkdownReady) {
@@ -1917,6 +1920,7 @@
                     };
                 }
             }
+            const isSOCVR = isCurrentRoomSOCVR();
             var isGuiReviewSE = this.guiType === 'reviewSE';
             //Perform single character substitutions.
             reason = reasons.get(reason);
@@ -2042,6 +2046,18 @@
                 var userTime = postUser.find('.relativetime');
                 this.postTime = postTime = userTime.length ? ' ' + userTime.attr('title') : '';
             }
+            //Time the question was active, if a question page.
+            var questionActiveTime = this.questionActiveTime;
+            if (!questionActiveTime && questionActiveTime !== false) {
+                if (isQuestionPage) {
+                    const activityLink = $('#sidebar #qinfo .lastactivity-link');
+                    //If the question has never had "activity" then the last active time is the time the post was made.
+                    const activityTimeText = activityLink.length ? activityLink.attr('title') : postTime;
+                    this.questionActiveTime = questionActiveTime = activityTimeText ? (new Date(activityTimeText)).valueOf() : false;
+                } else {
+                    this.questionActiveTime = questionActiveTime = false;
+                }
+            }
             //Request Validation: Check to see if this request is obviously invalid.
             //  Conflated in the request validation is determining if the request requires 20k+ reputation.
             //Determine if this needs to be tagged as a 20k+ request.
@@ -2140,12 +2156,17 @@
                 }
                 if (requestType === 'cv-pls') {
                     //No need to check for answers as cv-pls is not included in the options for answers.
-                    if (this.guiType === 'question') {
+                    if (this.guiType === 'question') { //This should always be true.
                         if (closedTimeMs) {
                             criticalRequestReasons.push('The question is already closed.');
                         } else if (!reason.replace(/(?:\boff[\s-\/]*topic\b|\bO[-\/]?T\b)/ig, '').trim()) { // eslint-disable-line no-useless-escape
                             //Nothing but "off-topic".
                             invalidRequestReasons.push('"off-topic" by itself is not a sufficient reason. More detail is required.');
+                        }
+                        if (questionActiveTime && isSOCVR) {
+                            if (questionActiveTime + questionActivityWarningAge < Date.now()) {
+                                invalidRequestReasons.push('<span title="Activity that\'s indicated by the &quot;active&quot; date on the question isn\'t the only way to qualify for a cv-pls.\nSome examples of other reasons include: low-traffic tags, mentioned somewhere, a rejected edit, proposed dup, etc.">The question has no recent activity. It <i>may</i> not qualify for a <code>cv-pls</code> request. Please see <a href="https://socvr.org/faq#GEfM-cv-pls-not-a-habit" target="_blank">SOCVR\'s FAQ</a>.</span>');
+                            }
                         }
                     } else {
                         criticalRequestReasons.push('A cv-pls request doesn\'t match this type of post: ' + this.guiType + '.');
@@ -2162,7 +2183,7 @@
                     }
                 }
             }
-            if (isCurrentRoomSOCVR()) {
+            if (isSOCVR) {
                 if (!isSocvrSite) {
                     criticalRequestReasons.push('SOCVR does not moderate this site. Please select a different chat room. Request will not be sent.');
                 } else {
