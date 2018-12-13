@@ -119,8 +119,8 @@
     const requestTagRegExStandAlonePermittedTags = '(?:spam|off?en[cs]ive|abb?u[cs]ive|(?:re)?-?flag(?:-?(?:naa|spam|off?en[cs]ive|rude|abb?u[cs]ive))|(?:(?:naa|spam|off?en[cs]ive|rude|abb?u[cs]ive)-?(?:re)?-?flag))'; //spam is an actual SO tag, so we're going to need to deal with that.
     const requestTagRequirePleaseRegExText = '(?:cv|(?:un-?)?(?:del(?:v)?|dv|delete)|rov?|re-?open|app?rove?|reject|rv|review|(?:re)?-?flag|nuke?|spam|off?en[cs]ive|naa|abbu[cs]ive)';
     const requestTagRequirePleaseOrStandAloneRegExText = '(?:' + requestTagRequirePleaseRegExText + '|' + requestTagRegExStandAlonePermittedTags + ')';
-    const requestTagRequirePleasePleaseFirstRegExText = '(?:' + pleaseRegExText + '[-.]' + requestTagRequirePleaseOrStandAloneRegExText + ')';
-    const requestTagRequirePleasePleaseLastRegExText = '(?:' + requestTagRequirePleaseOrStandAloneRegExText + '[-.]' + pleaseRegExText + ')';
+    const requestTagRequirePleasePleaseFirstRegExText = '(?:' + pleaseRegExText + '[-.]?' + requestTagRequirePleaseOrStandAloneRegExText + ')';
+    const requestTagRequirePleasePleaseLastRegExText = '(?:' + requestTagRequirePleaseOrStandAloneRegExText + '[-.]?' + pleaseRegExText + ')';
     const requestTagRegExText = '\\b(?:' + requestTagRegExStandAlonePermittedTags + '|' + requestTagRequirePleasePleaseFirstRegExText + '|' + requestTagRequirePleasePleaseLastRegExText + ')\\b';
     //Current, now older, result: https://regex101.com/r/dPtRnS/3
     /*Need to update with (?:re\W?)? for flags
@@ -132,14 +132,14 @@
     //Only a limited set of action types are recognized in text format.
     const getActionTagInTextRegEx = /(?:\[(?:tag\W?)?(?:cv|(?:un-?)?del(?:ete|v)?|re-?open)-[^\]]*\])/;
     //Delete requests
-    const deleteRequestTagInTextContent = /\b(?:delv?|dv|delete)\b/i;
-    const undeleteRequestTagInTextContent = /\b(?:un?-?delv?|un?-?dv|un?-?delete)\b/i;
-    const closeVoteRequestTagInTextContent = /\b(?:cv)\b/i;
-    const reopenRequestTagInTextContent = /\b(?:re-?open)\b/i;
+    const deleteRequestTagInTextContent = /\b(?:delv?|dv|delete)(?:pls)?\b/i;
+    const undeleteRequestTagInTextContent = /\b(?:un?-?delv?|un?-?dv|un?-?delete)(?:pls)?\b/i;
+    const closeVoteRequestTagInTextContent = /\b(?:cv)(?:pls)?\b/i;
+    const reopenRequestTagInTextContent = /\b(?:re-?open)(?:pls)?\b/i;
     const spamRequestTagInTextContent = /\bspam\b/i;
     const offensiveRequestTagInTextContent = /\b(?:off?en[cs]ive|rude|abb?u[cs]ive)\b/i;
-    const flagRequestTagInTextContent = /\b(?:re)?-?flag-?(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\b/i;
-    const rejectReviewRequestTagInTextContent = /\b(?:reject|review)\b/i;
+    const flagRequestTagInTextContent = /\b(?:re)?-?flag-?(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)?\b/i;
+    const rejectReviewRequestTagInTextContent = /\b(?:reject|review)(?:pls)?\b/i;
     //20k+ tags
     const tag20kInTextContent = /^(?:20k\+?(?:-only)?)$/i;
     const tagN0kInTextContent = /^(?:\d0k\+?(?:-only)?)$/i;
