@@ -1647,9 +1647,9 @@
                         endParan = '';
                     }
                 }
-                const hasAccepted = !!$('.vote-accepted-on', this.questionContext).length;
-                const questionScore = +$('.question .vote-count-post', this.questionContext).text().trim();
-                const numberPositiveScoreAnswers = $('.answer:not(.deleted-answer) .vote-count-post', this.questionContext).map(function() {
+                const hasAccepted = !!$('.js-accepted-answer-indicator:not(.d-none):not(dno)', this.questionContext).length;
+                const questionScore = +$('.question .js-vote-count', this.questionContext).text().trim();
+                const numberPositiveScoreAnswers = $('.answer:not(.deleted-answer) .js-vote-count', this.questionContext).map(function() {
                     const votes = +this.textContent.trim();
                     if (votes < 1) {
                         return null;
@@ -1692,7 +1692,7 @@
             //Set the request type based on the text displayed in the button the user clicked to open the GUI.
             var requestType = this.gui.button.text();
             if (requestType === 'reopen/del-pls') {
-                if ($('.question a.vote-up-on', this.questionContext).length) {
+                if ($('.question .js-vote-up-btn.fc-theme-primary', this.questionContext).length) {
                     //User has voted-up the question, so this is likely a reopen-pls.
                     requestType = 'reopen-pls';
                 } else {
@@ -2170,7 +2170,7 @@
                             //Is already deleted
                             criticalRequestReasons.push('The ' + this.guiType + ' is already deleted.');
                         } else {
-                            var postScore = +$('.vote-count-post', post).first().text();
+                            var postScore = +$('.js-vote-count', post).first().text();
                             if (this.guiType === 'answer') {
                                 isTag20k = true;
                                 //On NATO without NATO Enhancements, we don't verify the answer's score. We could do a SE API call to get it, but don't do so.
