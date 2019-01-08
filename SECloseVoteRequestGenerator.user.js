@@ -121,15 +121,19 @@ if(typeof StackExchange === "undefined")
     function notify(m,t) {
         var timeout;
         (function(i){
-            var div = $('#notify-' + (i - 1));
-            if(div.length) {
-                clearTimeout(timeout);
-                if(i > 1)StackExchange.notify.close(i-1);
+            if(StackExchange && StackExchange.notify && typeof StackExchange.notify.show === 'function') {
+                var div = $('#notify-' + (i - 1));
+                if(div.length) {
+                    clearTimeout(timeout);
+                    if(i > 1)StackExchange.notify.close(i-1);
+                }
+                StackExchange.notify.show(m,i);
+                if(t) timeout = setTimeout(function(){
+                    StackExchange.notify.close(i);
+                },t);
+            } else {
+                alert('SOCVR Request Generator: ' + m);
             }
-            StackExchange.notify.show(m,i);
-            if(t) timeout = setTimeout(function(){
-                StackExchange.notify.close(i);
-            },t);
         })(++notifyint);
     }
 
