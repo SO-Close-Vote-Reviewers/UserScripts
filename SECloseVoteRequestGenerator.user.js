@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.6.1
+// @version        1.6.2
 // @description    This script generates formatted close vote requests and sends them to a specified chat room.
 // @author         @TinyGiant
 // @contributor    @rene @Tunaki @Makyen @paulroub
@@ -121,15 +121,19 @@ if(typeof StackExchange === "undefined")
     function notify(m,t) {
         var timeout;
         (function(i){
-            var div = $('#notify-' + (i - 1));
-            if(div.length) {
-                clearTimeout(timeout);
-                if(i > 1)StackExchange.notify.close(i-1);
+            if(StackExchange && StackExchange.notify && typeof StackExchange.notify.show === 'function') {
+                var div = $('#notify-' + (i - 1));
+                if(div.length) {
+                    clearTimeout(timeout);
+                    if(i > 1)StackExchange.notify.close(i-1);
+                }
+                StackExchange.notify.show(m,i);
+                if(t) timeout = setTimeout(function(){
+                    StackExchange.notify.close(i);
+                },t);
+            } else {
+                alert('SOCVR Request Generator: ' + m);
             }
-            StackExchange.notify.show(m,i);
-            if(t) timeout = setTimeout(function(){
-                StackExchange.notify.close(i);
-            },t);
         })(++notifyint);
     }
 
@@ -401,6 +405,21 @@ if(typeof StackExchange === "undefined")
     function getCurrentRoom(){ return getStorage(base + 'room'); }
     function setCurrentRoom(url){ return setStorage(base + 'room', url); }
 
+    function createMarkdownLinkWithText(text, url) {
+        //Create a Markdown link with URL: [foo](//example.com/bar)
+        return '[' + escapeForMarkdown(text).trim() + '\u202D](' + url + ')';
+    }
+
+    function escapeForMarkdown(text) {
+        //Quote characters and combinations of characters which might be interpreted as Chat Markdown formatting.
+        //Looks like [\[\]`*_] show up as themselves when quoted at any time.
+        //"---" does not stop working if \ quoted only at the start. Quoting in the middle of the --- shows the \.
+        //Interspersing zero-width spaces works, but it does put the zero-width spaces (\u200B) in the HTML.
+        //Interspersing zero-width non-breaking spaces works, but it does put the zero-width non-breaking spaces (\uFEFF) in the HTML.
+        return text.replace(/([[\]*`_])/g, '\\$1').replace(/(---)/g, '-\uFEFF-\uFEFF-');
+    }
+
+
     var base = 'https://' + window.location.hostname;
 
     if(!getCurrentRoom()) {
@@ -531,17 +550,18 @@ if(typeof StackExchange === "undefined")
         var reason = $('input[type="text"]', CVRGUI.items.send).val();
         if(!reason) return false;
         reason = reasons.get(reason);
-        var tit = '[' + $('#question-header h1 a').text().replace(/(\[|\])/g, '\\$1').replace(/^\s+|\s+$/gm, '') + '](' + base + $('#question .short-link').attr('href').replace(/(\/\d+)\/\d+$/, '$1') + ')';
-        var usr = $('.post-signature.owner:not([align="right"],#popup-close-question .post-signature) .user-details').text().trim().match(/[^\n]+/)[0].trim(), tim;
+        var title = createMarkdownLinkWithText($('#question-header h1 a').text().replace(/^\s+|\s+$/gm, ''), base + $('#question .short-link').attr('href').replace(/(\/\d+)\/\d+$/, '$1'));
+        var user = $('.post-signature.owner:not([align="right"],#popup-close-question .post-signature) .user-details > *:not(.d-none):not(.-flair)').text().trim().match(/[^\n]+/)[0].trim();
+        if($('#question .owner:not(#popup-close-question .owner) a').length) user = createMarkdownLinkWithText(user, base + $('#question .owner:not(#popup-close-question .owner) a').attr('href'));
+        var time = $('#question .owner:not(#popup-close-question .owner) .relativetime');
+        time = time.length ? ' ' + time.attr('title') : '';
         var tag = $('#question a.post-tag').first().text(); //huh, sponsored tags have images =/ and off-topic tag like C++ are URL encoded -> get the text only
 		// for duplicate cv-pls, when the dupe is selected, the mini-review messes up the selector for username and date: it is removed with :not
-        if($('#question .owner:not(#popup-close-question .owner) a').length) usr = '[' + usr + '](' + base + $('#question .owner:not(#popup-close-question .owner) a').attr('href') + ')';
-        if($('#question .owner:not(#popup-close-question .owner) .relativetime').length) tim = $('#question .owner:not(#popup-close-question .owner) .relativetime').attr('title');
-        var result = '[tag:'+ (isclosed?'reopen-pls':'cv-pls') +'] [tag:' + tag + '] ' + reason + ' ' + tit + ' - ' + usr + (tim ? '\u200E - ' + tim : ''); //username can be RTL... need to insert a LTR marker to have proper direction
+        var request = '[tag:'+ (isclosed?'reopen-pls':'cv-pls') +'] [tag:' + tag + '] ' + reason + ' ' + title + ' - ' + user + time;
         if(alreadyPostedRequest && !window.confirm('You\'ve already sent a request about this question. Do you want to send another?')) {
             return;
         } // else
-        sendRequest(result);
+        sendRequest(request);
     });
 
     CVRGUI.items.update.on('click',function(e){
