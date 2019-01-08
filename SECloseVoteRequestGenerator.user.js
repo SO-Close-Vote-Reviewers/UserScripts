@@ -53,7 +53,7 @@
     const isQuestionPage = window.location.pathname.indexOf('/questions/') === 0;
     const questionActivityWarningAge = 1000 * 60 * 60 * 24 * 30; //30 days
     let openedAsDelayedRequestNoticeId = [];
-    const requestTypesWithNoReason = ['!!/reportuser', '!!/addblu', '!!/rmblu', '!!/addwlu', '!!/rmwlu', 'spam'];
+    const requestTypesWithNoReason = ['!!/reportuser', '!!/addblu-', '!!/rmblu-', '!!/addwlu-', '!!/rmwlu-', 'spam'];
     const requestTypesWithOptionalReason = ['!!/report', '!!/scan', 'spam', 'offensive', 'reflag NAA', 'reflag VLQ'];
     const knownRooms = {
         SOCVR: {
@@ -1780,10 +1780,10 @@
                 ((((isSOCVR && (configOptions.checkboxes.canReportSmokeDetectorSOCVR || configOptions.checkboxes.alwaysCharcoal)) || (!isSOCVR && configOptions.checkboxes.canReportSmokeDetectorOther)) && (this.guiType === 'answer' || this.guiType === 'question')) ? '' +
                     '<option value="!!/report" title="Report this post to SmokeDetector">!!/report</option>' +
                     '<option value="!!/scan" title="Have SmokeDetector scan this post">!!/scan</option>' +
-                    '<option value="!!/addblu" title="Have SmokeDetector add the user to the blacklist.">!!/addblu</option>' +
-                    '<option value="!!/rmblu" title="Have SmokeDetector remove the user from the blacklist.">!!/rmblu</option>' +
-                    '<option value="!!/addwlu" title="Have SmokeDetector add the user to the whitelist.">!!/addwlu</option>' +
-                    '<option value="!!/rmwlu" title="Have SmokeDetector remove the user from the whitelist.">!!/rmwlu</option>' +
+                    '<option value="!!/addblu-" title="Have SmokeDetector add the user to the blacklist.">!!/addblu-</option>' +
+                    '<option value="!!/rmblu-" title="Have SmokeDetector remove the user from the blacklist.">!!/rmblu-</option>' +
+                    '<option value="!!/addwlu-" title="Have SmokeDetector add the user to the whitelist.">!!/addwlu-</option>' +
+                    '<option value="!!/rmwlu-" title="Have SmokeDetector remove the user from the whitelist.">!!/rmwlu-</option>' +
                     //SOCVR does not permit reporting of users. See room meeting: https://socvr.org/room-info/room-meetings/2016-08 and https://chat.stackoverflow.com/transcript/message/32060005#32060005
                     ((isSOCVR && !configOptions.checkboxes.alwaysCharcoal) ? '' : '<option value="!!/reportuser" title="Report this post\'s author to SmokeDetector (all their posts are spam).">!!/reportuser</option>') +
                     '' : ''));
@@ -2294,10 +2294,10 @@
                 request = requestTypePlusSpace + postLinkHref + sdQuotedReason;
             }
             const sdUserCommands = [
-                '!!/rmblu',
-                '!!/addblu',
-                '!!/rmwlu',
-                '!!/addwlu',
+                '!!/rmblu-',
+                '!!/addblu-',
+                '!!/rmwlu-',
+                '!!/addwlu-',
                 '!!/reportuser',
             ];
             if (sdUserCommands.indexOf(requestType) > -1) {
