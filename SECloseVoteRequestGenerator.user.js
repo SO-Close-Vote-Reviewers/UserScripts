@@ -2080,10 +2080,10 @@
                     //Anonymous user
                     userName = 'an anonymous user';
                 } else {
-                    userName = userDetails.text().trim().match(/[^\n]+/);
+                    userName = userDetails.children('*:not(.d-none):not(.-flair)').text().trim().match(/[^\n]+/);
                     userName = userName ? userName[0].trim() : '';
                     //The username can be RTL... need to insert a LTR Override marker to have proper direction (it still won't look quite correct, but it'll be better).
-                    //  This is done when creating the Markdown.
+                    //  This is done when creating the Markdown for any link.
                 }
                 this.userLink = userLink = postUser.find('a');
                 const userLinkHref = userLink.first().attr('href');
