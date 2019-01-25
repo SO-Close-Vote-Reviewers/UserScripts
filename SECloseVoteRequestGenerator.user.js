@@ -470,7 +470,7 @@
                 //On balance, it's probably better to also use toStaticHTML() than not to do so.
                 sanitizedDetail = typeof toStaticHTML === 'function' ? toStaticHTML(sanitizedDetail) : sanitizedDetail;
                 const target = $(e.target);
-                target.append(converter.makeHtml(sanitizedDetail).replace(/\[tag:([^\]]+)]/g, function(match, p1) {
+                target.append(converter.makeHtml(sanitizedDetail).replace(/\[(?:meta-)?tag:([^\]]+)]/g, function(match, p1) {
                     return tagRendererRaw(p1);
                 }));
                 //If the source doesn't have any &lt;, it would be beneficial to traverse all the <code> to change any back to <.
@@ -2286,26 +2286,41 @@
                     this.tag = tag = $('.question a.post-tag', questionContext).first().text();
                 }
             }
+            const currentKnownRoomKey = getCurrentKnownRoomKey();
+            const useMetaTag = currentKnownRoomKey ? knownRooms[currentKnownRoomKey].useMetaTag : false;
+            const useSiteTag = currentKnownRoomKey ? knownRooms[currentKnownRoomKey].useMetaTag : true;
+
+            function createTagMarkdown(tagText) {
+                let markdown = '';
+                if (useSiteTag !== false) {
+                    //The default is that we use the site tag, so must have useSiteTag === false to not use it.
+                    markdown = '[tag:' + tagText + ']';
+                }
+                if (useMetaTag) {
+                    markdown += (markdown ? ' ' : '') + '[meta-tag:' + tagText + ']';
+                }
+                return markdown;
+            }
             //Scores are tracked in real-time. Thus, isTag20k could change while the GUI is open.
-            const n0kTagIfNeeded = '[tag:' + (isTag20k ? '2' : '1') + '0k+] ';
+            const n0kTagIfNeeded = createTagMarkdown((isTag20k ? '2' : '1') + '0k+') + ' ';
             var tag20k = isDeleteUndelete ? n0kTagIfNeeded : '';
             //XXX This needs to be selectable via option. (I don't like putting in 10k+ tags, as they are implicit for all deletes)
             if (!isTag20k) {
                 tag20k = '';
             }
-            let questionTagMarkdown = '[tag:' + tag + ']';
+            let questionTagMarkdown = createTagMarkdown(tag);
             var request = '';
             var useRequestType = requestType;
             if (requestType === 'offensive' || requestType === 'spam') {
-                request += '[tag:flag-pls] ';
+                request += createTagMarkdown('flag-pls') + ' ';
                 questionTagMarkdown = '';
             }
             if (requestType.indexOf('reflag') > -1) {
                 useRequestType = useRequestType.replace(/reflag /, '');
-                request += '[tag:reflag-pls] ';
+                request += createTagMarkdown('reflag-pls') + ' ';
                 questionTagMarkdown = '';
             }
-            request += '[tag:' + useRequestType + '] ' + tag20k + (isNatoWithoutEnhancement ? '' : questionTagMarkdown + ' ') + reason + ' ' + titleMarkdown + ' - ' + userMarkdown + postTime;
+            request += createTagMarkdown(useRequestType) + ' ' + tag20k + (isNatoWithoutEnhancement ? '' : questionTagMarkdown + ' ') + reason + ' ' + titleMarkdown + ' - ' + userMarkdown + postTime;
             //XXX This really should move into an Object that describes SD types and drives both this logic and the <options>.
             const sdQuotedReason = reason ? ' "' + reason + '"' : '';
             const sdPostCommandsWithOptionalReason = [
@@ -2331,7 +2346,7 @@
                 if (window.location.href.indexOf('/question') > -1) {
                     suggestedEditUrl = urlBase + this.gui.wrapper.closest('.post-menu').children('a[href^="/review"]').attr('href');
                 }
-                request = '[tag:' + requestType + '] ' + reason + ' [Suggested Edit](' + suggestedEditUrl + ') by ' + userMarkdown + ' changing: ' + titleMarkdown + (/tag (?:wiki|excerpt)/.test(titleMarkdown) ? ' ' + questionTagMarkdown : '');
+                request = createTagMarkdown(requestType) + ' ' + reason + ' [Suggested Edit](' + suggestedEditUrl + ') by ' + userMarkdown + ' changing: ' + titleMarkdown + (/tag (?:wiki|excerpt)/.test(titleMarkdown) ? ' ' + questionTagMarkdown : '');
             }
             if (request.length > 500) {
                 criticalRequestReasons.push(`Request > 500 characters. (${request.length})`);
