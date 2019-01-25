@@ -13,7 +13,6 @@
 // @exclude        *://data.stackexchange.com/*
 // @require        https://code.jquery.com/jquery-2.1.4.min.js
 // @require        https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/gm4-polyfill.js
-// @connect        rawgit.com
 // @connect        raw.githubusercontent.com
 // @connect        chat.stackoverflow.com
 // @connect        chat.stackexchange.com
@@ -419,7 +418,7 @@
         return key + ' --> ' + reasons.substitutions[key];
     }).join('\r\n');
 
-    var URL = 'https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js';
+    var URL = 'https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/SECloseVoteRequestGenerator.user.js';
 
     function inPageInsertMarkdownInTarget() {
         //The thing that's still needed is sanitizing, which may need to be added here from GitHub:
@@ -621,7 +620,7 @@
         //Check for updates to the version in SOCVR's userscript repository.
         GM.xmlHttpRequest({
             method: 'GET',
-            url: 'https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version',
+            url: 'https://raw.githubusercontent.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version',
             onload: function(response) {
                 var VERSION = response.responseText.trim();
                 if (isVersionNewer(VERSION, GM.info.script.version)) {
