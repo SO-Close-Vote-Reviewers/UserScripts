@@ -911,6 +911,7 @@
             RoomList.getRoom(RoomList.checkForNeededConsistency);
         } else {
             try {
+                rooms = RoomList.changeStringToHttpsForStackExchangeAndNormalize(rooms);
                 RoomList.rooms = JSON.parse(rooms);
                 RoomList.checkForNeededConsistency();
             } catch (e) {
@@ -926,8 +927,20 @@
             RoomList.addRoomsObject(JSON.parse(getStorage('rooms')));
             markStorageTransitionedA('rooms');
         }
+        RoomList.addKnownRoomsToRoomsList();
+    };
+    RoomList.addKnownRoomsToRoomsList = function() {
+        const missingRooms = Object.keys(knownRooms).filter((key) => !RoomList.url(knownRooms[key].room.url));
+        //XXX Should store that user changed the list and filter out any rooms which we have already added once (i.e. we've auto-added it, but the user deleted it).
+        //  Doing so would permit the user to delete such rooms from their list, if they want to remove them. This would be beneficial
+        //  for those who primarily use this script for specific rooms (e.g. just SOCVR, CRUDE, tavern, etc.).
+        missingRooms.forEach((addRoomKey) => {
+            //Only Rooms which are not already in the list. Add them to the RoomList.
+            RoomList.insert(knownRooms[addRoomKey].room);
+        });
     };
     RoomList.addRoomsObject = function(roomsObject) {
+        //Add any rooms in the roomsObject that are not in RoomList.rooms to RoomList.rooms.
         Object.keys(roomsObject).filter(function(roomKey) {
             return !RoomList.url(roomsObject[roomKey].url);
         }).forEach(function(addRoomKey) {
@@ -979,13 +992,16 @@
         //Change a SE/SO URL to HTTPS instead of HTTP.
         return /(https?:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)/.test(url) ? url.replace(/http:/ig, 'https:').replace(/(https:\/\/chat\.(?:meta\.)?stack(?:exchange|overflow)\.com\/rooms\/\d+)\b.*$/ig, '$1/') : url;
     };
-    RoomList.changeToHttpsForStackExchange = function() {
-        //Just change the JSON (pass it through parse/stringify to remove any duplicates):
+    RoomList.changeStringToHttpsForStackExchangeAndNormalize = function(input) {
         // The RegExp is probably overly restrictive, as the rooms should never already contain non-stackexchange/stackoverflow URLs, as such are considered invalid.
+        return input.replace(/http:\/\/chat\.(meta\.)?stack(exchange|overflow)\.com/ig, 'https://chat.$1stack$2.com').replace(/(https:\/\/chat\.(?:meta\.)?stack(?:exchange|overflow)\.com\/rooms\/\d+)\b[^"]*/ig, '$1/');
+    };
+    RoomList.changeToHttpsForStackExchange = function() {
+        //Just change the JSON (pass it through parse/stringify to remove any duplicates & verify it's a valid format):
         // This function specifically uses getStorage/setStorage not GMStorage, as the enforcement of using HTTPS happened prior to moving to GMStorage.  Thus, we don't
         //   need to change GMStorage in bulk.
         try {
-            setStorage('rooms', JSON.stringify(JSON.parse(getStorage('rooms').replace(/http:\/\/chat\.(meta\.)?stack(exchange|overflow)\.com/ig, 'https://chat.$1stack$2.com').replace(/(https:\/\/chat\.(?:meta\.)?stack(?:exchange|overflow)\.com\/rooms\/\d+)\b[^"]*/ig, '$1/'))));
+            setStorage('rooms', JSON.stringify(JSON.parse(RoomList.changeStringToHttpsForStackExchangeAndNormalize(getStorage('rooms')))));
         } catch (e) {
             //No storage or Invalid JSON in 'rooms'
             setStorage('rooms', JSON.stringify({}));
