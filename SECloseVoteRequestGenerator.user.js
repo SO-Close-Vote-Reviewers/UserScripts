@@ -56,8 +56,7 @@
     const requestTypesWithOptionalReason = ['!!/report', '!!/scan', 'spam', 'offensive', 'reflag NAA', 'reflag VLQ'];
     const knownRooms = {
         SOCVR: {
-            roomText: 'SOCVR',
-            roomSite: 'Overflow',
+            urlDetectionRegExp: /chat\.stackoverflow\.com\/rooms\/41570(?:$|\/)/,
             room: {
                 host: 'https://chat.stackoverflow.com',
                 url: 'https://chat.stackoverflow.com/rooms/41570/', // SOCVR
@@ -66,8 +65,7 @@
             },
         },
         charcoal: {
-            roomText: 'Charcoal HQ',
-            roomSite: 'Exchange',
+            urlDetectionRegExp: /chat\.stackexchange\.com\/rooms\/11540(?:$|\/)/,
             room: {
                 host: 'https://chat.stackexchange.com',
                 url: 'https://chat.stackexchange.com/rooms/11540/', // charcoal-hq
@@ -76,8 +74,7 @@
             },
         },
         tavern: {
-            roomText: 'Tavern on the Meta',
-            roomSite: 'Exchange (Meta)',
+            urlDetectionRegExp: /chat\.meta\.stackexchange\.com\/rooms\/89(?:$|\/)/,
             room: {
                 host: 'https://chat.meta.stackexchange.com',
                 url: 'https://chat.meta.stackexchange.com/rooms/89/', // Tavern on the Meta
@@ -86,8 +83,7 @@
             },
         },
         CRCQR: {
-            roomText: 'SE Code Review Close Questions room',
-            roomSite: 'Exchange',
+            urlDetectionRegExp: /chat\.stackexchange\.com\/rooms\/85306(?:$|\/)/,
             room: {
                 host: 'https://chat.stackexchange.com',
                 url: 'https://chat.stackexchange.com/rooms/85306/', // SE Code Review Close Questions room
@@ -95,12 +91,22 @@
                 name: 'SE Code Review Close Questions room',
             },
         },
-        seNetwork: {
-            roomText: 'The Stack Exchange Network',
-            roomSite: 'Exchange (Meta)',
+        CRUDE: {
+            urlDetectionRegExp: /chat\.stackexchange\.com\/rooms\/2165(?:$|\/)/,
+            useMetaTag: false, //default
+            useSiteTag: true, //default
             room: {
-                host: 'https://chat.meta.stackexchange.com',
-                url: 'https://chat.meta.stackexchange.com/rooms/11254/', // The Stack Exchange Network
+                host: 'https://chat.stackexchange.com',
+                url: 'https://chat.stackexchange.com/rooms/2165/', // SE Code Review Close Questions room
+                id: '2165',
+                name: 'CRUDE',
+            },
+        },
+        seNetwork: {
+            urlDetectionRegExp: /chat\.stackexchange\.com\/rooms\/11254(?:$|\/)/,
+            room: {
+                host: 'https://chat.stackexchange.com',
+                url: 'https://chat.stackexchange.com/rooms/11254/', // The Stack Exchange Network
                 id: '11254',
                 name: 'The Stack Exchange Network',
             },
@@ -186,19 +192,24 @@
         'o': 'Opinion Based',
         'd': 'Duplicate',
     };
-    var configsForSites = [];
-    //Stack Overflow
-    //XXX There's quite a bit of duplication in these. The Objects could be consolidated.
-    configsForSites.push(new SiteConfig('Stack Overflow', /^stackoverflow.com$/, {
-        1: 'Blatantly off-topic', //In close-flag dialog, but not the close-vote dialog.
+    const defaultOffTopicCloseReasons = {
+        1: 'Blatantly off-topic', //In close-flag dialog, but not the close-vote dialog on most sites, but is in the CV dialog on some sites.
         2: 'Belongs on another site',
         3: 'custom',
+    };
+    const defaultOffTopicCloseReasonsWithoutOtherSite = Object.assign({}, defaultOffTopicCloseReasons);
+    delete defaultOffTopicCloseReasonsWithoutOtherSite[2];
+    var configsForSites = [];
+    //The keys used for the close reasons below should match the "value" attribute in the <input> used for
+    //  that close reason in the off-topic pane of the close-vote-/flag-dialog.
+    //Stack Overflow
+    configsForSites.push(new SiteConfig('Stack Overflow', /^stackoverflow.com$/, Object.assign({
         4: 'General Computing',
         7: 'Server / Networking',
         11: 'Typo or Cannot Reproduce',
         13: 'No MCVE',
         16: 'Request for Off-Site Resource',
-    }, Object.assign({
+    }, defaultOffTopicCloseReasons), Object.assign({
         'm': 'No MCVE',
         'r': 'Typo or Cannot Reproduce',
         'g': 'General Computing',
@@ -219,15 +230,13 @@
         'working': 'm',
     }, 'SOCVR'));
     //Meta Stack Exchange
-    configsForSites.push(new SiteConfig('Meta Stack Exchange', /^meta.stackexchange.com$/, {
-        1: 'Blatantly off-topic', //In close-flag dialog, but not the close-vote dialog.
-        //This site does not have a 2: 'Belongs on another site'
-        3: 'custom',
+    configsForSites.push(new SiteConfig('Meta Stack Exchange', /^meta.stackexchange.com$/, Object.assign({
         5: 'Does not seek input or discussion',
         6: 'Cannot be reproduced',
         8: 'Not about Stack Exchange Network software',
         11: 'Specific to a single site',
-    }, Object.assign({
+        //This site does not have a 2: 'Belongs on another site'
+    }, defaultOffTopicCloseReasonsWithoutOtherSite), Object.assign({
         'i': 'Does not seek input or discussion',
         'r': 'Cannot be reproduced',
         'n': 'Not about Stack Exchange Network software',
@@ -238,27 +247,37 @@
         'input': 'i',
     }, 'tavern'));
     //Code Review Stack Exchange
-    configsForSites.push(new SiteConfig('Code Review Stack Exchange', /^codereview.stackexchange.com$/, {
-        1: 'Blatantly off-topic', //In close-flag dialog, but not the close-vote dialog.
-        2: 'Belongs on another site',
-        3: 'custom',
+    configsForSites.push(new SiteConfig('Code Review Stack Exchange', /^codereview.stackexchange.com$/, Object.assign({
         20: 'Lacks concrete context',
         23: 'Code not implemented or not working as intended',
         25: 'Authorship of code',
-    }, Object.assign({
+    }, defaultOffTopicCloseReasons), Object.assign({
         'c': 'Lacks concrete context',
         'i': 'Code not implemented or not working as intended',
         'a': 'Authorship of code',
     }, defaultQuickSubstitutions), {
         //The default method of using what's bold or italics works reasonably for this site.
     }, 'CRCQR'));
+    //Mathematics Stack Exchange
+    configsForSites.push(new SiteConfig('Mathematics Stack Exchange', /^math.stackexchange.com$/, Object.assign({
+        6: 'Not about mathematics',
+        8: 'Seeking personal advice',
+        9: 'Missing context or other details',
+    }, defaultOffTopicCloseReasons), Object.assign({
+        'b': 'Blatantly off-topic',
+        'n': 'Not about mathematics',
+        'c': 'Missing context or other details',
+        'a': 'Seeking personal advice',
+    }, defaultQuickSubstitutions), {
+        //All of the off-topic reasons need to be specified, because the "Not about mathematics" reason contains no bold or italic text.
+        //  As a result, we match against '', which will match anything.
+        'context': 'c',
+        'advice': 'a',
+        '': 'n', //The closed text for this reason contains no bold or italic characters.
+    }, 'CRUDE'));
 
     //Default site configuration
-    var currentSiteConfig = new SiteConfig('Default', /./, {
-        1: 'Blatantly off-topic', //In close-flag dialog, but not the close-vote dialog.
-        2: 'Belongs on another site',
-        3: 'custom',
-    }, defaultQuickSubstitutions, {}, 'seNetwork');
+    var currentSiteConfig = new SiteConfig('Default', /./, defaultOffTopicCloseReasons, defaultQuickSubstitutions, {}, 'seNetwork');
 
     //If we are not trying to be compatible with IE, then could use .find here.
     var isKnownSite = configsForSites.some((siteConfig) => {
@@ -274,7 +293,7 @@
 
     //Set some global variables
     var isSocvrSite = socvrModeratedSites.indexOf(window.location.hostname) > -1;
-    var isSocvrRoomUrlRegEx = /chat\.stackoverflow\.com\/rooms\/41570(?:$|\/)/;
+    const isSocvrRoomUrlRegEx = knownRooms.SOCVR.urlDetectionRegExp;
     var isNato = window.location.pathname.indexOf('tools/new-answers-old-questions') > -1;
     var isSuggestedEditReviewPage = /^\/review\/suggested-edits(?:\/|$)/i.test(window.location.pathname);
     //Restore the options
@@ -700,6 +719,7 @@
                 displayRequestText(request, message + seeConsole);
             }
 
+            //This needs to test using isSocvrRoomUrlRegEx rather than isCurrentRoomSOCVR(), as room.url *might* not be the "current room".
             if (!ignoreNonSOCVRSite && isSocvrRoomUrlRegEx.test(room.url) && !isSocvrSite) {
                 //Don't send the request to SOCVR if this is not a site SOCVR moderates
                 notify('Request not posted. SOCVR only moderates: ' + socvrModeratedSites.join(','), 0, notifyCSS.fail);
@@ -842,8 +862,8 @@
                         //Problems communicating to the default room
                         //Should only get here if the user has network issues or SO has issues when first running the
                         //  script or when the user is re-adding the default after removing it.
-                        var defaultInfo = JSON.parse(JSON.stringify(knownRooms[currentSiteConfig.defaultRoomKey]));
-                        console.log('Unable to communicate with Stack ' + defaultInfo.roomSite + ' about ' + defaultInfo.roomText + ' to get initial room information. Adding default ' + defaultInfo.roomText + ' information.');
+                        const defaultInfo = knownRooms[currentSiteConfig.defaultRoomKey];
+                        console.log('Unable to communicate with ' + defaultInfo.room.host.replace(/https?\/\//, '') + ' about ' + defaultInfo.room.name + ' to get initial room information. Adding default ' + defaultInfo.room.name + ' information.');
                         var newRoom = RoomList.insert(defaultInfo.room);
                         if (typeof callback === 'function') {
                             callback(newRoom);
@@ -1104,6 +1124,10 @@
     function isCurrentRoomSOCVR() { return isSocvrRoomUrlRegEx.test(getCurrentRoom()); }
     /* beautify preserve:end */
     /* eslint-enable brace-style */
+    function getCurrentKnownRoomKey() {
+        //Only return the first match.
+        return Object.keys(knownRooms).find((key) => knownRooms[key].urlDetectionRegExp.test(getCurrentRoom()));
+    }
 
     //Set the default room, if there is none.
     if (!getCurrentRoom()) {
