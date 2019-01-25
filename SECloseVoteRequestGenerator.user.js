@@ -1152,7 +1152,7 @@
     RoomList.init();
 
     //Check for updates after everything else.
-    setTimeout(checkUpdates);
+    setTimeout(checkUpdates, 0);
 
     //Add the CSS needed for the CV Request GUI.
     $(document.documentElement).append($('' +
@@ -1438,7 +1438,7 @@
                     //Quick and dirty way to remove HTML from request reasons, which makes them appear a bit better in the confirm dialog.
                     //  It's not intended to be generalized, just handle the invalid request reasons that exist.
                     const invalidReasonsAsText = invalidRequestReasons.join('\r\n').replace(/<[^>]*?>/g, '').replace(/&quote;/, '"');
-                    if (!window.confirm('This ' + requestTypeInput.val() + ' is may have issues because: \r\n\r\n' + invalidReasonsAsText + '\r\n\r\nAre you sure you want to ' + (delayableRequestRegex.test(requestTypeInput.val()) ? 'save' : 'send') + ' this request?')) {
+                    if (!window.confirm('This ' + requestTypeInput.val() + ' may have issues because: \r\n\r\n' + invalidReasonsAsText + '\r\n\r\nAre you sure you want to ' + (delayableRequestRegex.test(requestTypeInput.val()) ? 'save' : 'send') + ' this request?')) {
                         sendButton[0].disabled = false;
                         return false;
                     }
