@@ -2126,10 +2126,16 @@
             var questionActiveTime = this.questionActiveTime;
             if (!questionActiveTime && questionActiveTime !== false) {
                 if (isQuestionPage) {
-                    const activityLink = $('#sidebar #qinfo .lastactivity-link');
                     //If the question has never had "activity" then the last active time is the time the post was made.
-                    const activityTimeText = activityLink.length ? activityLink.attr('title') : postTime;
-                    this.questionActiveTime = questionActiveTime = activityTimeText ? (new Date(activityTimeText)).valueOf() : false;
+                    //  Unless the only activity is deleted answers.
+                    const deletedAnswers =  $('.answer.deleted-answer', questionContext);
+                    const mostRecentDeletedAnswerTime = deletedAnswers.find('.post-signature:last-of-type .relativetime').toArray()
+                        .reduce((maxTime, timeEl) => (timeEl.title ? Math.max((new Date(timeEl.title.trim().replace(/ /, 'T'))).valueOf(), maxTime) : maxTime), 0);
+                    const activityLink = $('#sidebar #qinfo .lastactivity-link');
+                    const activityTimeText = (activityLink.length ? activityLink.attr('title') : postTime).trim().replace(/ /, 'T');
+                    const activityTime = activityTimeText ? (new Date(activityTimeText)).valueOf() : 0;
+                    const activeTime = Math.max(mostRecentDeletedAnswerTime, activityTime);
+                    this.questionActiveTime = questionActiveTime = activeTime ? activeTime : false;
                 } else {
                     this.questionActiveTime = questionActiveTime = false;
                 }
