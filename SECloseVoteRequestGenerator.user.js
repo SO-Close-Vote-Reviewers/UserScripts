@@ -2455,9 +2455,9 @@
         addRoom: function(room, isChecked) {
             //Add a line for the specified room
             this.list.append($('' +
-                '<dd class="cvrgItemRoomContainer">' +
+                '<dd class="cvrgItemRoomContainer" title="' + room.url + '">' +
                 '    <label>' +
-                '        <input type="radio" name="target-room" title="' + room.url + '" value="' + room.url + '"' + (isChecked ? ' checked' : '') + '>' + room.name +
+                '        <input type="radio" name="target-room" value="' + room.url + '"' + (isChecked ? ' checked' : '') + '>' + room.name +
                 '    </label>' +
                 '    <form>' +
                 '        <button>-</button>' +
