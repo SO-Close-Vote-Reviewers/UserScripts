@@ -1434,6 +1434,11 @@
         this.requestReasonInput.on('keyup paste input', this.debounceReasonInput.bind(this));
         $('form', this.item).on('submit', function(e) {
             //Submit the Request
+            function htmlReasonArrayToText(array) {
+                const textarea = document.createElement('textarea');
+                textarea.innerHTML = array.join('\r\n\r\n').replace(/<br\/?>/g, '\r\n');
+                return textarea.value;
+            }
             e.preventDefault();
             sendButton[0].disabled = true;
             var requestAndValidate = thisGuiItem.generateRequestAndValidate();
@@ -1444,17 +1449,14 @@
                 //Revisits are not validated.
                 if (criticalRequestReasons.length) {
                     //Requests with critical issues will not be sent. However, revisits will be saved.
-                    window.alert('This ' + requestTypeInput.val() + ' is will not be sent because: \r\n\r\n' + criticalRequestReasons.join('\r\n'));
+                    window.alert('This ' + requestTypeInput.val() + ' is will not be sent because: \r\n\r\n' + htmlReasonArrayToText(criticalRequestReasons));
                     //XXX A red notify would be good here.
                     sendButton[0].disabled = false;
                     return false;
                 } // else
                 if (invalidRequestReasons.length) {
                     //The request is invalid and it's not a revisit. Ask the user if they are sure they want to send it.
-                    //Quick and dirty way to remove HTML from request reasons, which makes them appear a bit better in the confirm dialog.
-                    //  It's not intended to be generalized, just handle the invalid request reasons that exist.
-                    const invalidReasonsAsText = invalidRequestReasons.join('\r\n').replace(/<[^>]*?>/g, '').replace(/&quote;/, '"');
-                    if (!window.confirm('This ' + requestTypeInput.val() + ' may have issues because: \r\n\r\n' + invalidReasonsAsText + '\r\n\r\nAre you sure you want to ' + (delayableRequestRegex.test(requestTypeInput.val()) ? 'save' : 'send') + ' this request?')) {
+                    if (!window.confirm('This ' + requestTypeInput.val() + ' may have issues because: \r\n\r\n' + htmlReasonArrayToText(invalidRequestReasons) + '\r\n\r\nAre you sure you want to ' + (delayableRequestRegex.test(requestTypeInput.val()) ? 'save' : 'send') + ' this request?')) {
                         sendButton[0].disabled = false;
                         return false;
                     }
@@ -2220,7 +2222,7 @@
                                 isTag20k = true;
                                 //On NATO without NATO Enhancements, we don't verify the answer's score. We could do a SE API call to get it, but don't do so.
                                 if (!isNatoWithoutEnhancement && postScore > -1) {
-                                    invalidRequestReasons.push('Answers must be at a score <= -1.');
+                                    invalidRequestReasons.push('Answers must be at a score &lt;= -1.');
                                 }
                             } else if (this.guiType === 'question') {
                                 if (!isQuestionClosed(questionContext)) {
@@ -2232,7 +2234,7 @@
                                     if (!isDelayedRequest && (Date.now() - closedTimeMs) <= twoDaysInMs) {
                                         //For posts we are going to delete in 2 days, it doesn't need to pass this criteria.
                                         if (postScore > -3) {
-                                            invalidRequestReasons.push('Questions must be at a score <= -3 (20k+), or have been closed for > 2 days.');
+                                            invalidRequestReasons.push('Questions must be at a score &lt;= -3 (20k+), or have been closed for &gt; 2 days.');
                                         }
                                         isTag20k = true;
                                     }
