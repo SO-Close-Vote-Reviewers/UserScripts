@@ -2312,7 +2312,7 @@
             }
             const currentKnownRoomKey = getCurrentKnownRoomKey();
             const useMetaTag = currentKnownRoomKey ? knownRooms[currentKnownRoomKey].useMetaTag : false;
-            const useSiteTag = currentKnownRoomKey ? knownRooms[currentKnownRoomKey].useMetaTag : true;
+            const useSiteTag = currentKnownRoomKey ? knownRooms[currentKnownRoomKey].useSiteTag : true;
 
             function createTagMarkdown(tagText) {
                 let markdown = '';
