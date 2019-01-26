@@ -319,6 +319,22 @@
         insertMarkdownReady = true;
     });
 
+    //MathJax corrupts the text contents of titles (from a programmatic POV:  .text(),
+    //  .textContent, and .innerText).  In order have requests contain the actual title text,
+    //  we save a copy of the text for each title we find in the DOM, hopefully prior to
+    //  MathJax changing them.  There's a race condition here where it's assumed this is run
+    //  between when the title(s) exist in the DOM and before MathJax runs.  Currently, there
+    //  isn't an effort to guarantee that.
+    function saveCopyOfQuestionTitles() {
+        $('#question-header h1 a, h1 a, .question-hyperlink, .answer-hyperlink').each(function() {
+            const $this = $(this);
+            if (!$this.data('origText')) {
+                $this.data('origText', $this.text());
+            }
+        });
+    }
+    saveCopyOfQuestionTitles();
+
     //NATO: Prep page so we can place del-pls normally, and detect if NATO Enhancements is being used
     var isNatoWithoutEnhancement = false;
     if (isNato) {
@@ -2072,6 +2088,13 @@
                 }
                 this.questionTitle = questionTitle;
                 questionTitleText = questionTitle.text();
+                if (questionTitle.find('.MathJax').length) {
+                    //MathJax messes up the question title, so use one that's been saved, if available.
+                    const titleInData = questionTitle.data('origText');
+                    if (titleInData) {
+                        questionTitleText = titleInData;
+                    }
+                }
                 if (window.location.pathname === '/review/custom' || window.location.pathname === '/review/MagicTagReview') {
                     //Magic Tag
                     questionTitleText = questionTitleText.replace(/\s*-\s*(?:open|closed)\s*-\s*\d+\s*-\s*\d+\s*$/, '');
@@ -3156,6 +3179,7 @@
         }
         //Set all cv-pls GUIs to the appropriate type of request.
         CVRGUI.setCvpButtonToCurrentRequestType();
+        saveCopyOfQuestionTitles();
     }
     //Get the remembered requests prior to generating the GUIs for the first time.
     rememberedRequests = getGMStorageJSON(rememberedRequestStorage);
