@@ -429,18 +429,18 @@
             return [new RegExp(regexText, 'i')];
         }
 
-        const cvRegexes = makeTagRegExArray('cv-', please);
-        const deleteRegexes = makeTagRegExArray('d(?:el(?:ete)?)?(?:v)?-?(?:vote)?-', please);
-        const undeleteRegexes = makeTagRegExArray('un-?del(?:ete)?(?:v)?-?(?:vote)?(?:-?answers?|-?questions?)?-', please);
-        const reopenRegexes = makeTagRegExArray('(?:re-?)?open-', please);
+        const cvRegexes = makeTagRegExArray('cv-?', please);
+        const deleteRegexes = makeTagRegExArray('d(?:el(?:ete)?)?(?:v)?-?(?:vote)?-?', please);
+        const undeleteRegexes = makeTagRegExArray('un-?del(?:ete)?(?:v)?-?(?:vote)?(?:-?answers?|-?questions?)?-?', please);
+        const reopenRegexes = makeTagRegExArray('(?:re-?)?open-?', please);
         const duplicateRegexes = makeTagRegExArray('pos?sib(?:le|el)-dup(?:e|licate)?');
-        const flagRegexes = makeTagRegExArray('(?:re-?)?flag-', please);
-        const flagAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('(?:re-?)?flag-', please);
+        const flagRegexes = makeTagRegExArray('(?:re-?)?flag-?', please);
+        const flagAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('(?:re-?)?flag-?', please);
         const spamRegexes = makeTagRegExArray('spam');
         const spamAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('spam');
         const offensiveRegexes = makeTagRegExArray('(?:off?en[cs]ive|rude|abb?u[cs]ive)');
         const offensiveAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('(?:off?en[cs]ive|rude|abb?u[cs]ive)');
-        const approveRejectRegexes = makeTagRegExArray('(?:app?rove?|reject|rev[ie]+w)-(?:edit-?)?', please, true);
+        const approveRejectRegexes = makeTagRegExArray('(?:app?rove?|reject|rev[ie]+w)-?(?:edit-?)?', please, true);
         // FireAlarm reports
         const faRegexes = [
             /(?:\/\/stackapps\.com\/q\/7183\">FireAlarm(?:-Swift)?)/, // eslint-disable-line no-useless-escape
