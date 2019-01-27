@@ -327,7 +327,7 @@
         const currentRoomTargetInfo = targetRoomsByRoomNumber[room] || new TargetRoom(room, window.location.hostname, 'Default', 'Default', 'D', 'Default', commonRoomOptions.noUI);
         //The current room is not a valid room target.
         delete targetRoomsByRoomNumber[room];
-        //Remove any target rooms which are not to be used as a target.
+        //Remove any group rooms which are not to be used as a target.
         Object.keys(targetRoomsByRoomNumber).forEach((key) => {
             if (!targetRoomsByRoomNumber[key].showAsTarget) {
                 delete targetRoomsByRoomNumber[key];
@@ -549,7 +549,7 @@
                 primary: true,
                 regexes: approveRejectRegexes,
                 alwaysArchiveAfterSeconds: 2 * SECONDS_IN_HOUR, //2 hours
-                //This really should have a separate call the the SE API to get review information, where possible.
+                //This really should have a separate call to the SE API to get review information, where possible.
                 underAgeTypeKey: 'DELETE',
             },
             QUEEN_SOCVFINDER: { //QUEEN: SOCVFinder
