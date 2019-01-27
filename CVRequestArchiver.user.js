@@ -73,7 +73,7 @@
         fkey = $('#fkey');
         //fkey is not available in search and user pages
         if (isSearch || isUsersPage) {
-            fkey = isSearch ? getStorage('fkey') : fkey;
+            fkey = getStorage('fkey');
         } else {
             if (!fkey.length) {
                 return false;
