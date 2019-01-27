@@ -262,6 +262,22 @@
                     new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
             },
+            {//CRCQR
+                name: 'CRCQR',
+                primeRoom: 85306,
+                server: seChat,
+                defaultTargetRoom: 86076,
+                rooms: makeRoomsByNumberObject([
+                    //SOCVR
+                    new TargetRoom(85306, soChat, 'CRCQR', 'CRCQR', 'S', 'CRCQR', commonRoomOptions.allTrue),
+                    //Graveyard
+                    new TargetRoom(86076, soChat, 'CRCQR Request Graveyard', 'Graveyard', 'G', 'Grave', commonRoomOptions.allTrue),
+                    //SOCVR /dev/null
+                    new TargetRoom(86077, soChat, 'CRCQR /dev/null', 'Null', 'N', 'Null', commonRoomOptions.allTrue),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                ]),
+            },
             {//Meta SE Chat Default
                 name: 'Meta SE Chat Default',
                 primeRoom: 99999999,
