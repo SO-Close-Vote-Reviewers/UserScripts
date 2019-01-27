@@ -1027,6 +1027,7 @@
             }).catch((error) => {
                 console.error(error);
                 alert('There was an error in getting and/or processing the messages. You will need to try again.\n\nMore information is available in the console.');
+                nodes.cancel.disabled = false;
             });
         }, false);
 
@@ -2710,6 +2711,7 @@
                         '\n::  ajaxInfo:', ajaxInfo
                     );
                     alert('$.ajax encountered an error moving some posts. See console for details.' + (error && error.length < 100 ? ' error: ' + error : ''));
+                    nodes.cancel.disabled = false;
                 },
             };
             $.ajax(ajaxInfo);
