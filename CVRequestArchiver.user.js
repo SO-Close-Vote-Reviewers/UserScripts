@@ -123,6 +123,13 @@
         let messagesToMove = [];
         let events = [];
         let eventsByNum = {};
+        //A location to store the last room in which a message was which was added to the manual move list.
+        //  This is really a hack that will work most of the time. What should really be done here is record
+        //  the room that each message is in and move them separately by room.
+        //  Looks like if they are not all from the same room, but at least one is in the declared move-from room
+        //  then it will move the ones that are in the declared room and silently fail on those that are in any
+        //  other rooms.
+        let roomForMostRecentlyAddedManualMove = getStorage('roomForMostRecentlyAddedManualMove') || 0;
 
         const nodes = {};
         let avatarList = getStorageJSON('avatarList') || {};
@@ -2678,7 +2685,7 @@
                     to: targetRoomId + '',
                     fkey: fkey,
                 },
-                url: '/admin/movePosts/' + room,
+                url: '/admin/movePosts/' + (room ? room : roomForMostRecentlyAddedManualMove),
                 success: function() {
                     if (!posts.length) {
                         doneMovingMessages();
@@ -2991,6 +2998,13 @@
             //This assumes the list stored in memory is primary. i.e. a change that's occurred in localStorage, but which has not been
             //  read in yet will be overwritten.
             if (addNonDuplicateValuesToList(manualMoveList, values)) {
+                values = Array.isArray(values) ? values : [values];
+                const lastValue = values[values.length - 1];
+                const lastHref = $(`#message-${lastValue} .action-link`).closest('a').attr('href');
+                if (lastHref) {
+                    roomForMostRecentlyAddedManualMove = (lastHref.match(/\/transcript\/(\d+)\?/) || [0, 0])[1];
+                    setStorage('roomForMostRecentlyAddedManualMove', roomForMostRecentlyAddedManualMove);
+                }
                 setLSManualMoveList(manualMoveList);
                 showAllManualMoveMessages();
             }
