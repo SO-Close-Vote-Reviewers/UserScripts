@@ -588,9 +588,9 @@
             return [new RegExp(regexText, 'i')];
         }
 
-        const cvRegexes = makeTagRegExArray('cv-?', please);
-        const deleteRegexes = makeTagRegExArray('d(?:el(?:ete)?)?(?:v)?-?(?:vote)?-?', please);
-        const undeleteRegexes = makeTagRegExArray('un-?del(?:ete)?(?:v)?-?(?:vote)?(?:-?answers?|-?questions?)?-?', please);
+        const cvRegexes = makeTagRegExArray('(?:cv|closev?)-?', please);
+        const deleteRegexes = makeTagRegExArray('d(?:el(?:ete|etion)?)?(?:v)?-?(?:vote)?-?', please);
+        const undeleteRegexes = makeTagRegExArray('un-?del(?:ete|etion)?(?:v)?-?(?:vote)?(?:-?answers?|-?questions?)?-?', please);
         const reopenRegexes = makeTagRegExArray('(?:re-?)?open-?', please);
         const duplicateRegexes = makeTagRegExArray('pos?sib(?:le|el)-dup(?:e|licate)?');
         const flagRegexes = makeTagRegExArray('(?:re-?)?flag-?', please);
