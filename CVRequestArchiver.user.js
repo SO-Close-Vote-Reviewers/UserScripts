@@ -135,32 +135,49 @@
         let avatarList = getStorageJSON('avatarList') || {};
         const $body = $(document.body);
         const nKButtonEntriesToScan = 3000;
-        //XXX User Id's are different on the 3 separate Chat servers. Thus, this needs to be expanded into a record for IDs on all
-        //  servers ans selected based on the one we're on. However, they are currently only used for creating the RequestTypes, which
-        //  are part of the functionality that's currently only enabled on chat.SO. When that is re-written to be usable on other
-        //  sites, or when these are used in some other manner, this will need to be expanded.
-        const knownUserIds = {
-            fireAlarm: 6373379,
-            smokeDetector: 3735529,
-            queen: 6294609,
-            fox9000: 3671802,
-            yam: 5285668,
-            panta: 1413395,
+        const soChat = 'chat.stackoverflow.com';
+        const seChat = 'chat.stackexchange.com';
+        const mseChat = 'chat.meta.stackexchange.com';
+        //User ID's are different on the 3 separate Chat servers.
+        //  If a user ID is not defined here for a particular server, then the RequestTypes which use it will not perform that portion of the testing for that
+        //  request type. This could result in erroneous opperation.
+        const knownUserIdsByChatSite = {
+            [soChat]: {
+                fireAlarm: 6373379,
+                smokeDetector: 3735529,
+                queen: 6294609,
+                fox9000: 3671802,
+                yam: 5285668,
+                panta: 1413395,
+            },
+            [seChat]: {
+                fireAlarm: 212669,
+                smokeDetector: 120914,
+                queen: null, //No account found
+                fox9000: 118010,
+                yam: 323209,
+                panta: 141258,
+            },
+            [mseChat]: {
+                fireAlarm: 330041,
+                smokeDetector: 266345,
+                queen: null, //No account found
+                fox9000: 261079,
+                yam: 278816,
+                panta: 186472,
+            },
         };
         const parser = new DOMParser();
 
         //Define Target Room Sets
 
-        const soChat = 'chat.stackoverflow.com';
-        const seChat = 'chat.stackexchange.com';
-        const mseChat = 'chat.meta.stackexchange.com';
         //const trashcanEmoji = String.fromCodePoint(0x1F5D1) + String.fromCodePoint(0xFE0F);
         const trashcanEmoji = String.fromCodePoint(0x1F5D1);
-        function TargetRoom(_roomNumber, _server, _fullName, _shortName, _displayed, _classInfo, _options) {
+        function TargetRoom(_roomNumber, _chatServer, _fullName, _shortName, _displayed, _classInfo, _options) {
             //A class for target rooms.
             _options = (typeof _options === 'object' && _options !== null) ? _options : {};
             this.roomNumber = _roomNumber;
-            this.server = _server;
+            this.chatServer = _chatServer;
             this.fullName = _fullName;
             this.shortName = _shortName;
             this.displayed = _displayed;
@@ -185,11 +202,24 @@
             noUI: {showAsTarget: true, showMeta: true, showDeleted: true, showUI: false},
             onlyDeleted: {showAsTarget: false, showMeta: false, showDeleted: true, showUI: false},
         };
+        const soChatScanning = {
+            //On Chat.SO the following are the same for all room sets.
+            //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
+            mainSite: 'stackoverflow.com',
+            mainSiteSEApiParam: 'stackoverflow', //How to identify the main site to the SE API.
+            mainSiteRegExpText: 'stackoverflow\\.com',
+            regExp: {
+                //Various other RegExp are constructed and added to this list.
+                //chatMetaElimiation is used to remove chat and meta from detection by the RegExp looking for links to the main site.
+                //  The meta site is most important here. This is used due to the lack of look-behind in JavaScript RegExp.
+                chatMetaElimiation: /(?:meta|chat)\.stackoverflow\.com\/?/g,
+            },
+        };
         const targetRoomSets = [
             {//SO Chat Default
                 name: 'SO Chat Default',
                 primeRoom: 99999999,
-                server: soChat,
+                chatServer: soChat,
                 isSiteDefault: true,
                 defaultTargetRoom: 23262,
                 rooms: makeRoomsByNumberObject([
@@ -200,7 +230,7 @@
             {//SOCVR
                 name: 'SOCVR',
                 primeRoom: 41570,
-                server: soChat,
+                chatServer: soChat,
                 defaultTargetRoom: 90230,
                 rooms: makeRoomsByNumberObject([
                     //SOCVR
@@ -214,11 +244,21 @@
                     //Private for SD posts that have especially offensive content.
                     new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
+                //Semi-auto scanning:
+                //On Chat.SO, many of the properties are common for all rooms. Those are in soChatScanning. However,
+                //  includedRequestTypes and excludedRequestTypes may vary per room.
+                //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
+                //includedRequestTypes: [],
+                //An optional list of RequestTypes keys (String). If it exiss, these are excluded from RequestTypes used.
+                //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
+                excludedRequestTypes: [
+                ],
+                useCrudeRequestTypes: false,
             },
             {//SOBotics
                 name: 'SOBotics',
                 primeRoom: 111347,
-                server: soChat,
+                chatServer: soChat,
                 defaultTargetRoom: 170175,
                 rooms: makeRoomsByNumberObject([
                     //SOBotics
@@ -232,7 +272,7 @@
             {//SE Chat Default
                 name: 'SE Chat Default',
                 primeRoom: 99999999,
-                server: seChat,
+                chatServer: seChat,
                 isSiteDefault: true,
                 defaultTargetRoom: 19718,
                 rooms: makeRoomsByNumberObject([
@@ -245,7 +285,7 @@
             {//Charcoal HQ
                 name: 'Charcoal HQ',
                 primeRoom: 11540,
-                server: seChat,
+                chatServer: seChat,
                 defaultTargetRoom: 82806,
                 rooms: makeRoomsByNumberObject([
                     //Charcoal HQ
@@ -265,23 +305,75 @@
             {//CRCQR
                 name: 'CRCQR',
                 primeRoom: 85306,
-                server: seChat,
+                chatServer: seChat,
                 defaultTargetRoom: 86076,
                 rooms: makeRoomsByNumberObject([
-                    //SOCVR
-                    new TargetRoom(85306, soChat, 'CRCQR', 'CRCQR', 'S', 'CRCQR', commonRoomOptions.allTrue),
-                    //Graveyard
+                    //CRCQR
+                    new TargetRoom(85306, soChat, 'CRCQR', 'CRCQR', 'C', 'CRCQR', commonRoomOptions.allTrue),
+                    //CRCQR Graveyard
                     new TargetRoom(86076, soChat, 'CRCQR Request Graveyard', 'Graveyard', 'G', 'Grave', commonRoomOptions.allTrue),
-                    //SOCVR /dev/null
+                    //CRCQR /dev/null
                     new TargetRoom(86077, soChat, 'CRCQR /dev/null', 'Null', 'N', 'Null', commonRoomOptions.allTrue),
                     //Private for SD posts that have especially offensive content.
                     new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
+                //Semi-auto scanning:
+                //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
+                mainSite: 'codereview.stackexchange.com',
+                mainSiteSEApiParam: 'codereview', //How to identify the main site to the SE API.
+                mainSiteRegExpText: 'codereview\\.stackexchange\\.com',
+                regExp: {
+                    //Various other RegExp are constructed and added to this list.
+                    //chatMetaElimiation is used to remove chat and meta from detection by the RegExp looking for links to the main site.
+                    //  The meta site is most important here. This is used due to the lack of look-behind in JavaScript RegExp.
+                    chatMetaElimiation: /meta\.codereview\.stackexchange\.com\/?/g, //This is the old meta domain, but is considered an alias by SE.
+                },
+                //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
+                //includedRequestTypes: [],
+                //An optional list of RequestTypes keys (String). If it exiss, these are excluded from RequestTypes used.
+                //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
+                excludedRequestTypes: [
+                ],
+                useCrudeRequestTypes: false,
+            },
+            {//CRUDE
+                name: 'CRUDE',
+                primeRoom: 2165,
+                chatServer: seChat,
+                defaultTargetRoom: 88696,
+                rooms: makeRoomsByNumberObject([
+                    //CRUDE
+                    new TargetRoom(2165, soChat, 'CRUDE', 'CRUDE', 'C', 'CRUDE', commonRoomOptions.allTrue),
+                    //CRUDE Archive
+                    new TargetRoom(88696, soChat, 'CRUDE Archive', 'Archive', 'A', 'Archive', commonRoomOptions.allTrue),
+                    //Trash
+                    new TargetRoom(82806, seChat, 'Trash (room 82806)', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                ]),
+                //Semi-auto scanning:
+                //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
+                mainSite: 'math.stackexchange.com',
+                mainSiteSEApiParam: 'math', //How to identify the main site to the SE API.
+                mainSiteRegExpText: 'math\\.stackexchange\\.com',
+                regExp: {
+                    //Various other RegExp are constructed and added to this list.
+                    //chatMetaElimiation is used to remove chat and meta from detection by the RegExp looking for links to the main site.
+                    //  The meta site is most important here. This is used due to the lack of look-behind in JavaScript RegExp.
+                    chatMetaElimiation: /meta\.math\.stackexchange\.com\/?/g, //This is the old meta domain, but is considered an alias by SE.
+                },
+                //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
+                //includedRequestTypes: [],
+                //An optional list of RequestTypes keys (String). If it exiss, these are excluded from RequestTypes used.
+                //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
+                excludedRequestTypes: [
+                ],
+                useCrudeRequestTypes: true,
             },
             {//Meta SE Chat Default
                 name: 'Meta SE Chat Default',
                 primeRoom: 99999999,
-                server: mseChat,
+                chatServer: mseChat,
                 isSiteDefault: true,
                 defaultTargetRoom: 19718,
                 rooms: makeRoomsByNumberObject([
@@ -292,23 +384,46 @@
             {//Tavern on the Meta
                 name: 'Tavern on the Meta',
                 primeRoom: 89,
-                server: mseChat,
+                chatServer: mseChat,
                 defaultTargetRoom: 1037,
                 rooms: makeRoomsByNumberObject([
                     //Tavern on the Meta
-                    new TargetRoom(89, mseChat, 'Tavern on the Meta', 'Tavern', 'Ta', 'Tavern', commonRoomOptions.noUI),
+                    new TargetRoom(89, mseChat, 'Tavern on the Meta', 'Tavern', 'Ta', 'Tavern', commonRoomOptions.allTrue),
                     //Chimney
-                    new TargetRoom(1037, mseChat, 'Chimney', 'Chimney', 'C', 'Chimney', commonRoomOptions.noUI),
+                    new TargetRoom(1037, mseChat, 'Chimney', 'Chimney', 'C', 'Chimney', commonRoomOptions.allTrue),
                     //Sandbox/Trash Bin/Something
                     new TargetRoom(1196, mseChat, 'Sandbox/Trash Bin/Something', 'Something', 'S', 'Something', commonRoomOptions.noUI),
                     //Trashcan
                     new TargetRoom(1251, mseChat, 'Trashcan', 'Trashcan', 'Tr', 'Trashcan', commonRoomOptions.noUI),
                 ]),
+                //Semi-auto scanning:
+                //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
+                mainSite: 'meta.stackexchange.com',
+                mainSiteSEApiParam: 'meta', //How to identify the main site to the SE API.
+                mainSiteRegExpText: 'meta\\.stackexchange\\.com',
+                regExp: {
+                    //Various other RegExp are constructed and added to this list.
+                    //chatMetaElimiation is used to remove chat and meta from detection by the RegExp looking for links to the main site.
+                    //  This is used due to the lack of look-behind in JavaScript RegExp.
+                    chatMetaElimiation: /chat\.meta\.stackexchange\.com\/?/g, //This is the chat domain.
+                },
+                //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
+                //includedRequestTypes: [],
+                //An optional list of RequestTypes keys (String). If it exiss, these are excluded from RequestTypes used.
+                //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
+                excludedRequestTypes: [
+                ],
+                useCrudeRequestTypes: false,
             },
         ];
+        targetRoomSets.forEach((roomSet) => {
+            if (roomSet.chatServer === soChat) {
+                Object.assign(roomSet, soChatScanning);
+            }
+        });
         const defaultDisabledTargetRoomSet = {
             primeRoom: 999999998,
-            server: window.location.hostname,
+            chatServer: window.location.hostname,
             defaultTargetRoom: 999999999,
             rooms: makeRoomsByNumberObject([
                 //Nowhere
@@ -316,7 +431,7 @@
                 new TargetRoom(999999999, window.location.hostname, 'Disabled', 'Disabled', 'D', 'Disabled', commonRoomOptions.onlyDeleted),
             ]),
         };
-        const siteTargetRoomSets = targetRoomSets.filter(({server}) => server === window.location.hostname);
+        const siteTargetRoomSets = targetRoomSets.filter(({chatServer}) => chatServer === window.location.hostname);
 
         // Determine the set of target rooms to use.
         const targetRoomSet = (siteTargetRoomSets.find((roomSet) => roomSet.rooms[room]) || siteTargetRoomSets.find(({isSiteDefault}) => isSiteDefault) || defaultDisabledTargetRoomSet);
@@ -351,15 +466,43 @@
         });
         //The order in which we want to display the controls. As it happens, an alpha-sort based on shortName works well.
         const targetRoomsByRoomNumberOrder = Object.keys(targetRoomsByRoomNumber).sort((a, b) => targetRoomsByRoomNumber[a].shortName > targetRoomsByRoomNumber[b].shortName);
+        const knownUserIds = knownUserIdsByChatSite[targetRoomSet.chatServer];
+        if (targetRoomSet.regExp) {
+            //Match and capture the ID for questions, answers, and posts URLs.
+            //e.g. /stackoverflow\.com\/(?:q[^\/]*|posts|a[^\/]*)\/+(\d+)/g
+            targetRoomSet.regExp.questionAnswerPostsId = new RegExp(`${targetRoomSet.mainSiteRegExpText}/(?:q[^/]*|posts|a[^/]*)/+(\\d+)`, 'g');
+            //The above will preferentially obtain questions over some answer URL formats: e.g.
+            //    https://stackoverflow.com/questions/7654321/foo-my-baz/1234567#1234567
+            //  That's good for cv-pls/reopen-pls, but for other types of requests we should be considering the answer instead, if the URL is the alternate answer URL.
+            //e.g. /(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"'])/g
+            targetRoomSet.regExp.answerIdFromQuestionUrl = new RegExp(`(?:^|[\\s\"\'])(?:(?:https?:)?(?:(?://)?(?:www\\.|//)?${targetRoomSet.mainSiteRegExpText}/))(?:q[^/]*|posts)[^\\s#]*#(\\d+)(?:$|[\\s"'])`, 'g'); // eslint-disable-line no-useless-escape
+            //Detect a comment URL
+            //e.g. /(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts|a)[^\s#]*#comment(\d+)(?:$|[\s"'_])/g
+            targetRoomSet.regExp.commentIdFromUrl = new RegExp(`(?:^|[\\s\"\'])(?:(?:https?:)?(?:(?://)?(?:www\\.|//)?${targetRoomSet.mainSiteRegExpText}/))(?:q[^/]*|posts|a)[^\\s#]*#comment(\\d+)(?:$|[\\s\"\'_])`, 'g'); // eslint-disable-line no-useless-escape
+        }
 
         //The UI doesn't currently function on sites other than chat.SO.
-        const showUI = (window.location.hostname === soChat && currentRoomTargetInfo.showUI) && !isTranscript && !isSearch;
+        const roomGroupStringPropertyKeysRequiredForUI = [
+            'mainSite',
+            'mainSiteSEApiParam',
+            'mainSiteRegExpText',
+        ];
+        const roomGroupRegExpPropertyKeysRequiredForUI = [
+            'chatMetaElimiation',
+            'questionAnswerPostsId',
+            'answerIdFromQuestionUrl',
+            'commentIdFromUrl',
+        ];
+        //Only show the UI if the target room specifies it, it's chat and enough information exists and is minimally valid.
+        const showUI = currentRoomTargetInfo.showUI && isChat && targetRoomSet.regExp &&
+            roomGroupStringPropertyKeysRequiredForUI.every((key) => typeof targetRoomSet[key] === 'string') &&
+            roomGroupRegExpPropertyKeysRequiredForUI.every((key) => targetRoomSet.regExp[key] instanceof RegExp);
         const showDeleted = currentRoomTargetInfo.showDeleted;
         const showMeta = currentRoomTargetInfo.showMeta || isUsersPage || (isSearch && !room);
         const addedMetaHtml = makeMetaRoomTargetsHtml();
         if (isUsersPage || (isSearch && !room)) {
             //There is no set room, so want to make sure we have user info for at least all the
-            //  rooms for which we have in a room target set for this server.
+            //  rooms for which we have in a room target set for this chatServer.
             const additionalUserInfoFetches = [];
             Object.keys(siteAllRooms).forEach((roomId, index) => {
                 if (typeof roRooms[roomId] !== 'boolean') {
@@ -402,16 +545,16 @@
         //Match if they get at least 2 characters of pls, just pl, or 1 extra character
         const please = '(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)';
         const hrefUrlTag = '(?:tagged\\/';
-        const endHrefToPlainText = '"|\\[(?:tag\\W?)?';
+        const endHrefToPlainText = '"|\\[(?:(?:meta-)?tag\\W?)?';
 
-        const endPlainTextToEndWithQuestion = '\\]).*stackoverflow\\.com\\/(?:[qa][^\\/]*|posts)\\/+(\\d+)';
-        const questionUrlToHrefTag = 'stackoverflow\\.com\\/(?:[qa][^\\/]*|posts)\\/+(\\d+).*(?:tagged\\/';
-        const endPlainTextToEndWithQuestionOrReview = '\\]).*stackoverflow\\.com\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+)';
-        const questionOrReviewUrlToHrefTag = 'stackoverflow\\.com\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+).*(?:tagged\\/';
+        const endPlainTextToEndWithQuestion = `\\]).*${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts)\\/+(\\d+)`;
+        const questionUrlToHrefTag = `${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts)\\/+(\\d+).*(?:tagged\\/`;
+        const endPlainTextToEndWithQuestionOrReview = `\\]).*${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+)`;
+        const questionOrReviewUrlToHrefTag = `${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+).*(?:tagged\\/`;
 
         const endPlainTextToEnd = '\\])';
         const endHrefPrefixToSpanText = '[^>]*><span[^>]*>';
-        const endSpanTextToPlainText = '<\\/span>|\\[(?:tag\\W?)?';
+        const endSpanTextToPlainText = '<\\/span>|\\[(?:(?:meta-)?tag\\W?)?';
 
         function makeTagRegExArray(prefix, additional, includeReviews) {
             prefix = typeof prefix === 'string' ? prefix : '';
@@ -695,6 +838,44 @@
                 archiveWithPreviousFromUserId: knownUserIds.smokeDetector,
             },
         };
+        //If the targetRoomSet has a includedRequestTypes list, limit the RequestTypes to that list.
+        if (Array.isArray(targetRoomSet.includedRequestTypes)) {
+            const includeList = targetRoomSet.includedRequestTypes;
+            Object.keys(RequestTypes).forEach((typeKey) => {
+                if (includeList.indexOf(typeKey) === -1 && !(targetRoomSet.useCrudeRequestTypes && typeKey.indexOf('CRUDE_') === 0)) {
+                    //Keep it if it's in the include list, or using CRUDE RequetTypes and it is one.
+                    delete RequestTypes[typeKey];
+                }
+            });
+        }
+        if (targetRoomSet.useCrudeRequestTypes === false) {
+            Object.keys(RequestTypes).forEach((typeKey) => {
+                if (typeKey.indexOf('CRUDE_') === 0) {
+                    //If not using CRUDE RequestTypes and this one of them, then delete it.
+                    delete RequestTypes[typeKey];
+                }
+            });
+        }
+        //If the targetRoomSet has a excludedRequestTypes list, remove those from the RequestTypes.
+        if (Array.isArray(targetRoomSet.excludedRequestTypes)) {
+            targetRoomSet.excludedRequestTypes.forEach((typeKey) => delete RequestTypes[typeKey]);
+        }
+        //Remove any RequestTypes with defined, but non-numeric, UserIds
+        Object.keys(RequestTypes).forEach((typeKey) => {
+            const requestType = RequestTypes[typeKey];
+            [
+                'userIdMatch',
+                'archiveWithNextFromUserId',
+                'archiveWithPreviousFromUserId',
+            ].some((key) => {
+                const type = typeof requestType[key];
+                if (type !== 'undefined' && type !== 'number') {
+                    delete RequestTypes[typeKey];
+                    return true;
+                }
+                return false;
+            });
+        });
         const RequestTypeKeys = Object.keys(RequestTypes);
         //Add direct references to RequestTypes, which can't exist within the Object literal.
         RequestTypeKeys.forEach((key) => {
@@ -1357,7 +1538,7 @@
         }
 
         function doesEventMatchType(event, type, needParentList) {
-            if (type.userIdMatch && type.userIdMatch !== event.user_id) {
+            if (typeof type.userIdMatch === 'number' && type.userIdMatch !== event.user_id) {
                 return false;
             } //else
             if (type.regexes && !matchesRegex(event.contentNoCode, type.regexes)) {
@@ -1421,8 +1602,9 @@
             messageAsDom.find('code').remove();
             message = messageAsDom.html();
 
-            //Prevent matches of meta.stackoverflow.com
-            message = message.replace(/(?:meta|chat)\.stackoverflow\.com\/?\/?/, '');
+            //Prevent matches of the meta and chat sites (e.g. meta.stackoverflow.com)
+            targetRoomSet.regExp.chatMetaElimiation.lastIndex = 0;
+            message = message.replace(targetRoomSet.regExp.chatMetaElimiation, ' ');
             //Determine if it matches one of the RegExp.
             event.contentNoCode = message;
             event.contentNoCodeText = messageAsDom.text();
@@ -1523,7 +1705,7 @@
             }
 
             //Archive with previous from an ID
-            if (type.archiveWithPreviousFromUserId) {
+            if (typeof type.archiveWithPreviousFromUserId === 'number') {
                 //It's feedback like 'sd k', so search within the current batch to find the SD message to which it applies.
                 //XXX This does not handle complex SD feedback (e.g. sd 2k). It just assumes the feedback applies to the first found.
                 //XXX It doesn't test for SD messages which have already been moved.
@@ -1537,7 +1719,7 @@
             }
 
             //Archive with next from an ID
-            if (type.archiveWithNextFromUserId) {
+            if (typeof type.archiveWithNextFromUserId === 'number') {
                 for (let feedbackToIndex = eventIndex + 1; feedbackToIndex < currentEvents.length; feedbackToIndex++) {
                     const testEvent = currentEvents[feedbackToIndex];
                     if (testEvent.user_id === type.archiveWithNextFromUserId) {
@@ -1603,25 +1785,30 @@
             // Handle non-expired primary requests, which require getting question/answer data.
             //  We really should do a full parse of the URL, including making a choice based on request type as to considering the question, answer, or comment
             //  for longer formats.
-            var matches = event.contentNoCode.match(/stackoverflow\.com\/(?:q[^\/]*|posts|a[^\/]*)\/+(\d+)/g); // eslint-disable-line no-useless-escape
+            targetRoomSet.regExp.questionAnswerPostsId.lastIndex = 0;
+            var matches = event.contentNoCode.match(targetRoomSet.regExp.questionAnswerPostsId);
             //For a cv-pls we assume it's the associated question when the URL is to an answer or to a comment.
             if (!event.onlyQuestions) {
                 //The above will preferentially obtain questions over some answer URL formats: e.g.
                 //    https://stackoverflow.com/questions/7654321/foo-my-baz/1234567#1234567
                 //  That's good for cv-pls/reopen-pls, but for other types of requests we should be considering the answer instead, if the URL is the alternate answer URL.
-                const answerMatches = event.contentNoCode.match(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"'])/g); // eslint-disable-line no-useless-escape
+                targetRoomSet.regExp.answerIdFromQuestionUrl.lastIndex = 0;
+                const answerMatches = event.contentNoCode.match(targetRoomSet.regExp.answerIdFromQuestionUrl);
                 if (answerMatches) {
                     //Convert each one into a short answer URL so a single RegExp can be used below.
-                    matches = answerMatches.map((match) => match.replace(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"'])/, 'stackoverflow.com/a/$1')); // eslint-disable-line no-useless-escape
+                    targetRoomSet.regExp.answerIdFromQuestionUrl.lastIndex = 0;
+                    matches = answerMatches.map((match) => match.replace(targetRoomSet.regExp.answerIdFromQuestionUrl, `${targetRoomSet.mainSite}/a/$1`)); // eslint-disable-line no-useless-escape
                 }
             }
             const isComment = event.onlyComments;
             if (matches !== null && isComment) {
                 //There are URLs, but this type, or a type from which this was changed due to being too young is only comments
-                const commentMatches = event.contentNoCode.match(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts|a)[^\s#]*#comment(\d+)(?:$|[\s"'_])/g); // eslint-disable-line no-useless-escape
+                targetRoomSet.regExp.commentIdFromUrl.lastIndex = 0;
+                const commentMatches = event.contentNoCode.match(targetRoomSet.regExp.commentIdFromUrl);
                 if (commentMatches) {
                     //Convert each one into a short answer URL so a single RegExp can be used below.
-                    matches = commentMatches.map((match) => match.replace(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts|a)[^\s#]*#comment(\d+)(?:$|[\s"'_])/, 'stackoverflow.com/a/$1')); // eslint-disable-line no-useless-escape
+                    targetRoomSet.regExp.commentIdFromUrl.lastIndex = 0;
+                    matches = commentMatches.map((match) => match.replace(targetRoomSet.regExp.commentIdFromUrl, `${targetRoomSet.mainSite}/a/$1`));
                 } else {
                     matches = null;
                 }
@@ -1630,7 +1817,8 @@
             // matches will be null if an user screws up the formatting
             if (matches !== null) {
                 for (const match of matches) {
-                    posts[/stackoverflow\.com\/(?:q[^\/]*|posts|a[^\/]*)\/+(\d+)/.exec(match)[1]] = true; // eslint-disable-line no-useless-escape
+                    targetRoomSet.regExp.questionAnswerPostsId.lastIndex = 0;
+                    posts[targetRoomSet.regExp.questionAnswerPostsId.exec(match)[1]] = true; // eslint-disable-line no-useless-escape
                 }
             }
             //Add one entry in the requests list per postId found above.
@@ -1676,7 +1864,7 @@
                 } //else
                 return 'https://api.stackexchange.com/2.2/' + type + '/' + formatPosts(requestsForUrl) + '?' + [
                     'pagesize=100',
-                    'site=stackoverflow',
+                    `site=${targetRoomSet.mainSiteSEApiParam}`,
                     'key=qhq7Mdy8)4lSXLCjrzQFaQ((',
                     'filter=' + filter,
                 ].join('&');
@@ -2055,6 +2243,20 @@
                 '            box-shadow: 0px 0px 20px;',
                 '            resize: both;',
                 '            padding: 5px;',
+                ([
+                    'color',
+                    'image',
+                    'repeat',
+                    'attachment',
+                    'clip',
+                    'origin',
+                    'position-x',
+                    'position-y',
+                    'size',
+                ].reduce((sum, prop) => {
+                    const fullProp = `background-${prop}`;
+                    return `${(sum ? sum + '\n' : '')}${fullProp}: ${$body.css(fullProp)};`;
+                }, '')),
                 '        }',
                 '        .SOCVR-Archiver-moveCount-container > span {',
                 '            margin: 15px;',
