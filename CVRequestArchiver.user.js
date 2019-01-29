@@ -612,6 +612,28 @@
         // https://regex101.com/r/RJbnbS/1
         const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why))?u?-?)+\s*.*$/i;
         const editMonitorRegEx = /bad edit/i;
+        const crudeCloseRegexes = makeTagRegExArray('(?:cv|closev?)-?');
+        const crudeCloseCnRegexes = [
+            //https://regex101.com/r/NZVVXH/1
+            new RegExp(`<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>\\s*C(?:lose)?-?\\d+</a>`, 'i'),  // eslint-disable-line no-useless-escape
+            //https://regex101.com/r/XPgXfi/1
+            new RegExp(`^\\s*.{0,10}\\bclos(?:e|ure)\\W*<a href=\"https?:\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`, 'i'),  // eslint-disable-line no-useless-escape
+        ];
+        const crudeReopenRegexes = makeTagRegExArray('re-?openv?-?');
+        const crudeReopenRnRegexes = [
+            new RegExp(`<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>\\s*R(?:e-?open)?-?\\d+</a>`, 'i'),  // eslint-disable-line no-useless-escape
+            new RegExp(`^\\s*.{0,10}\\bre-?open(?:ing)\\W*<a href=\"https?:\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`, 'i'),  // eslint-disable-line no-useless-escape
+        ];
+        const crudeDeleteRegexes = makeTagRegExArray('d(?:el(?:ete|etion)?)?(?:v)?-?(?:vote)?-?');
+        const crudeDeleteDnRegexes = [
+            new RegExp(`<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>\\s*D(?:el(?:et(?:e|ion))?)?-?\\d+</a>`, 'i'),  // eslint-disable-line no-useless-escape
+            new RegExp(`^\\s*.{0,10}\\bdel(?:et(?:e|ion))?\\W*<a href=\"https?:\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`, 'i'),  // eslint-disable-line no-useless-escape
+        ];
+        const crudeUndeleteRegexes = makeTagRegExArray('un?-?d(?:el(?:ete|etion)?)?(?:v)?-?(?:vote)?-?');
+        const crudeUndeleteUnRegexes = [
+            new RegExp(`<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>\\s*Un?-?(?:d(?:el(?:et(?:e|ion))?)?)?-?\\d+</a>`, 'i'),  // eslint-disable-line no-useless-escape
+            new RegExp(`^\\s*.{0,10}\\bundel(?:et(?:e|ion))?\\W*<a href=\"https?:\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`, 'i'),  // eslint-disable-line no-useless-escape
+        ];
 
         /* The RequestTypes Object contains definitions for the detections which are used to determine if a message should be archived.
            Each detection should be a separate key containing an Object which defines the detection. The keys within that Object define
@@ -836,6 +858,58 @@
                 alwaysArchiveAfterSeconds: 4 * SECONDS_IN_HOUR, //4 hours
                 archiveWithParent: true,
                 archiveWithPreviousFromUserId: knownUserIds.smokeDetector,
+            },
+            CRUDE_CLOSE: {
+                name: 'CRUDE Close',
+                regexes: crudeCloseRegexes,
+                onlyQuestions: true,
+                alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
+                underAgeTypeKey: 'CLOSE',
+            },
+            CRUDE_CLOSE_CN: {
+                name: 'CRUDE Close CN',
+                regexes: crudeCloseCnRegexes,
+                onlyQuestions: true,
+                alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
+                underAgeTypeKey: 'CLOSE',
+            },
+            CRUDE_REOPEN: {
+                name: 'CRUDE Reopen',
+                regexes: crudeReopenRegexes,
+                onlyQuestions: true,
+                alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
+                underAgeTypeKey: 'REOPEN',
+            },
+            CRUDE_REOPEN_RN: {
+                name: 'CRUDE Reopen RN',
+                regexes: crudeReopenRnRegexes,
+                onlyQuestions: true,
+                alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
+                underAgeTypeKey: 'REOPEN',
+            },
+            CRUDE_DELETE: {
+                name: 'CRUDE Delete',
+                regexes: crudeDeleteRegexes,
+                alwaysArchiveAfterSeconds: 7 * SECONDS_IN_DAY, //7 days
+                underAgeTypeKey: 'DELETE',
+            },
+            CRUDE_DELETE_DN: {
+                name: 'CRUDE Delete DN',
+                regexes: crudeDeleteDnRegexes,
+                alwaysArchiveAfterSeconds: 7 * SECONDS_IN_DAY, //7 days
+                underAgeTypeKey: 'DELETE',
+            },
+            CRUDE_UNDELETE: {
+                name: 'CRUDE Undelete',
+                regexes: crudeUndeleteRegexes,
+                alwaysArchiveAfterSeconds: 7 * SECONDS_IN_DAY, //7 days
+                underAgeTypeKey: 'UNDELETE',
+            },
+            CRUDE_UNDELETE_UN: {
+                name: 'CRUDE Undelete UN',
+                regexes: crudeUndeleteUnRegexes,
+                alwaysArchiveAfterSeconds: 7 * SECONDS_IN_DAY, //7 days
+                underAgeTypeKey: 'UNDELETE',
             },
         };
         //If the targetRoomSet has a includedRequestTypes list, limit the RequestTypes to that list.
