@@ -467,7 +467,7 @@
         //const sdBangBangCommandsRegEx = /^\s*!!\/(?!blame|lick|wut|coffee|tea|brownie)/i;
         const sdBangBangCommandsRegEx = /^\s*!!\/(?:report|scan|feedback)/i;
         // https://regex101.com/r/RJbnbS/1
-        const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why))?u?-?)+\s*$/i;
+        const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why))?u?-?)+\s*.*$/i;
         const editMonitorRegEx = /bad edit/i;
 
         /* The RequestTypes Object contains definitions for the detections which are used to determine if a message should be archived.
@@ -491,7 +491,7 @@
                 andRegexes: Array of RegExp | RegExp
                     Additional RegExps which must also have a match. The RegExp are tested against the HTML with <code> removed.
                 archiveParentWithThis: Boolean (truthy)
-                    If true, then parents (messages to which these are a direct reply) are archive which the matching messages.
+                    If true, then parents (messages to which these are a direct reply) are archived with the matching messages.
                 archiveWithChildren: Boolean (truthy)
                     Archive this message when any direct response to it (it's children) are archived.
                 archiveWithNextFromUserId: userId (Number)
@@ -509,7 +509,7 @@
                 onlyQuestions: Boolean (truthy)
                     The posts associated with this type can only point to questions. Any URLs which include information about both the question
                     and an answer, a comment or an answer and a comment will be reduced the the question. This does not, currently, look for questions
-                    associated with answers when only the answer is specified in the URL (e.g. //stackoverflow/a/123456)
+                    associated with answers when only the answer is specified in the URL (e.g. //stackoverflow.com/a/123456)
                 primary: Boolean (truthy)
                     This type is considered primary (not currently used, theses are manually defined, so there is a known order).
                 regexes: Array of RegExp | RegExp
@@ -674,6 +674,14 @@
                 archiveWithNextFromUserId: knownUserIds.smokeDetector,
                 archiveWithChildren: true,
                 underAgeTypeKey: 'DELETE',
+            },
+            SMOKEDETECTOR_REPLY_TO_REPORT: {
+                name: 'SmokeDetector reply to report',
+                replyToTypeKeys: [
+                    'SMOKEDETECTOR_NOCONTENT',
+                    'SMOKEDETECTOR',
+                ],
+                archiveWithParent: true,
             },
             PANTA_SMOKEDETECTOR_FEEDBACK_TRAINING: {
                 name: 'Panta SmokeDetector Training feedback',
