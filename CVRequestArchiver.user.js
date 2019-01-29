@@ -1120,7 +1120,6 @@
             'body:not(.SOCVR-Archiver-alwaysShowDeleted) .content .deleted:hover ~ .SOCVR-Archiver-deleted-content,',
             'body:not(.SOCVR-Archiver-alwaysShowDeleted) .content .deleted ~ .SOCVR-Archiver-deleted-content:hover {',
             '    display: block;',
-            //'    opacity: 1;', //This is needed in combination with the shrink-fade                                                                                                                                                                                             //WinMerge ignore line
             '}',
             '.SOCVR-Archiver-deleted-content-marker {',
             '    cursor: pointer;',
@@ -2314,6 +2313,9 @@
                 '            padding: 5px 60px 0px 0px;',
                 '            height: 90%;',
                 '        }',
+                '        .SOCVR-Archiver-important-display-block {',
+                '            display: block !important;',
+                '        }',
                 // Close icon CSS is from the answer to "Pure css close button - Stack Overflow"
                 // at https://stackoverflow.com/a/20139794, copyright 2013 by Craig Wayne,
                 // licensed under CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).
@@ -2484,7 +2486,14 @@
             [50, 1000, 5000, 10000].forEach((time) => {
                 setTimeout(() => {
                     if (moveMessagesDiv) {
-                        $('.tiny-signature', moveMessagesDiv).removeAttr('style');
+                        $('.monologue .signature', moveMessagesDiv).each(function() {
+                            const children = $(this).children();
+                            if (children.length === 1) {
+                                children.addClass('SOCVR-Archiver-important-display-block');
+                            } else {
+                                children.removeClass('SOCVR-Archiver-important-display-block');
+                            }
+                        });
                     }
                 }, time);
             });
