@@ -59,18 +59,22 @@ if(typeof StackExchange === "undefined")
         'o': 'Opinion Based',
         'd': 'Duplicate',
     };
-    var configsForSites = [];
-    //Stack Overflow
-    configsForSites.push(new SiteConfig('Stack Overflow', /^stackoverflow.com$/, {
-        1: 'Blatantly off-topic (flag dialog)', //In close-flag dialog, but not the close-vote dialog.
+    const defaultOffTopicCloseReasons = {
+        1: 'Blatantly off-topic', //In close-flag dialog, but not the close-vote dialog on most sites, but is in the CV dialog on some sites.
         2: 'Belongs on another site',
         3: 'custom',
+    };
+    const defaultOffTopicCloseReasonsWithoutOtherSite = Object.assign({}, defaultOffTopicCloseReasons);
+    delete defaultOffTopicCloseReasonsWithoutOtherSite[2];
+    var configsForSites = [];
+    //Stack Overflow
+    configsForSites.push(new SiteConfig('Stack Overflow', /^stackoverflow.com$/, Object.assign({
         4: 'General Computing',
         7: 'Server / Networking',
         11: 'Typo or Cannot Reproduce',
         13: 'No MCVE',
         16: 'Request for Off-Site Resource',
-    }, Object.assign({
+    }, defaultOffTopicCloseReasons), Object.assign({
         'm': 'No MCVE',
         'r': 'Typo or Cannot Reproduce',
         'g': 'General Computing',
@@ -82,27 +86,41 @@ if(typeof StackExchange === "undefined")
         //'e': '(no specific problem or error)',
     }, defaultQuickSubstitutions), 'https://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers'));
     //Meta Stack Exchange
-    configsForSites.push(new SiteConfig('Meta Stack Exchange', /^meta.stackexchange.com$/, {
-        1: 'Blatantly off-topic (flag dialog)', //In close-flag dialog, but not the close-vote dialog.
-        3: 'custom',
+    configsForSites.push(new SiteConfig('Meta Stack Exchange', /^meta.stackexchange.com$/, Object.assign({
         5: 'Does not seek input or discussion',
         6: 'Cannot be reproduced',
         8: 'Not about Stack Exchange Network software',
         11: 'Specific to a single site',
-    }, Object.assign({
+    }, defaultOffTopicCloseReasonsWithoutOtherSite), Object.assign({
         'i': 'Does not seek input or discussion',
         'r': 'Cannot be reproduced',
         'n': 'Not about Stack Exchange Network software',
         's': 'Specific to a single site',
     }, defaultQuickSubstitutions), 'https://chat.meta.stackexchange.com/rooms/89/tavern-on-the-meta'));
+    //Code Review Stack Exchange
+    configsForSites.push(new SiteConfig('Code Review Stack Exchange', /^codereview.stackexchange.com$/, Object.assign({
+        20: 'Lacks concrete context',
+        23: 'Code not implemented or not working as intended',
+        25: 'Authorship of code',
+    }, defaultOffTopicCloseReasons), Object.assign({
+        'c': 'Lacks concrete context',
+        'i': 'Code not implemented or not working as intended',
+        'a': 'Authorship of code',
+    }, defaultQuickSubstitutions), 'https://chat.stackexchange.com/rooms/85306/se-code-review-close-questions-room'));
+    //Mathematics Stack Exchange
+    configsForSites.push(new SiteConfig('Mathematics Stack Exchange', /^math.stackexchange.com$/, Object.assign({
+        6: 'Not about mathematics',
+        8: 'Seeking personal advice',
+        9: 'Missing context or other details',
+    }, defaultOffTopicCloseReasons), Object.assign({
+        'b': 'Blatantly off-topic',
+        'n': 'Not about mathematics',
+        'c': 'Missing context or other details',
+        'a': 'Seeking personal advice',
+    }, defaultQuickSubstitutions), 'https://chat.stackexchange.com/rooms/2165/crude'));
 
     //Default site configuration
-    var currentSiteConfig = new SiteConfig('Default', /./, {
-        1: 'Blatantly off-topic (flag dialog)', //In close-flag dialog, but not the close-vote dialog.
-        2: 'Belongs on another site',
-        3: 'custom',
-    }, defaultQuickSubstitutions, 'https://chat.stackexchange.com/rooms/11254/the-stack-exchange-network');
-
+    var currentSiteConfig = new SiteConfig('Default', /./, defaultOffTopicCloseReasons, defaultQuickSubstitutions, 'https://chat.stackexchange.com/rooms/11254/the-stack-exchange-network');
 
     //If we are not trying to be compatible with IE, then could use .find here.
     configsForSites.some(function(siteConfig) {
