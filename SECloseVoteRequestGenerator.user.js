@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.6.2
+// @version        1.6.3
 // @description    This script generates formatted close vote requests and sends them to a specified chat room.
 // @author         @TinyGiant
 // @contributor    @rene @Tunaki @Makyen @paulroub
@@ -21,6 +21,7 @@
 // @grant          GM_xmlhttpRequest
 // @grant          GM.xmlHttpRequest
 // ==/UserScript==
+/* globals $, StackExchange */
 
 if(typeof StackExchange === "undefined")
     var StackExchange = unsafeWindow.StackExchange;
@@ -59,18 +60,22 @@ if(typeof StackExchange === "undefined")
         'o': 'Opinion Based',
         'd': 'Duplicate',
     };
-    var configsForSites = [];
-    //Stack Overflow
-    configsForSites.push(new SiteConfig('Stack Overflow', /^stackoverflow.com$/, {
-        1: 'Blatantly off-topic (flag dialog)', //In close-flag dialog, but not the close-vote dialog.
+    const defaultOffTopicCloseReasons = {
+        1: 'Blatantly off-topic', //In close-flag dialog, but not the close-vote dialog on most sites, but is in the CV dialog on some sites.
         2: 'Belongs on another site',
         3: 'custom',
+    };
+    const defaultOffTopicCloseReasonsWithoutOtherSite = Object.assign({}, defaultOffTopicCloseReasons);
+    delete defaultOffTopicCloseReasonsWithoutOtherSite[2];
+    var configsForSites = [];
+    //Stack Overflow
+    configsForSites.push(new SiteConfig('Stack Overflow', /^stackoverflow.com$/, Object.assign({
         4: 'General Computing',
         7: 'Server / Networking',
         11: 'Typo or Cannot Reproduce',
         13: 'No MCVE',
         16: 'Request for Off-Site Resource',
-    }, Object.assign({
+    }, defaultOffTopicCloseReasons), Object.assign({
         'm': 'No MCVE',
         'r': 'Typo or Cannot Reproduce',
         'g': 'General Computing',
@@ -82,27 +87,41 @@ if(typeof StackExchange === "undefined")
         //'e': '(no specific problem or error)',
     }, defaultQuickSubstitutions), 'https://chat.stackoverflow.com/rooms/41570/so-close-vote-reviewers'));
     //Meta Stack Exchange
-    configsForSites.push(new SiteConfig('Meta Stack Exchange', /^meta.stackexchange.com$/, {
-        1: 'Blatantly off-topic (flag dialog)', //In close-flag dialog, but not the close-vote dialog.
-        3: 'custom',
+    configsForSites.push(new SiteConfig('Meta Stack Exchange', /^meta.stackexchange.com$/, Object.assign({
         5: 'Does not seek input or discussion',
         6: 'Cannot be reproduced',
         8: 'Not about Stack Exchange Network software',
         11: 'Specific to a single site',
-    }, Object.assign({
+    }, defaultOffTopicCloseReasonsWithoutOtherSite), Object.assign({
         'i': 'Does not seek input or discussion',
         'r': 'Cannot be reproduced',
         'n': 'Not about Stack Exchange Network software',
         's': 'Specific to a single site',
     }, defaultQuickSubstitutions), 'https://chat.meta.stackexchange.com/rooms/89/tavern-on-the-meta'));
+    //Code Review Stack Exchange
+    configsForSites.push(new SiteConfig('Code Review Stack Exchange', /^codereview.stackexchange.com$/, Object.assign({
+        20: 'Lacks concrete context',
+        23: 'Code not implemented or not working as intended',
+        25: 'Authorship of code',
+    }, defaultOffTopicCloseReasons), Object.assign({
+        'c': 'Lacks concrete context',
+        'i': 'Code not implemented or not working as intended',
+        'a': 'Authorship of code',
+    }, defaultQuickSubstitutions), 'https://chat.stackexchange.com/rooms/85306/se-code-review-close-questions-room'));
+    //Mathematics Stack Exchange
+    configsForSites.push(new SiteConfig('Mathematics Stack Exchange', /^math.stackexchange.com$/, Object.assign({
+        6: 'Not about mathematics',
+        8: 'Seeking personal advice',
+        9: 'Missing context or other details',
+    }, defaultOffTopicCloseReasons), Object.assign({
+        'b': 'Blatantly off-topic',
+        'n': 'Not about mathematics',
+        'c': 'Missing context or other details',
+        'a': 'Seeking personal advice',
+    }, defaultQuickSubstitutions), 'https://chat.stackexchange.com/rooms/2165/crude'));
 
     //Default site configuration
-    var currentSiteConfig = new SiteConfig('Default', /./, {
-        1: 'Blatantly off-topic (flag dialog)', //In close-flag dialog, but not the close-vote dialog.
-        2: 'Belongs on another site',
-        3: 'custom',
-    }, defaultQuickSubstitutions, 'https://chat.stackexchange.com/rooms/11254/the-stack-exchange-network');
-
+    var currentSiteConfig = new SiteConfig('Default', /./, defaultOffTopicCloseReasons, defaultQuickSubstitutions, 'https://chat.stackexchange.com/rooms/11254/the-stack-exchange-network');
 
     //If we are not trying to be compatible with IE, then could use .find here.
     configsForSites.some(function(siteConfig) {
@@ -455,7 +474,7 @@ if(typeof StackExchange === "undefined")
         $('div', CVRGUI.items.send).show();
         $('input[type="text"]', CVRGUI.items.send).focus();
     }
-    CVRGUI.items  = {
+    CVRGUI.items = {
         send:    $('<dd><a href="javascript:void(0)">Send request</a><div style="display:none"><form><input type="text" placeholder="Close reason"/><input type="submit" value="Send"></form></div><hr></dd>'),
         room:    (function(){
             var item = $('<dd></dd>');
@@ -551,8 +570,9 @@ if(typeof StackExchange === "undefined")
         if(!reason) return false;
         reason = reasons.get(reason);
         var title = createMarkdownLinkWithText($('#question-header h1 a').text().replace(/^\s+|\s+$/gm, ''), base + $('#question .short-link').attr('href').replace(/(\/\d+)\/\d+$/, '$1'));
-        var user = $('.post-signature.owner:not([align="right"],#popup-close-question .post-signature) .user-details > *:not(.d-none):not(.-flair)').text().trim().match(/[^\n]+/)[0].trim();
-        if($('#question .owner:not(#popup-close-question .owner) a').length) user = createMarkdownLinkWithText(user, base + $('#question .owner:not(#popup-close-question .owner) a').attr('href'));
+        var user = $('.post-signature.owner:not([align="right"],#popup-close-question .post-signature) .user-details > *:not(.d-none):not(.-flair), .question .post-signature:not([align="right"],#popup-close-question .post-signature) .user-details .community-wiki').text().trim().match(/[^\n]+/)[0].trim();
+        var userLink = $('#question .owner:not(#popup-close-question .owner) a');
+        if(userLink.length) user = createMarkdownLinkWithText(user, base + userLink.attr('href'));
         var time = $('#question .owner:not(#popup-close-question .owner) .relativetime');
         time = time.length ? ' ' + time.attr('title') : '';
         var tag = $('#question a.post-tag').first().text(); //huh, sponsored tags have images =/ and off-topic tag like C++ are URL encoded -> get the text only
