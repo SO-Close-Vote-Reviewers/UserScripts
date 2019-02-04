@@ -21,6 +21,7 @@
 // @grant          GM_xmlhttpRequest
 // @grant          GM.xmlHttpRequest
 // ==/UserScript==
+/* globals $, StackExchange */
 
 if(typeof StackExchange === "undefined")
     var StackExchange = unsafeWindow.StackExchange;
@@ -473,7 +474,7 @@ if(typeof StackExchange === "undefined")
         $('div', CVRGUI.items.send).show();
         $('input[type="text"]', CVRGUI.items.send).focus();
     }
-    CVRGUI.items  = {
+    CVRGUI.items = {
         send:    $('<dd><a href="javascript:void(0)">Send request</a><div style="display:none"><form><input type="text" placeholder="Close reason"/><input type="submit" value="Send"></form></div><hr></dd>'),
         room:    (function(){
             var item = $('<dd></dd>');
