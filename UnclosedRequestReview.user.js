@@ -1666,7 +1666,8 @@
             //Add additional data to the existing request-info for this message.
             existing.appendChild(link);
             existing.classList.remove('urrsRequestHasOne');
-            message.parentNode.parentNode.style.minHeight = existing.clientHeight + 'px';
+            //Make sure the message has enough height to contain the request-info.
+            message.style.minHeight = (existing.clientHeight + 1) + 'px';
         } else {
             //Add the first request-info for this message.
             const node = document.createElement('span');
@@ -1694,35 +1695,18 @@
             node.appendChild(link);
             //Place the request-info prior to the .flash.
             message.insertBefore(node, message.querySelector('.flash'));
+            const messageNextSibling = message.nextSibling;
+            if (messageNextSibling && messageNextSibling.classList && messageNextSibling.classList.contains('message') && messageNextSibling.querySelector('.request-info')) {
+                message.classList.add('urrsNextMessageHasRequestInfo');
+                messageNextSibling.classList.add('urrsPrevMessageHasRequestInfo');
+            }
+            const messagePrevSibling = message.previousSibling;
+            if (messagePrevSibling && messagePrevSibling.classList && messagePrevSibling.classList.contains('message') && messagePrevSibling.querySelector('.request-info')) {
+                messagePrevSibling.classList.add('urrsNextMessageHasRequestInfo');
+                message.classList.add('urrsPrevMessageHasRequestInfo');
+            }
         }
         //The link is now inserted in the request info.
-        //If the request-info extends below the top of the next message then
-        //  adjust the margin-bottom on the current message to give enough room.
-        let nextMessage = message.nextElementSibling;
-        if (!nextMessage || !nextMessage.classList.contains('message')) {
-            let nextMonologue = monologue.nextElementSibling;
-            while (nextMonologue && !nextMonologue.classList.contains('monologue')) {
-                nextMonologue = nextMonologue.nextElementSibling;
-            }
-            if (!nextMonologue || !nextMonologue.classList.contains('monologue')) {
-                nextMessage = null;
-            } else {
-                nextMessage = nextMonologue.querySelector('.message');
-            }
-        }
-        if (nextMessage && nextMessage.classList.contains('message')) {
-            //This does not account for a margin-bottom which might be applied via CSS.
-            message.style.marginBottom = '';
-            let requestInfo = message.querySelector('.request-info');
-            let requestInfoBottom = requestInfo.getBoundingClientRect().bottom;
-            let nextMessageTop = nextMessage.getBoundingClientRect().top;
-            let bottomDiff = Math.round(requestInfoBottom - nextMessageTop);
-            if (bottomDiff > 0) {
-                const currentMarginText = message.style.marginBottom;
-                const currentMargin = currentMarginText ? +currentMarginText.replace(/px/g, '') : 0;
-                message.style.marginBottom = (currentMargin + bottomDiff + 7) + 'px';
-            }
-        }
         //Add post data to the DOM to enable other functionality.
         //Monologues are used for sorting. While it appears the code otherwise handles the possibility of multiple messages per monologue,
         //  sorting has to assume one message is sorted per monologue (on search results pages, SE delivers each message in a separate monologue).
@@ -3353,7 +3337,8 @@
             '}',
             '#chat .request-info,',
             '#transcript-body .request-info {',
-            '    padding: 2px 4px;',
+            '    top: 0px;',
+            '    padding: 0px 4px;',
             '    margin-left: 0px;',
             '    z-index: 2;',
             '}',
