@@ -10,9 +10,9 @@
 // @include      /^https?://chat\.stackoverflow\.com/transcript/.*$/
 // @include      /^https?://chat\.stackoverflow\.com/users/.*$/
 // @require      https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/gm4-polyfill.js
-// @grant        GM_xmlhttpRequest
+// @downloadURL  https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/UnclosedRequestReview.user.js
+// @updateURL    https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/UnclosedRequestReview.user.js
 // @grant        GM_openInTab
-// @grant        GM.xmlHttpRequest
 // @grant        GM.openInTab
 // ==/UserScript==
 /* jshint -W097 */
