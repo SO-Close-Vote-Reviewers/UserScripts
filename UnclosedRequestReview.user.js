@@ -3458,7 +3458,8 @@
                 //Chat page
                 (config.nonUi.visitedLinksShowInSidebar ? 'body#chat-body #sidebar a:visited:not(.button):not(#leave):not(#leave-all):not(#room-menu):not(#toggle-notify)' + (config.nonUi.visitedLinksShowInSidebarUser ? '' : ':not([href^="/users/"])') + ',' : ''),
                 'body#chat-body #input-area a:visited:not(.button):not(#blame-id):not(.mobile-on),',
-                //The Archiver's popup
+                //The Archiver's popup (newer and older (lowercase) versions)
+                'body#chat-body #SOCVR-Archiver-messagesToMove-container a:visited:not(.button)' + (config.nonUi.visitedLinksShowUsers ? '' : ':not(.signature)') + ',',
                 'body#chat-body #SOCVR-archiver-messagesToMove-container a:visited:not(.button)' + (config.nonUi.visitedLinksShowUsers ? '' : ':not(.signature)') + ',',
                 //Main chat message area
                 'body#chat-body #chat a:visited:not(.button)' + (config.nonUi.visitedLinksShowUsers ? '' : ':not(.signature)') + ' {',
