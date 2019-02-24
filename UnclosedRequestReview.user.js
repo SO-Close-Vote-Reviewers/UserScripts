@@ -1695,16 +1695,6 @@
             node.appendChild(link);
             //Place the request-info prior to the .flash.
             message.insertBefore(node, message.querySelector('.flash'));
-            const messageNextSibling = message.nextSibling;
-            if (messageNextSibling && messageNextSibling.classList && messageNextSibling.classList.contains('message') && messageNextSibling.querySelector('.request-info')) {
-                message.classList.add('urrsNextMessageHasRequestInfo');
-                messageNextSibling.classList.add('urrsPrevMessageHasRequestInfo');
-            }
-            const messagePrevSibling = message.previousSibling;
-            if (messagePrevSibling && messagePrevSibling.classList && messagePrevSibling.classList.contains('message') && messagePrevSibling.querySelector('.request-info')) {
-                messagePrevSibling.classList.add('urrsNextMessageHasRequestInfo');
-                message.classList.add('urrsPrevMessageHasRequestInfo');
-            }
         }
         //The link is now inserted in the request info.
         //Add post data to the DOM to enable other functionality.
