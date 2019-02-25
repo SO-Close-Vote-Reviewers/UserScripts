@@ -1878,7 +1878,8 @@
                 targetRoomSet.regExp.commentIdFromUrl.lastIndex = 0;
                 const commentMatches = event.contentNoCode.match(targetRoomSet.regExp.commentIdFromUrl);
                 if (commentMatches) {
-                    //Convert each one into a short answer URL so a single RegExp can be used below.
+                    //Convert each one into a short answer URL so a single RegExp can be used below to get the ID of the question/answer/post/comment, even though it's not an answer.
+                    //  That it is a comment is tracked by isComment.
                     targetRoomSet.regExp.commentIdFromUrl.lastIndex = 0;
                     matches = commentMatches.map((match) => match.replace(targetRoomSet.regExp.commentIdFromUrl, `${targetRoomSet.mainSite}/a/$1`));
                 } else {
@@ -1896,6 +1897,15 @@
             //Add one entry in the requests list per postId found above.
             Object.keys(posts).forEach((postId) => {
                 requests.push(new Request(event, postId, isComment));
+                if (!Array.isArray(event.requestedPosts)) {
+                    event.requestedPosts = [];
+                }
+                //Not using the Request Object in order to not create a circular reference. Some testing code relies on being able to
+                //  JSON.stringify events and/or requests, which would not be possible with circular references.
+                event.requestedPosts.push({
+                    postId,
+                    isComment,
+                });
             });
         }
 
@@ -1944,6 +1954,32 @@
                 ].join('&');
             }
 
+            function handleCompletedRequestForPost(request, responseItem) {
+                //When called, it's assumed that the request is complete, for one reason or another.
+                //  We remove the post from the list of posts in the event.
+                //  If the post was closed as a duplicate, then we remove the duplicate post also (i.e. users often
+                //    indicate both the post to close and the dup-target).
+                //  If that leaves no remaining posts for that event (pointed to in the request), then the event/message
+                //  is added to the list of those to archive. If not, then it's not added.
+                function removePostFromEvent(event, thisPostId, thisIsComment) {
+                    event.requestedPosts = event.requestedPosts.filter(({postId, isComment}) => !(+postId === +thisPostId && !!isComment === !!thisIsComment));
+                }
+                if (request.type === RequestTypes.CLOSE && responseItem && responseItem.closed_details && Array.isArray(responseItem.closed_details.original_questions)) {
+                    //Remove the duplicate targets, if any of them exist in the message, but only for close requests.
+                    responseItem.closed_details.original_questions.forEach(({question_id}) => {
+                        removePostFromEvent(request.event, question_id, false);
+                    });
+                }
+                removePostFromEvent(request.event, request.post, request.isComment);
+                //If the list of posts on the event is empty, then the event has had all of it's posts handled.
+                if (request.event.requestedPosts.length === 0) {
+                    addEventToMessagesToMove(request.event);
+                    console.log('Message COMPLETE; it will be ARCHIVED: message_id:', request.event.message_id, '::  event:', request.event);                                                                                               //WinMerge ignore line
+                } else {                                                                                                                                                                                                                    //WinMerge ignore line
+                    console.log('Message NOT COMPLETE: remaining posts:', request.event.requestedPosts.length, ':: message_id:', request.event.message_id, '::  event:', request.event);                                                    //WinMerge ignore line
+                }
+            }
+
             function handleDeleteAndUndeleteWithValidData(items, requestsToHandle, itemIdPropKey) {
                 //Look through the items received from the SE API and handle requests for DELETE and UNDELETE.
                 const indexesToDelete = {};
@@ -1952,7 +1988,7 @@
                         if (currentRequest.post == item[itemIdPropKey]) { // eslint-disable-line eqeqeq
                             if (item.locked_date) {
                                 //The post is locked. We can't do anything. The request is thus "complete".
-                                addEventToMessagesToMove(currentRequest.event);
+                                handleCompletedRequestForPost(currentRequest, item);
                                 indexesToDelete[requestIndex] = true;
                                 return true;
                             } // else
@@ -1963,7 +1999,7 @@
                             } // else
                             if (currentRequest.type === RequestTypes.UNDELETE) {
                                 //Add matching undel-pls to move list, as they are fulfilled.
-                                addEventToMessagesToMove(currentRequest.event);
+                                handleCompletedRequestForPost(currentRequest, item);
                                 //No need to request the data again as an answer.
                                 indexesToDelete[requestIndex] = true;
                                 return true;
@@ -2001,7 +2037,7 @@
                                     //Item is closed.
                                     if (currentRequest.type === RequestTypes.CLOSE) {
                                         //CLOSE request is handled.
-                                        addEventToMessagesToMove(currentRequest.event);
+                                        handleCompletedRequestForPost(currentRequest, item);
                                         return false;
                                     }
                                     if (currentRequest.type === RequestTypes.REOPEN) {
@@ -2012,7 +2048,7 @@
                                     //Item is open.
                                     if (currentRequest.type === RequestTypes.REOPEN) {
                                         //REOPEN request is handled.
-                                        addEventToMessagesToMove(currentRequest.event);
+                                        handleCompletedRequestForPost(currentRequest, item);
                                         return false;
                                     }
                                     if (currentRequest.type === RequestTypes.CLOSE) {
@@ -2096,7 +2132,7 @@
                 .then(() => {
                     for (const request of currentRequests) {
                         if (request.type !== RequestTypes.UNDELETE) {
-                            addEventToMessagesToMove(request.event);
+                            handleCompletedRequestForPost(request, null);
                         }
                     }
                     if (!requests.length) {
@@ -2104,9 +2140,12 @@
                         //return false;
                     }
                     return checkRequests(totalRequests, questionBackoff, answerBackoff, commentBackoff);
-                }).catch((error) => {
-                    console.error(error);
-                    checkDone();
+                }).catch(function (xhr) {
+                    nodes.cancel.disabled = false;
+                    const jsonError = typeof xhr.responseJSON === 'object' ? `${xhr.responseJSON.error_id}: ${xhr.responseJSON.error_name}: ${xhr.responseJSON.error_message}` : '';
+                    const errorText = `${(typeof xhr.statusText === 'string' ? `${xhr.statusText}: ` : '')}${jsonError}`;
+                    console.error('Error getting data for comments, answers, and questions', '\n::  xhr:', xhr, '\n::  statusText:', xhr.statusText, '\n::  xhr.responseJSON:', xhr.responseJSON, '\n::  jsonError:', jsonError, '\n::  errorText:', errorText);
+                    alert(`Something${((errorText && errorText.length < 300) ? ` (${errorText})` : '')} went wrong when trying to get data for comments, answers, and questions. Please try again.\nSee console for more informaiton.`);
                 });
         }
 
