@@ -2967,7 +2967,7 @@
                 url: 'https://' + window.location.hostname + '/messages/' + messageId + '/history',
                 success: callback,
                 error: function(xhr, status, error) {
-                    console.error('AJAX Error Getting history', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  room:', room, '\n::  fkey,:', fkey, '\n::  messageId:', messageId);
+                    console.error('AJAX error getting history', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  room:', room, '\n::  fkey,:', fkey, '\n::  messageId:', messageId);
                 },
             });
         }
