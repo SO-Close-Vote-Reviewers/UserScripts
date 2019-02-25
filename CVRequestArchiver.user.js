@@ -140,7 +140,7 @@
         const mseChat = 'chat.meta.stackexchange.com';
         //User ID's are different on the 3 separate Chat servers.
         //  If a user ID is not defined here for a particular server, then the RequestTypes which use it will not perform that portion of the testing for that
-        //  request type. This could result in erroneous opperation.
+        //  request type. This could result in erroneous operation.
         const knownUserIdsByChatSite = {
             [soChat]: {
                 fireAlarm: 6373379,
@@ -249,7 +249,7 @@
                 //  includedRequestTypes and excludedRequestTypes may vary per room.
                 //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
                 //includedRequestTypes: [],
-                //An optional list of RequestTypes keys (String). If it exiss, these are excluded from RequestTypes used.
+                //An optional list of RequestTypes keys (String). If it exists, these are excluded from RequestTypes used.
                 //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
                 excludedRequestTypes: [
                 ],
@@ -330,7 +330,7 @@
                 },
                 //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
                 //includedRequestTypes: [],
-                //An optional list of RequestTypes keys (String). If it exiss, these are excluded from RequestTypes used.
+                //An optional list of RequestTypes keys (String). If it exists, these are excluded from RequestTypes used.
                 //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
                 excludedRequestTypes: [
                 ],
@@ -364,7 +364,7 @@
                 },
                 //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
                 //includedRequestTypes: [],
-                //An optional list of RequestTypes keys (String). If it exiss, these are excluded from RequestTypes used.
+                //An optional list of RequestTypes keys (String). If it exists, these are excluded from RequestTypes used.
                 //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
                 excludedRequestTypes: [
                 ],
@@ -409,7 +409,7 @@
                 },
                 //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
                 //includedRequestTypes: [],
-                //An optional list of RequestTypes keys (String). If it exiss, these are excluded from RequestTypes used.
+                //An optional list of RequestTypes keys (String). If it exists, these are excluded from RequestTypes used.
                 //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
                 excludedRequestTypes: [
                 ],
@@ -916,7 +916,7 @@
             const includeList = targetRoomSet.includedRequestTypes;
             Object.keys(RequestTypes).forEach((typeKey) => {
                 if (includeList.indexOf(typeKey) === -1 && !(targetRoomSet.useCrudeRequestTypes && typeKey.indexOf('CRUDE_') === 0)) {
-                    //Keep it if it's in the include list, or using CRUDE RequetTypes and it is one.
+                    //Keep it if it's in the include list, or using CRUDE RequestTypes and it is one.
                     delete RequestTypes[typeKey];
                 }
             });
@@ -1966,7 +1966,7 @@
                 }
                 if (request.type === RequestTypes.CLOSE && responseItem && responseItem.closed_details && Array.isArray(responseItem.closed_details.original_questions)) {
                     //Remove the duplicate targets, if any of them exist in the message, but only for close requests.
-                    responseItem.closed_details.original_questions.forEach(({question_id}) => {
+                    responseItem.closed_details.original_questions.forEach(({question_id}) => { // eslint-disable-line camelcase
                         removePostFromEvent(request.event, question_id, false);
                     });
                 }
@@ -2140,12 +2140,12 @@
                         //return false;
                     }
                     return checkRequests(totalRequests, questionBackoff, answerBackoff, commentBackoff);
-                }).catch(function (xhr) {
+                }).catch(function(xhr) {
                     nodes.cancel.disabled = false;
                     const jsonError = typeof xhr.responseJSON === 'object' ? `${xhr.responseJSON.error_id}: ${xhr.responseJSON.error_name}: ${xhr.responseJSON.error_message}` : '';
                     const errorText = `${(typeof xhr.statusText === 'string' ? `${xhr.statusText}: ` : '')}${jsonError}`;
                     console.error('Error getting data for comments, answers, and questions', '\n::  xhr:', xhr, '\n::  statusText:', xhr.statusText, '\n::  xhr.responseJSON:', xhr.responseJSON, '\n::  jsonError:', jsonError, '\n::  errorText:', errorText);
-                    alert(`Something${((errorText && errorText.length < 300) ? ` (${errorText})` : '')} went wrong when trying to get data for comments, answers, and questions. Please try again.\nSee console for more informaiton.`);
+                    alert(`Something${((errorText && errorText.length < 300) ? ` (${errorText})` : '')} went wrong when trying to get data for comments, answers, and questions. Please try again.\nSee console for more information.`);
                 });
         }
 
