@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.6.3
+// @version        1.6.4
 // @description    This script generates formatted close vote requests and sends them to a specified chat room.
 // @author         @TinyGiant
 // @contributor    @rene @Tunaki @Makyen @paulroub
@@ -13,7 +13,7 @@
 // @exclude        *://data.stackexchange.com/*
 // @require        https://code.jquery.com/jquery-2.1.4.min.js
 // @require        https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/gm4-polyfill.js
-// @connect        rawgit.com
+// @connect        github.com
 // @connect        raw.githubusercontent.com
 // @connect        chat.stackoverflow.com
 // @connect        chat.stackexchange.com
@@ -135,7 +135,7 @@ if(typeof StackExchange === "undefined")
     var reasons = currentSiteConfig.quickSubstitutions;
     var offTopicCloseReasons = currentSiteConfig.offTopicCloseReasons;
 
-    var URL = "https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.user.js";
+    var URL = "https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/SECloseVoteRequestGenerator.user.js";
     var notifyint = 0;
     function notify(m,t) {
         var timeout;
@@ -177,7 +177,7 @@ if(typeof StackExchange === "undefined")
     function checkUpdates(force) {
         GM.xmlHttpRequest({
             method: 'GET',
-            url: 'https://rawgit.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version',
+            url: 'https://raw.githubusercontent.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version',
             onload: function(response) {
                 var VERSION = response.responseText.trim();
                 if(isVersionNewer(VERSION,GM.info.script.version)) {
@@ -570,9 +570,13 @@ if(typeof StackExchange === "undefined")
         if(!reason) return false;
         reason = reasons.get(reason);
         var title = createMarkdownLinkWithText($('#question-header h1 a').text().replace(/^\s+|\s+$/gm, ''), base + $('#question .short-link').attr('href').replace(/(\/\d+)\/\d+$/, '$1'));
-        var user = $('.post-signature.owner:not([align="right"],#popup-close-question .post-signature) .user-details > *:not(.d-none):not(.-flair), .question .post-signature:not([align="right"],#popup-close-question .post-signature) .user-details .community-wiki').text().trim().match(/[^\n]+/)[0].trim();
+        try {
+            var user = $('.post-signature.owner:not([align="right"],#popup-close-question .post-signature) .user-details > *:not(.d-none):not(.-flair), .question .post-signature:not([align="right"],#popup-close-question .post-signature) .user-details .community-wiki').text().trim().match(/[^\n]+/)[0].trim();
+        } catch (e) {
+            user = '';
+        }
         var userLink = $('#question .owner:not(#popup-close-question .owner) a');
-        if(userLink.length) user = createMarkdownLinkWithText(user, base + userLink.attr('href'));
+        if(userLink.length && user) user = createMarkdownLinkWithText(user, base + userLink.attr('href'));
         var time = $('#question .owner:not(#popup-close-question .owner) .relativetime');
         time = time.length ? ' ' + time.attr('title') : '';
         var tag = $('#question a.post-tag').first().text(); //huh, sponsored tags have images =/ and off-topic tag like C++ are URL encoded -> get the text only
