@@ -1928,7 +1928,9 @@
                 var filters = {
                     comments: '!9Z(-x)zjA',
                     answers: '!.UDo6l2k)5RjcU7O',
-                    questions: '!5RCJFFV3*1idqdx)f2XdVzdib',
+                    //Add various additional fields that can affect question actionability (e.g. locked, type of closure, bounty, etc.)
+                    //  We don't account for all of those, but we should add handling for them.
+                    questions: '!)IMJPYyS5MRbtkRWem5RUmI*KeOh-.JZgOM2',
                 };
                 var filter = filters[type];
                 if (typeof filter !== 'string') {
