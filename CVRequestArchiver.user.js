@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      3.1.0
+// @version      3.2.0
 // @description  Scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests and SD, FireAlarm, Queen, etc. reports for status, then moves the completed or expired ones.
 // @author       @TinyGiant @rene @Tunaki @Makyen
 // @updateURL    https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/CVRequestArchiver.user.js
@@ -73,7 +73,7 @@
         fkey = $('#fkey');
         //fkey is not available in search and user pages
         if (isSearch || isUsersPage) {
-            fkey = isSearch ? getStorage('fkey') : fkey;
+            fkey = getStorage('fkey');
         } else {
             if (!fkey.length) {
                 return false;
@@ -123,37 +123,61 @@
         let messagesToMove = [];
         let events = [];
         let eventsByNum = {};
+        //A location to store the last room in which a message was which was added to the manual move list.
+        //  This is really a hack that will work most of the time. What should really be done here is record
+        //  the room that each message is in and move them separately by room.
+        //  Looks like if they are not all from the same room, but at least one is in the declared move-from room
+        //  then it will move the ones that are in the declared room and silently fail on those that are in any
+        //  other rooms.
+        let roomForMostRecentlyAddedManualMove = getStorage('roomForMostRecentlyAddedManualMove') || 0;
 
         const nodes = {};
         let avatarList = getStorageJSON('avatarList') || {};
         const $body = $(document.body);
         const nKButtonEntriesToScan = 3000;
-        //XXX User Id's are different on the 3 separate Chat servers. Thus, this needs to be expanded into a record for IDs on all
-        //  servers ans selected based on the one we're on. However, they are currently only used for creating the RequestTypes, which
-        //  are part of the functionality that's currently only enabled on chat.SO. When that is re-written to be usable on other
-        //  sites, or when these are used in some other manner, this will need to be expanded.
-        const knownUserIds = {
-            fireAlarm: 6373379,
-            smokeDetector: 3735529,
-            queen: 6294609,
-            fox9000: 3671802,
-            yam: 5285668,
-            panta: 1413395,
+        const soChat = 'chat.stackoverflow.com';
+        const seChat = 'chat.stackexchange.com';
+        const mseChat = 'chat.meta.stackexchange.com';
+        //User ID's are different on the 3 separate Chat servers.
+        //  If a user ID is not defined here for a particular server, then the RequestTypes which use it will not perform that portion of the testing for that
+        //  request type. This could result in erroneous operation.
+        const knownUserIdsByChatSite = {
+            [soChat]: {
+                fireAlarm: 6373379,
+                smokeDetector: 3735529,
+                queen: 6294609,
+                fox9000: 3671802,
+                yam: 5285668,
+                panta: 1413395,
+            },
+            [seChat]: {
+                fireAlarm: 212669,
+                smokeDetector: 120914,
+                queen: null, //No account found
+                fox9000: 118010,
+                yam: 323209,
+                panta: 141258,
+            },
+            [mseChat]: {
+                fireAlarm: 330041,
+                smokeDetector: 266345,
+                queen: null, //No account found
+                fox9000: 261079,
+                yam: 278816,
+                panta: 186472,
+            },
         };
         const parser = new DOMParser();
 
         //Define Target Room Sets
 
-        const soChat = 'chat.stackoverflow.com';
-        const seChat = 'chat.stackexchange.com';
-        const mseChat = 'chat.meta.stackexchange.com';
         //const trashcanEmoji = String.fromCodePoint(0x1F5D1) + String.fromCodePoint(0xFE0F);
         const trashcanEmoji = String.fromCodePoint(0x1F5D1);
-        function TargetRoom(_roomNumber, _server, _fullName, _shortName, _displayed, _classInfo, _options) {
+        function TargetRoom(_roomNumber, _chatServer, _fullName, _shortName, _displayed, _classInfo, _options) {
             //A class for target rooms.
             _options = (typeof _options === 'object' && _options !== null) ? _options : {};
             this.roomNumber = _roomNumber;
-            this.server = _server;
+            this.chatServer = _chatServer;
             this.fullName = _fullName;
             this.shortName = _shortName;
             this.displayed = _displayed;
@@ -178,11 +202,24 @@
             noUI: {showAsTarget: true, showMeta: true, showDeleted: true, showUI: false},
             onlyDeleted: {showAsTarget: false, showMeta: false, showDeleted: true, showUI: false},
         };
+        const soChatScanning = {
+            //On Chat.SO the following are the same for all room sets.
+            //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
+            mainSite: 'stackoverflow.com',
+            mainSiteSEApiParam: 'stackoverflow', //How to identify the main site to the SE API.
+            mainSiteRegExpText: 'stackoverflow\\.com',
+            regExp: {
+                //Various other RegExp are constructed and added to this list.
+                //chatMetaElimiation is used to remove chat and meta from detection by the RegExp looking for links to the main site.
+                //  The meta site is most important here. This is used due to the lack of look-behind in JavaScript RegExp.
+                chatMetaElimiation: /(?:meta|chat)\.stackoverflow\.com\/?/g,
+            },
+        };
         const targetRoomSets = [
             {//SO Chat Default
                 name: 'SO Chat Default',
                 primeRoom: 99999999,
-                server: soChat,
+                chatServer: soChat,
                 isSiteDefault: true,
                 defaultTargetRoom: 23262,
                 rooms: makeRoomsByNumberObject([
@@ -193,7 +230,7 @@
             {//SOCVR
                 name: 'SOCVR',
                 primeRoom: 41570,
-                server: soChat,
+                chatServer: soChat,
                 defaultTargetRoom: 90230,
                 rooms: makeRoomsByNumberObject([
                     //SOCVR
@@ -207,11 +244,21 @@
                     //Private for SD posts that have especially offensive content.
                     new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
+                //Semi-auto scanning:
+                //On Chat.SO, many of the properties are common for all rooms. Those are in soChatScanning. However,
+                //  includedRequestTypes and excludedRequestTypes may vary per room.
+                //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
+                //includedRequestTypes: [],
+                //An optional list of RequestTypes keys (String). If it exists, these are excluded from RequestTypes used.
+                //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
+                excludedRequestTypes: [
+                ],
+                useCrudeRequestTypes: false,
             },
             {//SOBotics
                 name: 'SOBotics',
                 primeRoom: 111347,
-                server: soChat,
+                chatServer: soChat,
                 defaultTargetRoom: 170175,
                 rooms: makeRoomsByNumberObject([
                     //SOBotics
@@ -225,7 +272,7 @@
             {//SE Chat Default
                 name: 'SE Chat Default',
                 primeRoom: 99999999,
-                server: seChat,
+                chatServer: seChat,
                 isSiteDefault: true,
                 defaultTargetRoom: 19718,
                 rooms: makeRoomsByNumberObject([
@@ -238,7 +285,7 @@
             {//Charcoal HQ
                 name: 'Charcoal HQ',
                 primeRoom: 11540,
-                server: seChat,
+                chatServer: seChat,
                 defaultTargetRoom: 82806,
                 rooms: makeRoomsByNumberObject([
                     //Charcoal HQ
@@ -255,10 +302,78 @@
                     new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
             },
+            {//CRCQR
+                name: 'CRCQR',
+                primeRoom: 85306,
+                chatServer: seChat,
+                defaultTargetRoom: 86076,
+                rooms: makeRoomsByNumberObject([
+                    //CRCQR
+                    new TargetRoom(85306, soChat, 'CRCQR', 'CRCQR', 'C', 'CRCQR', commonRoomOptions.allTrue),
+                    //CRCQR Graveyard
+                    new TargetRoom(86076, soChat, 'CRCQR Request Graveyard', 'Graveyard', 'G', 'Grave', commonRoomOptions.allTrue),
+                    //CRCQR /dev/null
+                    new TargetRoom(86077, soChat, 'CRCQR /dev/null', 'Null', 'N', 'Null', commonRoomOptions.allTrue),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                ]),
+                //Semi-auto scanning:
+                //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
+                mainSite: 'codereview.stackexchange.com',
+                mainSiteSEApiParam: 'codereview', //How to identify the main site to the SE API.
+                mainSiteRegExpText: 'codereview\\.stackexchange\\.com',
+                regExp: {
+                    //Various other RegExp are constructed and added to this list.
+                    //chatMetaElimiation is used to remove chat and meta from detection by the RegExp looking for links to the main site.
+                    //  The meta site is most important here. This is used due to the lack of look-behind in JavaScript RegExp.
+                    chatMetaElimiation: /meta\.codereview\.stackexchange\.com\/?/g, //This is the old meta domain, but is considered an alias by SE.
+                },
+                //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
+                //includedRequestTypes: [],
+                //An optional list of RequestTypes keys (String). If it exists, these are excluded from RequestTypes used.
+                //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
+                excludedRequestTypes: [
+                ],
+                useCrudeRequestTypes: false,
+            },
+            {//CRUDE
+                name: 'CRUDE',
+                primeRoom: 2165,
+                chatServer: seChat,
+                defaultTargetRoom: 88696,
+                rooms: makeRoomsByNumberObject([
+                    //CRUDE
+                    new TargetRoom(2165, soChat, 'CRUDE', 'CRUDE', 'C', 'CRUDE', commonRoomOptions.allTrue),
+                    //CRUDE Archive
+                    new TargetRoom(88696, soChat, 'CRUDE Archive', 'Archive', 'A', 'Archive', commonRoomOptions.allTrue),
+                    //Trash
+                    new TargetRoom(82806, seChat, 'Trash (room 82806)', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                ]),
+                //Semi-auto scanning:
+                //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
+                mainSite: 'math.stackexchange.com',
+                mainSiteSEApiParam: 'math', //How to identify the main site to the SE API.
+                mainSiteRegExpText: 'math\\.stackexchange\\.com',
+                regExp: {
+                    //Various other RegExp are constructed and added to this list.
+                    //chatMetaElimiation is used to remove chat and meta from detection by the RegExp looking for links to the main site.
+                    //  The meta site is most important here. This is used due to the lack of look-behind in JavaScript RegExp.
+                    chatMetaElimiation: /meta\.math\.stackexchange\.com\/?/g, //This is the old meta domain, but is considered an alias by SE.
+                },
+                //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
+                //includedRequestTypes: [],
+                //An optional list of RequestTypes keys (String). If it exists, these are excluded from RequestTypes used.
+                //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
+                excludedRequestTypes: [
+                ],
+                useCrudeRequestTypes: true,
+            },
             {//Meta SE Chat Default
                 name: 'Meta SE Chat Default',
                 primeRoom: 99999999,
-                server: mseChat,
+                chatServer: mseChat,
                 isSiteDefault: true,
                 defaultTargetRoom: 19718,
                 rooms: makeRoomsByNumberObject([
@@ -269,23 +384,46 @@
             {//Tavern on the Meta
                 name: 'Tavern on the Meta',
                 primeRoom: 89,
-                server: mseChat,
+                chatServer: mseChat,
                 defaultTargetRoom: 1037,
                 rooms: makeRoomsByNumberObject([
                     //Tavern on the Meta
-                    new TargetRoom(89, mseChat, 'Tavern on the Meta', 'Tavern', 'Ta', 'Tavern', commonRoomOptions.noUI),
+                    new TargetRoom(89, mseChat, 'Tavern on the Meta', 'Tavern', 'Ta', 'Tavern', commonRoomOptions.allTrue),
                     //Chimney
-                    new TargetRoom(1037, mseChat, 'Chimney', 'Chimney', 'C', 'Chimney', commonRoomOptions.noUI),
+                    new TargetRoom(1037, mseChat, 'Chimney', 'Chimney', 'C', 'Chimney', commonRoomOptions.allTrue),
                     //Sandbox/Trash Bin/Something
                     new TargetRoom(1196, mseChat, 'Sandbox/Trash Bin/Something', 'Something', 'S', 'Something', commonRoomOptions.noUI),
                     //Trashcan
                     new TargetRoom(1251, mseChat, 'Trashcan', 'Trashcan', 'Tr', 'Trashcan', commonRoomOptions.noUI),
                 ]),
+                //Semi-auto scanning:
+                //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
+                mainSite: 'meta.stackexchange.com',
+                mainSiteSEApiParam: 'meta', //How to identify the main site to the SE API.
+                mainSiteRegExpText: 'meta\\.stackexchange\\.com',
+                regExp: {
+                    //Various other RegExp are constructed and added to this list.
+                    //chatMetaElimiation is used to remove chat and meta from detection by the RegExp looking for links to the main site.
+                    //  This is used due to the lack of look-behind in JavaScript RegExp.
+                    chatMetaElimiation: /chat\.meta\.stackexchange\.com\/?/g, //This is the chat domain.
+                },
+                //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
+                //includedRequestTypes: [],
+                //An optional list of RequestTypes keys (String). If it exists, these are excluded from RequestTypes used.
+                //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
+                excludedRequestTypes: [
+                ],
+                useCrudeRequestTypes: false,
             },
         ];
+        targetRoomSets.forEach((roomSet) => {
+            if (roomSet.chatServer === soChat) {
+                Object.assign(roomSet, soChatScanning);
+            }
+        });
         const defaultDisabledTargetRoomSet = {
             primeRoom: 999999998,
-            server: window.location.hostname,
+            chatServer: window.location.hostname,
             defaultTargetRoom: 999999999,
             rooms: makeRoomsByNumberObject([
                 //Nowhere
@@ -293,7 +431,7 @@
                 new TargetRoom(999999999, window.location.hostname, 'Disabled', 'Disabled', 'D', 'Disabled', commonRoomOptions.onlyDeleted),
             ]),
         };
-        const siteTargetRoomSets = targetRoomSets.filter(({server}) => server === window.location.hostname);
+        const siteTargetRoomSets = targetRoomSets.filter(({chatServer}) => chatServer === window.location.hostname);
 
         // Determine the set of target rooms to use.
         const targetRoomSet = (siteTargetRoomSets.find((roomSet) => roomSet.rooms[room]) || siteTargetRoomSets.find(({isSiteDefault}) => isSiteDefault) || defaultDisabledTargetRoomSet);
@@ -320,7 +458,7 @@
         const currentRoomTargetInfo = targetRoomsByRoomNumber[room] || new TargetRoom(room, window.location.hostname, 'Default', 'Default', 'D', 'Default', commonRoomOptions.noUI);
         //The current room is not a valid room target.
         delete targetRoomsByRoomNumber[room];
-        //Remove any target rooms which are not to be used as a target.
+        //Remove any group rooms which are not to be used as a target.
         Object.keys(targetRoomsByRoomNumber).forEach((key) => {
             if (!targetRoomsByRoomNumber[key].showAsTarget) {
                 delete targetRoomsByRoomNumber[key];
@@ -328,15 +466,43 @@
         });
         //The order in which we want to display the controls. As it happens, an alpha-sort based on shortName works well.
         const targetRoomsByRoomNumberOrder = Object.keys(targetRoomsByRoomNumber).sort((a, b) => targetRoomsByRoomNumber[a].shortName > targetRoomsByRoomNumber[b].shortName);
+        const knownUserIds = knownUserIdsByChatSite[targetRoomSet.chatServer];
+        if (targetRoomSet.regExp) {
+            //Match and capture the ID for questions, answers, and posts URLs.
+            //e.g. /stackoverflow\.com\/(?:q[^\/]*|posts|a[^\/]*)\/+(\d+)/g
+            targetRoomSet.regExp.questionAnswerPostsId = new RegExp(`${targetRoomSet.mainSiteRegExpText}/(?:q[^/]*|posts|a[^/]*)/+(\\d+)`, 'g');
+            //The above will preferentially obtain questions over some answer URL formats: e.g.
+            //    https://stackoverflow.com/questions/7654321/foo-my-baz/1234567#1234567
+            //  That's good for cv-pls/reopen-pls, but for other types of requests we should be considering the answer instead, if the URL is the alternate answer URL.
+            //e.g. /(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"'])/g
+            targetRoomSet.regExp.answerIdFromQuestionUrl = new RegExp(`(?:^|[\\s\"\'])(?:(?:https?:)?(?:(?://)?(?:www\\.|//)?${targetRoomSet.mainSiteRegExpText}/))(?:q[^/]*|posts)[^\\s#]*#(\\d+)(?:$|[\\s"'])`, 'g'); // eslint-disable-line no-useless-escape
+            //Detect a comment URL
+            //e.g. /(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts|a)[^\s#]*#comment(\d+)(?:$|[\s"'_])/g
+            targetRoomSet.regExp.commentIdFromUrl = new RegExp(`(?:^|[\\s\"\'])(?:(?:https?:)?(?:(?://)?(?:www\\.|//)?${targetRoomSet.mainSiteRegExpText}/))(?:q[^/]*|posts|a)[^\\s#]*#comment(\\d+)(?:$|[\\s\"\'_])`, 'g'); // eslint-disable-line no-useless-escape
+        }
 
         //The UI doesn't currently function on sites other than chat.SO.
-        const showUI = (window.location.hostname === soChat && currentRoomTargetInfo.showUI) && !isTranscript && !isSearch;
+        const roomGroupStringPropertyKeysRequiredForUI = [
+            'mainSite',
+            'mainSiteSEApiParam',
+            'mainSiteRegExpText',
+        ];
+        const roomGroupRegExpPropertyKeysRequiredForUI = [
+            'chatMetaElimiation',
+            'questionAnswerPostsId',
+            'answerIdFromQuestionUrl',
+            'commentIdFromUrl',
+        ];
+        //Only show the UI if the target room specifies it, it's chat and enough information exists and is minimally valid.
+        const showUI = currentRoomTargetInfo.showUI && isChat && targetRoomSet.regExp &&
+            roomGroupStringPropertyKeysRequiredForUI.every((key) => typeof targetRoomSet[key] === 'string') &&
+            roomGroupRegExpPropertyKeysRequiredForUI.every((key) => targetRoomSet.regExp[key] instanceof RegExp);
         const showDeleted = currentRoomTargetInfo.showDeleted;
         const showMeta = currentRoomTargetInfo.showMeta || isUsersPage || (isSearch && !room);
         const addedMetaHtml = makeMetaRoomTargetsHtml();
         if (isUsersPage || (isSearch && !room)) {
             //There is no set room, so want to make sure we have user info for at least all the
-            //  rooms for which we have in a room target set for this server.
+            //  rooms for which we have in a room target set for this chatServer.
             const additionalUserInfoFetches = [];
             Object.keys(siteAllRooms).forEach((roomId, index) => {
                 if (typeof roRooms[roomId] !== 'boolean') {
@@ -379,16 +545,16 @@
         //Match if they get at least 2 characters of pls, just pl, or 1 extra character
         const please = '(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)';
         const hrefUrlTag = '(?:tagged\\/';
-        const endHrefToPlainText = '"|\\[(?:tag\\W?)?';
+        const endHrefToPlainText = '"|\\[(?:(?:meta-)?tag\\W?)?';
 
-        const endPlainTextToEndWithQuestion = '\\]).*stackoverflow\\.com\\/(?:[qa][^\\/]*|posts)\\/+(\\d+)';
-        const questionUrlToHrefTag = 'stackoverflow\\.com\\/(?:[qa][^\\/]*|posts)\\/+(\\d+).*(?:tagged\\/';
-        const endPlainTextToEndWithQuestionOrReview = '\\]).*stackoverflow\\.com\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+)';
-        const questionOrReviewUrlToHrefTag = 'stackoverflow\\.com\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+).*(?:tagged\\/';
+        const endPlainTextToEndWithQuestion = `\\]).*${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts)\\/+(\\d+)`;
+        const questionUrlToHrefTag = `${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts)\\/+(\\d+).*(?:tagged\\/`;
+        const endPlainTextToEndWithQuestionOrReview = `\\]).*${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+)`;
+        const questionOrReviewUrlToHrefTag = `${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+).*(?:tagged\\/`;
 
         const endPlainTextToEnd = '\\])';
         const endHrefPrefixToSpanText = '[^>]*><span[^>]*>';
-        const endSpanTextToPlainText = '<\\/span>|\\[(?:tag\\W?)?';
+        const endSpanTextToPlainText = '<\\/span>|\\[(?:(?:meta-)?tag\\W?)?';
 
         function makeTagRegExArray(prefix, additional, includeReviews) {
             prefix = typeof prefix === 'string' ? prefix : '';
@@ -422,18 +588,18 @@
             return [new RegExp(regexText, 'i')];
         }
 
-        const cvRegexes = makeTagRegExArray('cv-', please);
-        const deleteRegexes = makeTagRegExArray('d(?:el(?:ete)?)?(?:v)?-?(?:vote)?-', please);
-        const undeleteRegexes = makeTagRegExArray('un-?del(?:ete)?(?:v)?-?(?:vote)?(?:-?answers?|-?questions?)?-', please);
-        const reopenRegexes = makeTagRegExArray('(?:re-?)?open-', please);
+        const cvRegexes = makeTagRegExArray('(?:cv|closev?)-?', please).concat(makeTagRegExArray('(?:dup(?:licate)?)-?', please), makeTagRegExArray('(?:dup(?:licate)?)-?'));
+        const deleteRegexes = makeTagRegExArray('d(?:el(?:ete|etion)?)?(?:v)?-?(?:vote)?-?', please);
+        const undeleteRegexes = makeTagRegExArray('un-?del(?:ete|etion)?(?:v)?-?(?:vote)?(?:-?answers?|-?questions?)?-?', please);
+        const reopenRegexes = makeTagRegExArray('(?:re-?)?open-?', please);
         const duplicateRegexes = makeTagRegExArray('pos?sib(?:le|el)-dup(?:e|licate)?');
-        const flagRegexes = makeTagRegExArray('(?:re-?)?flag-', please);
-        const flagAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('(?:re-?)?flag-', please);
+        const flagRegexes = makeTagRegExArray('(?:re-?)?flag-?', please);
+        const flagAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('(?:re-?)?flag-?', please);
         const spamRegexes = makeTagRegExArray('spam');
         const spamAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('spam');
         const offensiveRegexes = makeTagRegExArray('(?:off?en[cs]ive|rude|abb?u[cs]ive)');
         const offensiveAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('(?:off?en[cs]ive|rude|abb?u[cs]ive)');
-        const approveRejectRegexes = makeTagRegExArray('(?:app?rove?|reject|rev[ie]+w)-(?:edit-?)?', please, true);
+        const approveRejectRegexes = makeTagRegExArray('(?:app?rove?|reject|rev[ie]+w)-?(?:edit-?)?', please, true);
         // FireAlarm reports
         const faRegexes = [
             /(?:\/\/stackapps\.com\/q\/7183\">FireAlarm(?:-Swift)?)/, // eslint-disable-line no-useless-escape
@@ -441,11 +607,32 @@
         ];
         //We need to choose if we want more SD commands to be archived.
         //We probably don't want to archive: (?!blame|lick|wut|coffee|tea|brownie)
-        //const sdBangBangCommandsRegEx = /^\s*!!\/(?!blame|lick|wut|coffee|tea|brownie)/i;
         const sdBangBangCommandsRegEx = /^\s*!!\/(?:report|scan|feedback)/i;
         // https://regex101.com/r/RJbnbS/1
-        const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why))?u?-?)+\s*$/i;
+        const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why))?u?-?)+\s*.*$/i;
         const editMonitorRegEx = /bad edit/i;
+        const crudeCloseRegexes = makeTagRegExArray('(?:cv|closev?)-?');
+        const crudeCloseCnRegexes = [
+            //https://regex101.com/r/NZVVXH/1
+            new RegExp(`<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>\\s*C(?:lose)?-?\\d+</a>`, 'i'),  // eslint-disable-line no-useless-escape
+            //https://regex101.com/r/XPgXfi/1
+            new RegExp(`^\\s*.{0,10}\\bclos(?:e|ure)\\W*<a href=\"https?:\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`, 'i'),  // eslint-disable-line no-useless-escape
+        ];
+        const crudeReopenRegexes = makeTagRegExArray('re-?openv?-?');
+        const crudeReopenRnRegexes = [
+            new RegExp(`<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>\\s*R(?:e-?open)?-?\\d+</a>`, 'i'),  // eslint-disable-line no-useless-escape
+            new RegExp(`^\\s*.{0,10}\\bre-?open(?:ing)\\W*<a href=\"https?:\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`, 'i'),  // eslint-disable-line no-useless-escape
+        ];
+        const crudeDeleteRegexes = makeTagRegExArray('d(?:el(?:ete|etion)?)?(?:v)?-?(?:vote)?-?');
+        const crudeDeleteDnRegexes = [
+            new RegExp(`<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>\\s*D(?:el(?:et(?:e|ion))?)?-?\\d+</a>`, 'i'),  // eslint-disable-line no-useless-escape
+            new RegExp(`^\\s*.{0,10}\\bdel(?:et(?:e|ion))?\\W*<a href=\"https?:\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`, 'i'),  // eslint-disable-line no-useless-escape
+        ];
+        const crudeUndeleteRegexes = makeTagRegExArray('un?-?d(?:el(?:ete|etion)?)?(?:v)?-?(?:vote)?-?');
+        const crudeUndeleteUnRegexes = [
+            new RegExp(`<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>\\s*Un?-?(?:d(?:el(?:et(?:e|ion))?)?)?-?\\d+</a>`, 'i'),  // eslint-disable-line no-useless-escape
+            new RegExp(`^\\s*.{0,10}\\bundel(?:et(?:e|ion))?\\W*<a href=\"https?:\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`, 'i'),  // eslint-disable-line no-useless-escape
+        ];
 
         /* The RequestTypes Object contains definitions for the detections which are used to determine if a message should be archived.
            Each detection should be a separate key containing an Object which defines the detection. The keys within that Object define
@@ -468,7 +655,7 @@
                 andRegexes: Array of RegExp | RegExp
                     Additional RegExps which must also have a match. The RegExp are tested against the HTML with <code> removed.
                 archiveParentWithThis: Boolean (truthy)
-                    If true, then parents (messages to which these are a direct reply) are archive which the matching messages.
+                    If true, then parents (messages to which these are a direct reply) are archived with the matching messages.
                 archiveWithChildren: Boolean (truthy)
                     Archive this message when any direct response to it (it's children) are archived.
                 archiveWithNextFromUserId: userId (Number)
@@ -486,7 +673,7 @@
                 onlyQuestions: Boolean (truthy)
                     The posts associated with this type can only point to questions. Any URLs which include information about both the question
                     and an answer, a comment or an answer and a comment will be reduced the the question. This does not, currently, look for questions
-                    associated with answers when only the answer is specified in the URL (e.g. //stackoverflow/a/123456)
+                    associated with answers when only the answer is specified in the URL (e.g. //stackoverflow.com/a/123456)
                 primary: Boolean (truthy)
                     This type is considered primary (not currently used, theses are manually defined, so there is a known order).
                 regexes: Array of RegExp | RegExp
@@ -542,7 +729,7 @@
                 primary: true,
                 regexes: approveRejectRegexes,
                 alwaysArchiveAfterSeconds: 2 * SECONDS_IN_HOUR, //2 hours
-                //This really should have a separate call the the SE API to get review information, where possible.
+                //This really should have a separate call to the SE API to get review information, where possible.
                 underAgeTypeKey: 'DELETE',
             },
             QUEEN_SOCVFINDER: { //QUEEN: SOCVFinder
@@ -652,6 +839,14 @@
                 archiveWithChildren: true,
                 underAgeTypeKey: 'DELETE',
             },
+            SMOKEDETECTOR_REPLY_TO_REPORT: {
+                name: 'SmokeDetector reply to report',
+                replyToTypeKeys: [
+                    'SMOKEDETECTOR_NOCONTENT',
+                    'SMOKEDETECTOR',
+                ],
+                archiveWithParent: true,
+            },
             PANTA_SMOKEDETECTOR_FEEDBACK_TRAINING: {
                 name: 'Panta SmokeDetector Training feedback',
                 userIdMatch: knownUserIds.panta,
@@ -663,7 +858,97 @@
                 archiveWithParent: true,
                 archiveWithPreviousFromUserId: knownUserIds.smokeDetector,
             },
+            CRUDE_CLOSE: {
+                name: 'CRUDE Close',
+                regexes: crudeCloseRegexes,
+                onlyQuestions: true,
+                alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
+                underAgeTypeKey: 'CLOSE',
+            },
+            CRUDE_CLOSE_CN: {
+                name: 'CRUDE Close CN',
+                regexes: crudeCloseCnRegexes,
+                onlyQuestions: true,
+                alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
+                underAgeTypeKey: 'CLOSE',
+            },
+            CRUDE_REOPEN: {
+                name: 'CRUDE Reopen',
+                regexes: crudeReopenRegexes,
+                onlyQuestions: true,
+                alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
+                underAgeTypeKey: 'REOPEN',
+            },
+            CRUDE_REOPEN_RN: {
+                name: 'CRUDE Reopen RN',
+                regexes: crudeReopenRnRegexes,
+                onlyQuestions: true,
+                alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
+                underAgeTypeKey: 'REOPEN',
+            },
+            CRUDE_DELETE: {
+                name: 'CRUDE Delete',
+                regexes: crudeDeleteRegexes,
+                alwaysArchiveAfterSeconds: 7 * SECONDS_IN_DAY, //7 days
+                underAgeTypeKey: 'DELETE',
+            },
+            CRUDE_DELETE_DN: {
+                name: 'CRUDE Delete DN',
+                regexes: crudeDeleteDnRegexes,
+                alwaysArchiveAfterSeconds: 7 * SECONDS_IN_DAY, //7 days
+                underAgeTypeKey: 'DELETE',
+            },
+            CRUDE_UNDELETE: {
+                name: 'CRUDE Undelete',
+                regexes: crudeUndeleteRegexes,
+                alwaysArchiveAfterSeconds: 7 * SECONDS_IN_DAY, //7 days
+                underAgeTypeKey: 'UNDELETE',
+            },
+            CRUDE_UNDELETE_UN: {
+                name: 'CRUDE Undelete UN',
+                regexes: crudeUndeleteUnRegexes,
+                alwaysArchiveAfterSeconds: 7 * SECONDS_IN_DAY, //7 days
+                underAgeTypeKey: 'UNDELETE',
+            },
         };
+        //If the targetRoomSet has a includedRequestTypes list, limit the RequestTypes to that list.
+        if (Array.isArray(targetRoomSet.includedRequestTypes)) {
+            const includeList = targetRoomSet.includedRequestTypes;
+            Object.keys(RequestTypes).forEach((typeKey) => {
+                if (includeList.indexOf(typeKey) === -1 && !(targetRoomSet.useCrudeRequestTypes && typeKey.indexOf('CRUDE_') === 0)) {
+                    //Keep it if it's in the include list, or using CRUDE RequestTypes and it is one.
+                    delete RequestTypes[typeKey];
+                }
+            });
+        }
+        if (targetRoomSet.useCrudeRequestTypes === false) {
+            Object.keys(RequestTypes).forEach((typeKey) => {
+                if (typeKey.indexOf('CRUDE_') === 0) {
+                    //If not using CRUDE RequestTypes and this one of them, then delete it.
+                    delete RequestTypes[typeKey];
+                }
+            });
+        }
+        //If the targetRoomSet has a excludedRequestTypes list, remove those from the RequestTypes.
+        if (Array.isArray(targetRoomSet.excludedRequestTypes)) {
+            targetRoomSet.excludedRequestTypes.forEach((typeKey) => delete RequestTypes[typeKey]);
+        }
+        //Remove any RequestTypes with defined, but non-numeric, UserIds
+        Object.keys(RequestTypes).forEach((typeKey) => {
+            const requestType = RequestTypes[typeKey];
+            [
+                'userIdMatch',
+                'archiveWithNextFromUserId',
+                'archiveWithPreviousFromUserId',
+            ].some((key) => {
+                const type = typeof requestType[key];
+                if (type !== 'undefined' && type !== 'number') {
+                    delete RequestTypes[typeKey];
+                    return true;
+                }
+                return false;
+            });
+        });
         const RequestTypeKeys = Object.keys(RequestTypes);
         //Add direct references to RequestTypes, which can't exist within the Object literal.
         RequestTypeKeys.forEach((key) => {
@@ -908,7 +1193,6 @@
             'body:not(.SOCVR-Archiver-alwaysShowDeleted) .content .deleted:hover ~ .SOCVR-Archiver-deleted-content,',
             'body:not(.SOCVR-Archiver-alwaysShowDeleted) .content .deleted ~ .SOCVR-Archiver-deleted-content:hover {',
             '    display: block;',
-            //'    opacity: 1;', //This is needed in combination with the shrink-fade                                                                                                                                                                                             //WinMerge ignore line
             '}',
             '.SOCVR-Archiver-deleted-content-marker {',
             '    cursor: pointer;',
@@ -1020,6 +1304,7 @@
             }).catch((error) => {
                 console.error(error);
                 alert('There was an error in getting and/or processing the messages. You will need to try again.\n\nMore information is available in the console.');
+                nodes.cancel.disabled = false;
             });
         }, false);
 
@@ -1325,7 +1610,7 @@
         }
 
         function doesEventMatchType(event, type, needParentList) {
-            if (type.userIdMatch && type.userIdMatch !== event.user_id) {
+            if (typeof type.userIdMatch === 'number' && type.userIdMatch !== event.user_id) {
                 return false;
             } //else
             if (type.regexes && !matchesRegex(event.contentNoCode, type.regexes)) {
@@ -1389,8 +1674,9 @@
             messageAsDom.find('code').remove();
             message = messageAsDom.html();
 
-            //Prevent matches of meta.stackoverflow.com
-            message = message.replace(/(?:meta|chat)\.stackoverflow\.com\/?\/?/, '');
+            //Prevent matches of the meta and chat sites (e.g. meta.stackoverflow.com)
+            targetRoomSet.regExp.chatMetaElimiation.lastIndex = 0;
+            message = message.replace(targetRoomSet.regExp.chatMetaElimiation, ' ');
             //Determine if it matches one of the RegExp.
             event.contentNoCode = message;
             event.contentNoCodeText = messageAsDom.text();
@@ -1491,7 +1777,7 @@
             }
 
             //Archive with previous from an ID
-            if (type.archiveWithPreviousFromUserId) {
+            if (typeof type.archiveWithPreviousFromUserId === 'number') {
                 //It's feedback like 'sd k', so search within the current batch to find the SD message to which it applies.
                 //XXX This does not handle complex SD feedback (e.g. sd 2k). It just assumes the feedback applies to the first found.
                 //XXX It doesn't test for SD messages which have already been moved.
@@ -1505,7 +1791,7 @@
             }
 
             //Archive with next from an ID
-            if (type.archiveWithNextFromUserId) {
+            if (typeof type.archiveWithNextFromUserId === 'number') {
                 for (let feedbackToIndex = eventIndex + 1; feedbackToIndex < currentEvents.length; feedbackToIndex++) {
                     const testEvent = currentEvents[feedbackToIndex];
                     if (testEvent.user_id === type.archiveWithNextFromUserId) {
@@ -1571,25 +1857,31 @@
             // Handle non-expired primary requests, which require getting question/answer data.
             //  We really should do a full parse of the URL, including making a choice based on request type as to considering the question, answer, or comment
             //  for longer formats.
-            var matches = event.contentNoCode.match(/stackoverflow\.com\/(?:q[^\/]*|posts|a[^\/]*)\/+(\d+)/g); // eslint-disable-line no-useless-escape
+            targetRoomSet.regExp.questionAnswerPostsId.lastIndex = 0;
+            var matches = event.contentNoCode.match(targetRoomSet.regExp.questionAnswerPostsId);
             //For a cv-pls we assume it's the associated question when the URL is to an answer or to a comment.
             if (!event.onlyQuestions) {
                 //The above will preferentially obtain questions over some answer URL formats: e.g.
                 //    https://stackoverflow.com/questions/7654321/foo-my-baz/1234567#1234567
                 //  That's good for cv-pls/reopen-pls, but for other types of requests we should be considering the answer instead, if the URL is the alternate answer URL.
-                const answerMatches = event.contentNoCode.match(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"'])/g); // eslint-disable-line no-useless-escape
+                targetRoomSet.regExp.answerIdFromQuestionUrl.lastIndex = 0;
+                const answerMatches = event.contentNoCode.match(targetRoomSet.regExp.answerIdFromQuestionUrl);
                 if (answerMatches) {
                     //Convert each one into a short answer URL so a single RegExp can be used below.
-                    matches = answerMatches.map((match) => match.replace(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"'])/, 'stackoverflow.com/a/$1')); // eslint-disable-line no-useless-escape
+                    targetRoomSet.regExp.answerIdFromQuestionUrl.lastIndex = 0;
+                    matches = answerMatches.map((match) => match.replace(targetRoomSet.regExp.answerIdFromQuestionUrl, `${targetRoomSet.mainSite}/a/$1`)); // eslint-disable-line no-useless-escape
                 }
             }
             const isComment = event.onlyComments;
             if (matches !== null && isComment) {
                 //There are URLs, but this type, or a type from which this was changed due to being too young is only comments
-                const commentMatches = event.contentNoCode.match(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts|a)[^\s#]*#comment(\d+)(?:$|[\s"'_])/g); // eslint-disable-line no-useless-escape
+                targetRoomSet.regExp.commentIdFromUrl.lastIndex = 0;
+                const commentMatches = event.contentNoCode.match(targetRoomSet.regExp.commentIdFromUrl);
                 if (commentMatches) {
-                    //Convert each one into a short answer URL so a single RegExp can be used below.
-                    matches = commentMatches.map((match) => match.replace(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts|a)[^\s#]*#comment(\d+)(?:$|[\s"'_])/, 'stackoverflow.com/a/$1')); // eslint-disable-line no-useless-escape
+                    //Convert each one into a short answer URL so a single RegExp can be used below to get the ID of the question/answer/post/comment, even though it's not an answer.
+                    //  That it is a comment is tracked by isComment.
+                    targetRoomSet.regExp.commentIdFromUrl.lastIndex = 0;
+                    matches = commentMatches.map((match) => match.replace(targetRoomSet.regExp.commentIdFromUrl, `${targetRoomSet.mainSite}/a/$1`));
                 } else {
                     matches = null;
                 }
@@ -1598,12 +1890,22 @@
             // matches will be null if an user screws up the formatting
             if (matches !== null) {
                 for (const match of matches) {
-                    posts[/stackoverflow\.com\/(?:q[^\/]*|posts|a[^\/]*)\/+(\d+)/.exec(match)[1]] = true; // eslint-disable-line no-useless-escape
+                    targetRoomSet.regExp.questionAnswerPostsId.lastIndex = 0;
+                    posts[targetRoomSet.regExp.questionAnswerPostsId.exec(match)[1]] = true; // eslint-disable-line no-useless-escape
                 }
             }
             //Add one entry in the requests list per postId found above.
             Object.keys(posts).forEach((postId) => {
                 requests.push(new Request(event, postId, isComment));
+                if (!Array.isArray(event.requestedPosts)) {
+                    event.requestedPosts = [];
+                }
+                //Not using the Request Object in order to not create a circular reference. Some testing code relies on being able to
+                //  JSON.stringify events and/or requests, which would not be possible with circular references.
+                event.requestedPosts.push({
+                    postId,
+                    isComment,
+                });
             });
         }
 
@@ -1636,7 +1938,9 @@
                 var filters = {
                     comments: '!9Z(-x)zjA',
                     answers: '!.UDo6l2k)5RjcU7O',
-                    questions: '!5RCJFFV3*1idqdx)f2XdVzdib',
+                    //Add various additional fields that can affect question actionability (e.g. locked, type of closure, bounty, etc.)
+                    //  We don't account for all of those, but we should add handling for them.
+                    questions: '!)IMJPYyS5MRbtkRWem5RUmI*KeOh-.JZgOM2',
                 };
                 var filter = filters[type];
                 if (typeof filter !== 'string') {
@@ -1644,10 +1948,36 @@
                 } //else
                 return 'https://api.stackexchange.com/2.2/' + type + '/' + formatPosts(requestsForUrl) + '?' + [
                     'pagesize=100',
-                    'site=stackoverflow',
+                    `site=${targetRoomSet.mainSiteSEApiParam}`,
                     'key=qhq7Mdy8)4lSXLCjrzQFaQ((',
                     'filter=' + filter,
                 ].join('&');
+            }
+
+            function handleCompletedRequestForPost(request, responseItem) {
+                //When called, it's assumed that the request is complete, for one reason or another.
+                //  We remove the post from the list of posts in the event.
+                //  If the post was closed as a duplicate, then we remove the duplicate post also (i.e. users often
+                //    indicate both the post to close and the dup-target).
+                //  If that leaves no remaining posts for that event (pointed to in the request), then the event/message
+                //  is added to the list of those to archive. If not, then it's not added.
+                function removePostFromEvent(event, thisPostId, thisIsComment) {
+                    event.requestedPosts = event.requestedPosts.filter(({postId, isComment}) => !(+postId === +thisPostId && !!isComment === !!thisIsComment));
+                }
+                if (request.type === RequestTypes.CLOSE && responseItem && responseItem.closed_details && Array.isArray(responseItem.closed_details.original_questions)) {
+                    //Remove the duplicate targets, if any of them exist in the message, but only for close requests.
+                    responseItem.closed_details.original_questions.forEach(({question_id}) => { // eslint-disable-line camelcase
+                        removePostFromEvent(request.event, question_id, false);
+                    });
+                }
+                removePostFromEvent(request.event, request.post, request.isComment);
+                //If the list of posts on the event is empty, then the event has had all of it's posts handled.
+                if (request.event.requestedPosts.length === 0) {
+                    addEventToMessagesToMove(request.event);
+                    console.log('Message COMPLETE; it will be ARCHIVED: message_id:', request.event.message_id, '::  event:', request.event);                                                                                               //WinMerge ignore line
+                } else {                                                                                                                                                                                                                    //WinMerge ignore line
+                    console.log('Message NOT COMPLETE: remaining posts:', request.event.requestedPosts.length, ':: message_id:', request.event.message_id, '::  event:', request.event);                                                    //WinMerge ignore line
+                }
             }
 
             function handleDeleteAndUndeleteWithValidData(items, requestsToHandle, itemIdPropKey) {
@@ -1658,7 +1988,7 @@
                         if (currentRequest.post == item[itemIdPropKey]) { // eslint-disable-line eqeqeq
                             if (item.locked_date) {
                                 //The post is locked. We can't do anything. The request is thus "complete".
-                                addEventToMessagesToMove(currentRequest.event);
+                                handleCompletedRequestForPost(currentRequest, item);
                                 indexesToDelete[requestIndex] = true;
                                 return true;
                             } // else
@@ -1669,7 +1999,7 @@
                             } // else
                             if (currentRequest.type === RequestTypes.UNDELETE) {
                                 //Add matching undel-pls to move list, as they are fulfilled.
-                                addEventToMessagesToMove(currentRequest.event);
+                                handleCompletedRequestForPost(currentRequest, item);
                                 //No need to request the data again as an answer.
                                 indexesToDelete[requestIndex] = true;
                                 return true;
@@ -1707,7 +2037,7 @@
                                     //Item is closed.
                                     if (currentRequest.type === RequestTypes.CLOSE) {
                                         //CLOSE request is handled.
-                                        addEventToMessagesToMove(currentRequest.event);
+                                        handleCompletedRequestForPost(currentRequest, item);
                                         return false;
                                     }
                                     if (currentRequest.type === RequestTypes.REOPEN) {
@@ -1718,7 +2048,7 @@
                                     //Item is open.
                                     if (currentRequest.type === RequestTypes.REOPEN) {
                                         //REOPEN request is handled.
-                                        addEventToMessagesToMove(currentRequest.event);
+                                        handleCompletedRequestForPost(currentRequest, item);
                                         return false;
                                     }
                                     if (currentRequest.type === RequestTypes.CLOSE) {
@@ -1802,7 +2132,7 @@
                 .then(() => {
                     for (const request of currentRequests) {
                         if (request.type !== RequestTypes.UNDELETE) {
-                            addEventToMessagesToMove(request.event);
+                            handleCompletedRequestForPost(request, null);
                         }
                     }
                     if (!requests.length) {
@@ -1810,9 +2140,12 @@
                         //return false;
                     }
                     return checkRequests(totalRequests, questionBackoff, answerBackoff, commentBackoff);
-                }).catch((error) => {
-                    console.error(error);
-                    checkDone();
+                }).catch(function(xhr) {
+                    nodes.cancel.disabled = false;
+                    const jsonError = typeof xhr.responseJSON === 'object' ? `${xhr.responseJSON.error_id}: ${xhr.responseJSON.error_name}: ${xhr.responseJSON.error_message}` : '';
+                    const errorText = `${(typeof xhr.statusText === 'string' ? `${xhr.statusText}: ` : '')}${jsonError}`;
+                    console.error('Error getting data for comments, answers, and questions', '\n::  xhr:', xhr, '\n::  statusText:', xhr.statusText, '\n::  xhr.responseJSON:', xhr.responseJSON, '\n::  jsonError:', jsonError, '\n::  errorText:', errorText);
+                    alert(`Something${((errorText && errorText.length < 300) ? ` (${errorText})` : '')} went wrong when trying to get data for comments, answers, and questions. Please try again.\nSee console for more information.`);
                 });
         }
 
@@ -2008,107 +2341,172 @@
             var mainHeight = /px$/.test(inputHeight) ? +inputHeight.replace(/px$/, '') + 75 : 150;
             $(shownToBeMoved).append([
                 /* eslint-disable indent */
-                '<div id="SOCVR-archiver-messagesToMove-container">',
+                '<div id="SOCVR-Archiver-messagesToMove-container">',
                 '    <style>',
-                '        #SOCVR-archiver-messagesToMove-container {',
+                '        #SOCVR-Archiver-messagesToMove-container {',
                 '            display: block;',
                 '            position: fixed;',
                 '            top: 25px;',
-                '            left: 50px;',
+                '            left: 2vw;',
                 '            background-color: #fff;',
-                '            width: calc(100% - 100px);',
+                '            width: calc(100% - 6.7vw);',
                 '            height: calc(100% - ' + mainHeight + 'px);',
                 '            z-index: 10000;',
                 '            border: 2px solid;',
                 '            box-shadow: 0px 0px 20px;',
                 '            resize: both;',
-                '            padding: 5px;',
+                '            padding: 5px 5px 10px 5px;',
+                ([
+                    'color',
+                    'image',
+                    'repeat',
+                    'attachment',
+                    'clip',
+                    'origin',
+                    'position-x',
+                    'position-y',
+                    'size',
+                ].reduce((sum, prop) => {
+                    const fullProp = `background-${prop}`;
+                    return `${(sum ? sum + '\n' : '')}${fullProp}: ${$body.css(fullProp)};`;
+                }, '')),
                 '        }',
-                '        .SOCVR-Archiver-moveCount-container > span {',
-                '            margin: 15px;',
+                '        .SOCVR-Archiver-popup-button-separator,',
+                '        .SOCVR-Archiver-popup-button-container {',
+                '            display: inline-block;',
+                '        }',
+                '        .SOCVR-Archiver-button-container {',
+                '            padding-left: 2vw;',
+                '            padding-right: 2vw;',
+                '        }',
+                '        .SOCVR-Archiver-popup-button-container > div:first-of-type {',
+                '            font-size: 120%;',
+                '        }',
+                '        .SOCVR-Archiver-popup-button-separator {',
+                '            flex-grow: 100;',
+                '        }',
+                '        .SOCVR-Archiver-popup-button-separator.SOCVR-Archiver-popup-button-separator-after-move,',
+                '        .SOCVR-Archiver-popup-button-separator.SOCVR-Archiver-popup-button-separator-before-cancel {',
+                '            flex-grow: 200;',
                 '        }',
                 '        .SOCVR-Archiver-button-container {',
                 '            text-align: center;',
+                '            margin-top: .6em;',
+                '            display: flex;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container button,',
-                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container button {',
-                '            margin: 0px;',
+                '        #SOCVR-Archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container button,',
+                '        #SOCVR-Archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container button {',
+                '            margin: 0 0 0 .13vw;',
                 '            padding-left: 3px;',
                 '            padding-right: 3px;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container,',
-                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container {',
-                '            margin-right: 10px;',
+                '        #SOCVR-Archiver-messagesToMove-container button.SOCVR-Archiver-button-remove-from-move-list {',
+                '            margin-right: 0.5vw;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container,',
-                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container {',
-                '            margin-left: 20px;',
+                '        #SOCVR-Archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container,',
+                '        #SOCVR-Archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container {',
+                '            margin-right: 1.0vw;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-cancel {',
-                '            margin-left: 40px;',
+                '        #SOCVR-Archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container,',
+                '        #SOCVR-Archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container {',
+                '            margin-left: 2.0vw;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container button {',
-                '            margin: 10px;',
+                '        #SOCVR-Archiver-messagesToMove-container .SOCVR-Archiver-button-cancel {',
+                '            margin-left: 2.0vw;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container .monologue {',
+                '        #SOCVR-Archiver-messagesToMove-container button {',
+                '            margin-left: 1vw;',
+                '            margin-right: 1vw;',
+                '        }',
+                '        #SOCVR-Archiver-messagesToMove-container .monologue {',
+                '            min-width: initial;',
                 '            position: relative;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container h1 {',
+                '        #SOCVR-Archiver-messagesToMove-container h1 {',
                 '            text-align: center;',
                 '        }',
                 '        .SOCVR-Archiver-moveCount-container {',
                 '            text-align: center;',
+                '            margin-top: .6em;',
+                '        }',
+                '        .SOCVR-Archiver-moveCount-separator {',
+                '            flex-grow: 100;',
+                '        }',
+                '        .SOCVR-Archiver-moveCount-container > span {',
+                '            margin-left: 1.0vw;',
+                '            margin-right: 1.0vw;',
+                '            font-size: 120%;',
+                '        }',
+                '        #SOCVR-Archiver-messagesToMove-container .messages {',
+                '            position: relative;',
+                '        }',
+                '        #SOCVR-Archiver-messagesToMove-container .messages .SOCVR-Archiver-close-icon {',
+                '            top: 2px;',
                 '        }',
                 '        .SOCVR-Archiver-moveCount {',
                 '            font-weight: bold;',
-                '            font-size: 120%;',
                 '        }',
                 '        .SOCVR-Archiver-latestDate {',
                 '            font-size: 120%;',
                 '        }',
-                '        .SOCVR-Archiver-moveMessages-container {',
-                '            height: calc(100% - 65px);',
-                '            width: 100%;',
-                '        }',
                 '        .SOCVR-Archiver-moveMessages-inner {',
                 '            height: 100%;',
+                '            position: relative;',
+                '            display: flex;',
+                '            flex-direction: column;',
+                '        }',
+                '        .SOCVR-Archiver-moveMessages-container {',
+                '            width: 100%;',
+                '            position: relative;',
+                '            flex-grow: 100;',
+                '            margin-top: 1em;',
                 '        }',
                 '        .SOCVR-Archiver-moveMessages {',
                 '            margin: 0 auto;',
                 '            display: block;',
                 '            overflow-y: auto;',
+                '            height: calc(100% - 1.5vh);',
+                '            position: absolute;',
+                //This padding and width assume that this is being used with the URRS. These should be normalized for use without the URRS
+                //  and these in the CSS which the URRS adds to chat.
                 '            padding: 5px 60px 0px 0px;',
-                '            height: 90%;',
+                '            width: calc(100% - 60px);', //This is using box-sizing: content-box, so have to account for the 60px padding.
+                '        }',
+                '        .SOCVR-Archiver-important-display-block {',
+                '            display: block !important;',
                 '        }',
                 // Close icon CSS is from the answer to "Pure css close button - Stack Overflow"
                 // at https://stackoverflow.com/a/20139794, copyright 2013 by Craig Wayne,
                 // licensed under CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).
                 // Some modifications have been made.
                 '        .SOCVR-Archiver-close-icon {',
-                '            display:block;',
-                '            box-sizing:border-box;',
-                '            width:20px;',
-                '            height:20px;',
-                '            border-width:3px;',
+                '            display: block;',
+                '            box-sizing: border-box;',
+                '            width: 20px;',
+                '            height: 20px;',
+                '            border-width: 1px;',
                 '            border-style: solid;',
-                '            border-color:#dd0000;',
-                '            border-radius:100%;',
+                '            border-color: #dd0000;',
+                '            border-radius: 100%;',
                 '            background: -webkit-linear-gradient(-45deg, transparent 0%, transparent 46%, white 46%,  white 56%,transparent 56%, transparent 100%), -webkit-linear-gradient(45deg, transparent 0%, transparent 46%, white 46%,  white 56%,transparent 56%, transparent 100%);',
-                '            background-color:#dd0000;',
+                '            background-color: #dd0000;',
                 '            box-shadow:0px 0px 1px 1px rgba(0,0,0,0.5);',
                 '            cursor: pointer;',
                 '            position: absolute;',
                 '            top: 0px;',
-                '            right: 6px;',
+                '            right: 0px;',
                 '            z-index: 1000;',
+                '            transform: translateX(50%) translateY(-50%) scale(0.8, 0.8);',
+                '            -webkit-transform: translateX(50%) translateY(-50%) scale(0.8, 0.8);',
+                '            -ms-transform: translateX(50%) translateY(-50%) scale(0.8, 0.8);',
                 '        }',
                 '        .SOCVR-Archiver-close-icon:hover {',
                 '            border-color: #ff0000;',
                 '            background-color: #ff0000;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container > .SOCVR-Archiver-close-icon {',
-                '            top: -10px;',
-                '            right: -10px;',
+                '        #SOCVR-Archiver-messagesToMove-container > .SOCVR-Archiver-close-icon {',
+                '            top: 0px;',
+                '            right: 0px;',
                 '        }',
                 '    </style>',
                 '    <div class="SOCVR-Archiver-close-icon" title="Cancel"></div>',
@@ -2117,34 +2515,47 @@
                 '            <h1>Move messages to ' + defaultTargetRoomObject.fullName + '</h1>',
                 '        </div>',
                 '        <div class="SOCVR-Archiver-moveCount-container">',
-                '            <span class="SOCVR-Archiver-moveCount"></span>',
-                '            <span class="SOCVR-Archiver-latestDate">',
-                '                Going back to: ' + nodes.scandate.textContent,
-                '            </span>',
+                '            <span class="SOCVR-Archiver-moveCount-separator"></span>',
                 '            <span class="SOCVR-Archiver-scan-count-container">Scanned: ',
                 '                <span class="SOCVR-Archiver-scan-count">' + nodes.count.value + '</span>',
                 '            </span>',
+                '            <span class="SOCVR-Archiver-latestDate">',
+                '                from current back to ' + nodes.scandate.textContent.replace(/\.000/, '').replace(/T/, ' '),
+                '            </span>',
                 '        </div>',
                 '        <div class="SOCVR-Archiver-button-container">',
-                '            <button class="SOCVR-Archiver-button-move" title="Move all of the messages listed in this popup to the ' + defaultTargetRoomObject.shortName + '">Move these to the ' + defaultTargetRoomObject.shortName + '</button>',
-                '            <span class="SOCVR-Archiver-button-scanMore-container">',
-                '                <span>Scan more:</span>',
-                '                <button class="SOCVR-Archiver-button-1kmore" title="Scan 1,000 more">1k</button>',
-                '                <button class="SOCVR-Archiver-button-10kmore" title="Scan 10,000 more">10k</button>',
-                '                <button class="SOCVR-Archiver-button-100kmore" title="Scan 100,000 more">100k</button>',
-                '            </span>',
-                '            <span class="SOCVR-Archiver-button-moveList-container">',
-                '                <span class="SOCVR-Archiver-moveList-container-text">Manual Move List (0):</span>',
-                '                <button class="SOCVR-Archiver-button-set-as-move-list" title="Set the Manual Move List to the messages shown in this popup.">Set</button>',
-                '                <button class="SOCVR-Archiver-button-add-to-move-list" title="Add all messages shown in this popup to the Manual Move List.">Add</button>',
-                '                <button class="SOCVR-Archiver-button-remove-from-move-list" title="Remove the messages shown in this popup from the Manual Move List.">Remove</button>',
+                '            <div class="SOCVR-Archiver-popup-button-container">',
+                '            <div class="SOCVR-Archiver-moveCount"></div>',
+                '                <button class="SOCVR-Archiver-button-move" title="Move all of the messages listed in this popup to the ' + defaultTargetRoomObject.shortName + '">Move these to the ' + defaultTargetRoomObject.shortName + '</button>',
+                '            </div>',
+                '            <div class="SOCVR-Archiver-popup-button-separator SOCVR-Archiver-popup-button-separator-after-move"></div>',
+                '            <div class="SOCVR-Archiver-popup-button-container SOCVR-Archiver-button-scanMore-container">',
+                '                <div>Scan more:</div>',
+                '                <div class="SOCVR-Archiver-button-row-container"><!--',
+                '                 --><button class="SOCVR-Archiver-button-1kmore" title="Scan 1,000 more">1k</button><!--',
+                '                 --><button class="SOCVR-Archiver-button-10kmore" title="Scan 10,000 more">10k</button><!--',
+                '                 --><button class="SOCVR-Archiver-button-100kmore" title="Scan 100,000 more">100k</button><!--',
+                '             --></div>',
+                '            </div>',
+                '            <div class="SOCVR-Archiver-popup-button-separator"></div>',
+                '            <div class="SOCVR-Archiver-popup-button-container SOCVR-Archiver-button-moveList-container">',
+                '                <div class="SOCVR-Archiver-moveList-container-text">Manual Move List (0):</div>',
+                '                <div class="SOCVR-Archiver-button-row-container"><!--',
+                '                 --><button class="SOCVR-Archiver-button-set-as-move-list" title="Set the Manual Move List to the messages shown in this popup.">Set</button><!--',
+                '                 --><button class="SOCVR-Archiver-button-add-to-move-list" title="Add all messages shown in this popup to the Manual Move List.">Add</button><!--',
+                '                 --><button class="SOCVR-Archiver-button-remove-from-move-list" title="Remove the messages shown in this popup from the Manual Move List.">Remove</button><!--',
                 //'                <button class="SOCVR-Archiver-button-fill-move-list" title="Fill the Manual Move List to 100. If needed, additional events are fetched and classified.\nThe first time you click this, it will take a while for it to go through the events back to where the transcript has been cleaned out. If you then move those it finds, where you left off will be remembered.\nThis can be used to slowly clean out the transcript.\nHowever, the transcript could be cleaned out in bulk. Up to 2,048 messages can be moved in one move-message.\nIf you\'re moving messages which are currently displayed in chat, then the move containing those is limited to 100, due to a display bug in SE chat. If you try to move more than 100, then additional individual moves are made. If you\'re not moving any messages which are visible in chat, then the maximum is 2048.\nIf you select more than those numbers, then the messages will be grouped in chunks and multiple moves will be made.">Fill</button>',
                 (targetRoomsByRoomNumberOrder.reduce((htmlText, key) => {
                     const current = targetRoomsByRoomNumber[key];
-                    return htmlText + `<button class="SOCVR-Archiver-move-list-button SOCVR-Archiver-button-${current.classInfo}-move-list" title="Move all messages on the Manual Move List to ${current.fullName}.">${current.classInfo}</button> `;
+                    return htmlText + `--><button class="SOCVR-Archiver-move-list-button SOCVR-Archiver-button-${current.classInfo}-move-list" title="Move all messages on the Manual Move List to ${current.fullName}.">${current.classInfo}</button><!--`;
                 }, '')),
-                '            </span>',
-                '            <button class="SOCVR-Archiver-button-cancel">Cancel</button>',
+                '             --></div>',
+                '            </div>',
+                '            <div class="SOCVR-Archiver-popup-button-separator SOCVR-Archiver-popup-button-separator-before-cancel"></div>',
+                '            <div class="SOCVR-Archiver-popup-button-container">',
+                '                <div>&nbsp;</div>',
+                '                <button class="SOCVR-Archiver-button-cancel">Cancel</button>',
+                '            </div>',
                 '        </div>',
                 '        <div class="SOCVR-Archiver-moveMessages-container">',
                 '            <div class="SOCVR-Archiver-moveMessages">',
@@ -2163,7 +2574,7 @@
             });
             moveMessagesDiv[0].insertAdjacentHTML('beforeend', messagesHtml);
             //Events
-            $('#SOCVR-archiver-messagesToMove-container > .SOCVR-Archiver-close-icon', shownToBeMoved).on('click', resetIfThisNotDisabled);
+            $('#SOCVR-Archiver-messagesToMove-container > .SOCVR-Archiver-close-icon', shownToBeMoved).on('click', resetIfThisNotDisabled);
             $('.SOCVR-Archiver-button-cancel', shownToBeMoved).first().on('click', resetIfThisNotDisabled);
             $('.SOCVR-Archiver-button-move', shownToBeMoved).first().on('click', saveMoveInformationAndMovePosts);
             $('.SOCVR-Archiver-button-1kmore', shownToBeMoved).first().on('click', getMoreEvents.bind(null, 1000));
@@ -2250,7 +2661,14 @@
             [50, 1000, 5000, 10000].forEach((time) => {
                 setTimeout(() => {
                     if (moveMessagesDiv) {
-                        $('.tiny-signature', moveMessagesDiv).removeAttr('style');
+                        $('.monologue .signature', moveMessagesDiv).each(function() {
+                            const children = $(this).children();
+                            if (children.length === 1) {
+                                children.addClass('SOCVR-Archiver-important-display-block');
+                            } else {
+                                children.removeClass('SOCVR-Archiver-important-display-block');
+                            }
+                        });
                     }
                 }, time);
             });
@@ -2400,7 +2818,6 @@
                 //From transcript
                 /* beautify preserve:start *//* eslint-disable indent */
                 '<div class="monologue user-' + userId + (userId == me ? ' mine' : '') + ' SOCVR-Archiver-monologue-for-message-' + messageId + '">', // eslint-disable-line eqeqeq
-                '    <div class="SOCVR-Archiver-close-icon" data-message-id="' + messageId + '" title="Don\'t move"></div>',
                 '    <div class="signature">',
                 '        <div class="tiny-signature">',
                             (userAvatar16 ? '' +
@@ -2412,6 +2829,7 @@
                 '        </div>',
                 '    </div>',
                 '    <div class="messages">',
+                '        <div class="SOCVR-Archiver-close-icon" data-message-id="' + messageId + '" title="Don\'t move"></div>',
                 '        <div class="message" id="SOCVR-Archiver-message-' + messageId + '">',
                 '            <div class="timestamp">' + timestamp + '</div>',
                 '            <a name="' + messageId + '" href="/transcript/' + room + '?m=' + messageId + '#' + messageId + '"><span style="display:inline-block;" class="action-link"><span class="img"> </span></span></a>',
@@ -2549,7 +2967,7 @@
                 url: 'https://' + window.location.hostname + '/messages/' + messageId + '/history',
                 success: callback,
                 error: function(xhr, status, error) {
-                    console.error('AJAX Error Getting history', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  room:', room, '\n::  fkey,:', fkey, '\n::  messageId:', messageId);
+                    console.error('AJAX error getting history', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  room:', room, '\n::  fkey,:', fkey, '\n::  messageId:', messageId);
                 },
             });
         }
@@ -2678,7 +3096,7 @@
                     to: targetRoomId + '',
                     fkey: fkey,
                 },
-                url: '/admin/movePosts/' + room,
+                url: '/admin/movePosts/' + (room ? room : roomForMostRecentlyAddedManualMove),
                 success: function() {
                     if (!posts.length) {
                         doneMovingMessages();
@@ -2703,6 +3121,7 @@
                         '\n::  ajaxInfo:', ajaxInfo
                     );
                     alert('$.ajax encountered an error moving some posts. See console for details.' + (error && error.length < 100 ? ' error: ' + error : ''));
+                    nodes.cancel.disabled = false;
                 },
             };
             $.ajax(ajaxInfo);
@@ -2991,6 +3410,13 @@
             //This assumes the list stored in memory is primary. i.e. a change that's occurred in localStorage, but which has not been
             //  read in yet will be overwritten.
             if (addNonDuplicateValuesToList(manualMoveList, values)) {
+                values = Array.isArray(values) ? values : [values];
+                const lastValue = values[values.length - 1];
+                const lastHref = $(`#message-${lastValue} .action-link`).closest('a').attr('href');
+                if (lastHref) {
+                    roomForMostRecentlyAddedManualMove = (lastHref.match(/\/transcript\/(\d+)\?/) || [0, 0])[1];
+                    setStorage('roomForMostRecentlyAddedManualMove', roomForMostRecentlyAddedManualMove);
+                }
                 setLSManualMoveList(manualMoveList);
                 showAllManualMoveMessages();
             }
