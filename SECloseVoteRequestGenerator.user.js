@@ -570,9 +570,13 @@ if(typeof StackExchange === "undefined")
         if(!reason) return false;
         reason = reasons.get(reason);
         var title = createMarkdownLinkWithText($('#question-header h1 a').text().replace(/^\s+|\s+$/gm, ''), base + $('#question .short-link').attr('href').replace(/(\/\d+)\/\d+$/, '$1'));
-        var user = $('.post-signature.owner:not([align="right"],#popup-close-question .post-signature) .user-details > *:not(.d-none):not(.-flair), .question .post-signature:not([align="right"],#popup-close-question .post-signature) .user-details .community-wiki').text().trim().match(/[^\n]+/)[0].trim();
+        try {
+            var user = $('.post-signature.owner:not([align="right"],#popup-close-question .post-signature) .user-details > *:not(.d-none):not(.-flair), .question .post-signature:not([align="right"],#popup-close-question .post-signature) .user-details .community-wiki').text().trim().match(/[^\n]+/)[0].trim();
+        } catch (e) {
+            user = '';
+        }
         var userLink = $('#question .owner:not(#popup-close-question .owner) a');
-        if(userLink.length) user = createMarkdownLinkWithText(user, base + userLink.attr('href'));
+        if(userLink.length && user) user = createMarkdownLinkWithText(user, base + userLink.attr('href'));
         var time = $('#question .owner:not(#popup-close-question .owner) .relativetime');
         time = time.length ? ' ' + time.attr('title') : '';
         var tag = $('#question a.post-tag').first().text(); //huh, sponsored tags have images =/ and off-topic tag like C++ are URL encoded -> get the text only
