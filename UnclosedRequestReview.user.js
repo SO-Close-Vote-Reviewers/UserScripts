@@ -2854,6 +2854,9 @@
             return;
         }
         //Loop through all <a> in the content of the supplied message.
+        let numberChanged = 0;
+        let unchangedMatchingLinks = [];
+        let isFirstMatching = true;
         [].slice.call(funcs.getContentFromMessage(message).querySelectorAll('a')).forEach((link) => {
             const messageHrefPostId = funcs.getPostIdFromURL(link.href);
             if (!messageHrefPostId) {
@@ -2865,29 +2868,63 @@
                 isUrrsRequestedReplacement = true;
             }
             //Make sure the <a> only contains a single text node
-            if (link.childNodes.length === 1 && link.firstChild.nodeName === '#text' &&
-                /^\s*(?:stackoverflow.com\/(?:q(?:uestions)?|a(?:answers)?|p(?:osts)?)(?:\/\d+(?:\/\d+)?)?(?:\/…)?|question|answer)\s*$/i.test(link.textContent)
-            ) {
-                let actualTitle = '';
-                let foundRequestLink;
-                if ([].slice.call(message.querySelectorAll('.request-info a')).some((requestLink) => {
-                    actualTitle = requestLink.dataset.questionTitle;
-                    foundRequestLink = requestLink;
-                    //Only replace if we actually have a title (e.g. not undefined from a deleted question).
-                    return actualTitle && messageHrefPostId === funcs.getPostIdFromURL(requestLink.href);
-                })) {
-                    //Found a valid matching title. Change the link. May contain HTML entities. Assume it is trusted.
-                    //Use .innerHTML to parse any HTML entities.
-                    //XXX This really should be done in a throw away textarea (security).
-                    const isAnswer = foundRequestLink.dataset.answerId;
-                    link.innerHTML = (isAnswer ? 'Answer to: ' : '') + actualTitle;
-                    if (!isUrrsRequestedReplacement) {
-                        //Allow the title that was originally placed on the link to continue to exist.
-                        link.title = 'The original text displayed for this link was a bare partial URL. It has been changed to the title of the question for your convenience.';
+            if (link.childNodes.length === 1 && link.firstChild.nodeName === '#text') {
+                let appendToContent = false;
+                if (/^\s*[cd]?(?:\d+|[a-z])\s*$/i.test(link.textContent)) {
+                    appendToContent = true;
+                    if (isFirstMatching) {
+                        link.classList.add('urrs-first-link-matching-pattern');
+                        isFirstMatching = false;
+                    }
+                }
+                if (appendToContent || /^\s*(?:stackoverflow.com\/(?:q(?:uestions)?|a(?:answers)?|p(?:osts)?)(?:\/\d+(?:\/\d+)?)?(?:\/…)?|question|answer)\s*$/i.test(link.textContent)) {
+                    let actualTitle = '';
+                    let foundRequestLink;
+                    if ([].slice.call(message.querySelectorAll('.request-info a')).some((requestLink) => {
+                        if (messageHrefPostId === funcs.getPostIdFromURL(requestLink.href)) {
+                            //This is a link to the same URL.
+                            actualTitle = requestLink.dataset.questionTitle;
+                            foundRequestLink = requestLink;
+                            //Only replace if we actually have a title (e.g. not undefined from a deleted question).
+                            return !!actualTitle;
+                        } //else
+                        return false;
+                    })) {
+                        //Found a valid matching title. Change the link. May contain HTML entities. Assume it is trusted.
+                        //Use .innerHTML to parse any HTML entities.
+                        //XXX This really should be done in a throw away textarea (security).
+                        const isAnswer = foundRequestLink.dataset.answerId;
+                        link.innerHTML = (appendToContent ? `<b>${link.innerHTML}:</b> ` : '') + (isAnswer ? 'Answer to: ' : '') + actualTitle;
+                        if (!link.classList.contains('urrs-first-link-matching-pattern') && appendToContent) {
+                            //This is not the first one changed in this message, and this is one we appended to.
+                            link.insertAdjacentHTML('beforebegin', '<br/>');
+                        }
+                        if (!isUrrsRequestedReplacement) {
+                            //Allow the title that was originally placed on the link to continue to exist.
+                            if (appendToContent) {
+                                link.title = 'The original text displayed for this link matched a pattern. The pattern has been made bold and the title of the question has been appended for your convenience.';
+                            } else {
+                                link.title = 'The original text displayed for this link was a bare partial URL. It has been changed to the title of the question for your convenience.';
+                            }
+                        }
+                        numberChanged++;
+                    } else {
+                        if (foundRequestLink && appendToContent) {
+                            //There is a request-info for this, but no title, so likely that it's deleted.
+                            unchangedMatchingLinks.push(link);
+                        }
                     }
                 }
             }
         });
+        if (numberChanged) {
+            unchangedMatchingLinks.forEach((link) => {
+                link.innerHTML = `<b>${link.innerHTML}:</b>`;
+                if (!link.classList.contains('urrs-first-link-matching-pattern')) {
+                    link.insertAdjacentHTML('beforebegin', '<br/>');
+                }
+            });
+        }
     };
 
     const invalidRequestText = ': invalid-request';
