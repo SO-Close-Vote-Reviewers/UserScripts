@@ -5565,7 +5565,7 @@
         //Begin processing the search.
         funcs.orSearch.stageOneProcessing();
     } else {
-        //Normal chat page (not a search result, not a transcript)
+        //Normal chat page, a search page that doesn't match our active criteria, or a transcript.
 
         //Listen to CHAT
         funcs.inPageCHATListener = function() {
@@ -5604,8 +5604,9 @@
                 CHAT.addEventHandlerHook(listenToChat);
             }
         };
-        funcs.executeInPage(funcs.inPageCHATListener, true, 'urrs-CHAT-listener');
-
+        if (isChat) {
+            funcs.executeInPage(funcs.inPageCHATListener, true, 'urrs-CHAT-listener');
+        }
 
         //Utility functions for the chat page
 
@@ -6075,6 +6076,103 @@
             nodes.scope.insertAdjacentHTML('beforeend', htmlText);
         };
 
+        funcs.ui.addOptionsButton = () => {
+            //Add "options" button to the non-search chat page.
+            const openOptionsButton = funcs.ui.addButtonAfterStockButtons('⚙', 'Open Unclosed Request Review options dialog.', function(event) {
+                funcs.ui.showOptions();
+                event.target.blur();
+            });
+            if (openOptionsButton) {
+                openOptionsButton.id = 'urrs-open-options-button';
+            }
+        };
+
+        funcs.ui.addUpdateButton = () => {
+            if (config.nonUi.chatShowPostStatus) {
+                //Add an "update" button. Initially for testing, but users like control.
+                //  Only add the button if question status is being shown. If not, there is no reason for "update".
+                //XXX This needs to be updated when the delays change. Currently it is static.
+                funcs.ui.addButtonAfterStockButtons('update', [
+                    'Clicking this button will update the status displayed for questions & answers, if a new message with a question/answer has been added.',
+                    ' If not, then you need to wait for at least a minute from the last update (per the SE API rules). Once clicked, when that minute has expired, it will update status.',
+                    ' Post status is automatically updated when a new message is added with a question link, or you have switched away from this tab and switch back.',
+                    ' For both of those, the maximum update rate can be set in the options dialog on the search page.',
+                    ' The maximum auto-update rate is currently once every ' + config.nonUi.chatMinimumUpdateDelay + ' seconds (' + DEFAULT_MINIMUM_UPDATE_DELAY + ' seconds is the default).',
+                    ' Post status is also updated on a timed basis.',
+                    ' Currently, it auto-updates, regardless of any new questions being posted, every ' + config.nonUi.chatAutoUpdateRate + ' minute' + (config.nonUi.chatAutoUpdateRate === 1 ? '' : 's'),
+                    ' (' + DEFAULT_AUTO_UPDATE_RATE + ' minutes is the default).',
+                    ' None of the automatic updates occur when the tab this page is in is not visible, but an update will occur when you switch back to this tab.',
+                ].join(''), (event) => {
+                    //This may still be prevented by the backoff timer.
+                    //The questions on Stack Apps explicitly cover that users should be prevented from performing the same request more often that
+                    //  once per minute.
+                    funcs.mp.clearThrottleAndProcessAllIfImmediatePermitted();
+                    event.target.blur();
+                });
+            }
+        };
+
+        funcs.ui.addSearchButtons = () => {
+            funcs.ui.addHtml('<br/><span class="urrs-chat-input-search-span">Search:</span>');
+            const chatButtonTd = document.querySelector('#chat-buttons');
+            if (chatButtonTd) {
+                //Adjust the chat buttons up a bit to leave the legal footer fully visible.
+                chatButtonTd.style.paddingTop = '0';
+            }
+
+            //Add "cv- requests" button to the non-search chat page.
+            let searchButton = funcs.ui.addButton('cv-', 'Open the cv-pls requests search page.', function(event) {
+                GM.openInTab(window.location.origin + '/search?q=tagged%2Fcv&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
+                event.target.blur();
+            });
+            if (searchButton) {
+                searchButton.id = 'urrs-search-button-cv';
+            }
+
+            //Add "del- requests" button to the non-search chat page.
+            searchButton = funcs.ui.addButton('del-', 'Open the del-pls requests search page.', function(event) {
+                //Search for 'del', 'delv', 'delete' and 'dv' tags:
+                GM.openInTab(window.location.origin + '/search?q=tagged%2Fdel+OR+tagged%2Fdelv+OR+tagged%2Fdelete+OR+tagged%2Fdv&user=&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
+                event.target.blur();
+            });
+            if (searchButton) {
+                searchButton.id = 'urrs-search-button-del';
+            }
+
+            //Add "reopen- requests" button to the non-search chat page.
+            searchButton = funcs.ui.addButton('reopen-', 'Open the reopen-pls requests search page.', function(event) {
+                //Search for 'reopen' tags:
+                GM.openInTab(window.location.origin + '/search?q=tagged%2Freopen+OR+tagged%2Fre-open&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
+                event.target.blur();
+            });
+            if (searchButton) {
+                searchButton.id = 'urrs-search-button-reopen';
+            }
+
+            //Add "undel- requests" button to the non-search chat page.
+            searchButton = funcs.ui.addButton('undel-', 'Open the undel-pls requests search page.', function(event) {
+                //Search for 'undel' tags:
+                GM.openInTab(window.location.origin + '/search?q=tagged%2Fundel+OR+tagged%2Fundelete+OR+tagged%2Fundelv&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
+                event.target.blur();
+            });
+            if (searchButton) {
+                searchButton.id = 'urrs-search-button-undel';
+            }
+        };
+
+        funcs.ui.addOptionsDialog = () => {
+            //Add the options dialog to the DOM
+            document.body.insertBefore(funcs.ui.createOptionsDialog(), document.body.firstChild);
+        };
+
+        funcs.ui.addChatUI = () => {
+            funcs.ui.addOptionsButton();
+            //funcs.ui.addUpdateButton();
+            funcs.ui.addSearchButtons();
+            funcs.ui.addOptionsDialog();
+        };
+
+
         //Use Message Processing checkDone for SE API result processing.
         funcs.checkDone = funcs.mp.checkDone;
 
@@ -6082,86 +6180,10 @@
         funcs.config.setDefaults(config);
         funcs.config.restore(config);
 
-        //Add "options" button to the non-search chat page.
-        const openOptionsButton = funcs.ui.addButtonAfterStockButtons('⚙', 'Open Unclosed Request Review options dialog.', function(event) {
-            funcs.ui.showOptions();
-            event.target.blur();
-        });
-        if (openOptionsButton) {
-            openOptionsButton.id = 'urrs-open-options-button';
-        }
-        /*
-        if (config.nonUi.chatShowPostStatus) {
-            //Add an "update" button. Initially for testing, but users like control.
-            //  Only add the button if question status is being shown. If not, there is no reason for "update".
-            //XXX This needs to be updated when the delays change. Currently it is static.
-            funcs.ui.addButtonAfterStockButtons('update', [
-                'Clicking this button will update the status displayed for questions & answers, if a new message with a question/answer has been added.',
-                ' If not, then you need to wait for at least a minute from the last update (per the SE API rules). Once clicked, when that minute has expired, it will update status.',
-                ' Post status is automatically updated when a new message is added with a question link, or you have switched away from this tab and switch back.',
-                ' For both of those, the maximum update rate can be set in the options dialog on the search page.',
-                ' The maximum auto-update rate is currently once every ' + config.nonUi.chatMinimumUpdateDelay + ' seconds (' + DEFAULT_MINIMUM_UPDATE_DELAY + ' seconds is the default).',
-                ' Post status is also updated on a timed basis.',
-                ' Currently, it auto-updates, regardless of any new questions being posted, every ' + config.nonUi.chatAutoUpdateRate + ' minute' + (config.nonUi.chatAutoUpdateRate === 1 ? '' : 's'),
-                ' (' + DEFAULT_AUTO_UPDATE_RATE + ' minutes is the default).',
-                ' None of the automatic updates occur when the tab this page is in is not visible, but an update will occur when you switch back to this tab.',
-            ].join(''), (event) => {
-                //This may still be prevented by the backoff timer.
-                //The questions on Stack Apps explicitly cover that users should be prevented from performing the same request more often that
-                //  once per minute.
-                funcs.mp.clearThrottleAndProcessAllIfImmediatePermitted();
-                event.target.blur();
-            });
-        }
-        //*/
-        funcs.ui.addHtml('<br/><span class="urrs-chat-input-search-span">Search:</span>');
-        const chatButtonTd = document.querySelector('#chat-buttons');
-        if (chatButtonTd) {
-            //Adjust the chat buttons up a bit to leave the legal footer fully visible.
-            chatButtonTd.style.paddingTop = '0';
+        if (isChat) {
+            funcs.ui.addChatUI();
         }
 
-        //Add "cv- requests" button to the non-search chat page.
-        let searchButton = funcs.ui.addButton('cv-', 'Open the cv-pls requests search page.', function(event) {
-            GM.openInTab(window.location.origin + '/search?q=tagged%2Fcv&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
-            event.target.blur();
-        });
-        if (searchButton) {
-            searchButton.id = 'urrs-search-button-cv';
-        }
-
-        //Add "del- requests" button to the non-search chat page.
-        searchButton = funcs.ui.addButton('del-', 'Open the del-pls requests search page.', function(event) {
-            //Search for 'del', 'delv', 'delete' and 'dv' tags:
-            GM.openInTab(window.location.origin + '/search?q=tagged%2Fdel+OR+tagged%2Fdelv+OR+tagged%2Fdelete+OR+tagged%2Fdv&user=&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
-            event.target.blur();
-        });
-        if (searchButton) {
-            searchButton.id = 'urrs-search-button-del';
-        }
-
-        //Add "reopen- requests" button to the non-search chat page.
-        searchButton = funcs.ui.addButton('reopen-', 'Open the reopen-pls requests search page.', function(event) {
-            //Search for 'reopen' tags:
-            GM.openInTab(window.location.origin + '/search?q=tagged%2Freopen+OR+tagged%2Fre-open&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
-            event.target.blur();
-        });
-        if (searchButton) {
-            searchButton.id = 'urrs-search-button-reopen';
-        }
-
-        //Add "undel- requests" button to the non-search chat page.
-        searchButton = funcs.ui.addButton('undel-', 'Open the undel-pls requests search page.', function(event) {
-            //Search for 'undel' tags:
-            GM.openInTab(window.location.origin + '/search?q=tagged%2Fundel+OR+tagged%2Fundelete+OR+tagged%2Fundelv&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
-            event.target.blur();
-        });
-        if (searchButton) {
-            searchButton.id = 'urrs-search-button-undel';
-        }
-
-        //Add the options dialog to the DOM
-        document.body.insertBefore(funcs.ui.createOptionsDialog(), document.body.firstChild);
         //Remember which questions were visited
         //Restore the configuration, using defaults.
         funcs.visited.beginRememberingPostVisits();
