@@ -6051,6 +6051,7 @@
         if (openOptionsButton) {
             openOptionsButton.id = 'urrs-open-options-button';
         }
+        /*
         if (config.nonUi.chatShowPostStatus) {
             //Add an "update" button. Initially for testing, but users like control.
             //  Only add the button if question status is being shown. If not, there is no reason for "update".
@@ -6073,6 +6074,7 @@
                 event.target.blur();
             });
         }
+        //*/
         funcs.ui.addHtml('<br/><span class="urrs-chat-input-search-span">Search:</span>');
         const chatButtonTd = document.querySelector('#chat-buttons');
         if (chatButtonTd) {
