@@ -5974,21 +5974,43 @@
             //  This empty function just allows us not to have to check for it's existence prior to executing it.
         };
 
+        funcs.ui.createButton = (text, title, action) => {
+            const button = document.createElement('button');
+            button.className = 'button urrs-requests-button';
+            button.textContent = text;
+            button.title = title;
+            button.addEventListener('click', action, false);
+            return button;
+        };
+
+        funcs.ui.addButtonAfterStockButtons = (text, title, action) => {
+            const knownButtons = [
+                'sayit-button',
+                'upload-file',
+                'codify-button',
+                'cancel-editing-button',
+            ];
+            const chatButton = document.getElementById('chat-buttons');
+            let afterLastKnown = chatButton.lastElementChild;
+            while (afterLastKnown && knownButtons.indexOf(afterLastKnown.id) === -1) {
+                afterLastKnown = afterLastKnown.previousSibling;
+            }
+            afterLastKnown = afterLastKnown ? afterLastKnown.nextSibling : null;
+            chatButton.insertBefore(funcs.ui.createButton(text, title, action), afterLastKnown);
+            chatButton.insertBefore(document.createTextNode(' '), afterLastKnown);
+        };
+
         funcs.ui.addButton = (text, title, action) => {
             //Add a button to the chatbox
             const nodes = {};
-            nodes.scope = document.querySelector('#chat-buttons');
+            nodes.scope = document.getElementById('chat-buttons');
             if (!nodes.scope) {
                 return null;
             } //else
             nodes.scope.appendChild(document.createTextNode(' '));
-            nodes.button = document.createElement('button');
-            nodes.button.className = 'button urrs-requests-button';
-            nodes.button.textContent = text;
-            nodes.button.title = title;
+            nodes.button = funcs.ui.createButton(text, title, action);
             nodes.scope.appendChild(nodes.button);
             nodes.scope.appendChild(document.createTextNode(' '));
-            nodes.button.addEventListener('click', action, false);
             return nodes.button;
         };
 
@@ -6021,11 +6043,19 @@
         funcs.config.setDefaults(config);
         funcs.config.restore(config);
 
+        //Add "options" button to the non-search chat page.
+        const openOptionsButton = funcs.ui.addButtonAfterStockButtons('⚙', 'Open Unclosed Request Review options dialog.', function(event) {
+            funcs.ui.showOptions();
+            event.target.blur();
+        });
+        if (openOptionsButton) {
+            openOptionsButton.id = 'urrs-open-options-button';
+        }
         if (config.nonUi.chatShowPostStatus) {
             //Add an "update" button. Initially for testing, but users like control.
             //  Only add the button if question status is being shown. If not, there is no reason for "update".
             //XXX This needs to be updated when the delays change. Currently it is static.
-            funcs.ui.addButton('update', [
+            funcs.ui.addButtonAfterStockButtons('update', [
                 'Clicking this button will update the status displayed for questions & answers, if a new message with a question/answer has been added.',
                 ' If not, then you need to wait for at least a minute from the last update (per the SE API rules). Once clicked, when that minute has expired, it will update status.',
                 ' Post status is automatically updated when a new message is added with a question link, or you have switched away from this tab and switch back.',
@@ -6042,14 +6072,6 @@
                 funcs.mp.clearThrottleAndProcessAllIfImmediatePermitted();
                 event.target.blur();
             });
-        }
-        //Add "options" button to the non-search chat page.
-        const openOptionsButton = funcs.ui.addButton('⚙', 'Open Unclosed Request Review options dialog.', function(event) {
-            funcs.ui.showOptions();
-            event.target.blur();
-        });
-        if (openOptionsButton) {
-            openOptionsButton.id = 'urrs-open-options-button';
         }
         funcs.ui.addHtml('<br/><span class="urrs-chat-input-search-span">Search:</span>');
         const chatButtonTd = document.querySelector('#chat-buttons');
