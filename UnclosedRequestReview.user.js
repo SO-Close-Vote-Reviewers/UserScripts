@@ -2854,7 +2854,7 @@
             return;
         }
         //Loop through all <a> in the content of the supplied message.
-        let numberChanged = 0;
+        let numberMatchingWithLink = 0;
         let unchangedMatchingLinks = [];
         let isFirstMatching = true;
         [].slice.call(funcs.getContentFromMessage(message).querySelectorAll('a')).forEach((link) => {
@@ -2907,17 +2907,18 @@
                                 link.title = 'The original text displayed for this link was a bare partial URL. It has been changed to the title of the question for your convenience.';
                             }
                         }
-                        numberChanged++;
+                        numberMatchingWithLink++;
                     } else {
                         if (foundRequestLink && appendToContent) {
                             //There is a request-info for this, but no title, so likely that it's deleted.
                             unchangedMatchingLinks.push(link);
+                            numberMatchingWithLink++;
                         }
                     }
                 }
             }
         });
-        if (numberChanged) {
+        if (numberMatchingWithLink > 1) {
             unchangedMatchingLinks.forEach((link) => {
                 link.innerHTML = `<b>${link.innerHTML}:</b>`;
                 if (!link.classList.contains('urrs-first-link-matching-pattern')) {
