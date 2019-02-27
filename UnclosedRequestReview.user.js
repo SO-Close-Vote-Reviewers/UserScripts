@@ -6033,8 +6033,10 @@
                 afterLastKnown = afterLastKnown.previousSibling;
             }
             afterLastKnown = afterLastKnown ? afterLastKnown.nextSibling : null;
-            chatButton.insertBefore(funcs.ui.createButton(text, title, action), afterLastKnown);
+            const newButton = funcs.ui.createButton(text, title, action);
+            chatButton.insertBefore(newButton, afterLastKnown);
             chatButton.insertBefore(document.createTextNode(' '), afterLastKnown);
+            return newButton;
         };
 
         funcs.ui.addButton = (text, title, action) => {
