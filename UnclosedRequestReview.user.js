@@ -666,7 +666,7 @@
         if (!event.defaultPrevented) {
             funcs.visited.listenForLinkClicks(event);
         }
-        if (event.target.classList.contains('action-link') || event.target.parentNode.classList.contains('action-link')) {
+        if (event.target.classList.contains('action-link') || (event.target.parentNode && event.target.parentNode.classList && event.target.parentNode.classList.contains('action-link'))) {
             funcs.ui.listenForActionLinkClicks(event);
         }
         mostRecentClick = event;
