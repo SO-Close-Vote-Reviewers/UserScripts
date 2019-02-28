@@ -3121,7 +3121,7 @@
     funcs.orSearch.addWaitNotificationToTop = () => {
         //Add a notification to the top of the page that we are collecting information.
         if (!document.getElementById('orSearch-waitNotification')) {
-            document.getElementById('container').insertAdjacentHTML('afterbegin', '<div id="orSearch-waitNotification" style="width:100%;background-color:orange;height:100px;z-index:10000;"><div style="margin-top:34px;width:80%;height:80%;font-size:150%;color:black;padding-top: 35px;text-align: center;margin-left: auto;margin-right: auto;">Please wait: Collecting results</div></div>');
+            document.getElementById('container').insertAdjacentHTML('afterbegin', '<div id="orSearch-waitNotification" style="width:100%;background-color:orange;height:100px;z-index:10000;" title="Depending on the search, this may take several seconds to longer than a minute, due to SE Chat search rate limiting."><div style="margin-top:34px;width:80%;height:80%;font-size:150%;color:black;padding-top: 35px;text-align: center;margin-left: auto;margin-right: auto;">Please wait: Collecting results</div></div>');
         }
     };
 
@@ -3154,6 +3154,21 @@
         const frame = event.target;
         const contentIdDiv = document.getElementById('content');
         const frameContentIdDiv = frame.contentDocument.getElementById('content');
+        if (!frameContentIdDiv) {
+            //This usually indicates that we've made a request too rapidly.
+            const frameBody = frame.contentDocument.body;
+            if (frameBody) {
+                const frameBodyText = frameBody.textContent;
+                if (frameBodyText && frameBodyText.length < 200) {
+                    const frameBodyTextMatches = frameBodyText.match(/You can perform this action again in (\d+) seconds./);
+                    if (Array.isArray(frameBodyTextMatches) && frameBodyTextMatches.length > 1) {
+                        const necesarryDelayS = +frameBodyTextMatches[1];
+                        console.log('SE Chat says we can\'t do a search for ', necesarryDelayS, ' seconds. Delaying that long and trying to search again for URL:', frame.src);
+                        setTimeout(funcs.orSearch.addMessagesInSearchUrlToResults, 1000 * (necesarryDelayS + 1), frame.src, funcs.orSearch.stageTwoProcessing);
+                    }
+                }
+            }
+        }
         //Get the second <br class"clear-both">.
         const elToInsertBefore = contentIdDiv.querySelectorAll('br.clear-both')[1];
         if (frameContentIdDiv && elToInsertBefore) {
@@ -3175,6 +3190,13 @@
                 }
             });
         }
+        const contentFoundCountP = document.querySelector('#content > p');
+        const frameContentFoundCountP = frame.contentDocument.querySelector('#content > p');
+        const contentFoundCount = +(contentFoundCountP.textContent.match(/(\d+) messages? found/) || ['', '0'])[1];
+        const frameContentFoundCount = frameContentFoundCountP ? +(frameContentFoundCountP.textContent.match(/(\d+) messages? found/) || ['', '0'])[1] : 0;
+        const foundCount = contentFoundCount + frameContentFoundCount;
+        contentFoundCountP.textContent = `<= ${foundCount} message${(foundCount === 1 ? '' : 's')} found`;
+        contentFoundCountP.title = 'Some of the messages found may be duplicates, due to matching more than one OR criteria.';
         //Do what's next
         if (typeof callback === 'function') {
             callback(frame.src, funcs.orSearch.getNumberSearchPageResults(frameContentIdDiv));
@@ -3308,7 +3330,26 @@
             }));
 
             funcs.mp.processPageOnce();
+        } else {
+            //Proces the next page in the list, now that the previous one is done.
+            funcs.orSearch.processOrList();
         }
+    };
+
+    funcs.orSearch.processOrList = () => {
+        if (!Array.isArray(orSearch.urlSearchOrs) || orSearch.urlSearchOrs.length === 0) {
+            //Force the end of processing
+            orSearch.framesToProcess = 0;
+            funcs.orSearch.stageTwoProcessing('', 0);
+        }
+        const queryWoSearch = window.location.search.replace(/[?&]q=(?:[^&#]+)/i, '').replace(/^\?/, '');
+        const term = orSearch.urlSearchOrs.pop();
+        const newUrl = window.location.origin + window.location.pathname + '?q=' + term + queryWoSearch;
+        //Fetch the results from a page.
+        //Use a timeout to make SE happy. SE requires a minimal delay between opening search pages, thus we have to stagger
+        //  our loading of iframes with search results.
+        //  Call stageTwoProcessing after each page is fetched.
+        setTimeout(funcs.orSearch.addMessagesInSearchUrlToResults, 2000, newUrl, funcs.orSearch.stageTwoProcessing);
     };
 
     funcs.orSearch.stageOneProcessing = () => {
@@ -3318,15 +3359,8 @@
             funcs.orSearch.addWaitNotificationToTop();
             orSearch.framesToProcess = urlSearchOrs.length;
             orSearch.maxPages = funcs.orSearch.getNumberSearchPageResults(document);
-            const queryWoSearch = window.location.search.replace(/[?&]q=(?:[^&#]+)/i, '').replace(/^\?/, '');
-            urlSearchOrs.forEach((term, index) => {
-                const newUrl = window.location.origin + window.location.pathname + '?q=' + term + queryWoSearch;
-                //Fetch the results from a page.
-                //Use a timeout to make SE happy. SE requires a minimal delay between opening search pages, thus we have to stagger
-                //  our loading of iframes with search results.
-                //  Call stageTwoProcessing after each page is fetched.
-                setTimeout(funcs.orSearch.addMessagesInSearchUrlToResults, 2000 * (index + 1), newUrl, funcs.orSearch.stageTwoProcessing);
-            });
+            orSearch.urlSearchOrs = urlSearchOrs;
+            funcs.orSearch.processOrList();
         } else {
             //This is not a search using 'OR', no need to get additional results. Just start processing.
             //Get the times the monologues were posted, so they can be used in appendInfo.
