@@ -2465,7 +2465,7 @@
 
     funcs.doesElementContainRequestTagAsText = (element) => {
         getActionTagInTextRegEx.lastIndex = 0;
-        return getActionTagInTextRegEx.test(funcs.removeTagsLinksAndCodeFromElement(element.cloneNode(true)));
+        return getActionTagInTextRegEx.test(funcs.removeTagsLinksAndCodeFromElement(element.cloneNode(true)).innerHTML);
     };
 
     funcs.removeTagsLinksAndCodeFromElement = (element) => {
