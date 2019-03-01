@@ -2053,6 +2053,23 @@
                 //FireAlarm && Queen: Treat as a cv-pls request
                 requestTags.push(fakeCloseVoteRequestTag);
             }
+            //The code for Natty is originally by Filnor (https://chat.stackoverflow.com/users/4733879/filnor)
+            //  Found: https://github.com/SOBotics/Userscripts/blob/master/UnclosedRequestReview2.user.js#L1988
+            // Released under an MIT license:
+            //   https://chat.stackoverflow.com/transcript/message/45507145#45507145
+            if (requestTags.length === 0 && monologue.classList.contains('user-6817005')) {
+                //Natty: Treat as a del-pls request
+                const nattyLink = contentEl.querySelector('a');
+                if (nattyLink && nattyLink.textContent.indexOf('Natty') > -1) {
+                    //We only want actual Natty reports, which always start with a link to Natty.
+                    //  Nat can have other messages which include links to deleted posts which are not reports.
+                    requestTags.push(fakeDeleteRequestTag);
+                }
+            }
+            if (contentEl.textContent.startsWith("@Natty feedback") || contentEl.textContent.startsWith("@Natty tp") || contentEl.textContent.startsWith("@Natty fp") || contentEl.textContent.startsWith("@Natty ne")) {
+                //Natty feedback: Treat as a del-pls request
+                requestTags.push(fakeDeleteRequestTag);
+            }
             //Consider it active if it's not a request, or if the request is active.
             var requestIsActive = requestTags.length === 0 || requestTags.some((tag) => {
                 const tagText = tag.textContent;
