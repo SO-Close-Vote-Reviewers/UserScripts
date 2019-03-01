@@ -1296,6 +1296,7 @@
         obj.visitedLinksShowUsers = false;
         obj.visitedLinksShowInSidebar = true;
         obj.visitedLinksShowInSidebarUser = true;
+        obj.chatShowUpdateButton = true;
         obj.chatCompleteRequestsFade = true;
         obj.chatCompleteRequestsHide = false;
         obj.chatCompleteRequestsDoNothing = false; //This is really just a placeholder. It's value isn't actually used.
@@ -3604,7 +3605,7 @@
             '}',
             '#urrsModalOptionsExcludeTagCheckboxesContainer {',
             '    width: 250px;',
-            '    height: 371px;',
+            '    height: 397px;',
             '    max-height: 100%;',
             '    overflow: auto;',
             '    margin-top: 5px;',
@@ -3935,6 +3936,11 @@
             '                                    undel-',
             '                                </label>',
             '                            </span>',
+            //Optional "Update" button
+            '                            <label title="Show the &quot;update&quot; button. Manual updates are largely superfluous, due to automatic updates being available (if not changed in options) at a rate that\'s close to as frequent as the SE API policy permits. This is particularly so given that the data is updated every time you switch back to the tab with the chat room in it (e.g. look at chat; open a tab with a question; look at the question; switch back to the tab &amp; the data is updated).">',
+            '                                <input type="checkbox" id="urrsOptionsCheckbox-chatShowUpdateButton"/>',
+            '                                Show the manual "update" button.',
+            '                            </label>',
             //Update rates
             '                            <div class="urrsModalOptionsOptionSubHeader" title="There\'s a limit of 10,000 SE API requests from your IP address per day. This limit is shared between all scripts for which you have not gone through an OAuth2 authorization process. Keep this in mind if you are setting these numbers to update very rapidly. While this script on its own won\'t use up that many requests in a day, you could set these options so it used about 2,000 in a day, which could impact other high-API-use scripts you might have installed.">',
             '                                Post status update rates',
@@ -4253,6 +4259,7 @@
             funcs.config.saveNonUi(config.nonUi);
             funcs.executeIfIsFunction(funcs.ui.setVisitedButtonEnabledDisabledByConfig);
             funcs.config.clearVisitedPostsInConfigIfSetNoTracking();
+            funcs.executeIfIsFunction(funcs.ui.showHideUpdateButtonByConfig);
         }
         if (targetId.indexOf('urrsOptionsRange-') > -1) {
             //Update all the stored values of the range inputs.
@@ -6126,7 +6133,7 @@
                 //Add an "update" button. Initially for testing, but users like control.
                 //  Only add the button if question status is being shown. If not, there is no reason for "update".
                 //XXX This needs to be updated when the delays change. Currently it is static.
-                funcs.ui.addButtonAfterStockButtons('update', [
+                const updateButton = funcs.ui.addButtonAfterStockButtons('update', [
                     'Clicking this button will update the status displayed for questions & answers, if a new message with a question/answer has been added.',
                     ' If not, then you need to wait for at least a minute from the last update (per the SE API rules). Once clicked, when that minute has expired, it will update status.',
                     ' Post status is automatically updated when a new message is added with a question link, or you have switched away from this tab and switch back.',
@@ -6143,6 +6150,9 @@
                     funcs.mp.clearThrottleAndProcessAllIfImmediatePermitted();
                     event.target.blur();
                 });
+                if (updateButton) {
+                    updateButton.id = 'urrs-update-button';
+                }
             }
         };
 
@@ -6201,11 +6211,22 @@
 
         funcs.ui.addChatUI = () => {
             funcs.ui.addOptionsButton();
-            //funcs.ui.addUpdateButton();
+            funcs.ui.addUpdateButton();
             funcs.ui.addSearchButtons();
             funcs.ui.addOptionsDialog();
+            funcs.ui.showHideUpdateButtonByConfig();
         };
 
+        funcs.ui.showHideUpdateButtonByConfig = () => {
+            const updateButton = document.getElementById('urrs-update-button');
+            if (updateButton) {
+                if (config.nonUi.chatShowUpdateButton) {
+                    updateButton.style.display = '';
+                } else {
+                    updateButton.style.display = 'none';
+                }
+            }
+        };
 
         //Use Message Processing checkDone for SE API result processing.
         funcs.checkDone = funcs.mp.checkDone;
