@@ -1,17 +1,15 @@
 ﻿// ==UserScript==
-// @name         Unclosed Request Review Script
+// @name         CRUDE: Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
 // @version      2.1.0
-// @description  Adds buttons to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request, or delete request query, then it scans the results and displays them along with additional information.
+// @description  CRUDE (Hack/Pre-alpha): Adds buttons to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request, or delete request query, then it scans the results and displays them along with additional information.
 // @author       @TinyGiant @rene @mogsdad @Makyen
-// @include      /^https?://chat\.stackoverflow\.com/rooms/(?:41570|90230|126195|68414|111347|126814|123602|167908|167826)(?:\b.*$|$)/
-// @include      /^https?://chat\.stackoverflow\.com/search.*[?&]room=(?:41570|90230|126195|68414|111347|126814|123602|167908|167826)(?:\b.*$|$)/
-// @include      /^https?://chat\.stackoverflow\.com/transcript/(?:41570|90230|126195|68414|111347|126814|123602|167908|167826)(?:\b.*$|$)/
-// @include      /^https?://chat\.stackoverflow\.com/transcript/.*$/
-// @include      /^https?://chat\.stackoverflow\.com/users/.*$/
+// @include      /^https?://chat\.stackexchange\.com/rooms/(?:2165|88696)(?:\b.*$|$)/
+// @include      /^https?://chat\.stackexchange\.com/search.*[?&]room=(?:2165|88696)(?:\b.*$|$)/
+// @include      /^https?://chat\.stackexchange\.com/transcript/(?:2165|88696)(?:\b.*$|$)/
+// @include      /^https?://chat\.stackexchange\.com/transcript/.*$/
+// @include      /^https?://chat\.stackexchange\.com/users/.*$/
 // @require      https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/gm4-polyfill.js
-// @downloadURL  https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/UnclosedRequestReview.user.js
-// @updateURL    https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/UnclosedRequestReview.user.js
 // @grant        GM_openInTab
 // @grant        GM.openInTab
 // ==/UserScript==
@@ -29,11 +27,8 @@
     }
     if (window.location.pathname.indexOf('/transcript/message') > -1) {
         //This is a transcript without an indicator in the URL that it is a room for which we should be active.
-        if (document.title.indexOf('SO Close Vote Reviewers') === -1 &&
-            document.title.indexOf('SOCVR Request Graveyard') === -1 &&
-            document.title.indexOf('SOCVR /dev/null') === -1 &&
-            document.title.indexOf('SOCVR Testing Facility') === -1 &&
-            document.title.indexOf('SOBotics') === -1
+        if (document.title.indexOf('CRUDE') === -1 &&
+            document.title.indexOf('CRUDE Archive') === -1
         ) {
             //The script should not be active on this page.
             return;
@@ -145,18 +140,18 @@
         request: new RegExp(requestTagRegExText, 'i'),
     };
     //The extra escapes in RegExp are due to bugs in the syntax highlighter in an editor. They are only there because it helps make the syntax highlighting not be messed up.
-    const getQuestionIdFromURLRegEx = /(?:^|[\s"])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)\/+(\d+)/g; // eslint-disable-line no-useless-escape
+    const getQuestionIdFromURLRegEx = /(?:^|[\s"])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?math\.stackexchange\.com\/))(?:q[^\/]*|posts)\/+(\d+)/g; // eslint-disable-line no-useless-escape
     //https://regex101.com/r/QzH8Jf/2
-    const getSOQuestionIdFfromURLButNotIfAnswerRegEx = /(?:^|[\s"(])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*)\/+(\d+)(?:(?:\/[^#\s]*)#?)?(?:$|[\s")])/g; // eslint-disable-line no-useless-escape
+    const getSOQuestionIdFfromURLButNotIfAnswerRegEx = /(?:^|[\s"(])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?math\.stackexchange\.com\/))(?:q[^\/]*)\/+(\d+)(?:(?:\/[^#\s]*)#?)?(?:$|[\s")])/g; // eslint-disable-line no-useless-escape
     //XXX Temp continue to use above variable name until other uses resolved.
     const getSOQuestionIdFfromURLNotPostsNotAnswerRegEx = getSOQuestionIdFfromURLButNotIfAnswerRegEx;
     //https://regex101.com/r/w2wQoC/1/
     //https://regex101.com/r/SMVJv6/3/
     const getSOAnswerIdFfromURLRegExes = [
-        /(?:^|[\s"(])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:a[^\/]*)\/+(\d+)(?:\s*|\/[^/#]*\/?\d*\s*)(?:$|[\s")])/g, // eslint-disable-line no-useless-escape
-        /(?:^|[\s"'(])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"')])/g, // eslint-disable-line no-useless-escape
+        /(?:^|[\s"(])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?math\.stackexchange\.com\/))(?:a[^\/]*)\/+(\d+)(?:\s*|\/[^/#]*\/?\d*\s*)(?:$|[\s")])/g, // eslint-disable-line no-useless-escape
+        /(?:^|[\s"'(])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?math\.stackexchange\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"')])/g, // eslint-disable-line no-useless-escape
     ];
-    const getSOPostIdFfromURLButNotIfAnswerRegEx = /(?:^|[\s"(])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:posts)\/+(\d+)(?:\s*|\/[^\/#]*\/?\d*\s*)(?:\s|$|[\s")])/g; // eslint-disable-line no-useless-escape
+    const getSOPostIdFfromURLButNotIfAnswerRegEx = /(?:^|[\s"(])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?math\.stackexchange\.com\/))(?:posts)\/+(\d+)(?:\s*|\/[^\/#]*\/?\d*\s*)(?:\s|$|[\s")])/g; // eslint-disable-line no-useless-escape
     const getSOQuestionOrAnswerIdFfromURLRegExes = [getSOQuestionIdFfromURLNotPostsNotAnswerRegEx].concat(getSOAnswerIdFfromURLRegExes);
     //Some constants which it helps to have some functions in order to determine
     const isChat = window.location.pathname.indexOf('/rooms/') === 0;
@@ -600,7 +595,7 @@
                 const tagName = target.textContent;
                 //Force this to SO. Other sites don't have chat in a separate domain, so would need to find the domain for
                 //  the room.
-                GM.openInTab('https://stackoverflow.com/review/close/?filter-tags=' + encodeURIComponent(tagName), false);
+                GM.openInTab('https://math.stackexchange.com/review/close/?filter-tags=' + encodeURIComponent(tagName), false);
                 //These don't prevent Firefox from displaying the context menu.
                 event.preventDefault();
                 event.stopPropagation();
@@ -1390,12 +1385,11 @@
                 myRequests:     new funcs.ui.ShowingButton('my requests',   'showMyRequests', false, true,       null,                                                                                          'When selected, your requests are shown if they match one of the selected including criteria and are not excluded by "visited" or "tags".'),
                 duplicates:     new funcs.ui.ShowingButton('duplicate',     'showDuplicates', true,  false,      /\bdup(?:e?s?|licates?|repost)\b/ig,                                                           'Duplicate questions.'),
                 tooBroad:       new funcs.ui.ShowingButton('too broad',     'showTooBroad',   true,  false,      /\b(?:too[ -]broad|tb|broad)\b/ig,                                                             'Questions which are too broad.'),
-                generalCServer: new funcs.ui.ShowingButton('gen comp/serv', 'showGenCServ',   true,  false,      /\b(?:server(?:fault)?(?!\s*error)|gen(?:eral)?|comp(?:ut(?:e|ing))|super(?:user)?)\b/ig,      'General computing / Server Fault'),
-                noMCVE:         new funcs.ui.ShowingButton('mcve',          'showMCVE',       true,  false,      /\b[mcve]{3,4}\b/ig,                                                                           'Debugging questions that do not have a MCVE, or other required information'),
-                offSite:        new funcs.ui.ShowingButton('off-site req',  'showOffSite',    true,  false,      /\b(?:off[ -]?site|library|tool|ress?ources?|recc?omm?end(?:ations?|ed||ing)|external)\b/ig,   'Requests for off-site resources'),
                 unclear:        new funcs.ui.ShowingButton('unclear',       'showUnclear',    true,  false,      /\b(?:unclear|uc)\b/ig,                                                                        'Unclear questions'),
-                typo:           new funcs.ui.ShowingButton('typo',          'showTypo',       true,  false,      /\b(?:[typo]{4}\b|(?:un)?repro(?:duced|duce|duc[ai]ble)?|typographical)/ig,                    'Typo or can not reproduce'),
                 opinion:        new funcs.ui.ShowingButton('opinion',       'showOpinion',    true,  false,      /\b(?:pob?|opinion)\b/ig,                                                                      'Primarily opinion based'),
+                notMath:        new funcs.ui.ShowingButton('not math',      'showNotMath',    true,  false,      /\bnot\W*(?:about\W*)math/ig,                                                                  'Not about Mathematics'),
+                advice:         new funcs.ui.ShowingButton('advice',        'showAdvice',     true,  false,      /\badvice\b/ig,                                                                                'Seeking personal advice'),
+                context:        new funcs.ui.ShowingButton('context',       'showContext',    true,  false,      /\bcontext\b/ig,                                                                               'Missing context or other details'),
                 otherIncluding: new funcs.ui.ShowingButton('other',         'showOther',      true,  false,      null, /*Matches all messages not matched by other includes*/                                   'Questions that don\'t match any of the other criteria'),
                 user20k:        new funcs.ui.ShowingButton('20k+',          'show20k',        true,  true,       null, /*Only used on Delete Search pages*/                                                     'Show messages for delete requests which can only be acted upon by users with more than 19,999 reputation.'),
                 visited:        new funcs.ui.ShowingButton('visited',       'showVisited',    false, true,       null,                                                                                          'If not selected, questions you have "visited" will be excluded from those shown. "Visited" means a questions for which you clicked (any button) on a link to that question on this page or the SO Close Vote Reviewers chat room page. This can be inaccurate, because normal JavaScript does not have access to if you have _actually_ visited a page. Visits (clicks) are remembered for only 7 days. If you want a question to be considered "visited" without actually visiting the page, you can right-click on the link to open the context menu (there is no way to detect that you didn\'t use the context menu to open the link in a new tab or window).'),
@@ -1405,14 +1399,13 @@
             order: [
                 'duplicates',
                 'tooBroad',
-                'generalCServer',
+                'notMath',
                 'opinion',
                 'myRequests',
                 show20k ? 'user20k' : null, // Only used on delete searches
-                'noMCVE',
-                'offSite',
+                'advice',
+                'context',
                 'unclear',
-                'typo',
                 'otherIncluding',
                 'excludedTags',
                 'visited',
@@ -1634,7 +1627,7 @@
             textShort = textLong = 'wait';
         }
         //The default question link to use
-        link.href = window.location.protocol + '//stackoverflow.com/' + (isAnswer ? 'a' : 'q') + '/' + postId;
+        link.href = window.location.protocol + '//math.stackexchange.com/' + (isAnswer ? 'a' : 'q') + '/' + postId;
         //Find the URL used in the link in the message and use that URL instead. This allows the user to perceive
         //  only a single link for the question instead of seeing that they followed either the link in the message,
         //  or the request-info, but not the other link.
@@ -1891,7 +1884,7 @@
         //Construct and send the API request.
         const url = window.location.protocol + '//api.stackexchange.com/2.2/' + (isAnswers ? 'answers' : 'questions') + '/' + funcs.formatPosts(currentreq) + '?' + [
             'pagesize=100',
-            'site=stackoverflow',
+            'site=math',
             'key=YvvkfBc3LOSK*mwaTPkUVQ((',
             //The filter used here could be pruned back a bit. It was expanded for functionality that was
             //  moved out of this script, then partially pruned back, then expanded a bit, without double
@@ -2449,7 +2442,7 @@
 
     funcs.makeTagTagHref = (tag) => { // eslint-disable-line arrow-body-style
         //Create the URL used for a tag-tag.
-        return '//stackoverflow.com/questions/tagged/' + tag;
+        return '//math.stackexchange.com/questions/tagged/' + tag;
     };
 
     funcs.makeTagTagElement = (tag, noLink, tooltip) => {
@@ -2944,7 +2937,7 @@
                         isFirstMatching = false;
                     }
                 }
-                if (appendToContent || /^\s*(?:stackoverflow.com\/(?:q(?:uestions)?|a(?:answers)?|p(?:osts)?)(?:\/\d+(?:\/\d+)?)?(?:\/…)?|question|answer)\s*$/i.test(link.textContent)) {
+                if (appendToContent || /^\s*(?:math\.stackexchange.com\/(?:q(?:uestions)?|a(?:answers)?|p(?:osts)?)(?:\/\d+(?:\/\d+)?)?(?:\/…)?|question|answer)\s*$/i.test(link.textContent)) {
                     let actualTitle = '';
                     let foundRequestLink;
                     if ([].slice.call(message.querySelectorAll('.request-info a')).some((requestLink) => {
