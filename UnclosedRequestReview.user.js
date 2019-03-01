@@ -6295,7 +6295,7 @@
 
             //Add "cv- requests" button to the non-search chat page.
             let searchButton = funcs.ui.addButton('cv-', 'Open the cv-pls requests search page.', function(event) {
-                GM.openInTab(window.location.origin + '/search?q=tagged%2Fcv&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
+                GM.openInTab(window.location.origin + '/search?q=tagged%2Fcv+OR+C1+OR+C4+OR+C7+OR+C10+OR+C13+OR+tagged%2Fclose+OR+tagged%2Fduplicate&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
                 event.target.blur();
             });
             if (searchButton) {
@@ -6305,7 +6305,7 @@
             //Add "del- requests" button to the non-search chat page.
             searchButton = funcs.ui.addButton('del-', 'Open the del-pls requests search page.', function(event) {
                 //Search for 'del', 'delv', 'delete' and 'dv' tags:
-                GM.openInTab(window.location.origin + '/search?q=tagged%2Fdel+OR+tagged%2Fdelv+OR+tagged%2Fdelete+OR+tagged%2Fdv&user=&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
+                GM.openInTab(window.location.origin + '/search?q=tagged%2Fdel+OR+tagged%2Fdelv+OR+tagged%2Fdelete+OR+tagged%2Fdv+OR+D1+OR+D4+OR+D7+OR+D10+OR+D13&user=&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
                 event.target.blur();
             });
             if (searchButton) {
@@ -6315,7 +6315,7 @@
             //Add "reopen- requests" button to the non-search chat page.
             searchButton = funcs.ui.addButton('reopen-', 'Open the reopen-pls requests search page.', function(event) {
                 //Search for 'reopen' tags:
-                GM.openInTab(window.location.origin + '/search?q=tagged%2Freopen+OR+tagged%2Fre-open&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
+                GM.openInTab(window.location.origin + '/search?q=tagged%2Freopen+OR+tagged%2Fre-open+OR+R1+OR+R4+OR+R7&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
                 event.target.blur();
             });
             if (searchButton) {
@@ -6325,7 +6325,7 @@
             //Add "undel- requests" button to the non-search chat page.
             searchButton = funcs.ui.addButton('undel-', 'Open the undel-pls requests search page.', function(event) {
                 //Search for 'undel' tags:
-                GM.openInTab(window.location.origin + '/search?q=tagged%2Fundel+OR+tagged%2Fundelete+OR+tagged%2Fundelv&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
+                GM.openInTab(window.location.origin + '/search?q=tagged%2Fundel+OR+tagged%2Fundelete+OR+tagged%2Fundelv+OR+U1+OR+U4+OR+U7&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
                 event.target.blur();
             });
             if (searchButton) {
