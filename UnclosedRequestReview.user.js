@@ -2066,7 +2066,7 @@
                     requestTags.push(fakeDeleteRequestTag);
                 }
             }
-            if (contentEl.textContent.startsWith("@Natty feedback") || contentEl.textContent.startsWith("@Natty tp") || contentEl.textContent.startsWith("@Natty fp") || contentEl.textContent.startsWith("@Natty ne")) {
+            if (/^@Natty (?:feedback|tp|fp|ne|report)\b/i.test(contentEl.textContent)) {
                 //Natty feedback: Treat as a del-pls request
                 requestTags.push(fakeDeleteRequestTag);
             }
