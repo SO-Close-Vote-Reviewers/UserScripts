@@ -2793,14 +2793,19 @@
         return date.getTime();
     };
 
-    funcs.sortMonologuesByTimestamp = () => {
+    funcs.sortMonologuesByTimestamp = (oldestFirst) => {
         //Sort the messages based the timestamp dataset on the monologue.
         //Get an array of monologues, which will be sorted, and then the sort applied to the DOM.
         const monologues = [].slice.call(document.querySelectorAll('.monologue'));
         const dateSortDatasetProp = sortingButtons.buttons.date.datasetProp;
         //Sort into original order:
-        //Oldest first as default display:
-        monologues.sort((a, b) => b.dataset[dateSortDatasetProp] - a.dataset[dateSortDatasetProp]);
+        if (oldestFirst) {
+            //Oldest first. This can be useful to emphasize action on older requests.
+            monologues.sort((a, b) => a.dataset[dateSortDatasetProp] - b.dataset[dateSortDatasetProp]);
+        } else {
+            //Newest first as default display. This matches the normal display of search results.
+            monologues.sort((a, b) => b.dataset[dateSortDatasetProp] - a.dataset[dateSortDatasetProp]);
+        }
         //Re-order the monologues in the DOM in the order into which they were sorted.
         const content = document.querySelector('#content');
         const putBefore = document.querySelectorAll('#content>br.clear-both')[1];
@@ -3315,20 +3320,15 @@
             funcs.orSearch.addSearchPageLinks(orSearch.maxPages);
             //Get the times the monologues were posted, so they can be used in appendInfo.
             funcs.addTimestampDatasetToAllMonologues();
-            const tmpConfig = {};
-            funcs.config.setUiDefaults(tmpConfig);
-            //Specify that we are sorting by date in it's first state, which matches how the sort would have been if all
-            //  messages were normally included in the page.
-            tmpConfig.date = 1;
             //Sort the monologues into the order they would have been if all normally in the page.
-            funcs.sortMonologuesByTimestamp(tmpConfig, ['date']);
+            //But, on pages where the UI is active we want the oldest first, so people look at those.
+            funcs.sortMonologuesByTimestamp(isSearchCv || isSearchDel || isSearchReopen);
             //Process the page, as if it was that way originally.
             funcs.orSearch.removeWaitNotificationToTop();
             window.dispatchEvent(new CustomEvent('SOCVR-Archiver-Messages-Changed', {
                 bubbles: true,
                 cancelable: true,
             }));
-
             funcs.mp.processPageOnce();
         } else {
             //Proces the next page in the list, now that the previous one is done.
