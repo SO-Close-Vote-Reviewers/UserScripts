@@ -519,11 +519,10 @@
     const isForceShowLinks = /links?/i.test(urlReviewShow);
     const isForceShowReplies = /repl(?:y|ies)/i.test(urlReviewShow);
     //Allow the URL to specify that it is a cv- search, del- search, or not using the cv-/del- UI.
-    //const isSearchCv = isSearch && ((/(?:tagged%2Fcv|(?:^|\b)cv(?:\b|$))/.test(urlSearchString) || /(?:cv|close)/i.test(urlReviewType)) && !/none/i.test(urlReviewType));
     const isSearchCv = isSearch && ((/(?:tagged%2F|^)cv(?:\b|$)/.test(urlSearchString) || /(?:cv|close)/i.test(urlReviewType)) && !/none/i.test(urlReviewType));
-    //const isSearchDel = isSearch && ((/(?:tagged%2F(?:del(?:ete|v)?|dv)|(?:^|\b)(?:del(?:ete|v)?|dv)(?:\b|$))/.test(urlSearchString) || /del/i.test(urlReviewType)) && !/none/i.test(urlReviewType));
     const isSearchDel = isSearch && ((/(?:tagged%2F|^)(?:del(?:ete|v)?|dv)(?:\b|$)/.test(urlSearchString) || /del/i.test(urlReviewType)) && !/none/i.test(urlReviewType));
     const isSearchReopen = isSearch && ((/(?:tagged%2F|^)(?:re-?open)(?:\b|$)/.test(urlSearchString) || /del/i.test(urlReviewType)) && !/none/i.test(urlReviewType));
+    const isSearchReviewUIActive = isSearchCv || isSearchDel || isSearchReopen;
     //Adjust the page links to have the same reviewRequest options
     if (urlReviewShow || urlReviewType) {
         [].slice.call(document.querySelectorAll('a .page-numbers')).forEach((linkSpan) => {
@@ -2269,7 +2268,7 @@
             }
         });
         //Process all requests, even if there are no requests.
-        funcs.checkRequests(null, requests, !(isSearchCv || isSearchDel || isSearchReopen));
+        funcs.checkRequests(null, requests, !isSearchReviewUIActive);
     };
 
 
@@ -3322,7 +3321,7 @@
             funcs.addTimestampDatasetToAllMonologues();
             //Sort the monologues into the order they would have been if all normally in the page.
             //But, on pages where the UI is active we want the oldest first, so people look at those.
-            funcs.sortMonologuesByTimestamp(isSearchCv || isSearchDel || isSearchReopen);
+            funcs.sortMonologuesByTimestamp(isSearchReviewUIActive);
             //Process the page, as if it was that way originally.
             funcs.orSearch.removeWaitNotificationToTop();
             window.dispatchEvent(new CustomEvent('SOCVR-Archiver-Messages-Changed', {
@@ -4344,7 +4343,7 @@
 
     //We want the search UI shown, more info in request-info and non-requests deleted only on searches which are for close-votes and delete-votes.
     //  On other searches, we just want chat-page request-info.
-    if (isSearch && (isSearchCv || isSearchDel || isSearchReopen)) {
+    if (isSearchReviewUIActive) {
         //Only the search page
 
         //Determine the current user's ID (not actually needed; is redundant to testing for the "mine" class)
