@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      2.0.0
+// @version      2.0.1
 // @description  Adds buttons to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request, or delete request query, then it scans the results and displays them along with additional information.
 // @author       @TinyGiant @rene @mogsdad @Makyen
 // @include      /^https?://chat\.stackoverflow\.com/rooms/(?:41570|90230|126195|68414|111347|126814|123602|167908|167826)(?:\b.*$|$)/
@@ -666,7 +666,7 @@
         if (!event.defaultPrevented) {
             funcs.visited.listenForLinkClicks(event);
         }
-        if (event.target.classList.contains('action-link') || event.target.parentNode.classList.contains('action-link')) {
+        if (event.target.classList.contains('action-link') || (event.target.parentNode && event.target.parentNode.classList && event.target.parentNode.classList.contains('action-link'))) {
             funcs.ui.listenForActionLinkClicks(event);
         }
         mostRecentClick = event;
@@ -2465,7 +2465,7 @@
 
     funcs.doesElementContainRequestTagAsText = (element) => {
         getActionTagInTextRegEx.lastIndex = 0;
-        return getActionTagInTextRegEx.test(funcs.removeTagsLinksAndCodeFromElement(element.cloneNode(true)));
+        return getActionTagInTextRegEx.test(funcs.removeTagsLinksAndCodeFromElement(element.cloneNode(true)).innerHTML);
     };
 
     funcs.removeTagsLinksAndCodeFromElement = (element) => {
@@ -2854,6 +2854,9 @@
             return;
         }
         //Loop through all <a> in the content of the supplied message.
+        let numberMatchingWithLink = 0;
+        let unchangedMatchingLinks = [];
+        let isFirstMatching = true;
         [].slice.call(funcs.getContentFromMessage(message).querySelectorAll('a')).forEach((link) => {
             const messageHrefPostId = funcs.getPostIdFromURL(link.href);
             if (!messageHrefPostId) {
@@ -2865,29 +2868,64 @@
                 isUrrsRequestedReplacement = true;
             }
             //Make sure the <a> only contains a single text node
-            if (link.childNodes.length === 1 && link.firstChild.nodeName === '#text' &&
-                /^\s*(?:stackoverflow.com\/(?:q(?:uestions)?|a(?:answers)?|p(?:osts)?)(?:\/\d+(?:\/\d+)?)?(?:\/…)?|question|answer)\s*$/i.test(link.textContent)
-            ) {
-                let actualTitle = '';
-                let foundRequestLink;
-                if ([].slice.call(message.querySelectorAll('.request-info a')).some((requestLink) => {
-                    actualTitle = requestLink.dataset.questionTitle;
-                    foundRequestLink = requestLink;
-                    //Only replace if we actually have a title (e.g. not undefined from a deleted question).
-                    return actualTitle && messageHrefPostId === funcs.getPostIdFromURL(requestLink.href);
-                })) {
-                    //Found a valid matching title. Change the link. May contain HTML entities. Assume it is trusted.
-                    //Use .innerHTML to parse any HTML entities.
-                    //XXX This really should be done in a throw away textarea (security).
-                    const isAnswer = foundRequestLink.dataset.answerId;
-                    link.innerHTML = (isAnswer ? 'Answer to: ' : '') + actualTitle;
-                    if (!isUrrsRequestedReplacement) {
-                        //Allow the title that was originally placed on the link to continue to exist.
-                        link.title = 'The original text displayed for this link was a bare partial URL. It has been changed to the title of the question for your convenience.';
+            if (link.childNodes.length === 1 && link.firstChild.nodeName === '#text') {
+                let appendToContent = false;
+                if (/^\s*[cd]?(?:\d+|[a-z])\s*$/i.test(link.textContent)) {
+                    appendToContent = true;
+                    if (isFirstMatching) {
+                        link.classList.add('urrs-first-link-matching-pattern');
+                        isFirstMatching = false;
+                    }
+                }
+                if (appendToContent || /^\s*(?:stackoverflow.com\/(?:q(?:uestions)?|a(?:answers)?|p(?:osts)?)(?:\/\d+(?:\/\d+)?)?(?:\/…)?|question|answer)\s*$/i.test(link.textContent)) {
+                    let actualTitle = '';
+                    let foundRequestLink;
+                    if ([].slice.call(message.querySelectorAll('.request-info a')).some((requestLink) => {
+                        if (messageHrefPostId === funcs.getPostIdFromURL(requestLink.href)) {
+                            //This is a link to the same URL.
+                            actualTitle = requestLink.dataset.questionTitle;
+                            foundRequestLink = requestLink;
+                            //Only replace if we actually have a title (e.g. not undefined from a deleted question).
+                            return !!actualTitle;
+                        } //else
+                        return false;
+                    })) {
+                        //Found a valid matching title. Change the link. May contain HTML entities. Assume it is trusted.
+                        //Use .innerHTML to parse any HTML entities.
+                        //XXX This really should be done in a throw away textarea (security).
+                        const isAnswer = foundRequestLink.dataset.answerId;
+                        link.innerHTML = (appendToContent ? `<b>${link.innerHTML}:</b> ` : '') + (isAnswer ? 'Answer to: ' : '') + actualTitle;
+                        if (!link.classList.contains('urrs-first-link-matching-pattern') && appendToContent) {
+                            //This is not the first one changed in this message, and this is one we appended to.
+                            link.insertAdjacentHTML('beforebegin', '<br/>');
+                        }
+                        if (!isUrrsRequestedReplacement) {
+                            //Allow the title that was originally placed on the link to continue to exist.
+                            if (appendToContent) {
+                                link.title = 'The original text displayed for this link matched a pattern. The pattern has been made bold and the title of the question has been appended for your convenience.';
+                            } else {
+                                link.title = 'The original text displayed for this link was a bare partial URL. It has been changed to the title of the question for your convenience.';
+                            }
+                        }
+                        numberMatchingWithLink++;
+                    } else {
+                        if (foundRequestLink && appendToContent) {
+                            //There is a request-info for this, but no title, so likely that it's deleted.
+                            unchangedMatchingLinks.push(link);
+                            numberMatchingWithLink++;
+                        }
                     }
                 }
             }
         });
+        if (numberMatchingWithLink > 1) {
+            unchangedMatchingLinks.forEach((link) => {
+                link.innerHTML = `<b>${link.innerHTML}:</b>`;
+                if (!link.classList.contains('urrs-first-link-matching-pattern')) {
+                    link.insertAdjacentHTML('beforebegin', '<br/>');
+                }
+            });
+        }
     };
 
     const invalidRequestText = ': invalid-request';
@@ -3083,7 +3121,7 @@
     funcs.orSearch.addWaitNotificationToTop = () => {
         //Add a notification to the top of the page that we are collecting information.
         if (!document.getElementById('orSearch-waitNotification')) {
-            document.getElementById('container').insertAdjacentHTML('afterbegin', '<div id="orSearch-waitNotification" style="width:100%;background-color:orange;height:100px;z-index:10000;"><div style="margin-top:34px;width:80%;height:80%;font-size:150%;color:black;padding-top: 35px;text-align: center;margin-left: auto;margin-right: auto;">Please wait: Collecting results</div></div>');
+            document.getElementById('container').insertAdjacentHTML('afterbegin', '<div id="orSearch-waitNotification" style="width:100%;background-color:orange;height:100px;z-index:10000;" title="Depending on the search, this may take several seconds to longer than a minute, due to SE Chat search rate limiting."><div style="margin-top:34px;width:80%;height:80%;font-size:150%;color:black;padding-top: 35px;text-align: center;margin-left: auto;margin-right: auto;">Please wait: Collecting results</div></div>');
         }
     };
 
@@ -3116,6 +3154,21 @@
         const frame = event.target;
         const contentIdDiv = document.getElementById('content');
         const frameContentIdDiv = frame.contentDocument.getElementById('content');
+        if (!frameContentIdDiv) {
+            //This usually indicates that we've made a request too rapidly.
+            const frameBody = frame.contentDocument.body;
+            if (frameBody) {
+                const frameBodyText = frameBody.textContent;
+                if (frameBodyText && frameBodyText.length < 200) {
+                    const frameBodyTextMatches = frameBodyText.match(/You can perform this action again in (\d+) seconds./);
+                    if (Array.isArray(frameBodyTextMatches) && frameBodyTextMatches.length > 1) {
+                        const necesarryDelayS = +frameBodyTextMatches[1];
+                        console.log('SE Chat says we can\'t do a search for ', necesarryDelayS, ' seconds. Delaying that long and trying to search again for URL:', frame.src);
+                        setTimeout(funcs.orSearch.addMessagesInSearchUrlToResults, 1000 * (necesarryDelayS + 1), frame.src, funcs.orSearch.stageTwoProcessing);
+                    }
+                }
+            }
+        }
         //Get the second <br class"clear-both">.
         const elToInsertBefore = contentIdDiv.querySelectorAll('br.clear-both')[1];
         if (frameContentIdDiv && elToInsertBefore) {
@@ -3137,6 +3190,13 @@
                 }
             });
         }
+        const contentFoundCountP = document.querySelector('#content > p');
+        const frameContentFoundCountP = frame.contentDocument.querySelector('#content > p');
+        const contentFoundCount = +(contentFoundCountP.textContent.match(/(\d+) messages? found/) || ['', '0'])[1];
+        const frameContentFoundCount = frameContentFoundCountP ? +(frameContentFoundCountP.textContent.match(/(\d+) messages? found/) || ['', '0'])[1] : 0;
+        const foundCount = contentFoundCount + frameContentFoundCount;
+        contentFoundCountP.textContent = `<= ${foundCount} message${(foundCount === 1 ? '' : 's')} found`;
+        contentFoundCountP.title = 'Some of the messages found may be duplicates, due to matching more than one OR criteria.';
         //Do what's next
         if (typeof callback === 'function') {
             callback(frame.src, funcs.orSearch.getNumberSearchPageResults(frameContentIdDiv));
@@ -3270,7 +3330,26 @@
             }));
 
             funcs.mp.processPageOnce();
+        } else {
+            //Proces the next page in the list, now that the previous one is done.
+            funcs.orSearch.processOrList();
         }
+    };
+
+    funcs.orSearch.processOrList = () => {
+        if (!Array.isArray(orSearch.urlSearchOrs) || orSearch.urlSearchOrs.length === 0) {
+            //Force the end of processing
+            orSearch.framesToProcess = 0;
+            funcs.orSearch.stageTwoProcessing('', 0);
+        }
+        const queryWoSearch = window.location.search.replace(/[?&]q=(?:[^&#]+)/i, '').replace(/^\?/, '');
+        const term = orSearch.urlSearchOrs.pop();
+        const newUrl = window.location.origin + window.location.pathname + '?q=' + term + queryWoSearch;
+        //Fetch the results from a page.
+        //Use a timeout to make SE happy. SE requires a minimal delay between opening search pages, thus we have to stagger
+        //  our loading of iframes with search results.
+        //  Call stageTwoProcessing after each page is fetched.
+        setTimeout(funcs.orSearch.addMessagesInSearchUrlToResults, 2000, newUrl, funcs.orSearch.stageTwoProcessing);
     };
 
     funcs.orSearch.stageOneProcessing = () => {
@@ -3280,15 +3359,8 @@
             funcs.orSearch.addWaitNotificationToTop();
             orSearch.framesToProcess = urlSearchOrs.length;
             orSearch.maxPages = funcs.orSearch.getNumberSearchPageResults(document);
-            const queryWoSearch = window.location.search.replace(/[?&]q=(?:[^&#]+)/i, '').replace(/^\?/, '');
-            urlSearchOrs.forEach((term, index) => {
-                const newUrl = window.location.origin + window.location.pathname + '?q=' + term + queryWoSearch;
-                //Fetch the results from a page.
-                //Use a timeout to make SE happy. SE requires a minimal delay between opening search pages, thus we have to stagger
-                //  our loading of iframes with search results.
-                //  Call stageTwoProcessing after each page is fetched.
-                setTimeout(funcs.orSearch.addMessagesInSearchUrlToResults, 2000 * (index + 1), newUrl, funcs.orSearch.stageTwoProcessing);
-            });
+            orSearch.urlSearchOrs = urlSearchOrs;
+            funcs.orSearch.processOrList();
         } else {
             //This is not a search using 'OR', no need to get additional results. Just start processing.
             //Get the times the monologues were posted, so they can be used in appendInfo.
@@ -5528,7 +5600,7 @@
         //Begin processing the search.
         funcs.orSearch.stageOneProcessing();
     } else {
-        //Normal chat page (not a search result, not a transcript)
+        //Normal chat page, a search page that doesn't match our active criteria, or a transcript.
 
         //Listen to CHAT
         funcs.inPageCHATListener = function() {
@@ -5567,8 +5639,9 @@
                 CHAT.addEventHandlerHook(listenToChat);
             }
         };
-        funcs.executeInPage(funcs.inPageCHATListener, true, 'urrs-CHAT-listener');
-
+        if (isChat) {
+            funcs.executeInPage(funcs.inPageCHATListener, true, 'urrs-CHAT-listener');
+        }
 
         //Utility functions for the chat page
 
@@ -5974,21 +6047,45 @@
             //  This empty function just allows us not to have to check for it's existence prior to executing it.
         };
 
+        funcs.ui.createButton = (text, title, action) => {
+            const button = document.createElement('button');
+            button.className = 'button urrs-requests-button';
+            button.textContent = text;
+            button.title = title;
+            button.addEventListener('click', action, false);
+            return button;
+        };
+
+        funcs.ui.addButtonAfterStockButtons = (text, title, action) => {
+            const knownButtons = [
+                'sayit-button',
+                'upload-file',
+                'codify-button',
+                'cancel-editing-button',
+            ];
+            const chatButton = document.getElementById('chat-buttons');
+            let afterLastKnown = chatButton.lastElementChild;
+            while (afterLastKnown && knownButtons.indexOf(afterLastKnown.id) === -1) {
+                afterLastKnown = afterLastKnown.previousSibling;
+            }
+            afterLastKnown = afterLastKnown ? afterLastKnown.nextSibling : null;
+            const newButton = funcs.ui.createButton(text, title, action);
+            chatButton.insertBefore(newButton, afterLastKnown);
+            chatButton.insertBefore(document.createTextNode(' '), afterLastKnown);
+            return newButton;
+        };
+
         funcs.ui.addButton = (text, title, action) => {
             //Add a button to the chatbox
             const nodes = {};
-            nodes.scope = document.querySelector('#chat-buttons');
+            nodes.scope = document.getElementById('chat-buttons');
             if (!nodes.scope) {
                 return null;
             } //else
             nodes.scope.appendChild(document.createTextNode(' '));
-            nodes.button = document.createElement('button');
-            nodes.button.className = 'button urrs-requests-button';
-            nodes.button.textContent = text;
-            nodes.button.title = title;
+            nodes.button = funcs.ui.createButton(text, title, action);
             nodes.scope.appendChild(nodes.button);
             nodes.scope.appendChild(document.createTextNode(' '));
-            nodes.button.addEventListener('click', action, false);
             return nodes.button;
         };
 
@@ -6014,6 +6111,103 @@
             nodes.scope.insertAdjacentHTML('beforeend', htmlText);
         };
 
+        funcs.ui.addOptionsButton = () => {
+            //Add "options" button to the non-search chat page.
+            const openOptionsButton = funcs.ui.addButtonAfterStockButtons('⚙', 'Open Unclosed Request Review options dialog.', function(event) {
+                funcs.ui.showOptions();
+                event.target.blur();
+            });
+            if (openOptionsButton) {
+                openOptionsButton.id = 'urrs-open-options-button';
+            }
+        };
+
+        funcs.ui.addUpdateButton = () => {
+            if (config.nonUi.chatShowPostStatus) {
+                //Add an "update" button. Initially for testing, but users like control.
+                //  Only add the button if question status is being shown. If not, there is no reason for "update".
+                //XXX This needs to be updated when the delays change. Currently it is static.
+                funcs.ui.addButtonAfterStockButtons('update', [
+                    'Clicking this button will update the status displayed for questions & answers, if a new message with a question/answer has been added.',
+                    ' If not, then you need to wait for at least a minute from the last update (per the SE API rules). Once clicked, when that minute has expired, it will update status.',
+                    ' Post status is automatically updated when a new message is added with a question link, or you have switched away from this tab and switch back.',
+                    ' For both of those, the maximum update rate can be set in the options dialog on the search page.',
+                    ' The maximum auto-update rate is currently once every ' + config.nonUi.chatMinimumUpdateDelay + ' seconds (' + DEFAULT_MINIMUM_UPDATE_DELAY + ' seconds is the default).',
+                    ' Post status is also updated on a timed basis.',
+                    ' Currently, it auto-updates, regardless of any new questions being posted, every ' + config.nonUi.chatAutoUpdateRate + ' minute' + (config.nonUi.chatAutoUpdateRate === 1 ? '' : 's'),
+                    ' (' + DEFAULT_AUTO_UPDATE_RATE + ' minutes is the default).',
+                    ' None of the automatic updates occur when the tab this page is in is not visible, but an update will occur when you switch back to this tab.',
+                ].join(''), (event) => {
+                    //This may still be prevented by the backoff timer.
+                    //The questions on Stack Apps explicitly cover that users should be prevented from performing the same request more often that
+                    //  once per minute.
+                    funcs.mp.clearThrottleAndProcessAllIfImmediatePermitted();
+                    event.target.blur();
+                });
+            }
+        };
+
+        funcs.ui.addSearchButtons = () => {
+            funcs.ui.addHtml('<br/><span class="urrs-chat-input-search-span">Search:</span>');
+            const chatButtonTd = document.querySelector('#chat-buttons');
+            if (chatButtonTd) {
+                //Adjust the chat buttons up a bit to leave the legal footer fully visible.
+                chatButtonTd.style.paddingTop = '0';
+            }
+
+            //Add "cv- requests" button to the non-search chat page.
+            let searchButton = funcs.ui.addButton('cv-', 'Open the cv-pls requests search page.', function(event) {
+                GM.openInTab(window.location.origin + '/search?q=tagged%2Fcv&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
+                event.target.blur();
+            });
+            if (searchButton) {
+                searchButton.id = 'urrs-search-button-cv';
+            }
+
+            //Add "del- requests" button to the non-search chat page.
+            searchButton = funcs.ui.addButton('del-', 'Open the del-pls requests search page.', function(event) {
+                //Search for 'del', 'delv', 'delete' and 'dv' tags:
+                GM.openInTab(window.location.origin + '/search?q=tagged%2Fdel+OR+tagged%2Fdelv+OR+tagged%2Fdelete+OR+tagged%2Fdv&user=&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
+                event.target.blur();
+            });
+            if (searchButton) {
+                searchButton.id = 'urrs-search-button-del';
+            }
+
+            //Add "reopen- requests" button to the non-search chat page.
+            searchButton = funcs.ui.addButton('reopen-', 'Open the reopen-pls requests search page.', function(event) {
+                //Search for 'reopen' tags:
+                GM.openInTab(window.location.origin + '/search?q=tagged%2Freopen+OR+tagged%2Fre-open&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
+                event.target.blur();
+            });
+            if (searchButton) {
+                searchButton.id = 'urrs-search-button-reopen';
+            }
+
+            //Add "undel- requests" button to the non-search chat page.
+            searchButton = funcs.ui.addButton('undel-', 'Open the undel-pls requests search page.', function(event) {
+                //Search for 'undel' tags:
+                GM.openInTab(window.location.origin + '/search?q=tagged%2Fundel+OR+tagged%2Fundelete+OR+tagged%2Fundelv&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
+                event.target.blur();
+            });
+            if (searchButton) {
+                searchButton.id = 'urrs-search-button-undel';
+            }
+        };
+
+        funcs.ui.addOptionsDialog = () => {
+            //Add the options dialog to the DOM
+            document.body.insertBefore(funcs.ui.createOptionsDialog(), document.body.firstChild);
+        };
+
+        funcs.ui.addChatUI = () => {
+            funcs.ui.addOptionsButton();
+            //funcs.ui.addUpdateButton();
+            funcs.ui.addSearchButtons();
+            funcs.ui.addOptionsDialog();
+        };
+
+
         //Use Message Processing checkDone for SE API result processing.
         funcs.checkDone = funcs.mp.checkDone;
 
@@ -6021,84 +6215,10 @@
         funcs.config.setDefaults(config);
         funcs.config.restore(config);
 
-        if (config.nonUi.chatShowPostStatus) {
-            //Add an "update" button. Initially for testing, but users like control.
-            //  Only add the button if question status is being shown. If not, there is no reason for "update".
-            //XXX This needs to be updated when the delays change. Currently it is static.
-            funcs.ui.addButton('update', [
-                'Clicking this button will update the status displayed for questions & answers, if a new message with a question/answer has been added.',
-                ' If not, then you need to wait for at least a minute from the last update (per the SE API rules). Once clicked, when that minute has expired, it will update status.',
-                ' Post status is automatically updated when a new message is added with a question link, or you have switched away from this tab and switch back.',
-                ' For both of those, the maximum update rate can be set in the options dialog on the search page.',
-                ' The maximum auto-update rate is currently once every ' + config.nonUi.chatMinimumUpdateDelay + ' seconds (' + DEFAULT_MINIMUM_UPDATE_DELAY + ' seconds is the default).',
-                ' Post status is also updated on a timed basis.',
-                ' Currently, it auto-updates, regardless of any new questions being posted, every ' + config.nonUi.chatAutoUpdateRate + ' minute' + (config.nonUi.chatAutoUpdateRate === 1 ? '' : 's'),
-                ' (' + DEFAULT_AUTO_UPDATE_RATE + ' minutes is the default).',
-                ' None of the automatic updates occur when the tab this page is in is not visible, but an update will occur when you switch back to this tab.',
-            ].join(''), (event) => {
-                //This may still be prevented by the backoff timer.
-                //The questions on Stack Apps explicitly cover that users should be prevented from performing the same request more often that
-                //  once per minute.
-                funcs.mp.clearThrottleAndProcessAllIfImmediatePermitted();
-                event.target.blur();
-            });
-        }
-        //Add "options" button to the non-search chat page.
-        const openOptionsButton = funcs.ui.addButton('⚙', 'Open Unclosed Request Review options dialog.', function(event) {
-            funcs.ui.showOptions();
-            event.target.blur();
-        });
-        if (openOptionsButton) {
-            openOptionsButton.id = 'urrs-open-options-button';
-        }
-        funcs.ui.addHtml('<br/><span class="urrs-chat-input-search-span">Search:</span>');
-        const chatButtonTd = document.querySelector('#chat-buttons');
-        if (chatButtonTd) {
-            //Adjust the chat buttons up a bit to leave the legal footer fully visible.
-            chatButtonTd.style.paddingTop = '0';
+        if (isChat) {
+            funcs.ui.addChatUI();
         }
 
-        //Add "cv- requests" button to the non-search chat page.
-        let searchButton = funcs.ui.addButton('cv-', 'Open the cv-pls requests search page.', function(event) {
-            GM.openInTab(window.location.origin + '/search?q=tagged%2Fcv&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
-            event.target.blur();
-        });
-        if (searchButton) {
-            searchButton.id = 'urrs-search-button-cv';
-        }
-
-        //Add "del- requests" button to the non-search chat page.
-        searchButton = funcs.ui.addButton('del-', 'Open the del-pls requests search page.', function(event) {
-            //Search for 'del', 'delv', 'delete' and 'dv' tags:
-            GM.openInTab(window.location.origin + '/search?q=tagged%2Fdel+OR+tagged%2Fdelv+OR+tagged%2Fdelete+OR+tagged%2Fdv&user=&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
-            event.target.blur();
-        });
-        if (searchButton) {
-            searchButton.id = 'urrs-search-button-del';
-        }
-
-        //Add "reopen- requests" button to the non-search chat page.
-        searchButton = funcs.ui.addButton('reopen-', 'Open the reopen-pls requests search page.', function(event) {
-            //Search for 'reopen' tags:
-            GM.openInTab(window.location.origin + '/search?q=tagged%2Freopen+OR+tagged%2Fre-open&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
-            event.target.blur();
-        });
-        if (searchButton) {
-            searchButton.id = 'urrs-search-button-reopen';
-        }
-
-        //Add "undel- requests" button to the non-search chat page.
-        searchButton = funcs.ui.addButton('undel-', 'Open the undel-pls requests search page.', function(event) {
-            //Search for 'undel' tags:
-            GM.openInTab(window.location.origin + '/search?q=tagged%2Fundel+OR+tagged%2Fundelete+OR+tagged%2Fundelv&room=' + currentRoom + '&page=1&pagesize=100&sort=newest');
-            event.target.blur();
-        });
-        if (searchButton) {
-            searchButton.id = 'urrs-search-button-undel';
-        }
-
-        //Add the options dialog to the DOM
-        document.body.insertBefore(funcs.ui.createOptionsDialog(), document.body.firstChild);
         //Remember which questions were visited
         //Restore the configuration, using defaults.
         funcs.visited.beginRememberingPostVisits();
