@@ -3601,6 +3601,9 @@
                 'body#chat-body #chat a:visited:not(.button)' + (config.nonUi.visitedLinksShowUsers ? '' : ':not(.signature)') + ' {',
                 '    color: #0480DE;',
                 '}',
+                'body a {',
+                '    color: #dd6205;',
+                '}',
             ].join('\n') : ''),
             //Normal has moderators colored blue. We are using that for visited links. So, show moderators another way.
             (config.nonUi.chatShowModeratorDiamond ? [
@@ -3978,7 +3981,7 @@
             '                            </label>',
             //Chat visited link style
             '                            <span class="urrsOptionsMultiCheckboxLine">',
-            '                                <label title="Color visited links blue. If neither of the sub-options are selected, only the visited links within messages are blue. On the URRS review page, all visited links have been blue since 2015. These options are applied on the main chat pages, transcripts, and searches for this room (and associated rooms)." class="urrsOptionsCheckboxLabel-inline">',
+            '                                <label title="Color visited links blue and non-visited links a contrasting orange. If neither of the sub-options are selected, only the visited links within messages are blue. On the URRS review page, all visited links have been blue since 2015. These options are applied on the main chat pages, transcripts, and searches for this room (and associated rooms)." class="urrsOptionsCheckboxLabel-inline">',
             '                                    <input type="checkbox" id="urrsOptionsCheckbox-visitedLinkStyleActive"/>',
             '                                    Blue visited links:',
             '                                </label>',
