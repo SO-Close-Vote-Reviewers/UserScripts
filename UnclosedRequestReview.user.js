@@ -126,23 +126,24 @@
     /*Need to update with (?:re\W?)? for flags
     \b(?:(?:spam|off?ensive|abb?usive|flag(?:-?(?:naa|spam|off?ensive|rude|abb?usive))|(?:(?:naa|spam|off?ensive|rude|abb?usive)-?flag))|(?:(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)-(?:(?:cv|(?:un)?(?:del(?:v)?|dv|delete)|rov?|reopen|app?rove?|reject|rv|review|flag|nuke?|spam|off?ensive|naa|abbusive)|(?:spam|off?ensive|abb?usive|flag(?:-?(?:naa|spam|off?ensive|rude|abb?usive))|(?:(?:naa|spam|off?ensive|rude|abb?usive)-?flag))))|(?:(?:(?:cv|(?:un)?(?:del(?:v)?|dv|delete)|rov?|reopen|app?rove?|reject|rv|review|flag|nuke?|spam|off?ensive|naa|abbusive)|(?:spam|off?ensive|abb?usive|flag(?:-?(?:naa|spam|off?ensive|rude|abb?usive))|(?:(?:naa|spam|off?ensive|rude|abb?usive)-?flag)))-(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)))\b
     */
-    //For testing:
-    const requestTagInTextContent = new RegExp(requestTagRegExText, 'i');
     //Used to look in text to see if there are any messages which contain the action tag as text.
     //Only a limited set of action types are recognized in text format.
     const getActionTagInTextRegEx = /(?:\[(?:tag\W?)?(?:cv|(?:un-?)?del(?:ete|v)?|re-?open)-[^\]]*\])/;
-    //Delete requests
-    const deleteRequestTagInTextContent = /\b(?:delv?|dv|delete)(?:pls)?\b/i;
-    const undeleteRequestTagInTextContent = /\b(?:un?-?delv?|un?-?dv|un?-?delete)(?:pls)?\b/i;
-    const closeVoteRequestTagInTextContent = /\b(?:cv)(?:pls)?\b/i;
-    const reopenRequestTagInTextContent = /\b(?:re-?open)(?:pls)?\b/i;
-    const spamRequestTagInTextContent = /\bspam\b/i;
-    const offensiveRequestTagInTextContent = /\b(?:off?en[cs]ive|rude|abb?u[cs]ive)\b/i;
-    const flagRequestTagInTextContent = /\b(?:re)?-?flag-?(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)?\b/i;
-    const rejectReviewRequestTagInTextContent = /\b(?:reject|review)(?:pls)?\b/i;
-    //20k+ tags
-    const tag20kInTextContent = /^(?:20k\+?(?:-only)?)$/i;
-    const tagN0kInTextContent = /^(?:\d0k\+?(?:-only)?)$/i;
+    //Detect the type of request based on tag text content.
+    const tagsInTextContentRegExes  = {
+        delete: /\b(?:delv?|dv|delete)(?:pls)?\b/i,
+        undelete: /\b(?:un?-?delv?|un?-?dv|un?-?delete)(?:pls)?\b/i,
+        close: /\b(?:cv)(?:pls)?\b/i,
+        reopen: /\b(?:re-?open)(?:pls)?\b/i,
+        spam: /\bspam\b/i,
+        offensive: /\b(?:off?en[cs]ive|rude|abb?u[cs]ive)\b/i,
+        flag: /\b(?:re)?-?flag-?(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)?\b/i,
+        reject: /\b(?:reject|review)(?:pls)?\b/i,
+        //20k+ tags
+        tag20k: /^(?:20k\+?(?:-only)?)$/i,
+        tagN0k: /^(?:\d0k\+?(?:-only)?)$/i,
+        request: new RegExp(requestTagRegExText, 'i'),
+    }
     //The extra escapes in RegExp are due to bugs in the syntax highlighter in an editor. They are only there because it helps make the syntax highlighting not be messed up.
     const getQuestionIdFromURLRegEx = /(?:^|[\s"])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)\/+(\d+)/g; // eslint-disable-line no-useless-escape
     //https://regex101.com/r/QzH8Jf/2
@@ -2019,6 +2020,19 @@
             delete: funcs.makeTagTagElement('del-pls'),
             undelete: funcs.makeTagTagElement('undel-pls'),
         };
+        const handledRequestTypes = [
+            'close',
+            'delete',
+            'reopen',
+            'undelete',
+            'flag',
+            'offensive',
+            'spam',
+            'reject',
+        ];
+        function resetHandledRequestTypeRegexes() {
+            handledRequestTypes.forEach((type) => tagsInTextContentRegExes[type].lastIndex = 0);
+        }
         [].slice.call(document.querySelectorAll('.message > .request-info')).forEach((requestInfo) => {
             //There is only ever one request-info per message
             //XXX This is currently not going to handle duplicate requests where the duplicate-target is also included.
@@ -2030,16 +2044,8 @@
             const requestTags = funcs.getAllRequestTagsInElement(contentEl).filter((tag) => {
                 //This function currently only understands a limited subset of request tags.
                 const tagText = tag.textContent;
-                /* beautify preserve:start *//* eslint-disable no-multi-spaces */
-                return (closeVoteRequestTagInTextContent.test(tagText) ||    //cv-pls
-                    deleteRequestTagInTextContent.test(tagText)        ||    //del-pls
-                    reopenRequestTagInTextContent.test(tagText)        ||    //reopen-pls
-                    undeleteRequestTagInTextContent.test(tagText)      ||    //undel-pls
-                    flagRequestTagInTextContent.test(tagText)          ||    //flag
-                    offensiveRequestTagInTextContent.test(tagText)     ||    //offensive
-                    spamRequestTagInTextContent.test(tagText)          ||    //spam
-                    rejectReviewRequestTagInTextContent.test(tagText));      //rejectReview
-                /* beautify preserve:end */ /* eslint-enable no-multi-spaces */
+                resetHandledRequestTypeRegexes();
+                return handledRequestTypes.some((type) => tagsInTextContentRegExes[type].test(tagText));
             });
             if (requestTags.length === 0) {
                 if (monologue.classList.contains('user-3735529')) { // chat.stackoverflow
@@ -2090,17 +2096,21 @@
                     //const postIsClosed = postStatus === 'closed';
                     const postIsOpen = postStatus === 'open';
                     const postIsLocked = requestInfoLink.dataset.isLocked === 'true';
+                    resetHandledRequestTypeRegexes();
                     /* beautify preserve:start *//* eslint-disable no-multi-spaces */
-                    return !postIsLocked && (                                                     //Post isn't locked (can't take action on locked posts)
-                        (closeVoteRequestTagInTextContent.test(tagText) && postIsOpen)         || //cv-pls Question is open
-                        (deleteRequestTagInTextContent.test(tagText) && !postIsDeleted)        || //del-pls Question/answer is not deleted
-                        (reopenRequestTagInTextContent.test(tagText) && !postIsOpen)           || //reopen-pls Question is closed
-                        (undeleteRequestTagInTextContent.test(tagText) && postIsDeleted)       || //undel-pls Question/answer is deleted
-                        (flagRequestTagInTextContent.test(tagText) && !postIsDeleted)          || //flag Question/answer is not deleted
-                        (offensiveRequestTagInTextContent.test(tagText) && !postIsDeleted)     || //offensive Question/answer is not deleted
-                        (spamRequestTagInTextContent.test(tagText) && !postIsDeleted)          || //spam Question/answer is not deleted
-                        (rejectReviewRequestTagInTextContent.test(tagText) && !postIsDeleted));   //reject or review Question/answer is not deleted
+                    const completedPostStateByRequestType = {
+                        close:      postIsOpen,
+                        delete:    !postIsDeleted,
+                        reopen:    !postIsOpen,
+                        undelete:   postIsDeleted,
+                        flag:      !postIsDeleted,
+                        offensive: !postIsDeleted,
+                        spam:      !postIsDeleted,
+                        reject:    !postIsDeleted,
+                    };
                     /* beautify preserve:end */ /* eslint-enable no-multi-spaces */
+                    return !postIsLocked && (                                                       //Post isn't locked (can't take action on locked posts)
+                        Object.keys(completedPostStateByRequestType).some((type) => (tagsInTextContentRegExes[type].test(tagText) && completedPostStateByRequestType[type])));
                 });
             });
             requestInfo.dataset.requestComplete = !requestIsActive;
@@ -2519,27 +2529,27 @@
     /* eslint-disable arrow-body-style */
     funcs.getFirst20kTagInElement = (element) => {
         //Find the first actual 20k+ tag in the element.
-        return funcs.getFirstMatchingOrNonMatchingTagInElement(tag20kInTextContent, element, true);
+        return funcs.getFirstMatchingOrNonMatchingTagInElement(tagsInTextContentRegExes.tag20k, element, true);
     };
 
     funcs.getFirstN0kTagInElement = (element) => {
         //Find the first N0k+ tag in the element.
-        return funcs.getFirstMatchingOrNonMatchingTagInElement(tagN0kInTextContent, element, true);
+        return funcs.getFirstMatchingOrNonMatchingTagInElement(tagsInTextContentRegExes.tagN0k, element, true);
     };
 
     funcs.getFirstReopenRequestTagInElement = (element) => {
         //Find the first reopen tag in the element.
-        return funcs.getFirstMatchingOrNonMatchingTagInElement(reopenRequestTagInTextContent, element, true);
+        return funcs.getFirstMatchingOrNonMatchingTagInElement(tagsInTextContentRegExes.reopen, element, true);
     };
 
     funcs.getFirstDeleteRequestTagInElement = (element) => {
         //Find the first delete tag in the element.
-        return funcs.getFirstMatchingOrNonMatchingTagInElement(deleteRequestTagInTextContent, element, true);
+        return funcs.getFirstMatchingOrNonMatchingTagInElement(tagsInTextContentRegExes.delete, element, true);
     };
 
     funcs.getFirstUndeleteRequestTagInElement = (element) => {
         //Find the first undelete tag in the element.
-        return funcs.getFirstMatchingOrNonMatchingTagInElement(undeleteRequestTagInTextContent, element, true);
+        return funcs.getFirstMatchingOrNonMatchingTagInElement(tagsInTextContentRegExes.undelete, element, true);
     };
 
     funcs.getFirstNonRequestTagInElement = (element) => {
@@ -2554,7 +2564,7 @@
 
     funcs.getFirstRequestOrNonRequestTagInElement = (element, isActionable) => {
         //Find the first request or non-request tag in the element.
-        return funcs.getFirstMatchingOrNonMatchingTagInElement(requestTagInTextContent, element, isActionable);
+        return funcs.getFirstMatchingOrNonMatchingTagInElement(tagsInTextContentRegExes.request, element, isActionable);
     };
     /* eslint-enable arrow-body-style */
 
@@ -2578,22 +2588,22 @@
     /* eslint-disable arrow-body-style */
     funcs.getAllQuestionOnlyRequestTagsInElement = (element) => {
         //Find all the tags in the element which are request tags that indicate only questions should be considered.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement([closeVoteRequestTagInTextContent, reopenRequestTagInTextContent], element, true);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement([tagsInTextContentRegExes.close, tagsInTextContentRegExes.reopen], element, true);
     };
 
     funcs.getAll20kTagsInElement = (element) => {
         //Return all the tags which indicate that 20k reputation is required for this request.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement(tag20kInTextContent, element, true);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement(tagsInTextContentRegExes.tag20k, element, true);
     };
 
     funcs.getAllN0kTagsInElement = (element) => {
         //Return all the tags which indicate that N0k reputation is required for this request.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement(tagN0kInTextContent, element, true);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement(tagsInTextContentRegExes.tagN0k, element, true);
     };
 
     funcs.getAllDeleteRequestTagsInElement = (element) => {
         //Return all the tags indicating a delete request.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement(deleteRequestTagInTextContent, element, true);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement(tagsInTextContentRegExes.delete, element, true);
     };
 
     funcs.getAllNonRequestTagsInElement = (element) => {
@@ -2608,27 +2618,27 @@
 
     funcs.getAllRequestOrNonRequestTagsInElement = (element, isActionable) => {
         //Return all the tags which are either request tags or return all those which are not request tags.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement(requestTagInTextContent, element, isActionable);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement(tagsInTextContentRegExes.request, element, isActionable);
     };
 
     funcs.getAllRequestOr20kTagsInElement = (element) => {
         //Return all the tags which are request tags or which indicate that the request requires 20k+ reputation.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement([requestTagInTextContent, tag20kInTextContent], element, true);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement([tagsInTextContentRegExes.request, tagsInTextContentRegExes.tag20k], element, true);
     };
 
     funcs.getAllNonRequestAndNon20kTagsInElement = (element) => {
         //Return all the tags which are not request tags and do not indicate that the request requires 20k+ reputation.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement([requestTagInTextContent, tag20kInTextContent], element, false);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement([tagsInTextContentRegExes.request, tagsInTextContentRegExes.tag20k], element, false);
     };
 
     funcs.getAllRequestOrN0kTagsInElement = (element) => {
         //Return all the tags which are request tags or which indicate that the request requires N0k+ reputation.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement([requestTagInTextContent, tagN0kInTextContent], element, true);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement([tagsInTextContentRegExes.request, tagsInTextContentRegExes.tagN0k], element, true);
     };
 
     funcs.getAllNonRequestAndNonN0kTagsInElement = (element) => {
         //Return all the tags which are not request tags and do not indicate that the request requires N0k+ reputation.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement([requestTagInTextContent, tagN0kInTextContent], element, false);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement([tagsInTextContentRegExes.request, tagsInTextContentRegExes.tagN0k], element, false);
     };
     /* eslint-enable arrow-body-style */
 
