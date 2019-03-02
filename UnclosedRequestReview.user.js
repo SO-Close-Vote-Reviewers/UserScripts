@@ -2013,8 +2013,12 @@
 
     funcs.mp.markAllMessagesByRequestState = () => {
         //Have all messages and monologues which have requests which are completed include the class urrsRequestComplete.
-        const fakeDeleteRequestTag = funcs.makeTagTagElement('del-pls');
-        const fakeCloseVoteRequestTag = funcs.makeTagTagElement('cv-pls');
+        const fakeRequestTags = {
+            close: funcs.makeTagTagElement('cv-pls'),
+            reopen: funcs.makeTagTagElement('reopen-pls'),
+            delete: funcs.makeTagTagElement('del-pls'),
+            undelete: funcs.makeTagTagElement('undel-pls'),
+        };
         [].slice.call(document.querySelectorAll('.message > .request-info')).forEach((requestInfo) => {
             //There is only ever one request-info per message
             //XXX This is currently not going to handle duplicate requests where the duplicate-target is also included.
@@ -2022,6 +2026,7 @@
             const message = funcs.getContainingMessage(requestInfo);
             const monologue = funcs.getContainingMonologue(message);
             const contentEl = funcs.getContentFromMessage(message);
+            const contentHTML = contentEl.innerHTML;
             const requestTags = funcs.getAllRequestTagsInElement(contentEl).filter((tag) => {
                 //This function currently only understands a limited subset of request tags.
                 const tagText = tag.textContent;
@@ -2036,39 +2041,41 @@
                     rejectReviewRequestTagInTextContent.test(tagText));      //rejectReview
                 /* beautify preserve:end */ /* eslint-enable no-multi-spaces */
             });
-            if (requestTags.length === 0 && monologue.classList.contains('user-3735529')) {
-                //SmokeDetector: Treat as a del-pls request
-                const sdLink = contentEl.querySelector('a');
-                if (sdLink && sdLink.textContent.indexOf('SmokeDetector') > -1) {
-                    //We only want actual SmokeDetector reports, which always start with a link to SmokeDetector.
-                    //  SD can have other messages which include links to deleted posts which are not reports.
-                    requestTags.push(fakeDeleteRequestTag);
+            if (requestTags.length === 0) {
+                if (monologue.classList.contains('user-3735529')) { // chat.stackoverflow
+                    //SmokeDetector: Treat as a del-pls request
+                    const sdLink = contentEl.querySelector('a');
+                    if (sdLink && sdLink.textContent.indexOf('SmokeDetector') > -1) {
+                        //We only want actual SmokeDetector reports, which always start with a link to SmokeDetector.
+                        //  SD can have other messages which include links to deleted posts which are not reports.
+                        requestTags.push(fakeRequestTags.delete);
+                    }
                 }
-            }
-            if (requestTags.length === 0 && /^\s*!!\/report\s/.test(contentEl.textContent)) {
-                //Someone reporting a post to SmokeDetector
-                requestTags.push(fakeDeleteRequestTag);
-            }
-            if (requestTags.length === 0 && (monologue.classList.contains('user-6373379') || monologue.classList.contains('user-6294609'))) {
-                //FireAlarm && Queen: Treat as a cv-pls request
-                requestTags.push(fakeCloseVoteRequestTag);
-            }
-            //The code for Natty is originally by Filnor (https://chat.stackoverflow.com/users/4733879/filnor)
-            //  Found: https://github.com/SOBotics/Userscripts/blob/master/UnclosedRequestReview2.user.js#L1988
-            // Released under an MIT license:
-            //   https://chat.stackoverflow.com/transcript/message/45507145#45507145
-            if (requestTags.length === 0 && monologue.classList.contains('user-6817005')) {
-                //Natty: Treat as a del-pls request
-                const nattyLink = contentEl.querySelector('a');
-                if (nattyLink && nattyLink.textContent.indexOf('Natty') > -1) {
-                    //We only want actual Natty reports, which always start with a link to Natty.
-                    //  Nat can have other messages which include links to deleted posts which are not reports.
-                    requestTags.push(fakeDeleteRequestTag);
+                if (/^\s*!!\/report\s/.test(contentEl.textContent)) {
+                    //Someone reporting a post to SmokeDetector
+                    requestTags.push(fakeRequestTags.delete);
                 }
-            }
-            if (/^@Natty (?:feedback|tp|fp|ne|report)\b/i.test(contentEl.textContent)) {
-                //Natty feedback: Treat as a del-pls request
-                requestTags.push(fakeDeleteRequestTag);
+                if (monologue.classList.contains('user-6373379') || monologue.classList.contains('user-6294609')) { // chat.stackoverflow
+                    //FireAlarm && Queen: Treat as a cv-pls request
+                    requestTags.push(fakeRequestTags.close);
+                }
+                //The code for Natty is originally by Filnor (https://chat.stackoverflow.com/users/4733879/filnor)
+                //  Found: https://github.com/SOBotics/Userscripts/blob/master/UnclosedRequestReview2.user.js#L1988
+                // Released under an MIT license:
+                //   https://chat.stackoverflow.com/transcript/message/45507145#45507145
+                if (monologue.classList.contains('user-6817005')) {
+                    //Natty: Treat as a del-pls request
+                    const nattyLink = contentEl.querySelector('a');
+                    if (nattyLink && nattyLink.textContent.indexOf('Natty') > -1) {
+                        //We only want actual Natty reports, which always start with a link to Natty.
+                        //  Nat can have other messages which include links to deleted posts which are not reports.
+                        requestTags.push(fakeRequestTags.delete);
+                    }
+                }
+                if (/^@Natty (?:feedback|tp|fp|ne|report)\b/i.test(contentEl.textContent)) {
+                    //Natty feedback: Treat as a del-pls request
+                    requestTags.push(fakeRequestTags.delete);
+                }
             }
             //Consider it active if it's not a request, or if the request is active.
             var requestIsActive = requestTags.length === 0 || requestTags.some((tag) => {
