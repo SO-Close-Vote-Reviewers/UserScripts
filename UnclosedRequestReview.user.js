@@ -3122,7 +3122,7 @@
                 //Inform the user that the message has been modified by adding the tag tag.
                 //The tag with space is actually a document fragment, so we need to find the actual tag <a>, not the document fragment.
                 const newTagLink = newTagEl.querySelector('a');
-                newTagLink.title = 'This tag\'s tag was not included in the original message posted by the user. It has been added for your convenience.';
+                newTagLink.title = 'This tag was not included in the original message posted by the user. It has been added for your convenience.';
                 lastRequestOrN0kTag.parentNode.insertBefore(newTagEl, lastRequestOrN0kTag.nextSibling);
             } else {
                 const primaryTag = tags[0];
