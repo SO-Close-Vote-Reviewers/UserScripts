@@ -185,6 +185,10 @@
         this.defaultRoom = JSON.parse(JSON.stringify(knownRooms[_defaultRoomKey].room));
     }
 
+    //The quick substitutions are changed in the text a user types for their request reason.
+    //  They are usually a single character, but can be more. As a single character, they need
+    //  to stay away from anything the user is going to type as a single character. In particular,
+    //  that means they need to not be "a".
     const defaultQuickSubstitutions = {
         't': 'Too Broad',
         'u': 'Unclear',
@@ -254,7 +258,7 @@
     }, defaultOffTopicCloseReasons), Object.assign({
         'c': 'Lacks concrete context',
         'i': 'Code not implemented or not working as intended',
-        'a': 'Authorship of code',
+        's': 'Authorship of code',
     }, defaultQuickSubstitutions), {
         //The default method of using what's bold or italics works reasonably for this site.
     }, 'CRCQR'));
@@ -267,12 +271,12 @@
         'b': 'Blatantly off-topic',
         'n': 'Not about mathematics',
         'c': 'Missing context or other details',
-        'a': 'Seeking personal advice',
+        's': 'Seeking personal advice',
     }, defaultQuickSubstitutions), {
         //All of the off-topic reasons need to be specified, because the "Not about mathematics" reason contains no bold or italic text.
         //  As a result, we match against '', which will match anything.
         'context': 'c',
-        'advice': 'a',
+        'advice': 's',
         '': 'n', //The closed text for this reason contains no bold or italic characters.
     }, 'CRUDE'));
 
