@@ -53,6 +53,10 @@ if(typeof StackExchange === "undefined")
         this.defaultRoom = _defaultRoom;
     }
 
+    //The quick substitutions are changed in the text a user types for their request reason.
+    //  They are usually a single character, but can be more. As a single character, they need
+    //  to stay away from anything the user is going to type as a single character. In particular,
+    //  that means they need to not be "a".
     var defaultQuickSubstitutions = {
         't': 'Too Broad',
         'u': 'Unclear',
@@ -106,7 +110,7 @@ if(typeof StackExchange === "undefined")
     }, defaultOffTopicCloseReasons), Object.assign({
         'c': 'Lacks concrete context',
         'i': 'Code not implemented or not working as intended',
-        'a': 'Authorship of code',
+        's': 'Authorship of code',
     }, defaultQuickSubstitutions), 'https://chat.stackexchange.com/rooms/85306/se-code-review-close-questions-room'));
     //Mathematics Stack Exchange
     configsForSites.push(new SiteConfig('Mathematics Stack Exchange', /^math.stackexchange.com$/, Object.assign({
@@ -117,7 +121,7 @@ if(typeof StackExchange === "undefined")
         'b': 'Blatantly off-topic',
         'n': 'Not about mathematics',
         'c': 'Missing context or other details',
-        'a': 'Seeking personal advice',
+        's': 'Seeking personal advice',
     }, defaultQuickSubstitutions), 'https://chat.stackexchange.com/rooms/2165/crude'));
 
     //Default site configuration
