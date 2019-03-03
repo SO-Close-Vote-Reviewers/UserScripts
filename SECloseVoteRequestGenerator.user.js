@@ -2222,9 +2222,6 @@
             if (isQuestionLocked) {
                 criticalRequestReasons.push('The question is locked.');
             } else {
-                if (isQuestionBounty) {
-                    criticalRequestReasons.push('The question has a bounty that has not yet been awarded.');
-                }
                 if (requestType === 'del-pls' || requestType === 'undel-pls') {
                     var isDeleteUndelete = true;
                     if (requestType === 'undel-pls') {
@@ -2284,6 +2281,9 @@
                 if (requestType === 'cv-pls') {
                     //No need to check for answers as cv-pls is not included in the options for answers.
                     if (this.guiType === 'question') { //This should always be true.
+                        if (isQuestionBounty) {
+                            criticalRequestReasons.push('The question has a bounty that has not yet been awarded.');
+                        }
                         if (closedTimeMs) {
                             criticalRequestReasons.push('The question is already closed.');
                         } else if (!reason.replace(/(?:\boff[\s-\/]*topic\b|\bO[-\/]?T\b)/ig, '').trim()) { // eslint-disable-line no-useless-escape
