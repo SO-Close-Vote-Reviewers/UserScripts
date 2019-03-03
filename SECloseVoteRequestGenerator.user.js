@@ -4340,4 +4340,88 @@
         });
     }
     trackRememberedRequestsChangesIfPossible();
+
+    //Maintain the correct top-bar margin-top when a notification is added.
+    //  This is a fix for SE not setting the margin-top correctly.
+    function keepTopbarMarginAtNotifyConainer() {
+        const notifyContainer = $('#notify-container');
+        const topBar = $('.top-bar').first();
+        const container = $(document.body);
+        const $window = $(window);
+        let prevNotifyContainerDisplay;
+        let prevNotifyContainerHeight;
+        let prevIsScrolled;
+        let prevTopbarMarginTop;
+        let prevContainerMarginTop;
+
+        function handleScrollEvent() {
+            //We only care if the state of the page being scrolled has changed.
+            const isScrolled = !!window.scrollY;
+            if (prevIsScrolled !== isScrolled) {
+                adjustTopbarMarginToNotifyContainer();
+            }
+        }
+
+        function adjustTopbarMarginToNotifyContainer() {
+            //The observer is called for your own changes, so need to stop observing prior to making a change.
+            const isScrolled = !!window.scrollY;
+            const notifyContainerDisplay = notifyContainer.css('display');
+            const notifyContainerHeight = notifyContainer.children().toArray().reduce((sum, el) => (sum + el.getBoundingClientRect().height), 0);
+            const topbarMarginTop = topBar.css('margin-top');
+            const containerMarginTop = container.css('margin-top');
+            if (prevIsScrolled === isScrolled &&
+                prevNotifyContainerDisplay === notifyContainerDisplay &&
+                prevNotifyContainerHeight === notifyContainerHeight &&
+                prevTopbarMarginTop === topbarMarginTop &&
+                prevContainerMarginTop === containerMarginTop
+            ) {
+                //Do no more. We've already set this state.
+                return;
+            }
+            prevIsScrolled = isScrolled;
+            prevNotifyContainerDisplay = notifyContainerDisplay;
+            prevNotifyContainerHeight = notifyContainerHeight;
+            prevTopbarMarginTop = topbarMarginTop;
+            prevContainerMarginTop = containerMarginTop;
+            //Don't get re-called by our own changes
+            stopObservingTopbarStyle();
+            if (notifyContainerDisplay === 'none' || notifyContainerHeight === 0) {
+                $window.off('scroll', handleScrollEvent);
+                topBar.css('margin-top', '');
+                container.css('margin-top', '');
+            } else {
+                topBar.css('margin-top', notifyContainerHeight + 'px');
+                if (isScrolled) {
+                    //SE already applies a margin-top to the body when a notification is created.
+                    container.css('margin-top', '');
+                } else {
+                    //This shifts the entire page down. That's reasonable in order not to cover the question title when
+                    //  the page has not been scrolled down. However, once the user has scrolled, then it's better not
+                    //  to be moving the page around on the user.
+                    container.css('margin-top', notifyContainerHeight + 'px');
+                }
+                $window.on('scroll', handleScrollEvent);
+            }
+            startObservingTopbarStyle();
+        }
+
+        const topbarStyleObserver = new MutationObserver(adjustTopbarMarginToNotifyContainer);
+
+        function startObservingTopbarStyle() {
+            topbarStyleObserver.observe(topBar[0], {
+                attributes: true,
+                attributeFilter: [
+                    'style',
+                ],
+            });
+        }
+
+        function stopObservingTopbarStyle() {
+            topbarStyleObserver.disconnect();
+        }
+
+        adjustTopbarMarginToNotifyContainer();
+        startObservingTopbarStyle();
+    }
+    keepTopbarMarginAtNotifyConainer();
 })();
