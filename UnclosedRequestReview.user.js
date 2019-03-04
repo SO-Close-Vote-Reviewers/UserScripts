@@ -5648,10 +5648,8 @@
             }
             //Get an array of monologues, which will be sorted, and then the sort applied to the DOM.
             const monologues = [].slice.call(document.querySelectorAll('.monologue'));
-            //Sort into the reverse of the original order (i.e. make them oldest first):
-            //  This is done so the default listing encourages people to handle requests which
-            //  may expire in the near future.
-            monologues.sort((a, b) => b.dataset.originalSearchOrder - a.dataset.originalSearchOrder);
+            //Sort into original order:
+            monologues.sort((a, b) => a.dataset.originalSearchOrder - b.dataset.originalSearchOrder);
             if (sortOrder.length > 0) {
                 //Go through the sort order. If a higher priority criteria finds the messages equal, get
                 //  the sort order from the next lower priority criteria.
