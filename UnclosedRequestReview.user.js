@@ -5618,7 +5618,7 @@
             messageCountText.innerHTML += '<br/><br/><br/>';
         }
 
-        funcs.mp.removeMessagesNotFromThisRoom = () => {
+        funcs.mp.handleMessagesNotFromThisRoom = () => {
             //Look through the messages and remove those which are not from this room's transcript.
             [].slice.call(document.querySelectorAll('.message .action-link')).forEach((actionSpan) => {
                 const linkHref = actionSpan.parentNode.href;
@@ -5650,7 +5650,7 @@
         funcs.mp.processPageOnce = () => {
             if (isSearch) {
                 //This is a search page. There may be messages which are no longer in the transcript for this room, but are being displayed in the search results.
-                funcs.mp.removeMessagesNotFromThisRoom();
+                funcs.mp.handleMessagesNotFromThisRoom();
             }
             //Process each message on the page.
             if (isSearchDel || isForceShowLinks) {
