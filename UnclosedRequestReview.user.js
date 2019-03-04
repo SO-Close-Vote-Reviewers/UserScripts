@@ -143,7 +143,7 @@
         tag20k: /^(?:20k\+?(?:-only)?)$/i,
         tagN0k: /^(?:\d0k\+?(?:-only)?)$/i,
         request: new RegExp(requestTagRegExText, 'i'),
-    }
+    };
     //The extra escapes in RegExp are due to bugs in the syntax highlighter in an editor. They are only there because it helps make the syntax highlighting not be messed up.
     const getQuestionIdFromURLRegEx = /(?:^|[\s"])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)\/+(\d+)/g; // eslint-disable-line no-useless-escape
     //https://regex101.com/r/QzH8Jf/2
@@ -2031,7 +2031,9 @@
             'reject',
         ];
         function resetHandledRequestTypeRegexes() {
-            handledRequestTypes.forEach((type) => tagsInTextContentRegExes[type].lastIndex = 0);
+            handledRequestTypes.forEach((type) => {
+                tagsInTextContentRegExes[type].lastIndex = 0;
+            });
         }
         [].slice.call(document.querySelectorAll('.message > .request-info')).forEach((requestInfo) => {
             //There is only ever one request-info per message
@@ -2040,7 +2042,6 @@
             const message = funcs.getContainingMessage(requestInfo);
             const monologue = funcs.getContainingMonologue(message);
             const contentEl = funcs.getContentFromMessage(message);
-            const contentHTML = contentEl.innerHTML;
             const requestTags = funcs.getAllRequestTagsInElement(contentEl).filter((tag) => {
                 //This function currently only understands a limited subset of request tags.
                 const tagText = tag.textContent;
@@ -2894,7 +2895,7 @@
         }
         //Loop through all <a> in the content of the supplied message.
         let numberMatchingWithLink = 0;
-        let unchangedMatchingLinks = [];
+        const unchangedMatchingLinks = [];
         let isFirstMatching = true;
         [].slice.call(funcs.getContentFromMessage(message).querySelectorAll('a')).forEach((link) => {
             const messageHrefPostId = funcs.getPostIdFromURL(link.href);
