@@ -457,7 +457,7 @@
         return key + ' --> ' + reasons.substitutions[key];
     }).join('\r\n');
 
-    var URL = 'https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/SECloseVoteRequestGenerator.user.js';
+    var URL = 'https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/CVRG-Mak-new-version/SECloseVoteRequestGenerator.user.js';
 
     function inPageInsertMarkdownInTarget() {
         //The thing that's still needed is sanitizing, which may need to be added here from GitHub:
@@ -659,7 +659,7 @@
         //Check for updates to the version in SOCVR's userscript repository.
         GM.xmlHttpRequest({
             method: 'GET',
-            url: 'https://raw.githubusercontent.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version',
+            url: 'https://raw.githubusercontent.com/SO-Close-Vote-Reviewers/UserScripts/CVRG-Mak-new-version/SECloseVoteRequestGenerator.version',
             onload: function(response) {
                 var VERSION = response.responseText.trim();
                 if (isVersionNewer(VERSION, GM.info.script.version)) {
