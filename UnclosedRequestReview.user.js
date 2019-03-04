@@ -111,7 +111,7 @@
 
     //Update RegExp from list here: https://github.com/AWegnerGitHub/SE_Zephyr_VoteRequest_bot
     const pleaseRegExText = '(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)';
-    const requestTagRegExStandAlonePermittedTags = '(?:spam|off?en[cs]ive|abb?u[cs]ive|(?:re)?-?flag(?:-?(?:naa|spam|off?en[cs]ive|rude|abb?u[cs]ive))|(?:(?:naa|spam|off?en[cs]ive|rude|abb?u[cs]ive)-?(?:re)?-?flag))'; //spam is an actual SO tag, so we're going to need to deal with that.
+    const requestTagRegExStandAlonePermittedTags = '(?:close|del(?:ete)|reopen|undel(?:ete)|dup(?:licate)?|spam|off?en[cs]ive|abb?u[cs]ive|(?:re)?-?flag(?:-?(?:naa|spam|off?en[cs]ive|rude|abb?u[cs]ive))|(?:(?:naa|spam|off?en[cs]ive|rude|abb?u[cs]ive)-?(?:re)?-?flag))'; //spam is an actual SO tag, so we're going to need to deal with that.
     const requestTagRequirePleaseRegExText = '(?:cv|(?:un-?)?(?:del(?:v)?|dv|delete)|rov?|re-?open|app?rove?|reject|rv|review|(?:re)?-?flag|nuke?|spam|off?en[cs]ive|naa|abbu[cs]ive)';
     const requestTagRequirePleaseOrStandAloneRegExText = '(?:' + requestTagRequirePleaseRegExText + '|' + requestTagRegExStandAlonePermittedTags + ')';
     const requestTagRequirePleasePleaseFirstRegExText = '(?:' + pleaseRegExText + '[-.]?' + requestTagRequirePleaseOrStandAloneRegExText + ')';
@@ -123,12 +123,20 @@
     */
     //Used to look in text to see if there are any messages which contain the action tag as text.
     //Only a limited set of action types are recognized in text format.
-    const getActionTagInTextRegEx = /(?:\[(?:tag\W?)?(?:cv|(?:un-?)?del(?:ete|v)?|re-?open)-[^\]]*\])/;
+    const getActionTagInTextRegEx = /(?:\[(?:(?:meta\W?)?tag\W?)?(?:cv|(?:un-?)?del(?:ete|v)?|re-?open)-[^\]]*\])/i;
+    //These need at least one capture group each.
+    const alternateRequestMessageRegExes = {
+        close:    /^\s*(?:for\W*)?(?:close|closure)?\W*(?:\s*<a [^>]*>\s*(?:<b>)?\s*(c(?:lose)?)(?:\d+|[a-z])(?:\s*:\s*<\/b>[^<]*)?<\/a>\W*(?:<br\/?>)?\W*)+$/i,
+        reopen:   /^\s*(?:for\W*)?(?:reopen|unclose)?\W*(?:\s*<a [^>]*>\s*(?:<b>)?\s*(r(?:eopen)?)(?:\d+|[a-z])(?:\s*:\s*<\/b>[^<]*)?<\/a>\W*(?:<br\/?>)?\W*)+$/i,
+        delete:   /^\s*(?:for\W*)?(?:delete|deletion)?\W*(?:\s*<a [^>]*>\s*(?:<b>)?\s*(d(?:el(?:ete)?)?)(?:\d+|[a-z])(?:\s*:\s*<\/b>[^<]*)?<\/a>\W*(?:<br\/?>)?\W*)+$/i,
+        undelete: /^\s*(?:for\W*)?(?:undelete|undeletion)?\W*(?:\s*<a [^>]*>\s*(?:<b>)?\s*(un?-?(?:del(?:ete)?)?)(?:\d+|[a-z])(?:\s*:\s*<\/b>[^<]*)?<\/a>\W*(?:<br\/?>)?\W*)+$/i,
+    };
+    const matchAlternateRequestRegEx = Object.values(alternateRequestMessageRegExes);
     //Detect the type of request based on tag text content.
     const tagsInTextContentRegExes  = {
         delete: /\b(?:delv?|dv|delete)(?:pls)?\b/i,
         undelete: /\b(?:un?-?delv?|un?-?dv|un?-?delete)(?:pls)?\b/i,
-        close: /\b(?:cv)(?:pls)?\b/i,
+        close: /\b(?:cv|close|dup(?:licate)?)(?:pls)?\b/i,
         reopen: /\b(?:re-?open)(?:pls)?\b/i,
         spam: /\bspam\b/i,
         offensive: /\b(?:off?en[cs]ive|rude|abb?u[cs]ive)\b/i,
@@ -2003,7 +2011,7 @@
             //  is to integrate the popup from the request archiver into this to be what views requests. However, that's
             //  a considerable change.
             const contentEl = funcs.getContentFromMessage(funcs.getContainingMessage(requestInfo));
-            if (!(funcs.getFirstRequestTagInElement(contentEl) || (searchText && funcs.doesElementContainRequestTagAsText(contentEl)))) {
+            if (!(funcs.getFirstRequestTagInElement(contentEl) || (searchText && (funcs.doesElementContainRequestTagAsText(contentEl) || funcs.doesElementContainAlternateRequest(contentEl))))) {
                 //The content does not contain a request tag.
                 requestInfo.classList.add('urrsRequestNoRequestTag');
             }
@@ -2040,6 +2048,7 @@
             const message = funcs.getContainingMessage(requestInfo);
             const monologue = funcs.getContainingMonologue(message);
             const contentEl = funcs.getContentFromMessage(message);
+            const contentHTML = contentEl.innerHTML;
             const requestTags = funcs.getAllRequestTagsInElement(contentEl).filter((tag) => {
                 //This function currently only understands a limited subset of request tags.
                 const tagText = tag.textContent;
@@ -2047,7 +2056,7 @@
                 return handledRequestTypes.some((type) => tagsInTextContentRegExes[type].test(tagText));
             });
             if (requestTags.length === 0) {
-                if (monologue.classList.contains('user-3735529')) { // chat.stackoverflow
+                if (monologue.classList.contains('user-120914')) { // chat.stackexchange
                     //SmokeDetector: Treat as a del-pls request
                     const sdLink = contentEl.querySelector('a');
                     if (sdLink && sdLink.textContent.indexOf('SmokeDetector') > -1) {
@@ -2081,6 +2090,12 @@
                     //Natty feedback: Treat as a del-pls request
                     requestTags.push(fakeRequestTags.delete);
                 }
+                Object.keys(alternateRequestMessageRegExes).forEach((key) => {
+                    alternateRequestMessageRegExes[key].lastIndex = 0;
+                    if (alternateRequestMessageRegExes[key].test(contentHTML)) {
+                        requestTags.push(fakeRequestTags[key]);
+                    }
+                });
             }
             //Consider it active if it's not a request, or if the request is active.
             var requestIsActive = requestTags.length === 0 || requestTags.some((tag) => {
@@ -2507,6 +2522,11 @@
             el.remove();
         });
         return element;
+    };
+
+    funcs.doesElementContainAlternateRequest = (element) => {
+        const match = funcs.getFirstRegExListMatchInText(element.innerHTML, matchAlternateRequestRegEx);
+        return match !== null;
     };
 
     funcs.getFirstLinkToPostId = (element, questionId) => {
@@ -4510,7 +4530,7 @@
                 funcs.appendInfo(oRequest);
             }
             //Mark all request-info which are not actually on requests as non-requests.
-            funcs.mp.markAllRequestInfoOnNonRequests();
+            funcs.mp.markAllRequestInfoOnNonRequests(true);
             if (isForceShowLinks || isForceShowReplies) {
                 [].slice.call(document.querySelectorAll('.message')).forEach((message) => {
                     if (message.querySelector('.request-info:not(.urrsRequestNoRequestTag)')) {
@@ -4550,7 +4570,7 @@
             }
             //Mark all request-info which are not actually on requests as non-requests.
             //  This shouldn't be needed., but is done, just in case.
-            funcs.mp.markAllRequestInfoOnNonRequests();
+            funcs.mp.markAllRequestInfoOnNonRequests(true);
             const links = [].slice.call(document.querySelectorAll('.content a'));
             //Make all links open in a new tab/new window.
             for (const link of links) {
