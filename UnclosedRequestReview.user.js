@@ -2851,6 +2851,28 @@
         }
     };
 
+    funcs.addNotificationToContainer = (text, tooltip) => {
+        //Add a notification to the top of the page.
+        funcs.removeNotificationOnContainer();
+        const width = document.body.getBoundingClientRect().width;
+        //The margin-left + padding-left of the #container.
+        //  We could dynamically determine this, but it's unlikely to change & over-compensated for below with excess width.
+        const container = document.getElementById('container');
+        const marginLeft = -5 - container.getBoundingClientRect().x;
+        document.getElementById('container').insertAdjacentHTML('afterbegin', `
+            <div id="urrs-containerNotification" style="width:${width}px;margin-left:${marginLeft}px;background-color:orange;height:100px;z-index:10000;" title="${tooltip}">
+                <div style="margin-top:34px;width:80%;height:80%;font-size:150%;color:black;padding-top: 35px;text-align: center;margin-left: auto;margin-right: auto;">${text}</div>
+            </div>`);
+    };
+
+    funcs.removeNotificationOnContainer = () => {
+        //Remove the notification from the top of the page.
+        const notificationDiv = document.getElementById('urrs-containerNotification');
+        if (notificationDiv) {
+            notificationDiv.remove();
+        }
+    };
+
 
     //Manipulate Message content
 
@@ -3160,17 +3182,12 @@
 
     funcs.orSearch.addWaitNotificationToTop = () => {
         //Add a notification to the top of the page that we are collecting information.
-        if (!document.getElementById('orSearch-waitNotification')) {
-            document.getElementById('container').insertAdjacentHTML('afterbegin', '<div id="orSearch-waitNotification" style="width:100%;background-color:orange;height:100px;z-index:10000;" title="Depending on the search, this may take several seconds to longer than a minute, due to SE Chat search rate limiting."><div style="margin-top:34px;width:80%;height:80%;font-size:150%;color:black;padding-top: 35px;text-align: center;margin-left: auto;margin-right: auto;">Please wait: Collecting results</div></div>');
-        }
+        funcs.addNotificationToContainer('Please wait: Collecting results', 'Depending on the search, this may take several seconds to longer than a minute, due to SE Chat search rate limiting.');
     };
 
-    funcs.orSearch.removeWaitNotificationToTop = () => {
+    funcs.orSearch.removeWaitNotification = () => {
         //Remove the wait notification from the top of the page.
-        const notificationDiv = document.getElementById('orSearch-waitNotification');
-        if (notificationDiv) {
-            notificationDiv.remove();
-        }
+        funcs.removeNotificationOnContainer();
     };
 
     funcs.orSearch.addMessagesInSearchUrlToResults = (url, callback) => {
@@ -3358,7 +3375,11 @@
             //Sort the monologues into the order they would have been if all were normally in the page.
             funcs.sortMonologuesByTimestamp();
             //Process the page, as if it was that way originally.
-            funcs.orSearch.removeWaitNotificationToTop();
+            if (isSearchReviewUIActive) {
+                funcs.addNotificationToContainer('Please wait: Processing messages', 'Getting information from the SE API about the posts linked in the messages below. This shouldn\'t take very long.');
+            } else {
+                funcs.orSearch.removeWaitNotification();
+            }
             window.dispatchEvent(new CustomEvent('SOCVR-Archiver-Messages-Changed', {
                 bubbles: true,
                 cancelable: true,
@@ -5577,6 +5598,7 @@
             funcs.adjustAllBareUrlPostinksToHaveQuestionTitle();
             funcs.ui.addSortCriteriaInfoToMonologueDataset();
             funcs.ui.updateDisplayBasedOnUI();
+            funcs.removeNotificationOnContainer();
         };
 
         //Restore the configuration, using defaults.
