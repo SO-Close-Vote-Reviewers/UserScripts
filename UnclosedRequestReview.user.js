@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      2.0.1
+// @version      2.1.0
 // @description  Adds buttons to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request, or delete request query, then it scans the results and displays them along with additional information.
 // @author       @TinyGiant @rene @mogsdad @Makyen
 // @include      /^https?://chat\.stackoverflow\.com/rooms/(?:41570|90230|126195|68414|111347|126814|123602|167908|167826)(?:\b.*$|$)/
@@ -126,23 +126,24 @@
     /*Need to update with (?:re\W?)? for flags
     \b(?:(?:spam|off?ensive|abb?usive|flag(?:-?(?:naa|spam|off?ensive|rude|abb?usive))|(?:(?:naa|spam|off?ensive|rude|abb?usive)-?flag))|(?:(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)-(?:(?:cv|(?:un)?(?:del(?:v)?|dv|delete)|rov?|reopen|app?rove?|reject|rv|review|flag|nuke?|spam|off?ensive|naa|abbusive)|(?:spam|off?ensive|abb?usive|flag(?:-?(?:naa|spam|off?ensive|rude|abb?usive))|(?:(?:naa|spam|off?ensive|rude|abb?usive)-?flag))))|(?:(?:(?:cv|(?:un)?(?:del(?:v)?|dv|delete)|rov?|reopen|app?rove?|reject|rv|review|flag|nuke?|spam|off?ensive|naa|abbusive)|(?:spam|off?ensive|abb?usive|flag(?:-?(?:naa|spam|off?ensive|rude|abb?usive))|(?:(?:naa|spam|off?ensive|rude|abb?usive)-?flag)))-(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)))\b
     */
-    //For testing:
-    const requestTagInTextContent = new RegExp(requestTagRegExText, 'i');
     //Used to look in text to see if there are any messages which contain the action tag as text.
     //Only a limited set of action types are recognized in text format.
     const getActionTagInTextRegEx = /(?:\[(?:tag\W?)?(?:cv|(?:un-?)?del(?:ete|v)?|re-?open)-[^\]]*\])/;
-    //Delete requests
-    const deleteRequestTagInTextContent = /\b(?:delv?|dv|delete)(?:pls)?\b/i;
-    const undeleteRequestTagInTextContent = /\b(?:un?-?delv?|un?-?dv|un?-?delete)(?:pls)?\b/i;
-    const closeVoteRequestTagInTextContent = /\b(?:cv)(?:pls)?\b/i;
-    const reopenRequestTagInTextContent = /\b(?:re-?open)(?:pls)?\b/i;
-    const spamRequestTagInTextContent = /\bspam\b/i;
-    const offensiveRequestTagInTextContent = /\b(?:off?en[cs]ive|rude|abb?u[cs]ive)\b/i;
-    const flagRequestTagInTextContent = /\b(?:re)?-?flag-?(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)?\b/i;
-    const rejectReviewRequestTagInTextContent = /\b(?:reject|review)(?:pls)?\b/i;
-    //20k+ tags
-    const tag20kInTextContent = /^(?:20k\+?(?:-only)?)$/i;
-    const tagN0kInTextContent = /^(?:\d0k\+?(?:-only)?)$/i;
+    //Detect the type of request based on tag text content.
+    const tagsInTextContentRegExes  = {
+        delete: /\b(?:delv?|dv|delete)(?:pls)?\b/i,
+        undelete: /\b(?:un?-?delv?|un?-?dv|un?-?delete)(?:pls)?\b/i,
+        close: /\b(?:cv)(?:pls)?\b/i,
+        reopen: /\b(?:re-?open)(?:pls)?\b/i,
+        spam: /\bspam\b/i,
+        offensive: /\b(?:off?en[cs]ive|rude|abb?u[cs]ive)\b/i,
+        flag: /\b(?:re)?-?flag-?(?:pl(?:ease|s|z)|p.?[sz]|.?l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)?\b/i,
+        reject: /\b(?:reject|review)(?:pls)?\b/i,
+        //20k+ tags
+        tag20k: /^(?:20k\+?(?:-only)?)$/i,
+        tagN0k: /^(?:\d0k\+?(?:-only)?)$/i,
+        request: new RegExp(requestTagRegExText, 'i'),
+    };
     //The extra escapes in RegExp are due to bugs in the syntax highlighter in an editor. They are only there because it helps make the syntax highlighting not be messed up.
     const getQuestionIdFromURLRegEx = /(?:^|[\s"])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)\/+(\d+)/g; // eslint-disable-line no-useless-escape
     //https://regex101.com/r/QzH8Jf/2
@@ -158,9 +159,10 @@
     const getSOPostIdFfromURLButNotIfAnswerRegEx = /(?:^|[\s"(])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:posts)\/+(\d+)(?:\s*|\/[^\/#]*\/?\d*\s*)(?:\s|$|[\s")])/g; // eslint-disable-line no-useless-escape
     const getSOQuestionOrAnswerIdFfromURLRegExes = [getSOQuestionIdFfromURLNotPostsNotAnswerRegEx].concat(getSOAnswerIdFfromURLRegExes);
     //Some constants which it helps to have some functions in order to determine
+    const isChat = window.location.pathname.indexOf('/rooms/') === 0;
     const isSearch = window.location.pathname === '/search';
-    const isTranscript = window.location.pathname.indexOf('/transcript') > -1;
-    const isChat = window.location.pathname.indexOf('/rooms/') > -1;
+    const isTranscript = window.location.pathname.indexOf('/transcript') === 0;
+    const isUserPage = window.location.pathname.indexOf('/users') === 0;
     var uiConfigStorage;
 
 
@@ -519,11 +521,10 @@
     const isForceShowLinks = /links?/i.test(urlReviewShow);
     const isForceShowReplies = /repl(?:y|ies)/i.test(urlReviewShow);
     //Allow the URL to specify that it is a cv- search, del- search, or not using the cv-/del- UI.
-    //const isSearchCv = isSearch && ((/(?:tagged%2Fcv|(?:^|\b)cv(?:\b|$))/.test(urlSearchString) || /(?:cv|close)/i.test(urlReviewType)) && !/none/i.test(urlReviewType));
     const isSearchCv = isSearch && ((/(?:tagged%2F|^)cv(?:\b|$)/.test(urlSearchString) || /(?:cv|close)/i.test(urlReviewType)) && !/none/i.test(urlReviewType));
-    //const isSearchDel = isSearch && ((/(?:tagged%2F(?:del(?:ete|v)?|dv)|(?:^|\b)(?:del(?:ete|v)?|dv)(?:\b|$))/.test(urlSearchString) || /del/i.test(urlReviewType)) && !/none/i.test(urlReviewType));
     const isSearchDel = isSearch && ((/(?:tagged%2F|^)(?:del(?:ete|v)?|dv)(?:\b|$)/.test(urlSearchString) || /del/i.test(urlReviewType)) && !/none/i.test(urlReviewType));
     const isSearchReopen = isSearch && ((/(?:tagged%2F|^)(?:re-?open)(?:\b|$)/.test(urlSearchString) || /del/i.test(urlReviewType)) && !/none/i.test(urlReviewType));
+    const isSearchReviewUIActive = isSearchCv || isSearchDel || isSearchReopen;
     //Adjust the page links to have the same reviewRequest options
     if (urlReviewShow || urlReviewType) {
         [].slice.call(document.querySelectorAll('a .page-numbers')).forEach((linkSpan) => {
@@ -1297,9 +1298,14 @@
         obj.visitedLinksShowUsers = false;
         obj.visitedLinksShowInSidebar = true;
         obj.visitedLinksShowInSidebarUser = true;
+        obj.chatShowUpdateButton = true;
         obj.chatCompleteRequestsFade = true;
         obj.chatCompleteRequestsHide = false;
         obj.chatCompleteRequestsDoNothing = false; //This is really just a placeholder. It's value isn't actually used.
+        obj.completedShowOnChat = true;
+        obj.completedShowOnSearch = true;
+        obj.completedShowOnTranscript = true;
+        obj.completedShowOnUser = true;
         obj.chatSearchButtonsShowCV = true;
         obj.chatSearchButtonsShowDel = true;
         obj.chatSearchButtonsShowReopen = true;
@@ -2013,8 +2019,27 @@
 
     funcs.mp.markAllMessagesByRequestState = () => {
         //Have all messages and monologues which have requests which are completed include the class urrsRequestComplete.
-        const fakeDeleteRequestTag = funcs.makeTagTagElement('del-pls');
-        const fakeCloseVoteRequestTag = funcs.makeTagTagElement('cv-pls');
+        const fakeRequestTags = {
+            close: funcs.makeTagTagElement('cv-pls'),
+            reopen: funcs.makeTagTagElement('reopen-pls'),
+            delete: funcs.makeTagTagElement('del-pls'),
+            undelete: funcs.makeTagTagElement('undel-pls'),
+        };
+        const handledRequestTypes = [
+            'close',
+            'delete',
+            'reopen',
+            'undelete',
+            'flag',
+            'offensive',
+            'spam',
+            'reject',
+        ];
+        function resetHandledRequestTypeRegexes() {
+            handledRequestTypes.forEach((type) => {
+                tagsInTextContentRegExes[type].lastIndex = 0;
+            });
+        }
         [].slice.call(document.querySelectorAll('.message > .request-info')).forEach((requestInfo) => {
             //There is only ever one request-info per message
             //XXX This is currently not going to handle duplicate requests where the duplicate-target is also included.
@@ -2025,33 +2050,44 @@
             const requestTags = funcs.getAllRequestTagsInElement(contentEl).filter((tag) => {
                 //This function currently only understands a limited subset of request tags.
                 const tagText = tag.textContent;
-                /* beautify preserve:start *//* eslint-disable no-multi-spaces */
-                return (closeVoteRequestTagInTextContent.test(tagText) ||    //cv-pls
-                    deleteRequestTagInTextContent.test(tagText)        ||    //del-pls
-                    reopenRequestTagInTextContent.test(tagText)        ||    //reopen-pls
-                    undeleteRequestTagInTextContent.test(tagText)      ||    //undel-pls
-                    flagRequestTagInTextContent.test(tagText)          ||    //flag
-                    offensiveRequestTagInTextContent.test(tagText)     ||    //offensive
-                    spamRequestTagInTextContent.test(tagText)          ||    //spam
-                    rejectReviewRequestTagInTextContent.test(tagText));      //rejectReview
-                /* beautify preserve:end */ /* eslint-enable no-multi-spaces */
+                resetHandledRequestTypeRegexes();
+                return handledRequestTypes.some((type) => tagsInTextContentRegExes[type].test(tagText));
             });
-            if (requestTags.length === 0 && monologue.classList.contains('user-3735529')) {
-                //SmokeDetector: Treat as a del-pls request
-                const sdLink = contentEl.querySelector('a');
-                if (sdLink && sdLink.textContent.indexOf('SmokeDetector') > -1) {
-                    //We only want actual SmokeDetector reports, which always start with a link to SmokeDetector.
-                    //  SD can have other messages which include links to deleted posts which are not reports.
-                    requestTags.push(fakeDeleteRequestTag);
+            if (requestTags.length === 0) {
+                if (monologue.classList.contains('user-3735529')) { // chat.stackoverflow
+                    //SmokeDetector: Treat as a del-pls request
+                    const sdLink = contentEl.querySelector('a');
+                    if (sdLink && sdLink.textContent.indexOf('SmokeDetector') > -1) {
+                        //We only want actual SmokeDetector reports, which always start with a link to SmokeDetector.
+                        //  SD can have other messages which include links to deleted posts which are not reports.
+                        requestTags.push(fakeRequestTags.delete);
+                    }
                 }
-            }
-            if (requestTags.length === 0 && /^\s*!!\/report\s/.test(contentEl.textContent)) {
-                //Someone reporting a post to SmokeDetector
-                requestTags.push(fakeDeleteRequestTag);
-            }
-            if (requestTags.length === 0 && (monologue.classList.contains('user-6373379') || monologue.classList.contains('user-6294609'))) {
-                //FireAlarm && Queen: Treat as a cv-pls request
-                requestTags.push(fakeCloseVoteRequestTag);
+                if (/^\s*!!\/report\s/.test(contentEl.textContent)) {
+                    //Someone reporting a post to SmokeDetector
+                    requestTags.push(fakeRequestTags.delete);
+                }
+                if (monologue.classList.contains('user-6373379') || monologue.classList.contains('user-6294609')) { // chat.stackoverflow
+                    //FireAlarm && Queen: Treat as a cv-pls request
+                    requestTags.push(fakeRequestTags.close);
+                }
+                //The code for Natty is originally by Filnor (https://chat.stackoverflow.com/users/4733879/filnor)
+                //  Found: https://github.com/SOBotics/Userscripts/blob/master/UnclosedRequestReview2.user.js#L1988
+                // Released under an MIT license:
+                //   https://chat.stackoverflow.com/transcript/message/45507145#45507145
+                if (monologue.classList.contains('user-6817005')) {
+                    //Natty: Treat as a del-pls request
+                    const nattyLink = contentEl.querySelector('a');
+                    if (nattyLink && nattyLink.textContent.indexOf('Natty') > -1) {
+                        //We only want actual Natty reports, which always start with a link to Natty.
+                        //  Nat can have other messages which include links to deleted posts which are not reports.
+                        requestTags.push(fakeRequestTags.delete);
+                    }
+                }
+                if (/^@Natty (?:feedback|tp|fp|ne|report)\b/i.test(contentEl.textContent)) {
+                    //Natty feedback: Treat as a del-pls request
+                    requestTags.push(fakeRequestTags.delete);
+                }
             }
             //Consider it active if it's not a request, or if the request is active.
             var requestIsActive = requestTags.length === 0 || requestTags.some((tag) => {
@@ -2066,17 +2102,21 @@
                     //const postIsClosed = postStatus === 'closed';
                     const postIsOpen = postStatus === 'open';
                     const postIsLocked = requestInfoLink.dataset.isLocked === 'true';
+                    resetHandledRequestTypeRegexes();
                     /* beautify preserve:start *//* eslint-disable no-multi-spaces */
-                    return !postIsLocked && (                                                     //Post isn't locked (can't take action on locked posts)
-                        (closeVoteRequestTagInTextContent.test(tagText) && postIsOpen)         || //cv-pls Question is open
-                        (deleteRequestTagInTextContent.test(tagText) && !postIsDeleted)        || //del-pls Question/answer is not deleted
-                        (reopenRequestTagInTextContent.test(tagText) && !postIsOpen)           || //reopen-pls Question is closed
-                        (undeleteRequestTagInTextContent.test(tagText) && postIsDeleted)       || //undel-pls Question/answer is deleted
-                        (flagRequestTagInTextContent.test(tagText) && !postIsDeleted)          || //flag Question/answer is not deleted
-                        (offensiveRequestTagInTextContent.test(tagText) && !postIsDeleted)     || //offensive Question/answer is not deleted
-                        (spamRequestTagInTextContent.test(tagText) && !postIsDeleted)          || //spam Question/answer is not deleted
-                        (rejectReviewRequestTagInTextContent.test(tagText) && !postIsDeleted));   //reject or review Question/answer is not deleted
+                    const completedPostStateByRequestType = {
+                        close:      postIsOpen,
+                        delete:    !postIsDeleted,
+                        reopen:    !postIsOpen,
+                        undelete:   postIsDeleted,
+                        flag:      !postIsDeleted,
+                        offensive: !postIsDeleted,
+                        spam:      !postIsDeleted,
+                        reject:    !postIsDeleted,
+                    };
                     /* beautify preserve:end */ /* eslint-enable no-multi-spaces */
+                    return !postIsLocked && (                                                       //Post isn't locked (can't take action on locked posts)
+                        Object.keys(completedPostStateByRequestType).some((type) => (tagsInTextContentRegExes[type].test(tagText) && completedPostStateByRequestType[type])));
                 });
             });
             requestInfo.dataset.requestComplete = !requestIsActive;
@@ -2269,7 +2309,7 @@
             }
         });
         //Process all requests, even if there are no requests.
-        funcs.checkRequests(null, requests, !(isSearchCv || isSearchDel || isSearchReopen));
+        funcs.checkRequests(null, requests, !isSearchReviewUIActive);
     };
 
 
@@ -2495,27 +2535,27 @@
     /* eslint-disable arrow-body-style */
     funcs.getFirst20kTagInElement = (element) => {
         //Find the first actual 20k+ tag in the element.
-        return funcs.getFirstMatchingOrNonMatchingTagInElement(tag20kInTextContent, element, true);
+        return funcs.getFirstMatchingOrNonMatchingTagInElement(tagsInTextContentRegExes.tag20k, element, true);
     };
 
     funcs.getFirstN0kTagInElement = (element) => {
         //Find the first N0k+ tag in the element.
-        return funcs.getFirstMatchingOrNonMatchingTagInElement(tagN0kInTextContent, element, true);
+        return funcs.getFirstMatchingOrNonMatchingTagInElement(tagsInTextContentRegExes.tagN0k, element, true);
     };
 
     funcs.getFirstReopenRequestTagInElement = (element) => {
         //Find the first reopen tag in the element.
-        return funcs.getFirstMatchingOrNonMatchingTagInElement(reopenRequestTagInTextContent, element, true);
+        return funcs.getFirstMatchingOrNonMatchingTagInElement(tagsInTextContentRegExes.reopen, element, true);
     };
 
     funcs.getFirstDeleteRequestTagInElement = (element) => {
         //Find the first delete tag in the element.
-        return funcs.getFirstMatchingOrNonMatchingTagInElement(deleteRequestTagInTextContent, element, true);
+        return funcs.getFirstMatchingOrNonMatchingTagInElement(tagsInTextContentRegExes.delete, element, true);
     };
 
     funcs.getFirstUndeleteRequestTagInElement = (element) => {
         //Find the first undelete tag in the element.
-        return funcs.getFirstMatchingOrNonMatchingTagInElement(undeleteRequestTagInTextContent, element, true);
+        return funcs.getFirstMatchingOrNonMatchingTagInElement(tagsInTextContentRegExes.undelete, element, true);
     };
 
     funcs.getFirstNonRequestTagInElement = (element) => {
@@ -2530,7 +2570,7 @@
 
     funcs.getFirstRequestOrNonRequestTagInElement = (element, isActionable) => {
         //Find the first request or non-request tag in the element.
-        return funcs.getFirstMatchingOrNonMatchingTagInElement(requestTagInTextContent, element, isActionable);
+        return funcs.getFirstMatchingOrNonMatchingTagInElement(tagsInTextContentRegExes.request, element, isActionable);
     };
     /* eslint-enable arrow-body-style */
 
@@ -2554,22 +2594,22 @@
     /* eslint-disable arrow-body-style */
     funcs.getAllQuestionOnlyRequestTagsInElement = (element) => {
         //Find all the tags in the element which are request tags that indicate only questions should be considered.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement([closeVoteRequestTagInTextContent, reopenRequestTagInTextContent], element, true);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement([tagsInTextContentRegExes.close, tagsInTextContentRegExes.reopen], element, true);
     };
 
     funcs.getAll20kTagsInElement = (element) => {
         //Return all the tags which indicate that 20k reputation is required for this request.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement(tag20kInTextContent, element, true);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement(tagsInTextContentRegExes.tag20k, element, true);
     };
 
     funcs.getAllN0kTagsInElement = (element) => {
         //Return all the tags which indicate that N0k reputation is required for this request.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement(tagN0kInTextContent, element, true);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement(tagsInTextContentRegExes.tagN0k, element, true);
     };
 
     funcs.getAllDeleteRequestTagsInElement = (element) => {
         //Return all the tags indicating a delete request.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement(deleteRequestTagInTextContent, element, true);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement(tagsInTextContentRegExes.delete, element, true);
     };
 
     funcs.getAllNonRequestTagsInElement = (element) => {
@@ -2584,27 +2624,27 @@
 
     funcs.getAllRequestOrNonRequestTagsInElement = (element, isActionable) => {
         //Return all the tags which are either request tags or return all those which are not request tags.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement(requestTagInTextContent, element, isActionable);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement(tagsInTextContentRegExes.request, element, isActionable);
     };
 
     funcs.getAllRequestOr20kTagsInElement = (element) => {
         //Return all the tags which are request tags or which indicate that the request requires 20k+ reputation.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement([requestTagInTextContent, tag20kInTextContent], element, true);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement([tagsInTextContentRegExes.request, tagsInTextContentRegExes.tag20k], element, true);
     };
 
     funcs.getAllNonRequestAndNon20kTagsInElement = (element) => {
         //Return all the tags which are not request tags and do not indicate that the request requires 20k+ reputation.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement([requestTagInTextContent, tag20kInTextContent], element, false);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement([tagsInTextContentRegExes.request, tagsInTextContentRegExes.tag20k], element, false);
     };
 
     funcs.getAllRequestOrN0kTagsInElement = (element) => {
         //Return all the tags which are request tags or which indicate that the request requires N0k+ reputation.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement([requestTagInTextContent, tagN0kInTextContent], element, true);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement([tagsInTextContentRegExes.request, tagsInTextContentRegExes.tagN0k], element, true);
     };
 
     funcs.getAllNonRequestAndNonN0kTagsInElement = (element) => {
         //Return all the tags which are not request tags and do not indicate that the request requires N0k+ reputation.
-        return funcs.getAllMatchingOrNonMatchingTagsInElement([requestTagInTextContent, tagN0kInTextContent], element, false);
+        return funcs.getAllMatchingOrNonMatchingTagsInElement([tagsInTextContentRegExes.request, tagsInTextContentRegExes.tagN0k], element, false);
     };
     /* eslint-enable arrow-body-style */
 
@@ -2793,14 +2833,19 @@
         return date.getTime();
     };
 
-    funcs.sortMonologuesByTimestamp = () => {
+    funcs.sortMonologuesByTimestamp = (oldestFirst) => {
         //Sort the messages based the timestamp dataset on the monologue.
         //Get an array of monologues, which will be sorted, and then the sort applied to the DOM.
         const monologues = [].slice.call(document.querySelectorAll('.monologue'));
         const dateSortDatasetProp = sortingButtons.buttons.date.datasetProp;
         //Sort into original order:
-        //Oldest first as default display:
-        monologues.sort((a, b) => b.dataset[dateSortDatasetProp] - a.dataset[dateSortDatasetProp]);
+        if (oldestFirst) {
+            //Oldest first. This can be useful to emphasize action on older requests.
+            monologues.sort((a, b) => a.dataset[dateSortDatasetProp] - b.dataset[dateSortDatasetProp]);
+        } else {
+            //Newest first as default display. This matches the normal display of search results.
+            monologues.sort((a, b) => b.dataset[dateSortDatasetProp] - a.dataset[dateSortDatasetProp]);
+        }
         //Re-order the monologues in the DOM in the order into which they were sorted.
         const content = document.querySelector('#content');
         const putBefore = document.querySelectorAll('#content>br.clear-both')[1];
@@ -2808,6 +2853,28 @@
             monologues.forEach((monologue) => {
                 content.insertBefore(monologue, putBefore);
             });
+        }
+    };
+
+    funcs.addNotificationToContainer = (text, tooltip) => {
+        //Add a notification to the top of the page.
+        funcs.removeNotificationOnContainer();
+        const width = document.body.getBoundingClientRect().width;
+        //The margin-left + padding-left of the #container.
+        //  We could dynamically determine this, but it's unlikely to change & over-compensated for below with excess width.
+        const container = document.getElementById('container');
+        const marginLeft = -5 - container.getBoundingClientRect().x;
+        document.getElementById('container').insertAdjacentHTML('afterbegin', `
+            <div id="urrs-containerNotification" style="width:${width}px;margin-left:${marginLeft}px;background-color:orange;height:100px;z-index:10000;" title="${tooltip}">
+                <div style="margin-top:34px;width:80%;height:80%;font-size:150%;color:black;padding-top: 35px;text-align: center;margin-left: auto;margin-right: auto;">${text}</div>
+            </div>`);
+    };
+
+    funcs.removeNotificationOnContainer = () => {
+        //Remove the notification from the top of the page.
+        const notificationDiv = document.getElementById('urrs-containerNotification');
+        if (notificationDiv) {
+            notificationDiv.remove();
         }
     };
 
@@ -2855,7 +2922,7 @@
         }
         //Loop through all <a> in the content of the supplied message.
         let numberMatchingWithLink = 0;
-        let unchangedMatchingLinks = [];
+        const unchangedMatchingLinks = [];
         let isFirstMatching = true;
         [].slice.call(funcs.getContentFromMessage(message).querySelectorAll('a')).forEach((link) => {
             const messageHrefPostId = funcs.getPostIdFromURL(link.href);
@@ -3083,7 +3150,7 @@
                 //Inform the user that the message has been modified by adding the tag tag.
                 //The tag with space is actually a document fragment, so we need to find the actual tag <a>, not the document fragment.
                 const newTagLink = newTagEl.querySelector('a');
-                newTagLink.title = 'This tag\'s tag was not included in the original message posted by the user. It has been added for your convenience.';
+                newTagLink.title = 'This tag was not included in the original message posted by the user. It has been added for your convenience.';
                 lastRequestOrN0kTag.parentNode.insertBefore(newTagEl, lastRequestOrN0kTag.nextSibling);
             } else {
                 const primaryTag = tags[0];
@@ -3120,17 +3187,12 @@
 
     funcs.orSearch.addWaitNotificationToTop = () => {
         //Add a notification to the top of the page that we are collecting information.
-        if (!document.getElementById('orSearch-waitNotification')) {
-            document.getElementById('container').insertAdjacentHTML('afterbegin', '<div id="orSearch-waitNotification" style="width:100%;background-color:orange;height:100px;z-index:10000;" title="Depending on the search, this may take several seconds to longer than a minute, due to SE Chat search rate limiting."><div style="margin-top:34px;width:80%;height:80%;font-size:150%;color:black;padding-top: 35px;text-align: center;margin-left: auto;margin-right: auto;">Please wait: Collecting results</div></div>');
-        }
+        funcs.addNotificationToContainer('Please wait: Collecting results', 'Depending on the search, this may take several seconds to longer than a minute, due to SE Chat search rate limiting.');
     };
 
-    funcs.orSearch.removeWaitNotificationToTop = () => {
+    funcs.orSearch.removeWaitNotification = () => {
         //Remove the wait notification from the top of the page.
-        const notificationDiv = document.getElementById('orSearch-waitNotification');
-        if (notificationDiv) {
-            notificationDiv.remove();
-        }
+        funcs.removeNotificationOnContainer();
     };
 
     funcs.orSearch.addMessagesInSearchUrlToResults = (url, callback) => {
@@ -3315,23 +3377,21 @@
             funcs.orSearch.addSearchPageLinks(orSearch.maxPages);
             //Get the times the monologues were posted, so they can be used in appendInfo.
             funcs.addTimestampDatasetToAllMonologues();
-            const tmpConfig = {};
-            funcs.config.setUiDefaults(tmpConfig);
-            //Specify that we are sorting by date in it's first state, which matches how the sort would have been if all
-            //  messages were normally included in the page.
-            tmpConfig.date = 1;
-            //Sort the monologues into the order they would have been if all normally in the page.
-            funcs.sortMonologuesByTimestamp(tmpConfig, ['date']);
+            //Sort the monologues into the order they would have been if all were normally in the page.
+            funcs.sortMonologuesByTimestamp();
             //Process the page, as if it was that way originally.
-            funcs.orSearch.removeWaitNotificationToTop();
+            if (isSearchReviewUIActive) {
+                funcs.addNotificationToContainer('Please wait: Processing messages', 'Getting information from the SE API about the posts linked in the messages below. This shouldn\'t take very long.');
+            } else {
+                funcs.orSearch.removeWaitNotification();
+            }
             window.dispatchEvent(new CustomEvent('SOCVR-Archiver-Messages-Changed', {
                 bubbles: true,
                 cancelable: true,
             }));
-
             funcs.mp.processPageOnce();
         } else {
-            //Proces the next page in the list, now that the previous one is done.
+            //Process the next page in the list, now that the previous one is done.
             funcs.orSearch.processOrList();
         }
     };
@@ -3373,6 +3433,14 @@
 
     funcs.addRequestStylesToDOM = () => {
         //Add the styles used to the DOM.
+        let showCompleted = false;
+        if ((isChat && config.nonUi.completedShowOnChat) ||
+                (isSearch && config.nonUi.completedShowOnSearch) ||
+                (isTranscript && config.nonUi.completedShowOnTranscript) ||
+                (isUserPage && config.nonUi.completedShowOnUser)
+        ) {
+            showCompleted = true;
+        }
         funcs.addStylesToDOM('urrsRequestStyles', [
             '.request-info {',
             '    display: inline-block;',
@@ -3446,7 +3514,7 @@
             '.urrs-messageNotInThisRoom {',
             '    background-color: #ec6;',
             '}',
-            (config.nonUi.chatCompleteRequestsFade ? [
+            ((showCompleted && config.nonUi.chatCompleteRequestsFade) ? [
                 //Complete requests transition for low opacity and shrunk.
                 '.message.urrsRequestComplete:not(.urrsRequestComplete-temp-disable) {',
                 '    transition: transform cubic-bezier(.165, .84, .44, 1) .15s, opacity cubic-bezier(.165, .84, .44, 1) .15s;',
@@ -3479,7 +3547,7 @@
                 '    transform: scale(1) translate(0%,0%);',
                 '}',
             ].join('\n') : ''),
-            (config.nonUi.chatCompleteRequestsHide ? [
+            ((showCompleted && config.nonUi.chatCompleteRequestsHide) ? [
                 //Complete requests Hide
                 '.monologue.urrsRequestComplete:not([class*="SOCVR-Archiver-monologue-for-message"]):not(.mine),',
                 '.monologue:not(.mine) .message.urrsRequestComplete:not([id^="SOCVR-Archiver-message"]) {',
@@ -3605,7 +3673,7 @@
             '}',
             '#urrsModalOptionsExcludeTagCheckboxesContainer {',
             '    width: 250px;',
-            '    height: 371px;',
+            '    height: 397px;',
             '    max-height: 100%;',
             '    overflow: auto;',
             '    margin-top: 5px;',
@@ -3696,6 +3764,9 @@
             '    display: block;',
             '    margin-bottom: 5px;',
             '}',
+            '.urrsOptionsIndented {',
+            '    margin-left: 30px;',
+            '}',
             '.urrsBlur {',
             '    opacity: .4;',
             '}',
@@ -3779,35 +3850,77 @@
             '            <tr>',
             '                <td>',
             '                    <div class="urrsModalOptionsOptionGroupDescriptionContainer" id="urrsModalOptionsGeneralOptions">',
-            '                        <div class="urrsModalOptionsOptionHeader" title=\'Many of these "General options" require you to reload the SOCVR chat room page or search page on which you desire for them to take effect.\'>',
+            '                        <div class="urrsModalOptionsOptionHeader" title=\'Many of these "General options" require you to reload the chat room page or search page on which you desire for them to take effect.\'>',
             '                            General options',
             '                        </div>',
             '                        <div class="urrsModalOptionsOptionGroup">',
             //Add/correct tag-tag and 20k+ tags.
-            '                            <label title="You will need to reload the page to see messages in their original form. On the SOCVR chat room page, new messages will obey this selection even without reloading the page.">',
+            '                            <label title="You will need to reload the page to see messages in their original form. On the chat room page, new messages will obey this selection even without reloading the page.">',
             '                                <input type="checkbox" id="urrsOptionsCheckbox-addMisingTagTags"/>',
             '                                Requests: add, or correct, the tag indicating the question\'s primary tag.',
             '                            </label>',
             //Add 20k+ tags.
-            '                            <label title="If acting on a request requires 20k+ reputation, then indicate that with a tag. On the SOCVR chat room page, new messages will obey this selection even without reloading the page.">',
+            '                            <label title="If acting on a request requires 20k+ reputation, then indicate that with a tag. On the chat room page, new messages will obey this selection even without reloading the page.">',
             '                                <input type="checkbox" id="urrsOptionsCheckbox-add20kTag"/>',
             '                                Requests: add/remove 20k+ tags for (un)delete requests.',
             '                            </label>',
             //Add 10k+ tags.
-            '                            <label title="For delete/undelete requests, if it doesn\'t require 20k+ add a 10k+ tag (i.e. add a 10k+ tag when 10k+ is required). You will need to reload the page to see messages in their original form. On the SOCVR chat room page, new messages will obey this selection even without reloading the page.">',
+            '                            <label title="For delete/undelete requests, if it doesn\'t require 20k+ add a 10k+ tag (i.e. add a 10k+ tag when 10k+ is required). You will need to reload the page to see messages in their original form. On the chat room page, new messages will obey this selection even without reloading the page.">',
             '                                <input type="checkbox" id="urrsOptionsCheckbox-add10kTagToo"/>',
             '                                Requests: Also, add 10k+ tags for (un)delete requests.',
             '                            </label>',
             //Change bare URLs to question title.
-            '                            <label title="When changing to disabled, You will need to reload the page to see messages in their original form. On the SOCVR chat room page, new messages will obey this selection even without reloading the page.">',
+            '                            <label title="When changing to disabled, You will need to reload the page to see messages in their original form. On the chat room page, new messages will obey this selection even without reloading the page.">',
             '                                <input type="checkbox" id="urrsOptionsCheckbox-useQuestionTitleAsLink"/>',
             '                                Change bare question URLs to the question\'s title.',
             '                            </label>',
             //Remember visited posts.
-            '                            <label title=\'Remembers the question links you click in the SOCVR room and request search pages, considering them "visited". You can select to not display "visited" questions. "Visited" questions are remembered for 7 days. They are stored only on your machine. When you disable this, it will immediately delete the list of "visited" questions. You may need to reload the appropriate pages to enable this.\'>',
+            '                            <label title=\'Remembers the question links you click in the chat room and request search pages, considering them "visited". You can select to not display "visited" questions. "Visited" questions are remembered for 7 days. They are stored only on your machine. When you disable this, it will immediately delete the list of "visited" questions. You may need to reload the appropriate pages to enable this.\'>',
             '                                <input type="checkbox" id="urrsOptionsCheckbox-trackVisitedLinks"/>',
             '                                Remember "visited" posts. Unchecking <em>immediately</em> deletes visited list.',
             '                            </label>',
+            //Style for Completed requests.
+            '                            <span class="urrsOptionsMultiCheckboxLine">',
+            '                                <span title="Clearly indicate that requests are completed.">Completed requests:</span>',
+            '                                <label title="Completed messages show normally." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="radio" name="urrsOptionsRadio-completedMessages" id="urrsOptionsCheckbox-chatCompleteRequestsDoNothing"/>',
+            '                                    Normal',
+            '                                </label>',
+            //    Fade/shrink completed
+            '                                <label title="Visually indicates when requests are complete. When hovered by the mouse, the messages show normally." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="radio" name="urrsOptionsRadio-completedMessages" id="urrsOptionsCheckbox-chatCompleteRequestsFade"/>',
+            '                                    Fade/shrink (all)',
+            '                                </label>',
+            //    Hide completed
+            '                                <label title="Hides complete requests. Makes the transcript look like it would if the ROs immediately moved every complete request (Well, OK, close to that). To prevent confusion, this is not applied to your own requests." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="radio" name="urrsOptionsRadio-completedMessages" id="urrsOptionsCheckbox-chatCompleteRequestsHide"/>',
+            '                                    Hide (not yours)',
+            '                                </label>',
+            '                            </span>',
+            //Where show "completed"
+            '                            <span class="urrsOptionsMultiCheckboxLine urrsOptionsIndented">',
+            '                                <span title="Choose on which pages the completed requests style will be applied.">Use completed style on:</span>',
+            //Completed in Chat
+            '                                <label title="Apply the &quot;completed&quot; style on Main Chat pages for the rooms in which this script runs." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-completedShowOnChat"/>',
+            '                                    chat',
+            '                                </label>',
+            //Completed in Search
+            '                                <label title="Apply the &quot;completed&quot; style on Search pages for the rooms in which this script runs." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-completedShowOnSearch"/>',
+            '                                    search',
+            '                                </label>',
+            //Completed in Transcripts
+            '                                <label title="Apply the &quot;completed&quot; style on transcript pages for the rooms in which this script runs." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-completedShowOnTranscript"/>',
+            '                                    transcripts',
+            '                                </label>',
+            //Completed in User pages
+            '                                <label title="Apply the &quot;completed&quot; style on user pages." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-completedShowOnUser"/>',
+            '                                    user',
+            '                                </label>',
+            '                            </span>',
             //Select click for jump to Tag's filtered CVQ
             '                            <span class="urrsOptionsMultiCheckboxLine">',
             '                                <label  class="urrsOptionsCheckboxLabel-inline" title="When you use the click you select on a tag, the Close Vote Queue (CVQ) will be opened in a new tab with that tag filtered. Click on the &quot;click here&quot; tag with the combination of button with, or without, Alt/Ctrl/Meta/Shift-keys which you want to use to open the CVQ with the tag filtered.\nNote that your browser\'s default action *may* not be prevented for these clicks (browsers sometimes don\'t permit the default action to be prevented). So, you will want to select something where the side-effects, if any, are something you can live with.">',
@@ -3863,13 +3976,13 @@
             '                        </div>',
             '                        <div class="urrsModalOptionsOptionGroup">',
             //Show post status in chat.
-            '                            <label title="To the right of messages with post links, show:\nquestion: # close votes/closed/deleted\nanswer: score/deleted\nIf this was disabled when the SOCVR chat room page was loaded, you will need to reload the page to have this take effect.">',
+            '                            <label title="To the right of messages with post links, show:\nquestion: # close votes/closed/deleted\nanswer: score/deleted\nIf this was disabled when the chat room page was loaded, you will need to reload the page to have this take effect.">',
             '                                <input type="checkbox" id="urrsOptionsCheckbox-chatShowPostStatus"/>',
             '                                Show the post\'s current status (also affects transcripts)',
             '                            </label>',
             //Chat visited link style
             '                            <span class="urrsOptionsMultiCheckboxLine">',
-            '                                <label title="Color visited links blue. If neither of the sub-options are selected, only the visited links within messages are blue. On the search page, all visited links have been blue since 2015. These options are applied on the main chat pages, transcripts, and searches for SOCVR (and associated rooms)." class="urrsOptionsCheckboxLabel-inline">',
+            '                                <label title="Color visited links blue. If neither of the sub-options are selected, only the visited links within messages are blue. On the URRS review page, all visited links have been blue since 2015. These options are applied on the main chat pages, transcripts, and searches for this room (and associated rooms)." class="urrsOptionsCheckboxLabel-inline">',
             '                                    <input type="checkbox" id="urrsOptionsCheckbox-visitedLinkStyleActive"/>',
             '                                    Blue visited links:',
             '                                </label>',
@@ -3890,28 +4003,10 @@
             '                                </label>',
             '                            </span>',
             //Add moderator indicator
-            '                            <label title="This is only done on the actual chat page, because the information isn\'t available in transcripts and searches. You will need to reload the SOCVR chat room page for this to take effect.">',
+            '                            <label title="This is only done on the actual chat page, because the information isn\'t available in transcripts and searches. You will need to reload the chat room page for this to take effect.">',
             '                                <input type="checkbox" id="urrsOptionsCheckbox-chatShowModeratorDiamond"/>',
             '                                Show ♦ for moderators, when they are the author of a message.',
             '                            </label>',
-            //Style for Completed requests.
-            '                            <span class="urrsOptionsMultiCheckboxLine">',
-            '                                <span title="Clearly indicate that requests are completed.">Completed requests:</span>',
-            '                                <label title="Completed messages show normally." class="urrsOptionsCheckboxLabel-inline">',
-            '                                    <input type="radio" name="urrsOptionsRadio-completedMessages" id="urrsOptionsCheckbox-chatCompleteRequestsDoNothing"/>',
-            '                                    Normal',
-            '                                </label>',
-            //    Fade/shrink completed
-            '                                <label title="Visually indicates when requests are complete. When hovered by the mouse, the messages show normally." class="urrsOptionsCheckboxLabel-inline">',
-            '                                    <input type="radio" name="urrsOptionsRadio-completedMessages" id="urrsOptionsCheckbox-chatCompleteRequestsFade"/>',
-            '                                    Fade/shrink (all)',
-            '                                </label>',
-            //    Hide completed
-            '                                <label title="Hides complete requests. Makes the transcript look like it would if the ROs immediately moved every complete request (Well, OK, close to that). To prevent confusion, this is not applied to your own requests." class="urrsOptionsCheckboxLabel-inline">',
-            '                                    <input type="radio" name="urrsOptionsRadio-completedMessages" id="urrsOptionsCheckbox-chatCompleteRequestsHide"/>',
-            '                                    Hide (not yours)',
-            '                                </label>',
-            '                            </span>',
             //CHAT: What search buttons to show.
             '                            <span class="urrsOptionsMultiCheckboxLine">',
             '                                <span title="Choose what search buttons are added to the chat controls.">Search buttons:</span>',
@@ -3936,6 +4031,11 @@
             '                                    undel-',
             '                                </label>',
             '                            </span>',
+            //Optional "Update" button
+            '                            <label title="Show the &quot;update&quot; button. Manual updates are largely superfluous, due to automatic updates being available (if not changed in options) at a rate that\'s close to as frequent as the SE API policy permits. This is particularly so given that the data is updated every time you switch back to the tab with the chat room in it (e.g. look at chat; open a tab with a question; look at the question; switch back to the tab &amp; the data is updated).">',
+            '                                <input type="checkbox" id="urrsOptionsCheckbox-chatShowUpdateButton"/>',
+            '                                Show the manual "update" button.',
+            '                            </label>',
             //Update rates
             '                            <div class="urrsModalOptionsOptionSubHeader" title="There\'s a limit of 10,000 SE API requests from your IP address per day. This limit is shared between all scripts for which you have not gone through an OAuth2 authorization process. Keep this in mind if you are setting these numbers to update very rapidly. While this script on its own won\'t use up that many requests in a day, you could set these options so it used about 2,000 in a day, which could impact other high-API-use scripts you might have installed.">',
             '                                Post status update rates',
@@ -4254,6 +4354,7 @@
             funcs.config.saveNonUi(config.nonUi);
             funcs.executeIfIsFunction(funcs.ui.setVisitedButtonEnabledDisabledByConfig);
             funcs.config.clearVisitedPostsInConfigIfSetNoTracking();
+            funcs.executeIfIsFunction(funcs.ui.showHideUpdateButtonByConfig);
         }
         if (targetId.indexOf('urrsOptionsRange-') > -1) {
             //Update all the stored values of the range inputs.
@@ -4344,7 +4445,7 @@
 
     //We want the search UI shown, more info in request-info and non-requests deleted only on searches which are for close-votes and delete-votes.
     //  On other searches, we just want chat-page request-info.
-    if (isSearch && (isSearchCv || isSearchDel || isSearchReopen)) {
+    if (isSearchReviewUIActive) {
         //Only the search page
 
         //Determine the current user's ID (not actually needed; is redundant to testing for the "mine" class)
@@ -4384,19 +4485,26 @@
             });
             //Define which messages will have request-info data added, and which will end up deleted.
             let addRequestInfoList = status.open;
+            let incedentalRequests = [];
             if (isSearchReopen) {
                 addRequestInfoList = status.closed;
                 if (config.nonUi.searchShowDeletedAndClosed || isForceShowOpen) {
                     //Show open
                     addRequestInfoList = addRequestInfoList.concat(status.open);
+                } else {
+                    incedentalRequests = incedentalRequests.concat(status.open);
                 }
             } else if (config.nonUi.searchShowDeletedAndClosed || isSearchDel || isForceShowClosed) {
                 //Show closed
                 addRequestInfoList = addRequestInfoList.concat(status.closed);
+            } else {
+                incedentalRequests = incedentalRequests.concat(status.closed);
             }
             if (config.nonUi.searchShowDeletedAndClosed || isForceShowDeleted) {
                 //Show deleted
                 addRequestInfoList = addRequestInfoList.concat(status.deleted);
+            } else {
+                incedentalRequests = incedentalRequests.concat(status.deleted);
             }
             //Add request-info data
             for (const oRequest of addRequestInfoList) {
@@ -4434,6 +4542,16 @@
                     message.remove();
                 }
             });
+            // Add request-info data for incidental requests. For example, additional posts in
+            // messages we're displaying, but which were not previsously given a
+            // request-info due to already being complete for the type of request we're
+            // looking at.
+            for (const oRequest of incedentalRequests) {
+                funcs.appendInfo(oRequest);
+            }
+            //Mark all request-info which are not actually on requests as non-requests.
+            //  This shouldn't be needed., but is done, just in case.
+            funcs.mp.markAllRequestInfoOnNonRequests();
             const links = [].slice.call(document.querySelectorAll('.content a'));
             //Make all links open in a new tab/new window.
             for (const link of links) {
@@ -5474,8 +5592,9 @@
             }
             //Get an array of monologues, which will be sorted, and then the sort applied to the DOM.
             const monologues = [].slice.call(document.querySelectorAll('.monologue'));
-            //Sort into original order:
-            //Oldest first as default display:
+            //Sort into the reverse of the original order (i.e. make them oldest first):
+            //  This is done so the default listing encourages people to handle requests which
+            //  may expire in the near future.
             monologues.sort((a, b) => b.dataset.originalSearchOrder - a.dataset.originalSearchOrder);
             if (sortOrder.length > 0) {
                 //Go through the sort order. If a higher priority criteria finds the messages equal, get
@@ -5536,6 +5655,7 @@
             funcs.adjustAllBareUrlPostinksToHaveQuestionTitle();
             funcs.ui.addSortCriteriaInfoToMonologueDataset();
             funcs.ui.updateDisplayBasedOnUI();
+            funcs.removeNotificationOnContainer();
         };
 
         //Restore the configuration, using defaults.
@@ -5555,7 +5675,7 @@
             messageCountText.innerHTML += '<br/><br/><br/>';
         }
 
-        funcs.mp.removeMessagesNotFromThisRoom = () => {
+        funcs.mp.handleMessagesNotFromThisRoom = () => {
             //Look through the messages and remove those which are not from this room's transcript.
             [].slice.call(document.querySelectorAll('.message .action-link')).forEach((actionSpan) => {
                 const linkHref = actionSpan.parentNode.href;
@@ -5587,7 +5707,7 @@
         funcs.mp.processPageOnce = () => {
             if (isSearch) {
                 //This is a search page. There may be messages which are no longer in the transcript for this room, but are being displayed in the search results.
-                funcs.mp.removeMessagesNotFromThisRoom();
+                funcs.mp.handleMessagesNotFromThisRoom();
             }
             //Process each message on the page.
             if (isSearchDel || isForceShowLinks) {
@@ -5985,10 +6105,7 @@
                 // have to limit searches as a result.
                 // Basically, this needs to wait for switching to using Chat Events, instead of the search interface.
                 funcs.mp.markAllRequestInfoOnNonRequests(true);
-                if (isChat) {
-                    //Doing this in other than chat can defeat the purpose of looking at a transcript.
-                    funcs.mp.markAllMessagesByRequestState();
-                }
+                funcs.mp.markAllMessagesByRequestState();
                 //All the basic question information has been added to each message. Generate some static information
                 //  and update the page based on the stored configuration.
                 funcs.doForAllMessages(funcs.sortMessageRequestInfoEntries);
@@ -6127,7 +6244,7 @@
                 //Add an "update" button. Initially for testing, but users like control.
                 //  Only add the button if question status is being shown. If not, there is no reason for "update".
                 //XXX This needs to be updated when the delays change. Currently it is static.
-                funcs.ui.addButtonAfterStockButtons('update', [
+                const updateButton = funcs.ui.addButtonAfterStockButtons('update', [
                     'Clicking this button will update the status displayed for questions & answers, if a new message with a question/answer has been added.',
                     ' If not, then you need to wait for at least a minute from the last update (per the SE API rules). Once clicked, when that minute has expired, it will update status.',
                     ' Post status is automatically updated when a new message is added with a question link, or you have switched away from this tab and switch back.',
@@ -6144,6 +6261,9 @@
                     funcs.mp.clearThrottleAndProcessAllIfImmediatePermitted();
                     event.target.blur();
                 });
+                if (updateButton) {
+                    updateButton.id = 'urrs-update-button';
+                }
             }
         };
 
@@ -6202,11 +6322,22 @@
 
         funcs.ui.addChatUI = () => {
             funcs.ui.addOptionsButton();
-            //funcs.ui.addUpdateButton();
+            funcs.ui.addUpdateButton();
             funcs.ui.addSearchButtons();
             funcs.ui.addOptionsDialog();
+            funcs.ui.showHideUpdateButtonByConfig();
         };
 
+        funcs.ui.showHideUpdateButtonByConfig = () => {
+            const updateButton = document.getElementById('urrs-update-button');
+            if (updateButton) {
+                if (config.nonUi.chatShowUpdateButton) {
+                    updateButton.style.display = '';
+                } else {
+                    updateButton.style.display = 'none';
+                }
+            }
+        };
 
         //Use Message Processing checkDone for SE API result processing.
         funcs.checkDone = funcs.mp.checkDone;
