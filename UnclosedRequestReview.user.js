@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         CRUDE: Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      2.1.0
+// @version      2.1.0.100
 // @description  CRUDE (Hack/Pre-alpha): Adds buttons to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request, or delete request query, then it scans the results and displays them along with additional information.
 // @author       @TinyGiant @rene @mogsdad @Makyen
 // @include      /^https?://chat\.stackexchange\.com/rooms/(?:2165|88696)(?:\b.*$|$)/
