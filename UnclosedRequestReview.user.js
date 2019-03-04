@@ -159,9 +159,10 @@
     const getSOPostIdFfromURLButNotIfAnswerRegEx = /(?:^|[\s"(])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:posts)\/+(\d+)(?:\s*|\/[^\/#]*\/?\d*\s*)(?:\s|$|[\s")])/g; // eslint-disable-line no-useless-escape
     const getSOQuestionOrAnswerIdFfromURLRegExes = [getSOQuestionIdFfromURLNotPostsNotAnswerRegEx].concat(getSOAnswerIdFfromURLRegExes);
     //Some constants which it helps to have some functions in order to determine
+    const isChat = window.location.pathname.indexOf('/rooms/') === 0;
     const isSearch = window.location.pathname === '/search';
-    const isTranscript = window.location.pathname.indexOf('/transcript') > -1;
-    const isChat = window.location.pathname.indexOf('/rooms/') > -1;
+    const isTranscript = window.location.pathname.indexOf('/transcript') === 0;
+    const isUserPage = window.location.pathname.indexOf('/users') === 0;
     var uiConfigStorage;
 
 
@@ -1301,6 +1302,10 @@
         obj.chatCompleteRequestsFade = true;
         obj.chatCompleteRequestsHide = false;
         obj.chatCompleteRequestsDoNothing = false; //This is really just a placeholder. It's value isn't actually used.
+        obj.completedShowOnChat = true;
+        obj.completedShowOnSearch = true;
+        obj.completedShowOnTranscript = true;
+        obj.completedShowOnUser = true;
         obj.chatSearchButtonsShowCV = true;
         obj.chatSearchButtonsShowDel = true;
         obj.chatSearchButtonsShowReopen = true;
@@ -3428,6 +3433,14 @@
 
     funcs.addRequestStylesToDOM = () => {
         //Add the styles used to the DOM.
+        let showCompleted = false;
+        if ((isChat && config.nonUi.completedShowOnChat) ||
+                (isSearch && config.nonUi.completedShowOnSearch) ||
+                (isTranscript && config.nonUi.completedShowOnTranscript) ||
+                (isUserPage && config.nonUi.completedShowOnUser)
+        ) {
+            showCompleted = true;
+        }
         funcs.addStylesToDOM('urrsRequestStyles', [
             '.request-info {',
             '    display: inline-block;',
@@ -3501,7 +3514,7 @@
             '.urrs-messageNotInThisRoom {',
             '    background-color: #ec6;',
             '}',
-            (config.nonUi.chatCompleteRequestsFade ? [
+            ((showCompleted && config.nonUi.chatCompleteRequestsFade) ? [
                 //Complete requests transition for low opacity and shrunk.
                 '.message.urrsRequestComplete:not(.urrsRequestComplete-temp-disable) {',
                 '    transition: transform cubic-bezier(.165, .84, .44, 1) .15s, opacity cubic-bezier(.165, .84, .44, 1) .15s;',
@@ -3534,7 +3547,7 @@
                 '    transform: scale(1) translate(0%,0%);',
                 '}',
             ].join('\n') : ''),
-            (config.nonUi.chatCompleteRequestsHide ? [
+            ((showCompleted && config.nonUi.chatCompleteRequestsHide) ? [
                 //Complete requests Hide
                 '.monologue.urrsRequestComplete:not([class*="SOCVR-Archiver-monologue-for-message"]):not(.mine),',
                 '.monologue:not(.mine) .message.urrsRequestComplete:not([id^="SOCVR-Archiver-message"]) {',
@@ -3751,6 +3764,9 @@
             '    display: block;',
             '    margin-bottom: 5px;',
             '}',
+            '.urrsOptionsIndented {',
+            '    margin-left: 30px;',
+            '}',
             '.urrsBlur {',
             '    opacity: .4;',
             '}',
@@ -3863,6 +3879,48 @@
             '                                <input type="checkbox" id="urrsOptionsCheckbox-trackVisitedLinks"/>',
             '                                Remember "visited" posts. Unchecking <em>immediately</em> deletes visited list.',
             '                            </label>',
+            //Style for Completed requests.
+            '                            <span class="urrsOptionsMultiCheckboxLine">',
+            '                                <span title="Clearly indicate that requests are completed.">Completed requests:</span>',
+            '                                <label title="Completed messages show normally." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="radio" name="urrsOptionsRadio-completedMessages" id="urrsOptionsCheckbox-chatCompleteRequestsDoNothing"/>',
+            '                                    Normal',
+            '                                </label>',
+            //    Fade/shrink completed
+            '                                <label title="Visually indicates when requests are complete. When hovered by the mouse, the messages show normally." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="radio" name="urrsOptionsRadio-completedMessages" id="urrsOptionsCheckbox-chatCompleteRequestsFade"/>',
+            '                                    Fade/shrink (all)',
+            '                                </label>',
+            //    Hide completed
+            '                                <label title="Hides complete requests. Makes the transcript look like it would if the ROs immediately moved every complete request (Well, OK, close to that). To prevent confusion, this is not applied to your own requests." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="radio" name="urrsOptionsRadio-completedMessages" id="urrsOptionsCheckbox-chatCompleteRequestsHide"/>',
+            '                                    Hide (not yours)',
+            '                                </label>',
+            '                            </span>',
+            //Where show "completed"
+            '                            <span class="urrsOptionsMultiCheckboxLine urrsOptionsIndented">',
+            '                                <span title="Choose on which pages the completed requests style will be applied.">Use completed style on:</span>',
+            //Completed in Chat
+            '                                <label title="Apply the &quot;completed&quot; style on Main Chat pages for the rooms in which this script runs." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-completedShowOnChat"/>',
+            '                                    chat',
+            '                                </label>',
+            //Completed in Search
+            '                                <label title="Apply the &quot;completed&quot; style on Search pages for the rooms in which this script runs." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-completedShowOnSearch"/>',
+            '                                    search',
+            '                                </label>',
+            //Completed in Transcripts
+            '                                <label title="Apply the &quot;completed&quot; style on transcript pages for the rooms in which this script runs." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-completedShowOnTranscript"/>',
+            '                                    transcripts',
+            '                                </label>',
+            //Completed in User pages
+            '                                <label title="Apply the &quot;completed&quot; style on user pages." class="urrsOptionsCheckboxLabel-inline">',
+            '                                    <input type="checkbox" id="urrsOptionsCheckbox-completedShowOnUser"/>',
+            '                                    user',
+            '                                </label>',
+            '                            </span>',
             //Select click for jump to Tag's filtered CVQ
             '                            <span class="urrsOptionsMultiCheckboxLine">',
             '                                <label  class="urrsOptionsCheckboxLabel-inline" title="When you use the click you select on a tag, the Close Vote Queue (CVQ) will be opened in a new tab with that tag filtered. Click on the &quot;click here&quot; tag with the combination of button with, or without, Alt/Ctrl/Meta/Shift-keys which you want to use to open the CVQ with the tag filtered.\nNote that your browser\'s default action *may* not be prevented for these clicks (browsers sometimes don\'t permit the default action to be prevented). So, you will want to select something where the side-effects, if any, are something you can live with.">',
@@ -3949,24 +4007,6 @@
             '                                <input type="checkbox" id="urrsOptionsCheckbox-chatShowModeratorDiamond"/>',
             '                                Show ♦ for moderators, when they are the author of a message.',
             '                            </label>',
-            //Style for Completed requests.
-            '                            <span class="urrsOptionsMultiCheckboxLine">',
-            '                                <span title="Clearly indicate that requests are completed.">Completed requests:</span>',
-            '                                <label title="Completed messages show normally." class="urrsOptionsCheckboxLabel-inline">',
-            '                                    <input type="radio" name="urrsOptionsRadio-completedMessages" id="urrsOptionsCheckbox-chatCompleteRequestsDoNothing"/>',
-            '                                    Normal',
-            '                                </label>',
-            //    Fade/shrink completed
-            '                                <label title="Visually indicates when requests are complete. When hovered by the mouse, the messages show normally." class="urrsOptionsCheckboxLabel-inline">',
-            '                                    <input type="radio" name="urrsOptionsRadio-completedMessages" id="urrsOptionsCheckbox-chatCompleteRequestsFade"/>',
-            '                                    Fade/shrink (all)',
-            '                                </label>',
-            //    Hide completed
-            '                                <label title="Hides complete requests. Makes the transcript look like it would if the ROs immediately moved every complete request (Well, OK, close to that). To prevent confusion, this is not applied to your own requests." class="urrsOptionsCheckboxLabel-inline">',
-            '                                    <input type="radio" name="urrsOptionsRadio-completedMessages" id="urrsOptionsCheckbox-chatCompleteRequestsHide"/>',
-            '                                    Hide (not yours)',
-            '                                </label>',
-            '                            </span>',
             //CHAT: What search buttons to show.
             '                            <span class="urrsOptionsMultiCheckboxLine">',
             '                                <span title="Choose what search buttons are added to the chat controls.">Search buttons:</span>',
@@ -6065,10 +6105,7 @@
                 // have to limit searches as a result.
                 // Basically, this needs to wait for switching to using Chat Events, instead of the search interface.
                 funcs.mp.markAllRequestInfoOnNonRequests(true);
-                if (isChat) {
-                    //Doing this in other than chat can defeat the purpose of looking at a transcript.
-                    funcs.mp.markAllMessagesByRequestState();
-                }
+                funcs.mp.markAllMessagesByRequestState();
                 //All the basic question information has been added to each message. Generate some static information
                 //  and update the page based on the stored configuration.
                 funcs.doForAllMessages(funcs.sortMessageRequestInfoEntries);
