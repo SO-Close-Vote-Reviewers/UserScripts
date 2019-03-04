@@ -3530,6 +3530,21 @@
             '.urrs-messageNotInThisRoom {',
             '    background-color: #ec6;',
             '}',
+            //The tags on CRUDE have very low contrast. This significantly increases contrast for both main-site tags and meta-tags.
+            //CRUDE main-site tags
+            'span.ob-post-tag[style*="#888888"] {',
+            '    color: #f8f8f8 !important;',
+            '    background-color: #666666 !important;',
+            '    color: #111111 !important;',
+            '    background-color: #d6d6d6 !important;',
+            '}',
+            //CRUDE meta-tags
+            'span.ob-post-tag[style*="#666666"] {',
+            '    color: #111111 !important;',
+            '    background-color: #fafafa !important;',
+            '    border-width: 1px; !important;',
+            '    border-color: #e4e4e4 #555555 #555555 #e4e4e4 !important;',
+            '}',
             ((showCompleted && config.nonUi.chatCompleteRequestsFade) ? [
                 //Complete requests transition for low opacity and shrunk.
                 '.message.urrsRequestComplete:not(.urrsRequestComplete-temp-disable) {',
