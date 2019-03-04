@@ -4445,19 +4445,26 @@
             });
             //Define which messages will have request-info data added, and which will end up deleted.
             let addRequestInfoList = status.open;
+            let incedentalRequests = [];
             if (isSearchReopen) {
                 addRequestInfoList = status.closed;
                 if (config.nonUi.searchShowDeletedAndClosed || isForceShowOpen) {
                     //Show open
                     addRequestInfoList = addRequestInfoList.concat(status.open);
+                } else {
+                    incedentalRequests = incedentalRequests.concat(status.open);
                 }
             } else if (config.nonUi.searchShowDeletedAndClosed || isSearchDel || isForceShowClosed) {
                 //Show closed
                 addRequestInfoList = addRequestInfoList.concat(status.closed);
+            } else {
+                incedentalRequests = incedentalRequests.concat(status.closed);
             }
             if (config.nonUi.searchShowDeletedAndClosed || isForceShowDeleted) {
                 //Show deleted
                 addRequestInfoList = addRequestInfoList.concat(status.deleted);
+            } else {
+                incedentalRequests = incedentalRequests.concat(status.deleted);
             }
             //Add request-info data
             for (const oRequest of addRequestInfoList) {
@@ -4495,6 +4502,16 @@
                     message.remove();
                 }
             });
+            // Add request-info data for incidental requests. For example, additional posts in
+            // messages we're displaying, but which were not previsously given a
+            // request-info due to already being complete for the type of request we're
+            // looking at.
+            for (const oRequest of incedentalRequests) {
+                funcs.appendInfo(oRequest);
+            }
+            //Mark all request-info which are not actually on requests as non-requests.
+            //  This shouldn't be needed., but is done, just in case.
+            funcs.mp.markAllRequestInfoOnNonRequests();
             const links = [].slice.call(document.querySelectorAll('.content a'));
             //Make all links open in a new tab/new window.
             for (const link of links) {
