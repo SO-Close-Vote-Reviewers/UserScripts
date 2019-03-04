@@ -1301,7 +1301,7 @@
         obj.visitedLinksShowUsers = false;
         obj.visitedLinksShowInSidebar = true;
         obj.visitedLinksShowInSidebarUser = true;
-        obj.chatShowUpdateButton = true;
+        obj.chatShowUpdateButton = false;
         obj.chatCompleteRequestsFade = true;
         obj.chatCompleteRequestsHide = false;
         obj.chatCompleteRequestsDoNothing = false; //This is really just a placeholder. It's value isn't actually used.
