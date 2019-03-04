@@ -3354,9 +3354,8 @@
             funcs.orSearch.addSearchPageLinks(orSearch.maxPages);
             //Get the times the monologues were posted, so they can be used in appendInfo.
             funcs.addTimestampDatasetToAllMonologues();
-            //Sort the monologues into the order they would have been if all normally in the page.
-            //But, on pages where the UI is active we want the oldest first, so people look at those.
-            funcs.sortMonologuesByTimestamp(isSearchReviewUIActive);
+            //Sort the monologues into the order they would have been if all were normally in the page.
+            funcs.sortMonologuesByTimestamp();
             //Process the page, as if it was that way originally.
             funcs.orSearch.removeWaitNotificationToTop();
             window.dispatchEvent(new CustomEvent('SOCVR-Archiver-Messages-Changed', {
@@ -3365,7 +3364,7 @@
             }));
             funcs.mp.processPageOnce();
         } else {
-            //Proces the next page in the list, now that the previous one is done.
+            //Process the next page in the list, now that the previous one is done.
             funcs.orSearch.processOrList();
         }
     };
@@ -5514,8 +5513,9 @@
             }
             //Get an array of monologues, which will be sorted, and then the sort applied to the DOM.
             const monologues = [].slice.call(document.querySelectorAll('.monologue'));
-            //Sort into original order:
-            //Oldest first as default display:
+            //Sort into the reverse of the original order (i.e. make them oldest first):
+            //  This is done so the default listing encourages people to handle requests which
+            //  may expire in the near future.
             monologues.sort((a, b) => b.dataset.originalSearchOrder - a.dataset.originalSearchOrder);
             if (sortOrder.length > 0) {
                 //Go through the sort order. If a higher priority criteria finds the messages equal, get
