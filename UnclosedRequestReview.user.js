@@ -2473,7 +2473,7 @@
             tagLink.title = tooltip;
         }
         tagLink.target = '_blank';
-        tagLink.insertAdjacentHTML('beforeend', '<span class="ob-post-tag" style="background-color: #E0EAF1; color: #3E6D8E; border-color: #3E6D8E; border-style: solid;"></span>');
+        tagLink.insertAdjacentHTML('beforeend', '<span class="ob-post-tag" style="background-color: #888888; color: #000; border-color: #3E6D8E; border-style: solid;"></span>');
         //Link to the tag
         tagLink.href = funcs.makeTagTagHref(tag);
         //Add the tag's text
