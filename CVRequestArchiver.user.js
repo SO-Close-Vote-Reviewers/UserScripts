@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      3.2.1
+// @version      3.2.2
 // @description  Scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests and SD, FireAlarm, Queen, etc. reports for status, then moves the completed or expired ones.
 // @author       @TinyGiant @rene @Tunaki @Makyen
 // @updateURL    https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/CVRequestArchiver.user.js
@@ -3518,7 +3518,7 @@
             if (typeof window.transcriptChatEvents === 'undefined') {
                 window.transcriptChatEvents = null; //Indicate that we are requesting the chat events.
                 gettingTranscriptEvents = true;
-                const lastMessageId = getMessageIdFromMessage($('#transcript .message').last());
+                const lastMessageId = +getMessageIdFromMessage($('#transcript .message').last());
                 getEvents(room, fkey, 500, lastMessageId + chatTranscriptEndMessagesOffset).then((response) => {
                     window.transcriptChatEvents = response.events;
                     getAndShareTranscriptEvents();
