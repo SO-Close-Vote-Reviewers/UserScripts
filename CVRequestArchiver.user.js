@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      3.2.2
+// @version      3.2.3
 // @description  Scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests and SD, FireAlarm, Queen, etc. reports for status, then moves the completed or expired ones.
 // @author       @TinyGiant @rene @Tunaki @Makyen
 // @updateURL    https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/CVRequestArchiver.user.js
@@ -3591,9 +3591,11 @@
             }
             const prevMonologue = nextMessageMonologue.prev();
             if (!isAfter && prevMonologue.is('.monologue')) {
-                const prevMonologueUserId = +prevMonologue.attr('class').match(/\buser-(\d+)\b/)[1];
-                if (prevMonologueUserId === event.user_id) {
+                const prevMonologueUserId = +(prevMonologue.attr('class').match(/\buser-(\d+)\b/) || [null, null])[1];
+                if (prevMonologueUserId !== null && prevMonologueUserId === event.user_id) {
                     //The previous monologue is from the same user. Just add the message.
+                    //If we can't find the userId for the previous monologue, then we assume that
+                    //  it's a different user.
                     prevMonologue.find('.message').last().after(newMessage);
                     return;
                 }// else
