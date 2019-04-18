@@ -203,7 +203,7 @@ if(typeof StackExchange === "undefined")
         CVRGUI.list.hide();
     }
 
-    function sendRequest(result) {
+    function sendRequest(request) {
         RoomList.getRoom(function(room){
 
             function displayRequestText (requestText, message) {
@@ -257,7 +257,7 @@ if(typeof StackExchange === "undefined")
             function handleError(message, error) {
                 var seeConsole = '<br/>See the console for more details.';
                 console.error(message, error);
-                displayRequestText(result, message + seeConsole);
+                displayRequestText(request, message + seeConsole);
             }
             GM.xmlHttpRequest({
                 method: 'GET',
@@ -273,7 +273,7 @@ if(typeof StackExchange === "undefined")
                         method: 'POST',
                         url: room.host + '/chats/' + room.id + '/messages/new',
                         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        data: 'text=' + encodeURIComponent(result) + '&fkey=' + fkey,
+                        data: 'text=' + encodeURIComponent(request) + '&fkey=' + fkey,
                         onload: function(newMessageResponse) {
                             if(newMessageResponse.status != 200) {
                                 var responseText = newMessageResponse.responseText;
