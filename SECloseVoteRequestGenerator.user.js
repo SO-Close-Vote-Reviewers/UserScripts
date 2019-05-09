@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.6.5
+// @version        1.6.6
 // @description    This script generates formatted close vote requests and sends them to a specified chat room.
 // @author         @TinyGiant
 // @contributor    @rene @Tunaki @Makyen @paulroub
@@ -203,7 +203,7 @@ if(typeof StackExchange === "undefined")
         CVRGUI.list.hide();
     }
 
-    function sendRequest(result) {
+    function sendRequest(request) {
         RoomList.getRoom(function(room){
 
             function displayRequestText (requestText, message) {
@@ -257,7 +257,7 @@ if(typeof StackExchange === "undefined")
             function handleError(message, error) {
                 var seeConsole = '<br/>See the console for more details.';
                 console.error(message, error);
-                displayRequestText(result, message + seeConsole);
+                displayRequestText(request, message + seeConsole);
             }
             GM.xmlHttpRequest({
                 method: 'GET',
@@ -273,7 +273,7 @@ if(typeof StackExchange === "undefined")
                         method: 'POST',
                         url: room.host + '/chats/' + room.id + '/messages/new',
                         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        data: 'text=' + encodeURIComponent(result) + '&fkey=' + fkey,
+                        data: 'text=' + encodeURIComponent(request) + '&fkey=' + fkey,
                         onload: function(newMessageResponse) {
                             if(newMessageResponse.status != 200) {
                                 var responseText = newMessageResponse.responseText;
@@ -575,7 +575,7 @@ if(typeof StackExchange === "undefined")
         reason = reasons.get(reason);
         var title = createMarkdownLinkWithText($('#question-header h1 a').text().replace(/^\s+|\s+$/gm, ''), base + $('#question .short-link').attr('href').replace(/(\/\d+)\/\d+$/, '$1'));
         try {
-            var user = $('.post-signature.owner:not([align="right"],#popup-close-question .post-signature) .user-details > *:not(.d-none):not(.-flair), .question .post-signature:not([align="right"],#popup-close-question .post-signature) .user-details .community-wiki').text().trim().match(/[^\n]+/)[0].trim();
+            var user = $('.question .post-signature.owner:not([align="right"],#popup-close-question .post-signature) .user-details > *:not(.d-none):not(.-flair), .question .post-signature:not([align="right"],#popup-close-question .post-signature) .user-details .community-wiki').first().text().trim().match(/[^\n]+/)[0].trim();
         } catch (e) {
             user = '';
         }
