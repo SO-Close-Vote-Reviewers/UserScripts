@@ -573,7 +573,7 @@ if(typeof StackExchange === "undefined")
         var reason = $('input[type="text"]', CVRGUI.items.send).val();
         if(!reason) return false;
         reason = reasons.get(reason);
-        var title = createMarkdownLinkWithText($('#question-header h1 a').text().replace(/^\s+|\s+$/gm, ''), base + $('.question-hyperlink').attr('href').replace(/(\/\d+)\/\d+$/, '$1'));
+        var title = createMarkdownLinkWithText($('#question-header h1 a').text().replace(/^\s+|\s+$/gm, ''), base + $('#question .js-share-link').attr('href').replace(/(\/\d+)\/\d+$/, '$1'));
         try {
             var user = $('.question .post-signature.owner:not([align="right"],#popup-close-question .post-signature) .user-details > *:not(.d-none):not(.-flair), .question .post-signature:not([align="right"],#popup-close-question .post-signature) .user-details .community-wiki').first().text().trim().match(/[^\n]+/)[0].trim();
         } catch (e) {
