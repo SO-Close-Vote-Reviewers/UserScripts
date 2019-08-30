@@ -551,10 +551,16 @@
     };
 
     function removeOpenedAsDelayedRequestNotice() {
-        openedAsDelayedRequestNoticeId.forEach((noticeId) => {
-            removeSENotice(noticeId);
-        });
+        removeListOfNotifications(openedAsDelayedRequestNoticeId);
         openedAsDelayedRequestNoticeId = [];
+    }
+
+    function removeListOfNotifications(notifications) {
+        if (Array.isArray(notifications)) {
+            notifications.forEach((noticeId) => {
+                removeSENotice(noticeId);
+            });
+        }
     }
 
     function removeSENotice(messageId_) {
@@ -1509,13 +1515,18 @@
                     releaseGMStorageLockIfOwner(delayedRequestStorage);
                     notify('Request saved. Will revisit in ' + delayText + '.', 3000, notifyCSS.saveSuccess);
                     removeOpenedAsDelayedRequestNotice();
+                    removeListOfNotifications(thisGuiItem.notSavedNotifyList);
                     CVRGUI.hideMenus();
                     //Storing the actionTime here also is a bit of a hack, but allows us to tell the user when it's delayed
                     //  until without needing to retrieve the delayed requests, or keep an updated copy of them.
                     thisGuiItem.saveRequestInfo('delayed', 'quick', {delayedUntil: delayedRequest.actionTime});
                 }, function() {
                     //Failed to get lock
-                    notify('Request NOT saved. Another tab was busy with the data structure. Please try again. Keep this tab open for 2 minutes and try again then.', 0, notifyCSS.fail);
+                    const notSavedNotifyId = notify('Request NOT saved. Another tab was busy with the data structure. Please try again. Keep this tab open for > 1 minute and try again then.', 0, notifyCSS.fail);
+                    if (!Array.isArray(thisGuiItem.notSavedNotifyList)) {
+                        thisGuiItem.notSavedNotifyList = [];
+                    }
+                    thisGuiItem.notSavedNotifyList.push(notSavedNotifyId);
                     thisGuiItem.saveRequestInfo('triedToDelay', 'quick');
                 });
             } else {
