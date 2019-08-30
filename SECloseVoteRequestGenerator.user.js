@@ -665,7 +665,7 @@
                 if (isVersionNewer(VERSION, GM.info.script.version)) {
                     var lastAcknowledgedVersion = getGMStorage('LastAcknowledgedVersion');
                     if (lastAcknowledgedVersion !== VERSION || force) {
-                        if (confirm('A new version of The Close Vote Request Generator is available, would you like to install it now?')) {
+                        if (confirm('A new version of ALPHA VERSION of The Close Vote Request Generator is available, would you like to install it now?')) {
                             window.location.href = URL;
                         } else {
                             setGMStorage('LastAcknowledgedVersion', VERSION);
