@@ -4456,7 +4456,6 @@
             }
             startObservingTopbarStyle();
             if (dontSetTimer !== true) {
-                console.log('clearing topbarNotifierTimer:', topbarNotifierTimer);
                 //Set a few timers to re-adjust the margin. Something keeps reseting it.
                 clearTimeout(topbarNotifierTimer);
                 topbarNotifierTimer = setTimeout(adjustTopbarMarginToNotifyContainer, 50, true, 50);
