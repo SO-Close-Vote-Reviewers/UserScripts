@@ -1352,10 +1352,10 @@
         '    .cvrgDelayLengthSpan {' +
         '        padding-left: 1em;' +
         '    }' +
-        '    .cv-list input[type="submit"][value="Save"] {' +
+        '    .cv-list input[type="submit"][value="Save"]:not([disabled]) {' +
         '        background-color: #20d020;' +
         '        color: #fff;' +
-        '        border-color: #07c;' +
+        '        border-color: #0c7;' +
         '        box-shadow: inset 0px 1px 0px #66ef66;' +
         '    } ' +
         '    .cv-list input[type="submit"][value="Save"]:hover {' +
