@@ -4366,6 +4366,7 @@
         let prevIsScrolled;
         let prevTopbarMarginTop;
         let prevContainerMarginTop;
+        let topbarNotifierTimer;
 
         function handleScrollEvent() {
             //We only care if the state of the page being scrolled has changed.
@@ -4375,14 +4376,16 @@
             }
         }
 
-        function adjustTopbarMarginToNotifyContainer() {
+        function adjustTopbarMarginToNotifyContainer(dontSetTimer, delayedBy) {
             //The observer is called for your own changes, so need to stop observing prior to making a change.
             const isScrolled = !!window.scrollY;
             const notifyContainerDisplay = notifyContainer.css('display');
             const notifyContainerHeight = notifyContainer.children().toArray().reduce((sum, el) => (sum + el.getBoundingClientRect().height), 0);
             const topbarMarginTop = topBar.css('margin-top');
             const containerMarginTop = container.css('margin-top');
-            if (prevIsScrolled === isScrolled &&
+            const containerMarginTopStyle = ((container.attr('style') || '').match(/margin-top:\s*([^;]+);/) || ['', ''])[1];
+            if (containerMarginTopStyle !== '2.5em' &&
+                prevIsScrolled === isScrolled &&
                 prevNotifyContainerDisplay === notifyContainerDisplay &&
                 prevNotifyContainerHeight === notifyContainerHeight &&
                 prevTopbarMarginTop === topbarMarginTop &&
@@ -4416,6 +4419,12 @@
                 $window.on('scroll', handleScrollEvent);
             }
             startObservingTopbarStyle();
+            if (dontSetTimer !== true) {
+                console.log('clearing topbarNotifierTimer:', topbarNotifierTimer);
+                //Set a few timers to re-adjust the margin. Something keeps reseting it.
+                clearTimeout(topbarNotifierTimer);
+                topbarNotifierTimer = setTimeout(adjustTopbarMarginToNotifyContainer, 50, true, 50);
+            }
         }
 
         const topbarStyleObserver = new MutationObserver(adjustTopbarMarginToNotifyContainer);
