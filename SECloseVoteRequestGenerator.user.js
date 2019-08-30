@@ -53,7 +53,7 @@
     const questionActivityWarningAge = 1000 * 60 * 60 * 24 * 30; //30 days
     let openedAsDelayedRequestNoticeId = [];
     const requestTypesWithNoReason = ['!!/reportuser', '!!/addblu-', '!!/rmblu-', '!!/addwlu-', '!!/rmwlu-', 'spam'];
-    const requestTypesWithOptionalReason = ['!!/report', '!!/scan', 'spam', 'offensive', 'reflag NAA', 'reflag VLQ'];
+    const requestTypesWithOptionalReason = ['!!/report', '!!/report-force', '!!/scan', '!!/scan-force', 'spam', 'offensive', 'reflag NAA', 'reflag VLQ'];
     const knownRooms = {
         SOCVR: {
             urlDetectionRegExp: /chat\.stackoverflow\.com\/rooms\/41570(?:$|\/)/,
@@ -1840,7 +1840,9 @@
                 (!isGuiReviewSE ? '<option value="offensive" title="Rude/offensive flag request">offensive</option>' : '') +
                 ((((isSOCVR && (configOptions.checkboxes.canReportSmokeDetectorSOCVR || configOptions.checkboxes.alwaysCharcoal)) || (!isSOCVR && !isKnownSite && configOptions.checkboxes.canReportSmokeDetectorOther) || onlySdSpamOffensive || configOptions.checkboxes.alwaysCharcoal) && (this.guiType === 'answer' || this.guiType === 'question')) ? '' +
                     '<option value="!!/report" title="Report this post to SmokeDetector">!!/report</option>' +
+                    '<option value="!!/report-force" title="Report this post to SmokeDetector">!!/report-force</option>' +
                     '<option value="!!/scan" title="Have SmokeDetector scan this post">!!/scan</option>' +
+                    '<option value="!!/scan-force" title="Report this post to SmokeDetector">!!/scan-force</option>' +
                     '<option value="!!/addblu-" title="Have SmokeDetector add the user to the blacklist.">!!/addblu-</option>' +
                     '<option value="!!/rmblu-" title="Have SmokeDetector remove the user from the blacklist.">!!/rmblu-</option>' +
                     '<option value="!!/addwlu-" title="Have SmokeDetector add the user to the whitelist.">!!/addwlu-</option>' +
@@ -2376,7 +2378,9 @@
             const sdQuotedReason = reason ? ' "' + reason + '"' : '';
             const sdPostCommandsWithOptionalReason = [
                 '!!/report',
+                '!!/report-force',
                 '!!/scan',
+                '!!/scan-force',
             ];
             const requestTypePlusSpace = requestType + ' ';
             if (sdPostCommandsWithOptionalReason.indexOf(requestType) > -1) {
