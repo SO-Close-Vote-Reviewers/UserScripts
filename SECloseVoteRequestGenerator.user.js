@@ -1223,18 +1223,17 @@
         '        z-index:1002;' +
         '        position:absolute;' +
         '        white-space:nowrap;' +
-        '        border:1px solid #ccc;' +
+        '        outline:1px solid #ccc;' +
         '        border-radius:3px;' +
         '        background:#FFF;' +
         '        box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5);' +
         '        left:15vw;' +
         '        width:70vw;' +
         '        max-width:700px;' +
+        '        border: 3px solid #fff;' +
         '    }' +
         '    .cv-list.cvrg-isDelayedRequest {' +
         '        border: 3px solid #20d020;' +
-        '        top: calc(100% - 2px);' +
-        '        left: -2px;' +
         '    }' +
         '    .cv-list dd, .cv-list dl {' +
         '        margin: 0;' +
