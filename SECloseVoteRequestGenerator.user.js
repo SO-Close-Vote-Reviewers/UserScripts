@@ -1209,7 +1209,7 @@
         '    } ' +
         '    .subheader.tools-rev span.cvrgui {' +
         '        top:12px;' +
-        '        margin-left:10px;' +
+        '        margin-left: 10px;' +
         '    } ' +
         '    .cvrgui {' +
         '        display:inline-block;' +
@@ -1226,7 +1226,10 @@
         '        border:1px solid #ccc;' +
         '        border-radius:3px;' +
         '        background:#FFF;' +
-        '        box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5)' +
+        '        box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5);' +
+        '        left:15vw;' +
+        '        width:70vw;' +
+        '        max-width:700px;' +
         '    }' +
         '    .cv-list.cvrg-isDelayedRequest {' +
         '        border: 3px solid #20d020;' +
@@ -1300,11 +1303,23 @@
         '    .cvrgOptionsList  {' +
         '        width: 350px;' +
         '    }' +
+        '    .cvrgReasonRow {' +
+        '        display: flex;' +
+        '        width: 100%;' +
+        '    }' +
+        '    .cvrgReasonRow input[type="text"] {' +
+        '        flex: auto;' +
+        '        margin-right: 2vw;' +
+        '    }' +
+        '    .cvrgReasonRow input[type="submit"] {' +
+        '        flex: initial;' +
+        '    }' +
         '    .cv-list .cvrgRequestPreview * {' +
         '        display: inline;' +
         '        vertical-align: initial;' +
         '    }' +
         '    .cvrgRequestPreview, .cvrgRequestPreviewValidation {' +
+        '        overflow-wrap: break-word;' +
         '        white-space:normal;' +
         '    }' +
         '    .cvrgRequestPreviewAndValidation {' +
@@ -1384,8 +1399,10 @@
             '    <a href="javascript:void(0)">Send request</a>' +
             '    <div class="cvrgItemMainDiv" style="display:none">' +
             '        <form>' +
-            '            <input type="text" placeholder="Request reason" spellcheck="true" title="' + reasonTooltip + '" required/>' +
-            '            <input type="submit" value="Send"/>' +
+            '            <div class="cvrgReasonRow">' +
+            '                <input type="text" placeholder="Request reason" spellcheck="true" title="' + reasonTooltip + '" required/>' +
+            '                <input type="submit" value="Send"/>' +
+            '            </div>' +
             '            <label class="cvrgRequestType">' +
             '                Request Type: ' +
             '                <select name="requestType">' +
