@@ -1989,7 +1989,7 @@
             } else {
                 this.requestPreviewValidation.hide();
             }
-            if (this.requestTypeInput.val().indexOf('revisit') > -1) {
+            if ((this.requestTypeInput.val() || '').indexOf('revisit') > -1) {
                 //It's a revisit, so it's never considered a critical problem.
                 this.requestPreviewValidation.toggle(!!invalidRequestReasons.length);
                 this.requestPreviewValidationCritical.html('').hide();
@@ -2019,6 +2019,15 @@
                     const requestDate = new Date(rememberedReason[timeKey]);
                     invalidRequestReasons.push(`Scheduled ${rememberedReason.requestType}: <b>${until}</b>.</br>Last modified on ${requestDate.toLocaleString()} (${requestDate.toLocaleString(void (0), {weekday: 'long'})})`);
                 }
+            }
+            if (!this.requestTypeInput.find('option').length) {
+                //There are no request types available.
+                criticalRequestReasons.push('The options you\'ve selected result in no request types.');
+                return {
+                    request: '',
+                    invalidRequestReasons,
+                    criticalRequestReasons,
+                };
             }
             if (requestTypesWithNoReason.indexOf(requestType) === -1 && requestTypesWithOptionalReason.indexOf(requestType) === -1 && !delayableRequestRegex.test(actualRequestType)) {
                 reasonRequired = true;
