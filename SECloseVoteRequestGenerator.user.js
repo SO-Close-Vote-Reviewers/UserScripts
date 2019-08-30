@@ -1456,7 +1456,7 @@
             //Submit the Request
             function htmlReasonArrayToText(array) {
                 const textarea = document.createElement('textarea');
-                textarea.innerHTML = array.join('\r\n\r\n').replace(/<br\/?>/g, '\r\n');
+                textarea.innerHTML = array.join('\r\n\r\n').replace(/<br\/?>/g, '\r\n').replace(/<\/?(?:[abi]|code|span|div)\b[^>]*>/g, '');
                 return textarea.value;
             }
             e.preventDefault();
@@ -1469,7 +1469,7 @@
                 //Revisits are not validated.
                 if (criticalRequestReasons.length) {
                     //Requests with critical issues will not be sent. However, revisits will be saved.
-                    window.alert('This ' + requestTypeInput.val() + ' is will not be sent because: \r\n\r\n' + htmlReasonArrayToText(criticalRequestReasons));
+                    window.alert('This ' + requestTypeInput.val() + ' will not be sent because: \r\n\r\n' + htmlReasonArrayToText(criticalRequestReasons));
                     //XXX A red notify would be good here.
                     sendButton[0].disabled = false;
                     return false;
