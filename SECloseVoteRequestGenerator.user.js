@@ -1212,7 +1212,6 @@
         '        margin-left:10px;' +
         '    } ' +
         '    .cvrgui {' +
-        '        position:relative;' +
         '        display:inline-block;' +
         '    } ' +
         '    .cvrgui * {' +
