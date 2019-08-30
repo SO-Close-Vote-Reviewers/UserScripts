@@ -665,20 +665,26 @@
         //Check for updates to the version in SOCVR's userscript repository.
         GM.xmlHttpRequest({
             method: 'GET',
-            url: 'https://raw.githubusercontent.com/SO-Close-Vote-Reviewers/UserScripts/CVRG-Mak-new-version/SECloseVoteRequestGenerator.version',
+            url: `https://raw.githubusercontent.com/SO-Close-Vote-Reviewers/UserScripts/CVRG-Mak-new-version/SECloseVoteRequestGenerator.version?CVRGcacheBusting=${Date.now()}`,
             onload: function(response) {
-                var VERSION = response.responseText.trim();
-                if (isVersionNewer(VERSION, GM.info.script.version)) {
+                const receivedVersion = response.responseText.trim();
+                if (isVersionNewer(receivedVersion, GM.info.script.version)) {
                     var lastAcknowledgedVersion = getGMStorage('LastAcknowledgedVersion');
-                    if (lastAcknowledgedVersion !== VERSION || force) {
+                    if (lastAcknowledgedVersion !== receivedVersion || force) {
                         if (confirm('A new version of ALPHA VERSION of The Close Vote Request Generator is available, would you like to install it now?')) {
                             window.location.href = URL;
                         } else {
-                            setGMStorage('LastAcknowledgedVersion', VERSION);
+                            setGMStorage('LastAcknowledgedVersion', receivedVersion);
                         }
                     }
                 } else if (force) {
                     notify('No new version available');
+                }
+            },
+            onerror: function(response) {
+                console.error('Got an error when trying to get the current script version information from GitHub: response:', response);
+                if (force) {
+                    notify('Failed to get current script version information from GitHub. See console for more information.', 0, notifyCSS.fail);
                 }
             },
         });
