@@ -2140,7 +2140,7 @@
                         postLinkHref = '/a/' + postLinkHref.match(/#(\d+)$/)[1];
                     }
                 } else {
-                    postLinkHref = $('.short-link', post).attr('href');
+                    postLinkHref = $('.js-share-link', post).attr('href');
                     if (!postLinkHref) {
                         var postId = post.data(this.guiType + 'id');
                         postLinkHref = '/' + this.guiType[0] + '/' + postId;
