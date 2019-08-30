@@ -2198,7 +2198,16 @@
                     const deletedAnswers =  $('.answer.deleted-answer', questionContext);
                     const mostRecentDeletedAnswerTime = deletedAnswers.find('.post-signature:last-of-type .relativetime').toArray()
                         .reduce((maxTime, timeEl) => (timeEl.title ? Math.max((new Date(timeEl.title.trim().replace(/ /, 'T'))).valueOf(), maxTime) : maxTime), 0);
-                    const activityLink = $('#sidebar #qinfo .lastactivity-link');
+                    let activityLink = $('#sidebar #qinfo .lastactivity-link');
+                    if (activityLink.length === 0) {
+                        //For question activity link under the question title.
+                        const underTitleQuestionStatus = $('#question-header ~ div.grid').first();
+                        if (underTitleQuestionStatus.length > 0) {
+                            activityLink = underTitleQuestionStatus.children('.grid--cell').filter(function() {
+                                return $(this).text().trim().startsWith('Active');
+                            }).find('a');
+                        }
+                    }
                     const activityTimeText = (activityLink.length ? activityLink.attr('title') : postTime).trim().replace(/ /, 'T');
                     const activityTime = activityTimeText ? (new Date(activityTimeText)).valueOf() : 0;
                     const activeTime = Math.max(mostRecentDeletedAnswerTime, activityTime);
