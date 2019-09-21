@@ -1277,7 +1277,7 @@
         '        margin-right: 5px;' +
         '    }' +
         '    .cv-list hr {' +
-        '        margin:0 15px;' +
+        '        margin: 0 0 0 15px;' +
         '        border: 0px;' +
         '        border-bottom: 1px solid #ccc;' +
         '    }' +
@@ -1306,7 +1306,6 @@
         '        text-indent: -1.5em;' +
         '    }' +
         '    .cvrgOptionsList  {' +
-        '        width: 350px;' +
         '    }' +
         '    .cvrgReasonRow {' +
         '        display: flex;' +
@@ -1358,13 +1357,13 @@
         '        margin-right: .3em;' +
         '    }' +
         '    .cvrgItemMainDiv form input[type=number].cvrgDelayLengthNumber {' +
-        '        margin-left: 1em;' +
-        '    }' +
-        '    .cvrgItemMainDiv form input[type=number].cvrgDelayLengthNumber:first-of-type {' +
-        '        margin-left: 0em;' +
+        '        margin-left: 0;' +
         '    }' +
         '    .cvrgItemMainDiv form input[type=number].cvrgDelayLengthDays {' +
         '        width: 5em;' +
+        '    }' +
+        '    .cvrgDelayLengthEndTimeSpan {' +
+        '        white-space: normal;' +
         '    }' +
         '    .cvrgDelayLengthEndTimeSpan,' +
         '    .cvrgDelayLengthSpan {' +
@@ -1376,6 +1375,16 @@
         '    }' +
         '    .cvrgDelayLengthSpan {' +
         '        padding-left: 1em;' +
+        '        white-space: normal;' +
+        '    }' +
+        '    .cvrgItemMainDiv .cvrgDelayInputGroup {' +
+        '        white-space: nowrap;' +
+        '    }' +
+        '    .cvrgItemMainDiv .cvrgDelayInputGroup {' +
+        '        margin-left: 1em;' +
+        '    }' +
+        '    .cvrgItemMainDiv .cvrgDelayInputGroup:first-of-type {' +
+        '        margin-left: 0em;' +
         '    }' +
         '    .cv-list input[type="submit"][value="Save"]:not([disabled]) {' +
         '        background-color: #20d020;' +
@@ -1415,15 +1424,21 @@
             '                </select>' +
             '            </label>' +
             '            <span class="cvrgDelayLengthSpan" style="display:none;">' +
-            '                <input class="cvrgDelayLengthNumber cvrgDelayLengthDays" type="number" title="Number of days from now that you want to revisit this post." min="0" max="999" value="0">' +
-            '                    Days' +
-            '                </input>' +
-            '                <input class="cvrgDelayLengthNumber cvrgDelayLengthHours" type="number" title="Number of hours from now that you want to revisit this post." min="0" max="23" value="0">' +
-            '                    Hours' +
-            '                </input>' +
-            '                <input class="cvrgDelayLengthNumber cvrgDelayLengthMinutes" type="number" title="Number of minutes from now that you want to revisit this post." min="0" max="59" value="0">' +
-            '                    Minutes' +
-            '                </input>' +
+            '                <span class="cvrgDelayInputGroup">' +
+            '                    <input class="cvrgDelayLengthNumber cvrgDelayLengthDays" type="number" title="Number of days from now that you want to revisit this post." min="0" max="999" value="0">' +
+            '                        Days' +
+            '                    </input>' +
+            '                </span>' +
+            '                <span class="cvrgDelayInputGroup">' +
+            '                    <input class="cvrgDelayLengthNumber cvrgDelayLengthHours" type="number" title="Number of hours from now that you want to revisit this post." min="0" max="23" value="0">' +
+            '                        Hours' +
+            '                    </input>' +
+            '                </span>' +
+            '                <span class="cvrgDelayInputGroup">' +
+            '                    <input class="cvrgDelayLengthNumber cvrgDelayLengthMinutes" type="number" title="Number of minutes from now that you want to revisit this post." min="0" max="59" value="0">' +
+            '                        Minutes' +
+            '                    </input>' +
+            '                </span>' +
             '            </span>' +
             '            <span class="cvrgDelayLengthEndTimeSpan" style="display:none;" title="A tab will automatically be opened with this post the first time you visit a page on which this userscript loads after this date/time.">' +
             '                Revisit after: ' +
