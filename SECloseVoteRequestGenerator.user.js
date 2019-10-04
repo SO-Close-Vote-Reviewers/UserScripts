@@ -3824,6 +3824,8 @@
             //Some $.ajax is complete. This can signal that the page was updated. Wait for everything to be done,
             //  then make sure the GUIs are up to date.
             setTimeout(addCvplsToDom, 50);
+            //2019-09-29: On MSE after clicking on the banner saying that an edit had been made, the cv-pls was not re-added after the post was updated from realtime fetch.
+            setTimeout(addCvplsToDom, 500);
         },
         closeVote: function(eventDetail) {
             //Listen for close-votes posted via in-page $.ajax.
