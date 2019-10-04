@@ -3594,8 +3594,9 @@
             }
             //This is not redundant with detecting most of the same information from the $.ajax call. The AJAX call
             // does not contain the text from an already existing "other" reason, it only contains the ID for that reason.
-            if ((selected = $('input[name="close-as-off-topic-reason"]:checked', popup)) && selected.val() === '3') {
-                var parent = selected.parent().parent();
+            const customReasonSelected = $('input[name="close-as-off-topic-reason"]:checked', popup);
+            if (customReasonSelected.length  && customReasonSelected.val() === '3') {
+                var parent = customReasonSelected.parent().parent();
                 var userCustomTextArea = $('textarea', parent);
                 if (userCustomTextArea.length) {
                     //User entered a new custom reason.
