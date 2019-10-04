@@ -157,7 +157,7 @@
             deleteDelayedRequests:             new ButtonOption(deleteDelayedRequests, getNumberDelayedRequestsAsAddedText, 'Discard delayed requests', 'Delete all requests which you have requested be delayed (i.e. &quot;del-pls (in 2 days)&quot;).'),
         },
         numbers: {
-            daysRememberRequests:              new NumberOption(30, 0, 365, 'width: 5em', 'Days to remember requests', '', 'Number of days to remember the requests you have made. This is used to inform you if you try to make the same request again (you still can, you just have to confirm you want to post a duplicate). It\'s also used to better remember the reason you wrote (e.g. if you reload the page). Set to 0 if you don\'t want this information stored.'),
+            daysRememberRequests:              new NumberOption(30, 0, 365, 'width: 5em', 'Days to remember requests (does not apply to revisits)', '', 'Number of days to remember the requests you have made. This is used to inform you if you try to make the same request again (you still can, you just have to confirm you want to post a duplicate). It\'s also used to better remember the reason you wrote (e.g. if you reload the page). Set to 0 if you don\'t want this information stored. This limit does not apply to delayed requests (i.e. revisits).'),
         },
     };
     /* beautify preserve:end */
