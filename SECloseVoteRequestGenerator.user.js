@@ -343,12 +343,14 @@ if(typeof StackExchange === "undefined")
         var rooms = this.rooms;
         if(!url)
             url = getCurrentRoom();
+        if(typeof callback !== 'function')
+            callback = function() {};
         url = RoomList.useHttpsForStackExchangeAndTrim(url);
-        var m = /(https?:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)\/rooms\/(.*)\/.*/.exec(url);
+        var m = /^(https:\/\/chat\.(meta\.)?stack(overflow|exchange)\.com)\/rooms\/(\d+)\/.*$/.exec(url);
         if(m) {
             var room = RoomList.url(url);
             if(room) {
-                if(callback) callback(room);
+                callback(room);
                 return false;
             }
             GM.xmlHttpRequest({
@@ -358,9 +360,9 @@ if(typeof StackExchange === "undefined")
                     var name = /.*<title>(.*)\ \|.*/.exec(response.response);
                     if(!name) {
                         notify('Failed finding room name. Is it a valid room?');
-                        if(callback) callback(false);
+                        callback(false);
                     } else {
-                        if(callback) callback(RoomList.insert({
+                        callback(RoomList.insert({
                             host: m[1],
                             url: url,
                             id: m[4],
@@ -368,15 +370,16 @@ if(typeof StackExchange === "undefined")
                         }));
                     }
                 },
-                onerror: function(){
+                onerror: function(error){
+                    console.log('error:', error);
                     notify('Failed retrieving room name. Is it a valid room?');
-                    if(callback) callback(false);
+                    callback(false);
                 }
             });
         } else {
             console.log(url);
             notify('The chat room URL you supplied is invalid.');
-            if(callback) callback(false);
+            callback(false);
         }
     };
     RoomList.setRoom = function(url) {
