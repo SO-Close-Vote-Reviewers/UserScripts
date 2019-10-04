@@ -460,7 +460,7 @@ if(typeof StackExchange === "undefined")
     CVRGUI.wrp    = $('<span class="cvrgui" />');
     CVRGUI.button = $('<a href="javascript:void(0)" class="cv-button">' + (isclosed?'reopen-pls':'cv-pls') + '</a>');
     CVRGUI.list   = $('<dl class="cv-list" />');
-    CVRGUI.css    = $('<style>.post-menu > span > a{padding:0 3px 2px 3px;color:#888}.post-menu > span > a:hover{color:#444;text-decoration:none} .cvrgui { display:inline-block } .cvrgui * { box-sizing: border-box } .cv-list { display: none; margin:0; z-index:1; position:absolute; white-space:nowrap; border:1px solid #ccc;border-radius:3px;background:#FFF;box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5) } .cv-list dd, .cv-list dl { margin: 0; padding: 0; } .cv-list dl dd { padding: 0px; margin: 0; width: 100%; display: table } .cv-list dl label, .cv-list dl form { display: table-cell } .cv-list dl button { margin: 2.5px 0; } .cv-list dl label { width: 100%; padding: 0px; }  .cv-list * { vertical-align: middle; } .cv-list dd > div { padding: 0px 15px; padding-bottom: 15px; } .cv-list dd > div > form { white-space: nowrap } .cv-list dd > div > form > input { display: inline-block; vertical-align: middle } .cv-list dd > div > form > input[type="text"] { width: 300px; margin-right: 5px; } .cv-list hr { margin:0 15px; border: 0px; border-bottom: 1px solid #ccc; } .cv-list a { display: block; padding: 10px 15px;}  .cv-list label { display: inline-block; padding: 10px 15px;} .cv-list label:last-child { padding-left: 0; }</style>');
+    CVRGUI.css    = $('<style>.post-menu .post-menu-container > span > a{padding:0 3px 2px 3px;color:#888}.post-menu .post-menu-container > span > a:hover{color:#444;text-decoration:none} .cvrgui { display:inline-block } .cvrgui * { box-sizing: border-box } .cv-list { display: none; margin:0; z-index:1; position:absolute; white-space:nowrap; border:1px solid #ccc;border-radius:3px;background:#FFF;box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5) } .cv-list dd, .cv-list dl { margin: 0; padding: 0; } .cv-list dl dd { padding: 0px; margin: 0; width: 100%; display: table } .cv-list dl label, .cv-list dl form { display: table-cell } .cv-list dl button { margin: 2.5px 0; } .cv-list dl label { width: 100%; padding: 0px; }  .cv-list * { vertical-align: middle; } .cv-list dd > div { padding: 0px 15px; padding-bottom: 15px; } .cv-list dd > div > form { white-space: nowrap } .cv-list dd > div > form > input { display: inline-block; vertical-align: middle } .cv-list dd > div > form > input[type="text"] { width: 300px; margin-right: 5px; } .cv-list hr { margin:0 15px; border: 0px; border-bottom: 1px solid #ccc; } .cv-list a { display: block; padding: 10px 15px;}  .cv-list label { display: inline-block; padding: 10px 15px;} .cv-list label:last-child { padding-left: 0; }</style>');
     CVRGUI.target = (function(){
         var link = $('<a href="javascript:void(0)"></a>').on('click',function(){
             var div = $('div', $(this).parent());
@@ -533,14 +533,15 @@ if(typeof StackExchange === "undefined")
     CVRGUI.wrp.append(CVRGUI.list);
     CVRGUI.wrp.append(CVRGUI.css);
 
-    $('#question .post-menu').append(CVRGUI.wrp);
+    $('#question .post-menu .post-menu-container').append(CVRGUI.wrp);
 
     $('.question').on('click', '[type="submit"], .new-post-activity a', function(e){
         var self = this;
         var menuCheck = setInterval(function(){
-            if($('#question .post-menu').length === 1) {
+            var postMenuContainer = $('#question .post-menu .post-menu-container');
+            if(postMenuContainer.length === 1) {
                 clearInterval(menuCheck);
-                $('#question .post-menu').append(CVRGUI.wrp);
+                postMenuContainer.append(CVRGUI.wrp);
             }
         });
     });
