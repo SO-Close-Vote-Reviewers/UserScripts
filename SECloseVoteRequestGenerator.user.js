@@ -350,7 +350,7 @@
             $this.addClass('answer cvrgFakeQuestionContext');
             $this.data('answerid', $('.answer-hyperlink', $this).attr('href').replace(/^.*#(\d+)$/, '$1'));
         });
-        //Observe for a change to the first TD within the first row of the page to detect the NATO Enhancements user script.
+        //Observe for a change to the first TD within the first row of the page to detect the NATO Enhancements userscript.
         (new MutationObserver(function(mutations, observer) {
             if (mutations.some((mutation) => (mutation.addedNodes ? mutation.target.nodeName === 'TD' : false))) {
                 //Found an added node that targeted a TD. It's assumed that means NATO Enhancements
@@ -534,7 +534,7 @@
 
     // Message number, just a number used to start, which is not
     // guaranteed to be unique (i.e. it could have collisions with other
-    // in-page/user script uses).
+    // in-page/userscript uses).
     //This would probably be better as just straight CSS, rather than an Object.
     var notifyInt = 4873;
     const notifyCSS = {
