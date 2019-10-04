@@ -1216,6 +1216,7 @@
         '    .subheader.tools-rev span.cvrgui {' +
         '        top:12px;' +
         '        margin-left: 10px;' +
+        '        position: relative;' +
         '    } ' +
         '    .cvrgui {' +
         '        display:inline-block;' +
@@ -1240,6 +1241,10 @@
         '    }' +
         '    .cv-list.cvrg-isDelayedRequest {' +
         '        border: 3px solid #20d020;' +
+        '    }' +
+        '    .subheader.tools-rev span.cvrgui .cv-list {' +
+        '        left: 0;' +
+        '        top: 150%;' +
         '    }' +
         '    .cv-list dd, .cv-list dl {' +
         '        margin: 0;' +
