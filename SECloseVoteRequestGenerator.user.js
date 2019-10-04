@@ -2106,6 +2106,16 @@
             var postUser = this.postUser;
             if (!postUser) {
                 postUser = this.item.closest('.grid').children('.post-signature:last-of-type');
+                //Some other HTML which SE has used.
+                if (postUser.length === 0) {
+                    postUser = this.item.closest('.postcell').find('.post-signature:last-of-type:not(.popup .post-signature)');
+                }
+                if (postUser.length === 0) {
+                    postUser = this.item.closest('.mb0').find('.post-signature:last-of-type:not(.popup .post-signature)');
+                }
+                if (postUser.length === 0) {
+                    postUser = this.item.closest('.answer, .question').find('.post-signature:last-of-type');
+                }
                 if (isNatoWithoutEnhancement) {
                     postUser = this.item.closest('td').find('.user-info');
                 }
