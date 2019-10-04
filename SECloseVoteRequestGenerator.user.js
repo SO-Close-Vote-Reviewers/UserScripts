@@ -170,7 +170,7 @@
         // match the properties above with the property's value.
         var a = r.split(' ');
         a.forEach(function(v, i) {
-            a[i] = this.substitutions.hasOwnProperty(v) && v !== 'get' ? this.substitutions[v] : v;
+            a[i] = Object.prototype.hasOwnProperty.call(this.substitutions, v) && v !== 'get' ? this.substitutions[v] : v;
         }, this);
         return a.join(' ');
     };
@@ -814,7 +814,7 @@
     RoomList.each = function(callback) {
         //Execute the callback with each room.
         for (var i in this.rooms) {
-            if (this.rooms.hasOwnProperty(i)) {
+            if (Object.prototype.hasOwnProperty.call(this.rooms, i)) {
                 callback(this.rooms[i], i);
             }
         }
