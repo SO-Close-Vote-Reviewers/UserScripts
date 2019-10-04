@@ -343,7 +343,7 @@
     var isNatoWithoutEnhancement = false;
     if (isNato) {
         isNatoWithoutEnhancement = true;
-        $('body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td:last-of-type').append($('<div class="post-menu cvrgFakePostMenu">'));
+        $('body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td:last-of-type').append($('<div class="post-menu cvrgFakePostMenu"><div class="post-menu-container cvrgFakePostMenuContainer"></div>'));
         var rows = $('body.tools-page #mainbar > table.default-view-post-table > tbody > tr');
         rows.each(function() {
             var $this = $(this);
@@ -1205,11 +1205,11 @@
     //Add the CSS needed for the CV Request GUI.
     $(document.documentElement).append($('' +
         '<style id="cvrg-styles">' +
-        '    .post-menu > span > a {' +
+        '    .post-menu .post-menu-container > span > a {' +
         '        padding:0 3px 2px 3px;' +
         '        color:#888;' +
         '    }' +
-        '    .post-menu > span > a:hover {' +
+        '    .post-menu .post-menu-container > span > a:hover {' +
         '        color:#444;' +
         '        text-decoration:none;' +
         '    } ' +
@@ -2464,7 +2464,7 @@
             if (isGuiReviewSE) {
                 let suggestedEditUrl = window.location.href;
                 if (window.location.href.indexOf('/question') > -1) {
-                    suggestedEditUrl = urlBase + this.gui.wrapper.closest('.post-menu').children('a[href^="/review"]').attr('href');
+                    suggestedEditUrl = urlBase + this.gui.wrapper.closest('.post-menu .post-menu-container').children('a[href^="/review"]').attr('href');
                 }
                 request = createTagMarkdown(requestType) + ' ' + reason + ' [Suggested Edit](' + suggestedEditUrl + ') by ' + userMarkdown + ' changing: ' + titleMarkdown + (/tag (?:wiki|excerpt)/.test(titleMarkdown) ? ' ' + questionTagMarkdown : '');
             }
@@ -3167,20 +3167,20 @@
     function addCvplsToDom() {
         //Adds the cv-pls link-button(s) and dialog to the DOM, if it does not already exist in the DOM.
         function addCvplsToDomForPostType(list, postType) {
-            //Add a cv-pls GUIs to any post of the specified type when one does not already exist on the .post-menu
+            //Add a cv-pls GUIs to any post of the specified type when one does not already exist on the .post-menu .post-menu-container
             var origLength = list.length;
             //Putting the GUI in when the .post-menu is .preview-options messes up the page-UI interaction for
             //  editing. This should be further investigated, but just not putting it there is sufficient.
-            $('.' + postType + ' .post-menu:not(.preview-options)').each(function() {
+            $('.' + postType + ' .post-menu:not(.preview-options) .post-menu-container').each(function() {
                 const $this = $(this);
                 if (!$this.closest('.question,.answer').is('.' + postType)) {
-                    //The closest .question/.answer for this .post-menu is not the type we're looking for.
+                    //The closest .question/.answer for this .post-menu .post-menu-container is not the type we're looking for.
                     return;
                 } //else
                 if (!$('span.cvrgui', this).length) {
                     //No cvrgui on this post yet
                     const newGui = new Gui(postType, $this.closest('.' + postType).data(postType + 'id'), CVRGUI);
-                    $this.append('<span class="lsep">|</span>'); //separator between each post-menu item
+                    $this.append('<span class="lsep">|</span>'); //separator between each post-menu .post-menu-container item
                     $this.append(newGui.wrapper);
                     list.push(newGui);
                 }
@@ -3228,7 +3228,7 @@
         }
         const suggestedEditPopup = $('.popup-suggested-edit');
         if (suggestedEditPopup.length) {
-            const postMenu = suggestedEditPopup.closest('.post-menu');
+            const postMenu = suggestedEditPopup.closest('.post-menu .post-menu-container');
             const reviewId = (postMenu.children('a[href^="/review"]').attr('href').match(/\/(\d+)$/) || ['', ''])[1];
             removeNonMatchingReviewGui(suggestedEditPopup, reviewId);
             let reviewPlsContainer = $('.cvrg-review-pls-container', suggestedEditPopup);
@@ -3527,7 +3527,6 @@
     function closeVoteDialogIsOpen() {
         //The Close Vote Dialog is open
         var popup = $('#popup-close-question').first();
-        var selected;
         var remainingVotes = $('.remaining-votes', popup);
         var cvplsReasonInput = CVRGUI.getGuiForEl(popup).requestReasonInput;
 
