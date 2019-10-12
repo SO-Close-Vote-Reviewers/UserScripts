@@ -53,6 +53,7 @@
             //jQuery doesn't exist yet. Try again later.
             //Should put a limit on the number of times this is retried.
             setTimeout(startup, 250);
+            return;
         }
         room = (/(?:chat(?:\.meta)?\.stack(?:overflow|exchange).com)\/rooms\/(\d+)/.exec(window.location.href) || [false, false])[1];
         isChat = !!room;
