@@ -2085,7 +2085,13 @@
                         if (item[idProperty] == request.post && request.onlyQuestions) { // eslint-disable-line eqeqeq
                             //This is a request which is only about questions, but this post was identified as an answer.
                             //  Change the postId for the request to the question_id for this answer.
+                            request.originalPostId = request.post;
                             request.post = item[questionIdProperty];
+                            //Also change the postIds in the requestPost list;
+                            request.event.requestedPosts.forEach((requestedPost) => {
+                                requestedPost.originalPostId = requestedPost.postId;
+                                requestedPost.postId = item[questionIdProperty];
+                            });
                         }
                     });
                 });
