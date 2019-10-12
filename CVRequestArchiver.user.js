@@ -610,8 +610,8 @@
         //We need to choose if we want more SD commands to be archived.
         //We probably don't want to archive: (?!blame|lick|wut|coffee|tea|brownie)
         const sdBangBangCommandsRegEx = /^\s*!!\/(?:report|scan|feedback)/i;
-        // https://regex101.com/r/RJbnbS/1
-        const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why))u?-?)+\s*.*$/i;
+        // https://regex101.com/r/3M6xoA/1/
+        const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why\??|-)u?-?)+\s*.*$/i;
         const editMonitorRegEx = /bad edit/i;
         const crudeCloseRegexes = makeTagRegExArray('(?:cv|closev?)-?');
         const aHrefQAPRtag = `<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`;  // eslint-disable-line no-useless-escape
