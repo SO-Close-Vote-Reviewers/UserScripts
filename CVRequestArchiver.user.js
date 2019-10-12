@@ -2988,7 +2988,7 @@
                 url: 'https://' + window.location.hostname + '/messages/' + messageId + '/history',
                 success: callback,
                 error: function(xhr, status, error) {
-                    console.error('AJAX error getting history', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  room:', room, '\n::  fkey,:', fkey, '\n::  messageId:', messageId);
+                    console.error('AJAX error getting history', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  room:', room, '\n::  fkey.length,:', fkey.length, '\n::  messageId:', messageId);
                 },
             });
         }
@@ -3133,7 +3133,8 @@
                         '\n::  status:', status,
                         '\n::  error:', error,
                         '\n::  targetRoomId:', targetRoomId,
-                        '\n::  fkey:', fkey,
+                        //The fkey is private, so its value should not be printed in something that might be copy-and-pasted to another person for debugging.
+                        '\n::  fkey.length:', fkey.length, //should be 32;
                         '\n::  messagesBeingMoved.length:', messagesBeingMoved.length,
                         '\n::  messagesBeingMoved:', messagesBeingMoved,
                         '\n::  formatted messagesBeingMoved:', messagesBeingMoved.join(','),
