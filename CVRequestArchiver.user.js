@@ -785,9 +785,15 @@
                         //Expires SD reports with >= 1 false positive feedbacks.
                         return $('#message-' + event.message_id + ' > .ai-information .ai-feedback-info-fp').first().text() >= 1;
                     },
+                    //Relies on AIM.
+                    function(event) {
+                        //Expires SD reports marked with the ai-deleted class (i.e. AIM thinks it's deleted).
+                        return !!$('#message-' + event.message_id + ' > .content.ai-deleted').length;
+                    },
                     //Relies on both AIM and an updated version of the Unclosed Request Review Script
                     function(event) {
                         //Expires SD reports with >= 1 tp- feedbacks that have been edited since the message was posted.
+                        //  e.g. a vandalism report that has been reverted.
                         const message = $('#message-' + event.message_id).first();
                         //Relies on an updated version of the Unclosed Request Generator
                         const requestInfo = $('.request-info a', message).first();
@@ -799,7 +805,7 @@
                         lastEditDate = lastEditDate ? +lastEditDate : 0;
                         const aimHoverTpuText = aimHoverTpu.text();
                         const aimHoverTpuTitle = aimHoverTpu.attr('title');
-                        if (lastEditDate > event.time_stamp && aimHoverTpuText >= 1 && /^tp-:/.test(aimHoverTpuTitle)) {
+                        if (lastEditDate > event.time_stamp && aimHoverTpuText >= 1 && /^tp-?:/.test(aimHoverTpuTitle)) {
                             return true;
                         } // else
                         return false;
