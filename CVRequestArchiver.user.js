@@ -297,7 +297,8 @@
                     //Trash
                     new TargetRoom(19718, seChat, 'Trash (room 19718: requires access)', 'Trash', 'T', 'Trash 19', commonRoomOptions.noUI),
                     //trash
-                    new TargetRoom(57121, seChat, 'trash (room 57121)', 'trash', 't', 'trash 57', commonRoomOptions.noUI),
+                    //Room is frozen
+                    //new TargetRoom(57121, seChat, 'trash (room 57121)', 'trash', 't', 'trash 57', commonRoomOptions.noUI),
                     //Private for SD posts that have especially offensive content.
                     new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
