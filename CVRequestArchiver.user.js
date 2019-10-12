@@ -3231,13 +3231,13 @@
                 if (message.length) {
                     message = message[0];
                 } else {
-                    return '';
+                    return 0;
                 }
             }
             if (message) {
-                return el.id.replace(/(?:SOCVR-Archiver-)?message-/, '');
+                return +el.id.replace(/(?:SOCVR-Archiver-)?message-/, '');
             } //else
-            return '';
+            return 0;
         }
 
         function moveMoveList(roomId, callback) {
@@ -3318,7 +3318,7 @@
         function addMessageToNoUserListIfMonologueIsNoUser(message) {
             //This would be better if we generated a list of messages to add all at once, but it should be very rare. Thus, one at a time shouldn't have much impact.
             if (message.first().closest('.monologue').hasClass('user-')) {
-                var messageId = getMessageIdFromMessage(message);
+                const messageId = getMessageIdFromMessage(message);
                 if (messageId) {
                     addToLSnoUserIdList(messageId);
                 }
@@ -3330,7 +3330,7 @@
             var messageIdsObject = {};
 
             function addMessageIdToSetAndCheckForNoUserId(message) {
-                var messageId = getMessageIdFromMessage(message);
+                const messageId = getMessageIdFromMessage(message);
                 if (messageId) {
                     messageIdsObject[messageId] = true;
                 }
@@ -3497,8 +3497,8 @@
         function showAllManualMoveMessages(forceLengthUpdate) {
             //Make sure any visible messages have, or don't have, the class indicating they are on the manual move list.
             $('.message').each(function() {
-                var messageId = getMessageIdFromMessage(this);
-                if (manualMoveList.indexOf(+messageId) > -1) {
+                const messageId = getMessageIdFromMessage(this);
+                if (manualMoveList.indexOf(messageId) > -1) {
                     $(this).addClass('SOCVR-Archiver-multiMove-selected');
                 } else {
                     $(this).removeClass('SOCVR-Archiver-multiMove-selected');
@@ -3541,7 +3541,7 @@
             if (typeof window.transcriptChatEvents === 'undefined') {
                 window.transcriptChatEvents = null; //Indicate that we are requesting the chat events.
                 gettingTranscriptEvents = true;
-                const lastMessageId = +getMessageIdFromMessage($('#transcript .message').last());
+                const lastMessageId = getMessageIdFromMessage($('#transcript .message').last());
                 getEvents(room, fkey, 500, lastMessageId + chatTranscriptEndMessagesOffset).then((response) => {
                     window.transcriptChatEvents = response.events;
                     getAndShareTranscriptEvents();
@@ -3586,7 +3586,7 @@
             //    the transcript (i.e. appending to the current monologue, if the same
             //    user, or as a new monologue if a different user.
             const beforeAfter = isAfter ? 'after' : 'before';
-            const nextMessageId = +getMessageIdFromMessage(refEl);
+            const nextMessageId = getMessageIdFromMessage(refEl);
             const nextMessage = $(refEl);
             const nextMessageMonologue = nextMessage.closest('.monologue');
             const newMonologueText = makeMonologueHtml(event, true).replace('SOCVR-Archiver-message-', 'message-');
@@ -3603,10 +3603,10 @@
                 //We need to break the monologue into two.
                 const dupMessageMonologue = nextMessageMonologue.clone(true);
                 dupMessageMonologue.find('.message').filter(function() {
-                    return nextMessageId <= +getMessageIdFromMessage(this);
+                    return nextMessageId <= getMessageIdFromMessage(this);
                 }).remove();
                 nextMessageMonologue.find('.message').filter(function() {
-                    return nextMessageId > +getMessageIdFromMessage(this);
+                    return nextMessageId > getMessageIdFromMessage(this);
                 }).remove();
                 nextMessageMonologue.find('.timestamp').remove();
                 nextMessageMonologue.before(dupMessageMonologue);
@@ -3649,7 +3649,7 @@
             let eventIndex = 0;
             for (let messageIndex = 0; messageIndex < messages.length; messageIndex++) {
                 //Loop through all the messages on the page from oldest to newest.
-                const messageId = +getMessageIdFromMessage(messages[messageIndex]);
+                const messageId = getMessageIdFromMessage(messages[messageIndex]);
                 if (!transcriptEvents[eventIndex]) {
                     //Out of events, which means that for some reason we didn't start getting them at, or beyond, the events on the transcript page.
                     return;
