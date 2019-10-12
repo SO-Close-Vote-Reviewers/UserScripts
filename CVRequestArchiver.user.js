@@ -1623,18 +1623,6 @@
             if (typeof type.userIdMatch === 'number' && type.userIdMatch !== event.user_id) {
                 return false;
             } //else
-            if (type.regexes && !matchesRegex(event.contentNoCode, type.regexes)) {
-                //Use the RegExp array as one indicator of the type.
-                return false;
-            } //else
-            if (type.andRegexes && !matchesRegex(event.contentNoCode, type.andRegexes)) {
-                //Another RegExp array which must match.
-                return false;
-            } //else
-            if (type.textRegexes && !matchesRegex(event.contentNoCodeText, type.textRegexes)) {
-                //Existing text regexes didn't match.
-                return false;
-            } //else
             if (type.noContent && event.content) {
                 //No content
                 return false;
@@ -1659,6 +1647,19 @@
                 } //else
                 //Passed type.replyToTypes
             }
+            //RegExp are relatively slow, let the other criteria disqualify first.
+            if (type.regexes && !matchesRegex(event.contentNoCode, type.regexes)) {
+                //Use the RegExp array as one indicator of the type.
+                return false;
+            } //else
+            if (type.andRegexes && !matchesRegex(event.contentNoCode, type.andRegexes)) {
+                //Another RegExp array which must match.
+                return false;
+            } //else
+            if (type.textRegexes && !matchesRegex(event.contentNoCodeText, type.textRegexes)) {
+                //Existing text regexes didn't match.
+                return false;
+            } //else
             //All existing tests passed.
             return true;
         }
