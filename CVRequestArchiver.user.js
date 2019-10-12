@@ -1677,20 +1677,24 @@
         function assignEventBaseTypeAndContentWithoutCode(event, eventIndex, currentEvents, needParentList) {
             //First pass identifying request types. The type is added to the event Object, along with a version of the message without code
             //  in both HTML text, and just text content.
-            var message = event.content;
+            const message = event.content;
             //Don't match things in code format, as those normally are used to explain, not as intended tags indicating a request.
-            //The message content should really be converted to DOM and parsed form there.
+            //The message content should really be converted to DOM and parsed from there.
             //Note that converting to DOM changes HTML entities into the represented characters.
-            var messageAsDom = $(getHTMLTextAsDOM(message));
+            const messageAsDom = $(getHTMLTextAsDOM(message));
+            //Remove any <code>
             messageAsDom.find('code').remove();
-            message = messageAsDom.html();
+            const messageWithoutCode = messageAsDom.html();
 
             //Prevent matches of the meta and chat sites (e.g. meta.stackoverflow.com)
             targetRoomSet.regExp.chatMetaElimiation.lastIndex = 0;
-            message = message.replace(targetRoomSet.regExp.chatMetaElimiation, ' ');
+            const messageWithoutCodeAndMeta = messageWithoutCode.replace(targetRoomSet.regExp.chatMetaElimiation, ' ');
             //Determine if it matches one of the RegExp.
-            event.contentNoCode = message;
+            event.contentNoCode = messageWithoutCodeAndMeta;
             event.contentNoCodeText = messageAsDom.text();
+            //Remove the text from links that are not tags (used to prevent detecting post URLs within link-text).
+            messageAsDom.find('a').filter(function() {return !$(this).find('.ob-post-tag').length}).text('');
+            event.contentNoCodeNoNonTagLinkText = messageAsDom.html();
             event.type = null;
 
             RequestTypeKeys.some((typeKey) => {
@@ -1759,7 +1763,7 @@
         }
 
         function checkEvent(event, eventIndex, currentEvents, needParentList) {
-            //Check an event to see if it directly qualifies to be archived, or if it needs further information about the post in order to determine it's disposition.
+            //Check an event to see if it directly qualifies to be archived, or if it needs further information about the post in order to determine its disposition.
             var type = event.type;
             if (!type) {
                 return false;
@@ -1869,14 +1873,14 @@
             //  We really should do a full parse of the URL, including making a choice based on request type as to considering the question, answer, or comment
             //  for longer formats.
             targetRoomSet.regExp.questionAnswerPostsId.lastIndex = 0;
-            var matches = event.contentNoCode.match(targetRoomSet.regExp.questionAnswerPostsId);
+            var matches = event.contentNoCodeNoNonTagLinkText.match(targetRoomSet.regExp.questionAnswerPostsId);
             //For a cv-pls we assume it's the associated question when the URL is to an answer or to a comment.
             if (!event.onlyQuestions) {
                 //The above will preferentially obtain questions over some answer URL formats: e.g.
                 //    https://stackoverflow.com/questions/7654321/foo-my-baz/1234567#1234567
                 //  That's good for cv-pls/reopen-pls, but for other types of requests we should be considering the answer instead, if the URL is the alternate answer URL.
                 targetRoomSet.regExp.answerIdFromQuestionUrl.lastIndex = 0;
-                const answerMatches = event.contentNoCode.match(targetRoomSet.regExp.answerIdFromQuestionUrl);
+                const answerMatches = event.contentNoCodeNoNonTagLinkText.match(targetRoomSet.regExp.answerIdFromQuestionUrl);
                 if (answerMatches) {
                     //Convert each one into a short answer URL so a single RegExp can be used below.
                     targetRoomSet.regExp.answerIdFromQuestionUrl.lastIndex = 0;
@@ -1887,7 +1891,7 @@
             if (matches !== null && isComment) {
                 //There are URLs, but this type, or a type from which this was changed due to being too young is only comments
                 targetRoomSet.regExp.commentIdFromUrl.lastIndex = 0;
-                const commentMatches = event.contentNoCode.match(targetRoomSet.regExp.commentIdFromUrl);
+                const commentMatches = event.contentNoCodeNoNonTagLinkText.match(targetRoomSet.regExp.commentIdFromUrl);
                 if (commentMatches) {
                     //Convert each one into a short answer URL so a single RegExp can be used below to get the ID of the question/answer/post/comment, even though it's not an answer.
                     //  That it is a comment is tracked by isComment.
