@@ -1422,7 +1422,7 @@
             if (count > 500 || count < 1) {
                 return Promise.reject(new Error('Count not in range (500 >= n >= 1)'));
             } // else
-            if (!room) {
+            if (!roomNumber) {
                 return Promise.reject(new Error('Invalid room'));
             } // else
             if (!fkey) {
