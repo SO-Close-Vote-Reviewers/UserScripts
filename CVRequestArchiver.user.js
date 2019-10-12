@@ -549,9 +549,9 @@
         const hrefUrlTag = '(?:tagged\\/';
         const endHrefToPlainText = '"|\\[(?:(?:meta-)?tag\\W?)?';
 
-        const endPlainTextToEndWithQuestion = `\\]).*${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts)\\/+(\\d+)`;
+        const endPlainTextToEndWithQuestion = `\\]).*?${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts)\\/+(\\d+)`;
         const questionUrlToHrefTag = `${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts)\\/+(\\d+).*(?:tagged\\/`;
-        const endPlainTextToEndWithQuestionOrReview = `\\]).*${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+)`;
+        const endPlainTextToEndWithQuestionOrReview = `\\]).*?${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+)`;
         const questionOrReviewUrlToHrefTag = `${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+).*(?:tagged\\/`;
 
         const endPlainTextToEnd = '\\])';
@@ -575,9 +575,9 @@
                 ((includeReviews ? questionOrReviewUrlToHrefTag : questionUrlToHrefTag) + prefix + endHrefPrefixToSpanText + prefix + additional + endSpanTextToPlainText + prefix + additional + endPlainTextToEnd),
             ].join('|')) + ')';
             return [new RegExp(regexText, 'i')];
-            //Example produced from cv-pls:
-            //2018-10-04: https://regex101.com/r/ZVG2AE/1/
-            //(?:(?:tagged\/cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:tag\W?)?cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+).*(?:tagged\/cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:tag\W?)?cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\])|(?:tagged\/cv-[^>]*><span[^>]*>cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:tag\W?)?cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+).*(?:tagged\/cv-[^>]*><span[^>]*>cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:tag\W?)?cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]))
+            //Example produced from cv-pls (excludes the dup request types added to cvRegexes):
+            //2019-08-23: https://regex101.com/r/VbNPrg/1
+            //(?:(?:tagged\/(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:(?:meta-)?tag\W?)?(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*?stackoverflow\.com\/(?:[qa][^\/]*|posts)\/+(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts)\/+(\d+).*(?:tagged\/(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:(?:meta-)?tag\W?)?(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\])|(?:tagged\/(?:cv|closev?)-?[^>]*><span[^>]*>(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:(?:meta-)?tag\W?)?(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*?stackoverflow\.com\/(?:[qa][^\/]*|posts)\/+(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts)\/+(\d+).*(?:tagged\/(?:cv|closev?)-?[^>]*><span[^>]*>(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:(?:meta-)?tag\W?)?(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]))/i
         }
 
         function makeActualTagWithoutQuestionmarkRegExArray(prefix, additional) {
