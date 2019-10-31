@@ -343,7 +343,9 @@
     var isNatoWithoutEnhancement = false;
     if (isNato) {
         isNatoWithoutEnhancement = true;
-        $('body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td:last-of-type').append($('<div class="post-menu cvrgFakePostMenu"><div class="post-menu-container cvrgFakePostMenuContainer"></div>'));
+        $('body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td:last-of-type').filter(function() {
+            return !$(this).find('.post-menu').length;
+        }).append($('<div class="post-menu cvrgFakePostMenu"></div>'));
         var rows = $('body.tools-page #mainbar > table.default-view-post-table > tbody > tr');
         rows.each(function() {
             var $this = $(this);
