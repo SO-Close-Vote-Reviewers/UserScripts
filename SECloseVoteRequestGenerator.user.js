@@ -4312,8 +4312,13 @@
     //      those and delete the ones which have information about delayed requests.
     function deleteDelayedRequests(event) {
         //Clear the delayed requests, per user action
-        GM_deleteValue(delayedRequestStorage);
-        GM_deleteValue(delayedRequestStorage + '-Lock');
+        //Deleting the keys is the right way to go, but TM in FF66 does not propagate the change from
+        // GM_deleteValue to other tabs. This results in always having to wait for the lock to expire.
+        if (!confirm('Are you sure you want to delete your revisit requests?')) {
+            return;
+        }
+        setGMStorageJSON(delayedRequestStorage, {});
+        setGMStorageJSON(delayedRequestStorage + '-Lock', {});
         if (event) {
             event.preventDefault();
             event.target.textContent = knownOptions.buttons.deleteDelayedRequests.text + knownOptions.buttons.deleteDelayedRequests.dynamicText();
