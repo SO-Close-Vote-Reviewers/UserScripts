@@ -1685,6 +1685,7 @@
             this.postTime = null;
             this.closedTimeMs = null;
             this.isQuestionLocked = null;
+            this.postIsLocked = null;
             this.isQuestionBounty = null;
             this.questionRoombaInfo = null;
             this.questionRoombaDays = null;
@@ -2315,6 +2316,11 @@
                 this.closedTimeMs = closedTimeMs;
                 this.isQuestionLocked = isQuestionLocked;
             }
+            var postIsLocked = this.postIsLocked;
+            if (postIsLocked === null) {
+                postIsLocked = isPostLocked(post);
+                this.postIsLocked = postIsLocked;
+            }
             var isQuestionBounty = this.isQuestionBounty;
             if (isQuestionBounty === null) {
                 isQuestionBounty = $('.question-status.bounty', questionContext).length > 0;
@@ -2328,9 +2334,14 @@
                 questionRoombaDays = parseInt(questionRoombaInfo.replace(/^\D*(\d*)\D*$/, '$1'), 10);
                 this.questionRoombaDays = questionRoombaDays;
             }
-            if (isQuestionLocked) {
-                criticalRequestReasons.push('The question is locked.');
+            if (postIsLocked) {
+                criticalRequestReasons.push('The post is locked.');
             } else {
+                if (isQuestionLocked) {
+                    //Sometimes the question being locked will be a critical issue, sometimes it will not really affect the request.
+                    //  We should differentiate based on the different types of locks, but for now, just warn.
+                    invalidRequestReasons.push('The question is locked.');
+                }
                 if (requestType === 'del-pls' || requestType === 'undel-pls') {
                     var isDeleteUndelete = true;
                     if (requestType === 'undel-pls') {
