@@ -415,14 +415,27 @@
 
     function isQuestionClosed(questionContext) {
         //True if the question is closed.
-        return $('.special-status .question-status H2 B', questionContext).filter(function() {
+        const pre201910CloseBannerExists = $('.special-status .question-status H2 B', questionContext).filter(function() {
             return /hold|closed|marked/i.test($(this).text());
         }).length > 0;
+        const post201910CloseBannerExists = $('.js-post-notice b', questionContext).filter(function() {
+            return /already has an answer|close\/reopen/i.test($(this).text());
+        }).length > 0;
+        return pre201910CloseBannerExists || post201910CloseBannerExists;
     }
 
     function isQuestionDeleted(questionContext) {
         //True if the question is deleted.
         return $('.question', questionContext).first().is('.deleted-answer');
+    }
+
+    function isPostLocked(post) {
+        let isLocked = false;
+        $(post).find('.iconLightbulb, .iconLock').closest('.grid').each(function() {
+            const firstBoldText = $(this).find('b').first().text();
+            isLocked = isLocked || /community wiki|locked/i.test(firstBoldText);
+        });
+        return isLocked;
     }
 
     function getQuestionContext(element) {
@@ -2281,7 +2294,7 @@
                 closedTimeMs = 0;
                 isQuestionLocked = false;
                 $('.special-status .question-status H2 B', questionContext).each(function() {
-                    var $this = $(this);
+                    const $this = $(this);
                     if (/hold|closed|marked/i.test($this.text())) {
                         closedTimeMs = Date.parse($this.parent().parent().find('span.relativetime').attr('title').replace(' ', 'T'));
                     }
@@ -2289,6 +2302,16 @@
                         isQuestionLocked = true;
                     }
                 });
+                //2019-10 new post status locations
+                const theQuestion = $('.question', questionContext);
+                theQuestion.find('.iconEyeOff').closest('.grid').find('.relativetime').map(function() {
+                    return this.previousSibling;
+                }).each(function() {
+                    if (/closed/i.test(this.textContent)) {
+                        closedTimeMs = Date.parse(this.nextSibling.title.replace(' ', 'T'));
+                    }
+                });
+                isQuestionLocked = isPostLocked(theQuestion);
                 this.closedTimeMs = closedTimeMs;
                 this.isQuestionLocked = isQuestionLocked;
             }
