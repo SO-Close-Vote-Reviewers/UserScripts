@@ -3210,7 +3210,10 @@
             var $el = (element instanceof jQuery) ? element : $(element);
             var post = $el.closest('.question,.answer');
             if (!post.length) {
-                return null;
+                post = getQuestionContext(element);
+                if (!post.length) {
+                    return null;
+                }
             }
             var postType = post.is('.question') ? 'question' : 'answer';
             return this.getGuiForId(postType, post.data(postType + 'id'));
@@ -3591,7 +3594,14 @@
         //The Close Vote Dialog is open
         var popup = $('#popup-close-question').first();
         var remainingVotes = $('.remaining-votes', popup);
-        var cvplsReasonInput = CVRGUI.getGuiForEl(popup).requestReasonInput;
+        //It's possible for getGuiForEl to return null, but that really only happens if something has gone wrong elsewhere
+        var guiForQuestionOpeningPopup = CVRGUI.getGuiForEl(popup);
+        if (guiForQuestionOpeningPopup) {
+            var cvplsReasonInput = guiForQuestionOpeningPopup.requestReasonInput;
+        } else {
+            console.error('closeVoteDialogIsOpen: did not find a CVRGUI for the question which opened the close-vote dialog.');
+            return;
+        }
 
         if ($('input', remainingVotes).length) {
             return false;
