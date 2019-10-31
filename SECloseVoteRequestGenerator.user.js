@@ -39,6 +39,7 @@
     //The RoomList is the list of chat rooms to which to send requests. It's effectively a class, but a one-off.
     const RoomList = {};
     var CVRGUI;
+    const isGmStorageValid = typeof GM_getValue === 'function' && typeof GM_setValue === 'function';
     const socvrModeratedSites = ['stackoverflow.com'];
     const delayedRequestStorage = 'delayedRequests';
     const rememberedRequestStorage = 'rememberedRequests';
@@ -1088,7 +1089,7 @@
     }
 
     function getGMStorageJSON(key) {
-        var storageValue = GM_getValue(key);
+        var storageValue = getGMStorage(key);
         try {
             return JSON.parse(storageValue);
         } catch (e) {
@@ -3334,8 +3335,8 @@
         //Save the configuration options
         options = options ? options : configOptions;
         var asJson = JSON.stringify(options);
-        if (typeof GM_getValue === 'function' && typeof GM_setValue === 'function') {
-            GM_setValue('configOptions', asJson);
+        if (isGmStorageValid) {
+            setGMStorage('configOptions', asJson);
         } else {
             //Fall back to localStorage, if User Script storage is not available.
             setStorage('configOptions', asJson);
@@ -3440,8 +3441,8 @@
     function getConfigOptions() {
         //Get the configuration options from storage.
         var jsonOptions;
-        if (typeof GM_getValue === 'function' && typeof GM_setValue === 'function') {
-            jsonOptions = GM_getValue('configOptions');
+        if (isGmStorageValid) {
+            jsonOptions = getGMStorage('configOptions');
         } else {
             //Fall back to localStorage, if User Script storage is not available.
             jsonOptions = getStorage('configOptions');
@@ -3507,8 +3508,8 @@
             // from the change listener, which should also fulfill the
             // criteria that it matches what's in storage, but no need
             // to get it from storage yet again;
-            if (typeof GM_getValue === 'function' && typeof GM_setValue === 'function') {
-                GM_setValue('shortcutKey', key);
+            if (isGmStorageValid) {
+                setGMStorage('shortcutKey', key);
             } else {
                 //Fall back to localStorage, if User Script storage is not available.
                 setStorage('shortcutKey', key);
@@ -3557,8 +3558,8 @@
 
     function getShortcutKey() {
         //Get the shortcut key from storage
-        if (typeof GM_getValue === 'function' && typeof GM_setValue === 'function') {
-            return GM_getValue('shortcutKey');
+        if (isGmStorageValid) {
+            return getGMStorage('shortcutKey');
         }// else
         //Fall back to localStorage, if User Script storage is not available.
         return getStorage('shortcutKey');
