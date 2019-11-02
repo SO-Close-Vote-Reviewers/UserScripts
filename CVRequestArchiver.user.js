@@ -17,7 +17,7 @@
 /* jshint devel:     true */
 /* jshint esversion: 6 */
 /* jshint esnext: true */
-/* globals CHAT, $, jQuery */
+/* globals CHAT, $, jQuery */ //eslint-disable-line no-redeclare
 
 (function() {
     'use strict';
@@ -734,7 +734,7 @@
                 //This really should have a separate call to the SE API to get review information, where possible.
                 underAgeTypeKey: 'DELETE',
             },
-            QUEEN_SOCVFINDER: { //QUEEN: SOCVFinder
+            QUEEN_SOCVFINDER: {//QUEEN: SOCVFinder
                 name: 'Queen: SOCVFinder',
                 regexes: duplicateRegexes,
                 alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
@@ -758,7 +758,7 @@
                 underAgeTypeKey: 'DELETE',
                 onlyComments: true,
             },
-            EDITMONITOR: { // Monitors edits in the suggested edit queue
+            EDITMONITOR: {// Monitors edits in the suggested edit queue
                 name: 'Edit Monitor reports',
                 userIdMatch: knownUserIds.fox9000,
                 regexes: [editMonitorRegEx],
@@ -766,7 +766,7 @@
                 //This really should have a separate call to the SE API to get review information, where possible.
                 underAgeTypeKey: 'DELETE',
             },
-            YAM: { // Monitors cv-pls requests for edits above a threshold.
+            YAM: {// Monitors cv-pls requests for edits above a threshold.
                 name: 'Yam requested question change reports',
                 userIdMatch: knownUserIds.yam,
                 textRegexes: [/\d+%\s*changed\b/i],
@@ -1693,7 +1693,9 @@
             event.contentNoCode = messageWithoutCodeAndMeta;
             event.contentNoCodeText = messageAsDom.text();
             //Remove the text from links that are not tags (used to prevent detecting post URLs within link-text).
-            messageAsDom.find('a').filter(function() {return !$(this).find('.ob-post-tag').length}).text('');
+            messageAsDom.find('a').filter(function() {
+                return !$(this).find('.ob-post-tag').length;
+            }).text('');
             event.contentNoCodeNoNonTagLinkText = messageAsDom.html();
             event.type = null;
 
