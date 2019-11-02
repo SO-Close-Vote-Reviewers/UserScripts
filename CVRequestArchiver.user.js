@@ -2705,6 +2705,14 @@
             }
         }
 
+        function activateMessageDropdownMenusOnAddedMessages() {
+            //This can't just enable the menu on the archiver popup, because the functions in the menu rely on getting the message ID
+            //  from the id attribute of the .message which is done with .replace("message-", "");
+            const stockImg = $('.message:not(.SOCVR-Archiver-contains-deleted-content):not(.SOCVR-Archiver-added-message) .action-link').first();
+            const addedMenus = $('.message.SOCVR-Archiver-added-message .action-link');
+            addedMenus.replaceWith(() => stockImg.clone(true).removeClass('edits'));
+        }
+
         function makeMonologueHtml(messageEvent, useUTC) {
             //Create the HTML for a monologue containing a single message.
 
@@ -2851,7 +2859,7 @@
                 '    </div>',
                 '    <div class="messages">',
                 '        <div class="SOCVR-Archiver-close-icon" data-message-id="' + messageId + '" title="Don\'t move"></div>',
-                '        <div class="message" id="SOCVR-Archiver-message-' + messageId + '">',
+                '        <div class="message SOCVR-Archiver-added-message" id="SOCVR-Archiver-message-' + messageId + '">',
                 '            <div class="timestamp">' + timestamp + '</div>',
                 '            <a name="' + messageId + '" href="/transcript/' + room + '?m=' + messageId + '#' + messageId + '"><span style="display:inline-block;" class="action-link"><span class="img"> </span></span></a>',
                              (messageEvent.show_parent ? '<a class="reply-info" title="This is a reply to an earlier message" href="/transcript/message/' + messageEvent.parent_id + '#' + messageEvent.parent_id + '"></a>' : ''),
@@ -3529,8 +3537,8 @@
          *   CustomEvent 'transcript-events-received' is fired from the script which received the transcript events.
          *   CustomEvent 'transcript-events-received' is received in all scripts not doing the AJAX call to get the transcript events.
          */
-        let gettingTranscriptEvents = false;
         function getAndShareTranscriptEvents() {
+            let gettingTranscriptEvents = false;
             //Get the events covering the time-frame shown in this transcript page.
             //  Currently this does not guarantee to get all messages that are in the time-frame
             //  of this transcript page. It normally will, but it's not checked for.
@@ -3538,40 +3546,84 @@
             // transcript page is sufficient, in total messages on the chat server, to get all deleted messages for this
             // room that are in the time-frame for this transcript page.  While this is often true, it is by no means
             // guaranteed.
-            const chatTranscriptEndMessagesOffset = 15000;
-            if (typeof window.transcriptChatEvents === 'undefined') {
-                window.transcriptChatEvents = null; //Indicate that we are requesting the chat events.
-                gettingTranscriptEvents = true;
-                const lastMessageId = getMessageIdFromMessage($('#transcript .message').last());
-                getEvents(room, fkey, 500, lastMessageId + chatTranscriptEndMessagesOffset).then((response) => {
-                    window.transcriptChatEvents = response.events;
-                    getAndShareTranscriptEvents();
-                }, () => {
-                    //We can continue upon failure.
-                    window.transcriptChatEvents = [];
-                    getAndShareTranscriptEvents();
-                });
-                return;
-            }
-            if (window.transcriptChatEvents === null) {
-                if (gettingTranscriptEvents) {
-                    //We are currently getting the events & will be called when they are available.
-                    return;
+            return new Promise((resolve, reject) => {
+                function getTranscriptEvents() {
+                    const chatTranscriptEndMessagesOffset = 15000;
+                    return new Promise((getTranscriptEventsResolve, getTranscriptEventsReject) => {
+                        //This should be based on the time we determine for the transcript, not just the IDs. This is so we
+                        //  have enough messages to cover any ones which were deleted in the time-frame of the current transcript display.
+                        let transcriptEvents = [];
+                        const messages = $('#transcript .message, #conversation .message');
+                        const firstMessage = messages.first();
+                        const lastMessage = messages.last();
+                        const firstMessageId = getMessageIdFromMessage(firstMessage);
+                        const lastMessageId = getMessageIdFromMessage(lastMessage);
+
+                        //Unfortunately, there doesn't appear to be an endpoint to get messages by date, only by message number.
+                        //In order to get any deleted messages that are beyond the last one shown in the room, but still in the
+                        //  time-frame of the current transcript page, we guess at a message ID which is hopefully somewhat beyond
+                        //  the last message actually in the time-frame.
+                        getEvents(room, fkey, 500, lastMessageId + chatTranscriptEndMessagesOffset).then((firstResponse) => {
+                            transcriptEvents = firstResponse.events;
+                            const firstEventId = transcriptEvents[0].message_id;
+                            const lastEventId = transcriptEvents[transcriptEvents.length - 1].message_id;
+                            if (firstEventId < firstMessageId) {
+                                getTranscriptEventsResolve(transcriptEvents);
+                                return;
+                            } //else
+                            //Currently, we only do one more getEvents. This should do more, if needed.
+                            getEvents(room, fkey, 500, firstEventId).then((secondResponse) => {
+                                transcriptEvents = secondResponse.events.concat(transcriptEvents);
+                                const secondFirstEventId = transcriptEvents[0].message_id;
+                                //This is just assumed to be enough.
+                                getTranscriptEventsResolve(transcriptEvents);
+                            }, (error) => {
+                                getTranscriptEventsReject(error);
+                            });
+                        }, (error) => {
+                            getTranscriptEventsReject(error);
+                        });
+                    });
                 }
-                //Some other process is getting the events.
-                //  We wait to be informed that they are available.
-                window.addEventListener('transcript-events-received', getAndShareTranscriptEvents);
-                return;
-            }
-            window.removeEventListener('transcript-events-received', getAndShareTranscriptEvents);
-            if (gettingTranscriptEvents) {
-                window.dispatchEvent(new CustomEvent('transcript-events-received', {
-                    bubbles: true,
-                    cancelable: true,
-                }));
-            }
-            //The events are available.
-            addDeletedEventsToTranscript();
+
+                function getAndShareTranscriptEventsProgress() {
+                    if (typeof window.transcriptChatEvents === 'undefined') {
+                        window.transcriptChatEvents = null; //Indicate that we are requesting the chat events.
+                        gettingTranscriptEvents = true;
+                        getTranscriptEvents().then((response) => {
+                            window.transcriptChatEvents = response;
+                            getAndShareTranscriptEventsProgress();
+                        }, () => {
+                            //We can continue upon failure.
+                            console.error('Getting transcript events failed:');
+                            window.transcriptChatEvents = [];
+                            reject(new Error('Getting transcript events failed'));
+                        });
+                        return;
+                    }
+                    if (window.transcriptChatEvents === null) {
+                        if (gettingTranscriptEvents) {
+                            //We are currently getting the events & will be called when they are available.
+                            return;
+                        }
+                        //Some other process is getting the events.
+                        //  We wait to be informed that they are available.
+                        window.addEventListener('transcript-events-received', getAndShareTranscriptEventsProgress);
+                        return;
+                    }
+                    window.removeEventListener('transcript-events-received', getAndShareTranscriptEventsProgress);
+                    if (gettingTranscriptEvents) {
+                        window.dispatchEvent(new CustomEvent('transcript-events-received', {
+                            bubbles: true,
+                            cancelable: true,
+                        }));
+                    }
+                    //Only respond to the event once after events are available.                                                                                                                                                                             //WinMerge ignore line
+                    //The events are available.
+                    resolve(window.transcriptChatEvents);
+                }
+                getAndShareTranscriptEventsProgress();
+            });
         }
 
         function insertEventBeforeAfter(event, refEl, isAfter) {
@@ -3590,6 +3642,9 @@
             const nextMessageId = getMessageIdFromMessage(refEl);
             const nextMessage = $(refEl);
             const nextMessageMonologue = nextMessage.closest('.monologue');
+            //For situations where the message is being added as a duplicate (e.g. a popup), the makeMonologueHtml()
+            //  function creates the HTML with IDs in the format "SOCVR-Archiver-message-<ID#>".
+            //  Here we're adding non-duplicated messages to the transcript, so we want the actual ID to be "message-<ID#>".
             const newMonologueText = makeMonologueHtml(event, true).replace('SOCVR-Archiver-message-', 'message-');
             const newMonologue = $('<div></div>)').append(newMonologueText).find('.monologue');
             const newMessage = newMonologue.find('.message');
@@ -3630,7 +3685,7 @@
             return newMessage[0];
         }
 
-        function addDeletedEventsToTranscript() {
+        function addDeletedEventsToTranscript(allEvents) {
             //This assumes that all transcript pages have < 500 messages, which in brief testing appears true.
             //It also assumes that adding 15000 to the last message number will result in both getting any messages
             //  which are after the last non-deleted one in the day and that it won't result in too few events at the
@@ -3641,7 +3696,7 @@
             const transcriptEnd = transcriptDateEnd.getTime() / 1000;//SE Chat events are to the second, not millisecond.
             const messages = $('#transcript .message');
             //Get and array of the transcript events which are in the time-frame of this transcript page and are message-insert events (type 1).
-            const transcriptEvents = window.transcriptChatEvents.filter((event) => (event.event_type === 1 && event.time_stamp >= transcriptStart && event.time_stamp <= transcriptEnd));
+            const transcriptEvents = allEvents.filter((event) => (event.event_type === 1 && event.time_stamp >= transcriptStart && event.time_stamp <= transcriptEnd));
             //We have two lists: a list of message elements and a list of events. The list of events should have more
             //  items than the list of message elements. Both lists are sorted in ascending order.
             //We're going to walk through the two lists, adding additional messages in where they don't exist.
@@ -3677,6 +3732,17 @@
                 bubbles: true,
                 cancelable: true,
             }));
+            activateMessageDropdownMenusOnAddedMessages();
+            //We've potentially added messages to the transcript. Reposition the transcript to be at the same place
+            //  it would be had all of the current content been in the page that was delivered by SE.
+            const urlParams = new URLSearchParams(window.location.search);
+            let urlMessageId = urlParams.get('m');
+            urlMessageId = urlMessageId ? urlMessageId : (window.location.pathname.match(/\/message\/(\d+)$/) || [0, 0])[1];
+            if (urlMessageId) {
+                //We add the .highlight here, because the target message may be one that is deleted, which we've now added.
+                const urlMessage = $(`#message-${urlMessageId}`).addClass('highlight');
+                window.scrollTo(window.scrollX, urlMessage.offset().top - 100);
+            }
             doOncePerChatChangeAfterDOMUpdate();
         }
 
@@ -3706,6 +3772,13 @@
             //Days are UTC days
             const transcriptDateStart = new Date(Date.UTC(year, monthIndex, dayNumber, hourStart, minuteStart));
             const transcriptDateEnd = new Date(Date.UTC(year, monthIndex, (dayNumber + ((hourEnd || minuteEnd) ? 0 : 1)), hourEnd, minuteEnd));
+            if (transcriptDateStart.valueOf() > Date.now()) {
+                //The transcript is for the prior year, but isn't indicating that in the date marker. This
+                //  happens for months in the prior year that are ~2 months later in the year.
+                const correctYear = transcriptDateStart.getUTCFullYear() - 1;
+                transcriptDateStart.setUTCFullYear(correctYear);
+                transcriptDateEnd.setUTCFullYear(correctYear);
+            }
             //Store the date for the page, so we don't have to parse it more than once.
             document.body.dataset.archiverTranscriptDateStart = transcriptDateStart.toJSON();
             document.body.dataset.archiverTranscriptDateEnd = transcriptDateEnd.toJSON();
@@ -3857,7 +3930,7 @@
         $body.toggleClass('SOCVR-Archiver-alwaysShowDeleted', getStorage('alwaysShowDeleted') === 'true');
 
         if (isTranscript && showDeleted) {
-            getAndShareTranscriptEvents();
+            getAndShareTranscriptEvents().then(addDeletedEventsToTranscript);
         }
         doOncePerChatChangeAfterDOMUpdate();
 
