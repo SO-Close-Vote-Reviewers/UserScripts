@@ -169,6 +169,7 @@
             },
         };
         const parser = new DOMParser();
+        let replyNode = $();
 
         //Define Target Room Sets
 
@@ -1120,6 +1121,7 @@
         nodes.progresswrp.appendChild(nodes.progress);
 
         nodes.style = document.createElement('style');
+        nodes.style.id = 'SOCVR-Archiver-generalCSS';
         nodes.style.type = 'text/css';
         //Ideally, the colors used for the MoveTo control hover would be adjusted in case the user has a non-stock theme installed.
         //  But, we can't get colors here because the messages may not exist in the page yet.
@@ -1257,10 +1259,8 @@
             //  has a link which is not clickable due to the controls obscuring it.
             //  Now: Press & hold Caps-Lock to not show the meta controls.
             //Show the meta options for your own posts (have to be able to move them).
-            '.monologue.mine:hover .messages .timestamp:hover + div.message .meta,',
-            '.monologue.mine:hover .messages .message:hover .meta {',
-            //This color really should be determined at runtime, as it can be different for various room themes (see code in AIM).
-            '    background-color: #fbf2d9;',
+            '#chat-body .monologue.mine:hover .messages .timestamp:hover + div.message .meta,',
+            '#chat-body .monologue.mine:hover .messages .message:hover .meta {',
             '    display: inline-block;',
             '}',
             //Page JavaScript is not functional for these
@@ -2656,7 +2656,7 @@
             updateMessagesToMove();
             $(document.body).prepend(shownToBeMoved);
             doOncePerChatChangeAfterDOMUpdate();
-            var replyNode = $('.monologue:not(.mine) .message .newreply').first().clone(true);
+            getReplyNode();
             moveMessagesDiv.find('.message .meta').filter(function() {
                 return !$(this).children('.newreply').length;
             }).each(function() {
@@ -2874,6 +2874,7 @@
 
         function doOncePerChatChangeAfterDOMUpdate(chatInfo) {
             //Things that we do to when the Chat changes to keep the page updated.
+            addReplyToMine();
             addMoveToInMeta();
             recordOldestMessageInChat();
             if (!chatInfo || chatInfo.event_type === 10 || chatInfo.event_type === 20) {
@@ -3859,6 +3860,72 @@
             getAndShareTranscriptEvents();
         }
         doOncePerChatChangeAfterDOMUpdate();
-    }
+
+        //Copied from my own (Makyen's) code on Charcoal's AIM
+        function getEffectiveBackgroundColor(element, defaultColor) {
+            element = element instanceof jQuery ? element : $(element);
+            defaultColor = defaultColor ? defaultColor : 'rgb(255,255,255)';
+            let testEl = element.first();
+            const colors = [];
+            do {
+                try {
+                    const current = testEl.css('background-color').replace(/\s+/g, '').toLowerCase();
+                    if (current && current !== 'transparent' && current !== 'rgba(0,0,0,0)') {
+                        colors.push(current);
+                    }
+                    if (current.indexOf('rgb(') === 0) {
+                        // There's a color without transparency.
+                        break;
+                    }
+                } catch (err) {
+                    // This should always get pushed if we make it up to the document element.
+                    colors.push(defaultColor);
+                }
+                testEl = testEl.parent();
+            } while (testEl.length);
+            return 'rgb(' + colors.reduceRight((sum, color) => {
+                color = color.replace(/rgba?\((.*)\)/, '$1').split(/,/g);
+                if (color.length < 4) {
+                    // rgb, not rgba
+                    return color;
+                }
+                if (color.length !== 4 || sum.length !== 3) {
+                    throw new Error('Something went wrong getting the effective color');
+                }
+                for (let index = 0; index < 3; index++) {
+                    const start = Number(sum[index]);
+                    const end = Number(color[index]);
+                    const distance = Number(color[3]);
+                    sum[index] = start + ((end - start) * distance);
+                }
+                return sum;
+            }, []).join(', ') + ')';
+        }
+
+
+        function getReplyNode() {
+            if (!replyNode.length) {
+                replyNode = $('.monologue:not(.mine) .message .newreply').first().clone(true);
+            }
+            return replyNode;
+        }
+
+        function addReplyToMine() {
+            if (!replyNode.length && !getReplyNode().length) {
+                //No reply node found.
+                return;
+            }
+            $('.monologue.mine .message .meta').filter(function() {
+                return !$(this).children('.newreply').length;
+            }).each(function() {
+                const newReply = replyNode.clone(true);
+                const $this = $(this);
+                const newBackground = getEffectiveBackgroundColor($this.closest('.messages').first());
+                this.style.backgroundColor = newBackground;
+                $(this).append(newReply);
+            });
+        }
+    } //cvRequestArchiver()
+
     startup();
 })();
