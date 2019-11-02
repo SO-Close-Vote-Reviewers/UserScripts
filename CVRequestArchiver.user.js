@@ -3201,7 +3201,20 @@
                 return !$(this).children('.meta').length;
             });
             //Add meta to any messages which don't have it.
-            messagesWithoutMeta.children('.request-info,.flash:not(.request-info ~ .flash)').before('<span class="meta"></span>');
+            messagesWithoutMeta.children('.request-info, .flash:not(.request-info ~ .flash)').before('<span class="meta"></span>');
+            //On pages where a .meta doesn't normally exist, and if AIM has already added information to the message, then copy the
+            //  AIM information into the newly created meta.
+            messagesWithoutMeta.each(function() {
+                const message = $(this);
+                const nonMetaAiInfo = message.children('.ai-information');
+                if (nonMetaAiInfo.length > 0) {
+                    const meta = message.find('.meta');
+                    const metaAiInfo = meta.find('.ai-information');
+                    if (metaAiInfo.length === 0) {
+                        meta.append(nonMetaAiInfo.clone(true).addClass('inline'));
+                    }
+                }
+            });
             const messagesMetaWithoutAddedMeta = messages.find('.meta').filter(function() {
                 return !$(this).children('.SOCVR-Archiver-in-message-move-button').length;
             });
