@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      3.2.3
+// @version      3.3.0
 // @description  Scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests and SD, FireAlarm, Queen, etc. reports for status, then moves the completed or expired ones.
 // @author       @TinyGiant @rene @Tunaki @Makyen
 // @updateURL    https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/CVRequestArchiver.user.js
@@ -17,7 +17,7 @@
 /* jshint devel:     true */
 /* jshint esversion: 6 */
 /* jshint esnext: true */
-/* globals CHAT, $, jQuery */
+/* globals CHAT, $, jQuery */ //eslint-disable-line no-redeclare
 
 (function() {
     'use strict';
@@ -53,6 +53,7 @@
             //jQuery doesn't exist yet. Try again later.
             //Should put a limit on the number of times this is retried.
             setTimeout(startup, 250);
+            return;
         }
         room = (/(?:chat(?:\.meta)?\.stack(?:overflow|exchange).com)\/rooms\/(\d+)/.exec(window.location.href) || [false, false])[1];
         isChat = !!room;
@@ -168,6 +169,7 @@
             },
         };
         const parser = new DOMParser();
+        let replyNode = $();
 
         //Define Target Room Sets
 
@@ -297,7 +299,8 @@
                     //Trash
                     new TargetRoom(19718, seChat, 'Trash (room 19718: requires access)', 'Trash', 'T', 'Trash 19', commonRoomOptions.noUI),
                     //trash
-                    new TargetRoom(57121, seChat, 'trash (room 57121)', 'trash', 't', 'trash 57', commonRoomOptions.noUI),
+                    //Room is frozen
+                    //new TargetRoom(57121, seChat, 'trash (room 57121)', 'trash', 't', 'trash 57', commonRoomOptions.noUI),
                     //Private for SD posts that have especially offensive content.
                     new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
@@ -547,9 +550,9 @@
         const hrefUrlTag = '(?:tagged\\/';
         const endHrefToPlainText = '"|\\[(?:(?:meta-)?tag\\W?)?';
 
-        const endPlainTextToEndWithQuestion = `\\]).*${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts)\\/+(\\d+)`;
+        const endPlainTextToEndWithQuestion = `\\]).*?${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts)\\/+(\\d+)`;
         const questionUrlToHrefTag = `${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts)\\/+(\\d+).*(?:tagged\\/`;
-        const endPlainTextToEndWithQuestionOrReview = `\\]).*${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+)`;
+        const endPlainTextToEndWithQuestionOrReview = `\\]).*?${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+)`;
         const questionOrReviewUrlToHrefTag = `${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+).*(?:tagged\\/`;
 
         const endPlainTextToEnd = '\\])';
@@ -573,9 +576,9 @@
                 ((includeReviews ? questionOrReviewUrlToHrefTag : questionUrlToHrefTag) + prefix + endHrefPrefixToSpanText + prefix + additional + endSpanTextToPlainText + prefix + additional + endPlainTextToEnd),
             ].join('|')) + ')';
             return [new RegExp(regexText, 'i')];
-            //Example produced from cv-pls:
-            //2018-10-04: https://regex101.com/r/ZVG2AE/1/
-            //(?:(?:tagged\/cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:tag\W?)?cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+).*(?:tagged\/cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:tag\W?)?cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\])|(?:tagged\/cv-[^>]*><span[^>]*>cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:tag\W?)?cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+).*(?:tagged\/cv-[^>]*><span[^>]*>cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:tag\W?)?cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]))
+            //Example produced from cv-pls (excludes the dup request types added to cvRegexes):
+            //2019-08-23: https://regex101.com/r/VbNPrg/1
+            //(?:(?:tagged\/(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:(?:meta-)?tag\W?)?(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*?stackoverflow\.com\/(?:[qa][^\/]*|posts)\/+(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts)\/+(\d+).*(?:tagged\/(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:(?:meta-)?tag\W?)?(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\])|(?:tagged\/(?:cv|closev?)-?[^>]*><span[^>]*>(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:(?:meta-)?tag\W?)?(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*?stackoverflow\.com\/(?:[qa][^\/]*|posts)\/+(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts)\/+(\d+).*(?:tagged\/(?:cv|closev?)-?[^>]*><span[^>]*>(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:(?:meta-)?tag\W?)?(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]))/i
         }
 
         function makeActualTagWithoutQuestionmarkRegExArray(prefix, additional) {
@@ -608,8 +611,8 @@
         //We need to choose if we want more SD commands to be archived.
         //We probably don't want to archive: (?!blame|lick|wut|coffee|tea|brownie)
         const sdBangBangCommandsRegEx = /^\s*!!\/(?:report|scan|feedback)/i;
-        // https://regex101.com/r/RJbnbS/1
-        const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why))u?-?)+\s*.*$/i;
+        // https://regex101.com/r/3M6xoA/1/
+        const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why\??|-)u?-?)+\s*.*$/i;
         const editMonitorRegEx = /bad edit/i;
         const crudeCloseRegexes = makeTagRegExArray('(?:cv|closev?)-?');
         const aHrefQAPRtag = `<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`;  // eslint-disable-line no-useless-escape
@@ -731,7 +734,7 @@
                 //This really should have a separate call to the SE API to get review information, where possible.
                 underAgeTypeKey: 'DELETE',
             },
-            QUEEN_SOCVFINDER: { //QUEEN: SOCVFinder
+            QUEEN_SOCVFINDER: {//QUEEN: SOCVFinder
                 name: 'Queen: SOCVFinder',
                 regexes: duplicateRegexes,
                 alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
@@ -755,7 +758,7 @@
                 underAgeTypeKey: 'DELETE',
                 onlyComments: true,
             },
-            EDITMONITOR: { // Monitors edits in the suggested edit queue
+            EDITMONITOR: {// Monitors edits in the suggested edit queue
                 name: 'Edit Monitor reports',
                 userIdMatch: knownUserIds.fox9000,
                 regexes: [editMonitorRegEx],
@@ -763,7 +766,7 @@
                 //This really should have a separate call to the SE API to get review information, where possible.
                 underAgeTypeKey: 'DELETE',
             },
-            YAM: { // Monitors cv-pls requests for edits above a threshold.
+            YAM: {// Monitors cv-pls requests for edits above a threshold.
                 name: 'Yam requested question change reports',
                 userIdMatch: knownUserIds.yam,
                 textRegexes: [/\d+%\s*changed\b/i],
@@ -783,9 +786,15 @@
                         //Expires SD reports with >= 1 false positive feedbacks.
                         return $('#message-' + event.message_id + ' > .ai-information .ai-feedback-info-fp').first().text() >= 1;
                     },
+                    //Relies on AIM.
+                    function(event) {
+                        //Expires SD reports marked with the ai-deleted class (i.e. AIM thinks it's deleted).
+                        return !!$('#message-' + event.message_id + ' > .content.ai-deleted').length;
+                    },
                     //Relies on both AIM and an updated version of the Unclosed Request Review Script
                     function(event) {
                         //Expires SD reports with >= 1 tp- feedbacks that have been edited since the message was posted.
+                        //  e.g. a vandalism report that has been reverted.
                         const message = $('#message-' + event.message_id).first();
                         //Relies on an updated version of the Unclosed Request Generator
                         const requestInfo = $('.request-info a', message).first();
@@ -797,7 +806,7 @@
                         lastEditDate = lastEditDate ? +lastEditDate : 0;
                         const aimHoverTpuText = aimHoverTpu.text();
                         const aimHoverTpuTitle = aimHoverTpu.attr('title');
-                        if (lastEditDate > event.time_stamp && aimHoverTpuText >= 1 && /^tp-:/.test(aimHoverTpuTitle)) {
+                        if (lastEditDate > event.time_stamp && aimHoverTpuText >= 1 && /^tp-?:/.test(aimHoverTpuTitle)) {
                             return true;
                         } // else
                         return false;
@@ -1112,6 +1121,7 @@
         nodes.progresswrp.appendChild(nodes.progress);
 
         nodes.style = document.createElement('style');
+        nodes.style.id = 'SOCVR-Archiver-generalCSS';
         nodes.style.type = 'text/css';
         //Ideally, the colors used for the MoveTo control hover would be adjusted in case the user has a non-stock theme installed.
         //  But, we can't get colors here because the messages may not exist in the page yet.
@@ -1208,6 +1218,9 @@
             'body.SOCVR-Archiver-alwaysShowDeleted .SOCVR-Archiver-contains-deleted-content .SOCVR-Archiver-deleted-content  {',
             '    display: inline;',
             '}',
+            'body:not(.SOCVR-Archiver-alwaysShowDeleted) .message.SOCVR-Archiver-contains-deleted-content .content {',
+            '    overflow: unset;',
+            '}',
             '.SOCVR-Archiver-hide-message-meta-menu .meta {',
             '    display: none !important;',
             '}',
@@ -1246,11 +1259,42 @@
             //  has a link which is not clickable due to the controls obscuring it.
             //  Now: Press & hold Caps-Lock to not show the meta controls.
             //Show the meta options for your own posts (have to be able to move them).
-            '.monologue.mine:hover .messages .timestamp:hover + div.message .meta,',
-            '.monologue.mine:hover .messages .message:hover .meta {',
-            //This color really should be determined at runtime, as it can be different for various room themes (see code in AIM).
-            '    background-color: #fbf2d9;',
+            '#chat-body .monologue.mine:hover .messages .timestamp:hover + div.message .meta,',
+            '#chat-body .monologue.mine:hover .messages .message:hover .meta {',
             '    display: inline-block;',
+            '}',
+            //Float the meta controls outside the message (easier than Caps-Lock).
+            'div.message .meta.meta {',
+            '    position: absolute;',
+            '    bottom: -17px;',
+            '    border-bottom: 1px dotted;',
+            '    border-left: 1px dotted;',
+            '    border-right: 1px dotted;',
+            '    right: -1px;',
+            '}',
+            '.message:hover > .ai-information {',
+            '    display: none;',
+            '}',
+            'body:not(.SOCVR-Archiver-alwaysShowDeleted) .message.SOCVR-Archiver-contains-deleted-content:hover .meta {',
+            '    top: -2px;',
+            '    border-bottom: none;',
+            '    border-top: 2px solid;',
+            '    border-left: 2px solid;',
+            '    border-right: 2px solid;',
+            '    right: 0px;',
+            '    background-color: #ffffff;',
+            '}',
+            'body.SOCVR-Archiver-alwaysShowDeleted .SOCVR-Archiver-contains-deleted-content:not(.reply-parent):not(.reply-child) .meta {',
+            '    background-color: #f4eaea;',
+            '}',
+            'body:not(.SOCVR-Archiver-alwaysShowDeleted) .SOCVR-Archiver-contains-deleted-content .content {',
+            '    position: relative;',
+            '}',
+            'body:not(.SOCVR-Archiver-alwaysShowDeleted) .SOCVR-Archiver-contains-deleted-content .SOCVR-Archiver-deleted-content {',
+            '    width: calc(100% - 4px);',
+            '}',
+            '.meta .ai-information.inline {',
+            '    padding-right: 5px;',
             '}',
             //Page JavaScript is not functional for these
             '#chat-body .monologue.mine:hover .messages .timestamp:hover + div.message .meta .vote-count-container,',
@@ -1411,7 +1455,7 @@
             if (count > 500 || count < 1) {
                 return Promise.reject(new Error('Count not in range (500 >= n >= 1)'));
             } // else
-            if (!room) {
+            if (!roomNumber) {
                 return Promise.reject(new Error('Invalid room'));
             } // else
             if (!fkey) {
@@ -1612,18 +1656,6 @@
             if (typeof type.userIdMatch === 'number' && type.userIdMatch !== event.user_id) {
                 return false;
             } //else
-            if (type.regexes && !matchesRegex(event.contentNoCode, type.regexes)) {
-                //Use the RegExp array as one indicator of the type.
-                return false;
-            } //else
-            if (type.andRegexes && !matchesRegex(event.contentNoCode, type.andRegexes)) {
-                //Another RegExp array which must match.
-                return false;
-            } //else
-            if (type.textRegexes && !matchesRegex(event.contentNoCodeText, type.textRegexes)) {
-                //Existing text regexes didn't match.
-                return false;
-            } //else
             if (type.noContent && event.content) {
                 //No content
                 return false;
@@ -1648,6 +1680,19 @@
                 } //else
                 //Passed type.replyToTypes
             }
+            //RegExp are relatively slow, let the other criteria disqualify first.
+            if (type.regexes && !matchesRegex(event.contentNoCode, type.regexes)) {
+                //Use the RegExp array as one indicator of the type.
+                return false;
+            } //else
+            if (type.andRegexes && !matchesRegex(event.contentNoCode, type.andRegexes)) {
+                //Another RegExp array which must match.
+                return false;
+            } //else
+            if (type.textRegexes && !matchesRegex(event.contentNoCodeText, type.textRegexes)) {
+                //Existing text regexes didn't match.
+                return false;
+            } //else
             //All existing tests passed.
             return true;
         }
@@ -1665,20 +1710,26 @@
         function assignEventBaseTypeAndContentWithoutCode(event, eventIndex, currentEvents, needParentList) {
             //First pass identifying request types. The type is added to the event Object, along with a version of the message without code
             //  in both HTML text, and just text content.
-            var message = event.content;
+            const message = event.content;
             //Don't match things in code format, as those normally are used to explain, not as intended tags indicating a request.
-            //The message content should really be converted to DOM and parsed form there.
+            //The message content should really be converted to DOM and parsed from there.
             //Note that converting to DOM changes HTML entities into the represented characters.
-            var messageAsDom = $(getHTMLTextAsDOM(message));
+            const messageAsDom = $(getHTMLTextAsDOM(message));
+            //Remove any <code>
             messageAsDom.find('code').remove();
-            message = messageAsDom.html();
+            const messageWithoutCode = messageAsDom.html();
 
             //Prevent matches of the meta and chat sites (e.g. meta.stackoverflow.com)
             targetRoomSet.regExp.chatMetaElimiation.lastIndex = 0;
-            message = message.replace(targetRoomSet.regExp.chatMetaElimiation, ' ');
+            const messageWithoutCodeAndMeta = messageWithoutCode.replace(targetRoomSet.regExp.chatMetaElimiation, ' ');
             //Determine if it matches one of the RegExp.
-            event.contentNoCode = message;
+            event.contentNoCode = messageWithoutCodeAndMeta;
             event.contentNoCodeText = messageAsDom.text();
+            //Remove the text from links that are not tags (used to prevent detecting post URLs within link-text).
+            messageAsDom.find('a').filter(function() {
+                return !$(this).find('.ob-post-tag').length;
+            }).text('');
+            event.contentNoCodeNoNonTagLinkText = messageAsDom.html();
             event.type = null;
 
             RequestTypeKeys.some((typeKey) => {
@@ -1747,7 +1798,7 @@
         }
 
         function checkEvent(event, eventIndex, currentEvents, needParentList) {
-            //Check an event to see if it directly qualifies to be archived, or if it needs further information about the post in order to determine it's disposition.
+            //Check an event to see if it directly qualifies to be archived, or if it needs further information about the post in order to determine its disposition.
             var type = event.type;
             if (!type) {
                 return false;
@@ -1857,14 +1908,14 @@
             //  We really should do a full parse of the URL, including making a choice based on request type as to considering the question, answer, or comment
             //  for longer formats.
             targetRoomSet.regExp.questionAnswerPostsId.lastIndex = 0;
-            var matches = event.contentNoCode.match(targetRoomSet.regExp.questionAnswerPostsId);
+            var matches = event.contentNoCodeNoNonTagLinkText.match(targetRoomSet.regExp.questionAnswerPostsId);
             //For a cv-pls we assume it's the associated question when the URL is to an answer or to a comment.
             if (!event.onlyQuestions) {
                 //The above will preferentially obtain questions over some answer URL formats: e.g.
                 //    https://stackoverflow.com/questions/7654321/foo-my-baz/1234567#1234567
                 //  That's good for cv-pls/reopen-pls, but for other types of requests we should be considering the answer instead, if the URL is the alternate answer URL.
                 targetRoomSet.regExp.answerIdFromQuestionUrl.lastIndex = 0;
-                const answerMatches = event.contentNoCode.match(targetRoomSet.regExp.answerIdFromQuestionUrl);
+                const answerMatches = event.contentNoCodeNoNonTagLinkText.match(targetRoomSet.regExp.answerIdFromQuestionUrl);
                 if (answerMatches) {
                     //Convert each one into a short answer URL so a single RegExp can be used below.
                     targetRoomSet.regExp.answerIdFromQuestionUrl.lastIndex = 0;
@@ -1875,7 +1926,7 @@
             if (matches !== null && isComment) {
                 //There are URLs, but this type, or a type from which this was changed due to being too young is only comments
                 targetRoomSet.regExp.commentIdFromUrl.lastIndex = 0;
-                const commentMatches = event.contentNoCode.match(targetRoomSet.regExp.commentIdFromUrl);
+                const commentMatches = event.contentNoCodeNoNonTagLinkText.match(targetRoomSet.regExp.commentIdFromUrl);
                 if (commentMatches) {
                     //Convert each one into a short answer URL so a single RegExp can be used below to get the ID of the question/answer/post/comment, even though it's not an answer.
                     //  That it is a comment is tracked by isComment.
@@ -2069,7 +2120,13 @@
                         if (item[idProperty] == request.post && request.onlyQuestions) { // eslint-disable-line eqeqeq
                             //This is a request which is only about questions, but this post was identified as an answer.
                             //  Change the postId for the request to the question_id for this answer.
+                            request.originalPostId = request.post;
                             request.post = item[questionIdProperty];
+                            //Also change the postIds in the requestPost list;
+                            request.event.requestedPosts.forEach((requestedPost) => {
+                                requestedPost.originalPostId = requestedPost.postId;
+                                requestedPost.postId = item[questionIdProperty];
+                            });
                         }
                     });
                 });
@@ -2634,7 +2691,7 @@
             updateMessagesToMove();
             $(document.body).prepend(shownToBeMoved);
             doOncePerChatChangeAfterDOMUpdate();
-            var replyNode = $('.monologue:not(.mine) .message .newreply').first().clone(true);
+            getReplyNode();
             moveMessagesDiv.find('.message .meta').filter(function() {
                 return !$(this).children('.newreply').length;
             }).each(function() {
@@ -2681,6 +2738,14 @@
                 shownToBeMoved = null;
                 scanCountSpan = null;
             }
+        }
+
+        function activateMessageDropdownMenusOnAddedMessages() {
+            //This can't just enable the menu on the archiver popup, because the functions in the menu rely on getting the message ID
+            //  from the id attribute of the .message which is done with .replace("message-", "");
+            const stockImg = $('.message:not(.SOCVR-Archiver-contains-deleted-content):not(.SOCVR-Archiver-added-message) .action-link').first();
+            const addedMenus = $('.message.SOCVR-Archiver-added-message .action-link');
+            addedMenus.replaceWith(() => stockImg.clone(true).removeClass('edits'));
         }
 
         function makeMonologueHtml(messageEvent, useUTC) {
@@ -2829,7 +2894,7 @@
                 '    </div>',
                 '    <div class="messages">',
                 '        <div class="SOCVR-Archiver-close-icon" data-message-id="' + messageId + '" title="Don\'t move"></div>',
-                '        <div class="message" id="SOCVR-Archiver-message-' + messageId + '">',
+                '        <div class="message SOCVR-Archiver-added-message" id="SOCVR-Archiver-message-' + messageId + '">',
                 '            <div class="timestamp">' + timestamp + '</div>',
                 '            <a name="' + messageId + '" href="/transcript/' + room + '?m=' + messageId + '#' + messageId + '"><span style="display:inline-block;" class="action-link"><span class="img"> </span></span></a>',
                              (messageEvent.show_parent ? '<a class="reply-info" title="This is a reply to an earlier message" href="/transcript/message/' + messageEvent.parent_id + '#' + messageEvent.parent_id + '"></a>' : ''),
@@ -2852,6 +2917,7 @@
 
         function doOncePerChatChangeAfterDOMUpdate(chatInfo) {
             //Things that we do to when the Chat changes to keep the page updated.
+            addReplyToMine();
             addMoveToInMeta();
             recordOldestMessageInChat();
             if (!chatInfo || chatInfo.event_type === 10 || chatInfo.event_type === 20) {
@@ -2966,7 +3032,7 @@
                 url: 'https://' + window.location.hostname + '/messages/' + messageId + '/history',
                 success: callback,
                 error: function(xhr, status, error) {
-                    console.error('AJAX error getting history', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  room:', room, '\n::  fkey,:', fkey, '\n::  messageId:', messageId);
+                    console.error('AJAX error getting history', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  room:', room, '\n::  fkey.length,:', fkey.length, '\n::  messageId:', messageId);
                 },
             });
         }
@@ -3111,7 +3177,8 @@
                         '\n::  status:', status,
                         '\n::  error:', error,
                         '\n::  targetRoomId:', targetRoomId,
-                        '\n::  fkey:', fkey,
+                        //The fkey is private, so its value should not be printed in something that might be copy-and-pasted to another person for debugging.
+                        '\n::  fkey.length:', fkey.length, //should be 32;
                         '\n::  messagesBeingMoved.length:', messagesBeingMoved.length,
                         '\n::  messagesBeingMoved:', messagesBeingMoved,
                         '\n::  formatted messagesBeingMoved:', messagesBeingMoved.join(','),
@@ -3169,7 +3236,20 @@
                 return !$(this).children('.meta').length;
             });
             //Add meta to any messages which don't have it.
-            messagesWithoutMeta.children('.request-info,.flash:not(.request-info ~ .flash)').before('<span class="meta"></span>');
+            messagesWithoutMeta.children('.request-info, .flash:not(.request-info ~ .flash)').before('<span class="meta"></span>');
+            //On pages where a .meta doesn't normally exist, and if AIM has already added information to the message, then copy the
+            //  AIM information into the newly created meta.
+            messagesWithoutMeta.each(function() {
+                const message = $(this);
+                const nonMetaAiInfo = message.children('.ai-information');
+                if (nonMetaAiInfo.length > 0) {
+                    const meta = message.find('.meta');
+                    const metaAiInfo = meta.find('.ai-information');
+                    if (metaAiInfo.length === 0) {
+                        meta.append(nonMetaAiInfo.clone(true).addClass('inline'));
+                    }
+                }
+            });
             const messagesMetaWithoutAddedMeta = messages.find('.meta').filter(function() {
                 return !$(this).children('.SOCVR-Archiver-in-message-move-button').length;
             });
@@ -3208,13 +3288,13 @@
                 if (message.length) {
                     message = message[0];
                 } else {
-                    return '';
+                    return 0;
                 }
             }
             if (message) {
-                return el.id.replace(/(?:SOCVR-Archiver-)?message-/, '');
+                return +el.id.replace(/(?:SOCVR-Archiver-)?message-/, '');
             } //else
-            return '';
+            return 0;
         }
 
         function moveMoveList(roomId, callback) {
@@ -3295,7 +3375,7 @@
         function addMessageToNoUserListIfMonologueIsNoUser(message) {
             //This would be better if we generated a list of messages to add all at once, but it should be very rare. Thus, one at a time shouldn't have much impact.
             if (message.first().closest('.monologue').hasClass('user-')) {
-                var messageId = getMessageIdFromMessage(message);
+                const messageId = getMessageIdFromMessage(message);
                 if (messageId) {
                     addToLSnoUserIdList(messageId);
                 }
@@ -3307,7 +3387,7 @@
             var messageIdsObject = {};
 
             function addMessageIdToSetAndCheckForNoUserId(message) {
-                var messageId = getMessageIdFromMessage(message);
+                const messageId = getMessageIdFromMessage(message);
                 if (messageId) {
                     messageIdsObject[messageId] = true;
                 }
@@ -3474,8 +3554,8 @@
         function showAllManualMoveMessages(forceLengthUpdate) {
             //Make sure any visible messages have, or don't have, the class indicating they are on the manual move list.
             $('.message').each(function() {
-                var messageId = getMessageIdFromMessage(this);
-                if (manualMoveList.indexOf(+messageId) > -1) {
+                const messageId = getMessageIdFromMessage(this);
+                if (manualMoveList.indexOf(messageId) > -1) {
                     $(this).addClass('SOCVR-Archiver-multiMove-selected');
                 } else {
                     $(this).removeClass('SOCVR-Archiver-multiMove-selected');
@@ -3505,8 +3585,8 @@
          *   CustomEvent 'transcript-events-received' is fired from the script which received the transcript events.
          *   CustomEvent 'transcript-events-received' is received in all scripts not doing the AJAX call to get the transcript events.
          */
-        let gettingTranscriptEvents = false;
         function getAndShareTranscriptEvents() {
+            let gettingTranscriptEvents = false;
             //Get the events covering the time-frame shown in this transcript page.
             //  Currently this does not guarantee to get all messages that are in the time-frame
             //  of this transcript page. It normally will, but it's not checked for.
@@ -3514,40 +3594,84 @@
             // transcript page is sufficient, in total messages on the chat server, to get all deleted messages for this
             // room that are in the time-frame for this transcript page.  While this is often true, it is by no means
             // guaranteed.
-            const chatTranscriptEndMessagesOffset = 15000;
-            if (typeof window.transcriptChatEvents === 'undefined') {
-                window.transcriptChatEvents = null; //Indicate that we are requesting the chat events.
-                gettingTranscriptEvents = true;
-                const lastMessageId = +getMessageIdFromMessage($('#transcript .message').last());
-                getEvents(room, fkey, 500, lastMessageId + chatTranscriptEndMessagesOffset).then((response) => {
-                    window.transcriptChatEvents = response.events;
-                    getAndShareTranscriptEvents();
-                }, () => {
-                    //We can continue upon failure.
-                    window.transcriptChatEvents = [];
-                    getAndShareTranscriptEvents();
-                });
-                return;
-            }
-            if (window.transcriptChatEvents === null) {
-                if (gettingTranscriptEvents) {
-                    //We are currently getting the events & will be called when they are available.
-                    return;
+            return new Promise((resolve, reject) => {
+                function getTranscriptEvents() {
+                    const chatTranscriptEndMessagesOffset = 15000;
+                    return new Promise((getTranscriptEventsResolve, getTranscriptEventsReject) => {
+                        //This should be based on the time we determine for the transcript, not just the IDs. This is so we
+                        //  have enough messages to cover any ones which were deleted in the time-frame of the current transcript display.
+                        let transcriptEvents = [];
+                        const messages = $('#transcript .message, #conversation .message');
+                        const firstMessage = messages.first();
+                        const lastMessage = messages.last();
+                        const firstMessageId = getMessageIdFromMessage(firstMessage);
+                        const lastMessageId = getMessageIdFromMessage(lastMessage);
+
+                        //Unfortunately, there doesn't appear to be an endpoint to get messages by date, only by message number.
+                        //In order to get any deleted messages that are beyond the last one shown in the room, but still in the
+                        //  time-frame of the current transcript page, we guess at a message ID which is hopefully somewhat beyond
+                        //  the last message actually in the time-frame.
+                        getEvents(room, fkey, 500, lastMessageId + chatTranscriptEndMessagesOffset).then((firstResponse) => {
+                            transcriptEvents = firstResponse.events;
+                            const firstEventId = transcriptEvents[0].message_id;
+                            const lastEventId = transcriptEvents[transcriptEvents.length - 1].message_id;
+                            if (firstEventId < firstMessageId) {
+                                getTranscriptEventsResolve(transcriptEvents);
+                                return;
+                            } //else
+                            //Currently, we only do one more getEvents. This should do more, if needed.
+                            getEvents(room, fkey, 500, firstEventId).then((secondResponse) => {
+                                transcriptEvents = secondResponse.events.concat(transcriptEvents);
+                                const secondFirstEventId = transcriptEvents[0].message_id;
+                                //This is just assumed to be enough.
+                                getTranscriptEventsResolve(transcriptEvents);
+                            }, (error) => {
+                                getTranscriptEventsReject(error);
+                            });
+                        }, (error) => {
+                            getTranscriptEventsReject(error);
+                        });
+                    });
                 }
-                //Some other process is getting the events.
-                //  We wait to be informed that they are available.
-                window.addEventListener('transcript-events-received', getAndShareTranscriptEvents);
-                return;
-            }
-            window.removeEventListener('transcript-events-received', getAndShareTranscriptEvents);
-            if (gettingTranscriptEvents) {
-                window.dispatchEvent(new CustomEvent('transcript-events-received', {
-                    bubbles: true,
-                    cancelable: true,
-                }));
-            }
-            //The events are available.
-            addDeletedEventsToTranscript();
+
+                function getAndShareTranscriptEventsProgress() {
+                    if (typeof window.transcriptChatEvents === 'undefined') {
+                        window.transcriptChatEvents = null; //Indicate that we are requesting the chat events.
+                        gettingTranscriptEvents = true;
+                        getTranscriptEvents().then((response) => {
+                            window.transcriptChatEvents = response;
+                            getAndShareTranscriptEventsProgress();
+                        }, () => {
+                            //We can continue upon failure.
+                            console.error('Getting transcript events failed:');
+                            window.transcriptChatEvents = [];
+                            reject(new Error('Getting transcript events failed'));
+                        });
+                        return;
+                    }
+                    if (window.transcriptChatEvents === null) {
+                        if (gettingTranscriptEvents) {
+                            //We are currently getting the events & will be called when they are available.
+                            return;
+                        }
+                        //Some other process is getting the events.
+                        //  We wait to be informed that they are available.
+                        window.addEventListener('transcript-events-received', getAndShareTranscriptEventsProgress);
+                        return;
+                    }
+                    window.removeEventListener('transcript-events-received', getAndShareTranscriptEventsProgress);
+                    if (gettingTranscriptEvents) {
+                        window.dispatchEvent(new CustomEvent('transcript-events-received', {
+                            bubbles: true,
+                            cancelable: true,
+                        }));
+                    }
+                    //Only respond to the event once after events are available.                                                                                                                                                                             //WinMerge ignore line
+                    //The events are available.
+                    resolve(window.transcriptChatEvents);
+                }
+                getAndShareTranscriptEventsProgress();
+            });
         }
 
         function insertEventBeforeAfter(event, refEl, isAfter) {
@@ -3563,9 +3687,12 @@
             //    the transcript (i.e. appending to the current monologue, if the same
             //    user, or as a new monologue if a different user.
             const beforeAfter = isAfter ? 'after' : 'before';
-            const nextMessageId = +getMessageIdFromMessage(refEl);
+            const nextMessageId = getMessageIdFromMessage(refEl);
             const nextMessage = $(refEl);
             const nextMessageMonologue = nextMessage.closest('.monologue');
+            //For situations where the message is being added as a duplicate (e.g. a popup), the makeMonologueHtml()
+            //  function creates the HTML with IDs in the format "SOCVR-Archiver-message-<ID#>".
+            //  Here we're adding non-duplicated messages to the transcript, so we want the actual ID to be "message-<ID#>".
             const newMonologueText = makeMonologueHtml(event, true).replace('SOCVR-Archiver-message-', 'message-');
             const newMonologue = $('<div></div>)').append(newMonologueText).find('.monologue');
             const newMessage = newMonologue.find('.message');
@@ -3580,10 +3707,10 @@
                 //We need to break the monologue into two.
                 const dupMessageMonologue = nextMessageMonologue.clone(true);
                 dupMessageMonologue.find('.message').filter(function() {
-                    return nextMessageId <= +getMessageIdFromMessage(this);
+                    return nextMessageId <= getMessageIdFromMessage(this);
                 }).remove();
                 nextMessageMonologue.find('.message').filter(function() {
-                    return nextMessageId > +getMessageIdFromMessage(this);
+                    return nextMessageId > getMessageIdFromMessage(this);
                 }).remove();
                 nextMessageMonologue.find('.timestamp').remove();
                 nextMessageMonologue.before(dupMessageMonologue);
@@ -3606,7 +3733,7 @@
             return newMessage[0];
         }
 
-        function addDeletedEventsToTranscript() {
+        function addDeletedEventsToTranscript(allEvents) {
             //This assumes that all transcript pages have < 500 messages, which in brief testing appears true.
             //It also assumes that adding 15000 to the last message number will result in both getting any messages
             //  which are after the last non-deleted one in the day and that it won't result in too few events at the
@@ -3617,7 +3744,7 @@
             const transcriptEnd = transcriptDateEnd.getTime() / 1000;//SE Chat events are to the second, not millisecond.
             const messages = $('#transcript .message');
             //Get and array of the transcript events which are in the time-frame of this transcript page and are message-insert events (type 1).
-            const transcriptEvents = window.transcriptChatEvents.filter((event) => (event.event_type === 1 && event.time_stamp >= transcriptStart && event.time_stamp <= transcriptEnd));
+            const transcriptEvents = allEvents.filter((event) => (event.event_type === 1 && event.time_stamp >= transcriptStart && event.time_stamp <= transcriptEnd));
             //We have two lists: a list of message elements and a list of events. The list of events should have more
             //  items than the list of message elements. Both lists are sorted in ascending order.
             //We're going to walk through the two lists, adding additional messages in where they don't exist.
@@ -3626,7 +3753,7 @@
             let eventIndex = 0;
             for (let messageIndex = 0; messageIndex < messages.length; messageIndex++) {
                 //Loop through all the messages on the page from oldest to newest.
-                const messageId = +getMessageIdFromMessage(messages[messageIndex]);
+                const messageId = getMessageIdFromMessage(messages[messageIndex]);
                 if (!transcriptEvents[eventIndex]) {
                     //Out of events, which means that for some reason we didn't start getting them at, or beyond, the events on the transcript page.
                     return;
@@ -3653,6 +3780,17 @@
                 bubbles: true,
                 cancelable: true,
             }));
+            activateMessageDropdownMenusOnAddedMessages();
+            //We've potentially added messages to the transcript. Reposition the transcript to be at the same place
+            //  it would be had all of the current content been in the page that was delivered by SE.
+            const urlParams = new URLSearchParams(window.location.search);
+            let urlMessageId = urlParams.get('m');
+            urlMessageId = urlMessageId ? urlMessageId : (window.location.pathname.match(/\/message\/(\d+)$/) || [0, 0])[1];
+            if (urlMessageId) {
+                //We add the .highlight here, because the target message may be one that is deleted, which we've now added.
+                const urlMessage = $(`#message-${urlMessageId}`).addClass('highlight');
+                window.scrollTo(window.scrollX, urlMessage.offset().top - 100);
+            }
             doOncePerChatChangeAfterDOMUpdate();
         }
 
@@ -3682,6 +3820,13 @@
             //Days are UTC days
             const transcriptDateStart = new Date(Date.UTC(year, monthIndex, dayNumber, hourStart, minuteStart));
             const transcriptDateEnd = new Date(Date.UTC(year, monthIndex, (dayNumber + ((hourEnd || minuteEnd) ? 0 : 1)), hourEnd, minuteEnd));
+            if (transcriptDateStart.valueOf() > Date.now()) {
+                //The transcript is for the prior year, but isn't indicating that in the date marker. This
+                //  happens for months in the prior year that are ~2 months later in the year.
+                const correctYear = transcriptDateStart.getUTCFullYear() - 1;
+                transcriptDateStart.setUTCFullYear(correctYear);
+                transcriptDateEnd.setUTCFullYear(correctYear);
+            }
             //Store the date for the page, so we don't have to parse it more than once.
             document.body.dataset.archiverTranscriptDateStart = transcriptDateStart.toJSON();
             document.body.dataset.archiverTranscriptDateEnd = transcriptDateEnd.toJSON();
@@ -3833,9 +3978,75 @@
         $body.toggleClass('SOCVR-Archiver-alwaysShowDeleted', getStorage('alwaysShowDeleted') === 'true');
 
         if (isTranscript && showDeleted) {
-            getAndShareTranscriptEvents();
+            getAndShareTranscriptEvents().then(addDeletedEventsToTranscript);
         }
         doOncePerChatChangeAfterDOMUpdate();
-    }
+
+        //Copied from my own (Makyen's) code on Charcoal's AIM
+        function getEffectiveBackgroundColor(element, defaultColor) {
+            element = element instanceof jQuery ? element : $(element);
+            defaultColor = defaultColor ? defaultColor : 'rgb(255,255,255)';
+            let testEl = element.first();
+            const colors = [];
+            do {
+                try {
+                    const current = testEl.css('background-color').replace(/\s+/g, '').toLowerCase();
+                    if (current && current !== 'transparent' && current !== 'rgba(0,0,0,0)') {
+                        colors.push(current);
+                    }
+                    if (current.indexOf('rgb(') === 0) {
+                        // There's a color without transparency.
+                        break;
+                    }
+                } catch (err) {
+                    // This should always get pushed if we make it up to the document element.
+                    colors.push(defaultColor);
+                }
+                testEl = testEl.parent();
+            } while (testEl.length);
+            return 'rgb(' + colors.reduceRight((sum, color) => {
+                color = color.replace(/rgba?\((.*)\)/, '$1').split(/,/g);
+                if (color.length < 4) {
+                    // rgb, not rgba
+                    return color;
+                }
+                if (color.length !== 4 || sum.length !== 3) {
+                    throw new Error('Something went wrong getting the effective color');
+                }
+                for (let index = 0; index < 3; index++) {
+                    const start = Number(sum[index]);
+                    const end = Number(color[index]);
+                    const distance = Number(color[3]);
+                    sum[index] = start + ((end - start) * distance);
+                }
+                return sum;
+            }, []).join(', ') + ')';
+        }
+
+
+        function getReplyNode() {
+            if (!replyNode.length) {
+                replyNode = $('.monologue:not(.mine) .message .newreply').first().clone(true);
+            }
+            return replyNode;
+        }
+
+        function addReplyToMine() {
+            if (!replyNode.length && !getReplyNode().length) {
+                //No reply node found.
+                return;
+            }
+            $('.monologue.mine .message .meta').filter(function() {
+                return !$(this).children('.newreply').length;
+            }).each(function() {
+                const newReply = replyNode.clone(true);
+                const $this = $(this);
+                const newBackground = getEffectiveBackgroundColor($this.closest('.messages').first());
+                this.style.backgroundColor = newBackground;
+                $(this).append(newReply);
+            });
+        }
+    } //cvRequestArchiver()
+
     startup();
 })();
