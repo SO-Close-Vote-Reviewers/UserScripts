@@ -419,10 +419,14 @@
         const pre201910CloseBannerExists = $('.special-status .question-status H2 B', questionContext).filter(function() {
             return /hold|closed|marked/i.test($(this).text());
         }).length > 0;
-        const post201910CloseBannerExists = $('.js-post-notice b', questionContext).filter(function() {
-            return /already has an answer|close\/reopen/i.test($(this).text());
+        const post201910CloseBannerExists = $('.js-post-notice', questionContext).filter(function() {
+            return /already has (?:an answer|answers)|close\/reopen/i.test($(this).text());
+        }).length > 0 || $('.js-post-notice b', questionContext).filter(function() {
+            return /^Closed/.test($(this).text().trim());
         }).length > 0;
-        return pre201910CloseBannerExists || post201910CloseBannerExists;
+        const closeButton = $('.close-question-link', questionContext);
+        const closeButtonIsClose = closeButton.data('isclosed') || closeButton.text().indexOf('reopen') > -1;
+        return pre201910CloseBannerExists || post201910CloseBannerExists || closeButtonIsClose;
     }
 
     function isQuestionDeleted(questionContext) {
