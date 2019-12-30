@@ -611,7 +611,7 @@
             $('#cvrq-notify-css-' + messageId).remove();
             if (typeof notifyCss === 'object' && notifyCss) {
                 $(document.documentElement).append('<style id="#cvrq-notify-css-' + messageId + '" type="text/css">\n#notify-container #notify-' + messageId + ' {\n' +
-                    Object.keys(notifyCss).reduce((text, key) => (text + key + ':' + notifyCss[key] + ';\n'), '') + '\n}\n</style>');
+                                                   Object.keys(notifyCss).reduce((text, key) => (text + key + ':' + notifyCss[key] + ';\n'), '') + '\n}\n</style>');
             }
             StackExchange.ready(function() {
                 function waitUtilVisible() {
@@ -725,7 +725,7 @@
                     '</span>' +
                     '<br/>' +
                     '<textarea class="SECVR-request-text" style="width: 95%;">' +
-                        requestText +
+                    requestText +
                     '</textarea>' +
                     '<br/>' +
                     '';
@@ -1224,208 +1224,208 @@
 
     //Add the CSS needed for the CV Request GUI.
     $(document.documentElement).append($('' +
-        '<style id="cvrg-styles">' +
-        '    .post-menu > span > a,' +
-        '    .post-menu .post-menu-container > span > a {' +
-        '        padding:0 3px 2px 3px;' +
-        '        color:#888;' +
-        '    }' +
-        '    .post-menu > span > a:hover,' +
-        '    .post-menu .post-menu-container > span > a:hover {' +
-        '        color:#444;' +
-        '        text-decoration:none;' +
-        '    } ' +
-        '    .subheader.tools-rev span.cvrgui {' +
-        '        top:12px;' +
-        '        margin-left: 10px;' +
-        '        position: relative;' +
-        '    } ' +
-        '    .cvrgui {' +
-        '        display:inline-block;' +
-        '    } ' +
-        '    .cvrgui * {' +
-        '        box-sizing: border-box;' +
-        '    } ' +
-        '    .cv-list {' +
-        '        display: none;' +
-        '        margin:0;' +
-        '        z-index:1002;' +
-        '        position:absolute;' +
-        '        white-space:nowrap;' +
-        '        outline:1px solid #ccc;' +
-        '        border-radius:3px;' +
-        '        background:#FFF;' +
-        '        box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5);' +
-        '        left:15vw;' +
-        '        width:70vw;' +
-        '        max-width:700px;' +
-        '        border: 3px solid #fff;' +
-        '    }' +
-        '    .cv-list.cvrg-isDelayedRequest {' +
-        '        border: 3px solid #20d020;' +
-        '    }' +
-        '    .subheader.tools-rev span.cvrgui .cv-list {' +
-        '        left: 0;' +
-        '        top: 150%;' +
-        '    }' +
-        '    .cv-list dd, .cv-list dl {' +
-        '        margin: 0;' +
-        '        padding: 0;' +
-        '    }' +
-        '    .cv-list dl dd {' +
-        '        padding: 0px;' +
-        '        margin: 0;' +
-        '        width: 100%;' +
-        '        display: table;' +
-        '    }' +
-        '    .cv-list dl label, .cv-list dl form {' +
-        '        display: table-cell;' +
-        '    }' +
-        '    .cv-list dl button {' +
-        '        margin: 2.5px 0;' +
-        '    }' +
-        '    .cv-list dl label {' +
-        '        width: 100%;' +
-        '        padding: 0px;' +
-        '    }' +
-        '    .cv-list dd > div {' +
-        '        padding: 0px 15px;' +
-        '        padding-bottom: 15px;' +
-        '    }' +
-        '    .cv-list dd > div > form {' +
-        '        white-space: nowrap;' +
-        '    }' +
-        '    .cv-list dd > div > form > input {' +
-        '        display: inline-block;' +
-        '        vertical-align: middle;' +
-        '    }' +
-        '    .cv-list dd > div > form > input[type="text"] {' +
-        '        width: 300px;' +
-        '        margin-right: 5px;' +
-        '    }' +
-        '    .cv-list hr {' +
-        '        margin: 0 0 0 15px;' +
-        '        border: 0px;' +
-        '        border-bottom: 1px solid #ccc;' +
-        '    }' +
-        '    .cv-list dd > a {' +
-        '        display: block;' +
-        '        padding: 10px 15px;' +
-        '    }' +
-        '    .cv-list label {' +
-        '        display: inline-block;' +
-        '        padding: 10px 15px;' +
-        '    }' +
-        '    .cv-list label:last-child {' +
-        '        padding-left: 0;' +
-        '    }' +
-        '    .cv-list label.cvrgRequestType {' +
-        '        display: block;' +
-        '        padding: 5px 0px;' +
-        '    }' +
-        '    .cv-list div.cvrgOptionSubItem  {' +
-        '        margin-left: 15px;' +
-        '        padding: 5px 0px 5px 0px;' +
-        '    }' +
-        '    .cv-list .cvrgOptionSubItem > label {' +
-        '        white-space: normal;' +
-        '        padding-left: 1.5em;' +
-        '        text-indent: -1.5em;' +
-        '    }' +
-        '    .cvrgOptionsList  {' +
-        '    }' +
-        '    .cvrgReasonRow {' +
-        '        display: flex;' +
-        '        width: 100%;' +
-        '    }' +
-        '    .cvrgReasonRow input[type="text"] {' +
-        '        flex: auto;' +
-        '        margin-right: 2vw;' +
-        '    }' +
-        '    .cvrgReasonRow input[type="submit"] {' +
-        '        flex: initial;' +
-        '    }' +
-        '    .cv-list .cvrgRequestPreview * {' +
-        '        display: inline;' +
-        '        vertical-align: initial;' +
-        '    }' +
-        '    .cvrgRequestPreview, .cvrgRequestPreviewValidation {' +
-        '        overflow-wrap: break-word;' +
-        '        white-space:normal;' +
-        '    }' +
-        '    .cvrgRequestPreviewAndValidation {' +
-        '        margin-top: 1em;' +
-        '    }' +
-        '    .cvrgRequestPreview {' +
-        '        margin-top: .5em;' +
-        '    }' +
-        '    .cvrgRequestPreview {' +
-        '        padding-left: 1em;' +
-        '    }' +
-        '    .cv-list .cvrgRequestPreview a.post-tag {' +
-        '        display: inline-block;' +
-        '    }' +
-        '    .cv-list .cvrgRequestPreviewValidation {' +
-        '        color: red;' +
-        '        margin-top: 1em;' +
-        '    }' +
-        '    .cvrgRequestPreviewValidation {' +
-        '        margin-top: 1em;' +
-        '    }' +
-        '    .cvrgRequestPreviewValidationInvalid {' +
-        '        color: #8F5444;' +
-        '    }' +
-        '    .cvrgRequestPreviewValidationCritical {' +
-        '        color: red;' +
-        '    }' +
-        '    .cvrgItemMainDiv form input[type=number] {' +
-        '        width: 4.5em;' +
-        '        margin-left: 2em;' +
-        '        margin-right: .3em;' +
-        '    }' +
-        '    .cvrgItemMainDiv form input[type=number].cvrgDelayLengthNumber {' +
-        '        margin-left: 0;' +
-        '    }' +
-        '    .cvrgItemMainDiv form input[type=number].cvrgDelayLengthDays {' +
-        '        width: 5em;' +
-        '    }' +
-        '    .cvrgDelayLengthEndTimeSpan {' +
-        '        white-space: normal;' +
-        '    }' +
-        '    .cvrgDelayLengthEndTimeSpan,' +
-        '    .cvrgDelayLengthSpan {' +
-        '        display: block;' +
-        '        margin-top: .3em;' +
-        '    }' +
-        '    .cvrgDelayLengthEndTime {' +
-        '        font-weight: bold;' +
-        '    }' +
-        '    .cvrgDelayLengthSpan {' +
-        '        padding-left: 1em;' +
-        '        white-space: normal;' +
-        '    }' +
-        '    .cvrgItemMainDiv .cvrgDelayInputGroup {' +
-        '        white-space: nowrap;' +
-        '    }' +
-        '    .cvrgItemMainDiv .cvrgDelayInputGroup {' +
-        '        margin-left: 1em;' +
-        '    }' +
-        '    .cvrgItemMainDiv .cvrgDelayInputGroup:first-of-type {' +
-        '        margin-left: 0em;' +
-        '    }' +
-        '    .cv-list input[type="submit"][value="Save"]:not([disabled]) {' +
-        '        background-color: #20d020;' +
-        '        color: #fff;' +
-        '        border-color: #0c7;' +
-        '        box-shadow: inset 0px 1px 0px #66ef66;' +
-        '    } ' +
-        '    .cv-list input[type="submit"][value="Save"]:hover {' +
-        '        background-color: #4A4;' +
-        '        border-color: #20d020;' +
-        '        box-shadow: inset 0px 1px 0px #30d030;' +
-        '    } ' +
-        '</style>' +
-        ''));
+                                         '<style id="cvrg-styles">' +
+                                         '    .post-menu > span > a,' +
+                                         '    .post-menu .post-menu-container > span > a {' +
+                                         '        padding:0 3px 2px 3px;' +
+                                         '        color:#888;' +
+                                         '    }' +
+                                         '    .post-menu > span > a:hover,' +
+                                         '    .post-menu .post-menu-container > span > a:hover {' +
+                                         '        color:#444;' +
+                                         '        text-decoration:none;' +
+                                         '    } ' +
+                                         '    .subheader.tools-rev span.cvrgui {' +
+                                         '        top:12px;' +
+                                         '        margin-left: 10px;' +
+                                         '        position: relative;' +
+                                         '    } ' +
+                                         '    .cvrgui {' +
+                                         '        display:inline-block;' +
+                                         '    } ' +
+                                         '    .cvrgui * {' +
+                                         '        box-sizing: border-box;' +
+                                         '    } ' +
+                                         '    .cv-list {' +
+                                         '        display: none;' +
+                                         '        margin:0;' +
+                                         '        z-index:1002;' +
+                                         '        position:absolute;' +
+                                         '        white-space:nowrap;' +
+                                         '        outline:1px solid #ccc;' +
+                                         '        border-radius:3px;' +
+                                         '        background:#FFF;' +
+                                         '        box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5);' +
+                                         '        left:15vw;' +
+                                         '        width:70vw;' +
+                                         '        max-width:700px;' +
+                                         '        border: 3px solid #fff;' +
+                                         '    }' +
+                                         '    .cv-list.cvrg-isDelayedRequest {' +
+                                         '        border: 3px solid #20d020;' +
+                                         '    }' +
+                                         '    .subheader.tools-rev span.cvrgui .cv-list {' +
+                                         '        left: 0;' +
+                                         '        top: 150%;' +
+                                         '    }' +
+                                         '    .cv-list dd, .cv-list dl {' +
+                                         '        margin: 0;' +
+                                         '        padding: 0;' +
+                                         '    }' +
+                                         '    .cv-list dl dd {' +
+                                         '        padding: 0px;' +
+                                         '        margin: 0;' +
+                                         '        width: 100%;' +
+                                         '        display: table;' +
+                                         '    }' +
+                                         '    .cv-list dl label, .cv-list dl form {' +
+                                         '        display: table-cell;' +
+                                         '    }' +
+                                         '    .cv-list dl button {' +
+                                         '        margin: 2.5px 0;' +
+                                         '    }' +
+                                         '    .cv-list dl label {' +
+                                         '        width: 100%;' +
+                                         '        padding: 0px;' +
+                                         '    }' +
+                                         '    .cv-list dd > div {' +
+                                         '        padding: 0px 15px;' +
+                                         '        padding-bottom: 15px;' +
+                                         '    }' +
+                                         '    .cv-list dd > div > form {' +
+                                         '        white-space: nowrap;' +
+                                         '    }' +
+                                         '    .cv-list dd > div > form > input {' +
+                                         '        display: inline-block;' +
+                                         '        vertical-align: middle;' +
+                                         '    }' +
+                                         '    .cv-list dd > div > form > input[type="text"] {' +
+                                         '        width: 300px;' +
+                                         '        margin-right: 5px;' +
+                                         '    }' +
+                                         '    .cv-list hr {' +
+                                         '        margin: 0 0 0 15px;' +
+                                         '        border: 0px;' +
+                                         '        border-bottom: 1px solid #ccc;' +
+                                         '    }' +
+                                         '    .cv-list dd > a {' +
+                                         '        display: block;' +
+                                         '        padding: 10px 15px;' +
+                                         '    }' +
+                                         '    .cv-list label {' +
+                                         '        display: inline-block;' +
+                                         '        padding: 10px 15px;' +
+                                         '    }' +
+                                         '    .cv-list label:last-child {' +
+                                         '        padding-left: 0;' +
+                                         '    }' +
+                                         '    .cv-list label.cvrgRequestType {' +
+                                         '        display: block;' +
+                                         '        padding: 5px 0px;' +
+                                         '    }' +
+                                         '    .cv-list div.cvrgOptionSubItem  {' +
+                                         '        margin-left: 15px;' +
+                                         '        padding: 5px 0px 5px 0px;' +
+                                         '    }' +
+                                         '    .cv-list .cvrgOptionSubItem > label {' +
+                                         '        white-space: normal;' +
+                                         '        padding-left: 1.5em;' +
+                                         '        text-indent: -1.5em;' +
+                                         '    }' +
+                                         '    .cvrgOptionsList  {' +
+                                         '    }' +
+                                         '    .cvrgReasonRow {' +
+                                         '        display: flex;' +
+                                         '        width: 100%;' +
+                                         '    }' +
+                                         '    .cvrgReasonRow input[type="text"] {' +
+                                         '        flex: auto;' +
+                                         '        margin-right: 2vw;' +
+                                         '    }' +
+                                         '    .cvrgReasonRow input[type="submit"] {' +
+                                         '        flex: initial;' +
+                                         '    }' +
+                                         '    .cv-list .cvrgRequestPreview * {' +
+                                         '        display: inline;' +
+                                         '        vertical-align: initial;' +
+                                         '    }' +
+                                         '    .cvrgRequestPreview, .cvrgRequestPreviewValidation {' +
+                                         '        overflow-wrap: break-word;' +
+                                         '        white-space:normal;' +
+                                         '    }' +
+                                         '    .cvrgRequestPreviewAndValidation {' +
+                                         '        margin-top: 1em;' +
+                                         '    }' +
+                                         '    .cvrgRequestPreview {' +
+                                         '        margin-top: .5em;' +
+                                         '    }' +
+                                         '    .cvrgRequestPreview {' +
+                                         '        padding-left: 1em;' +
+                                         '    }' +
+                                         '    .cv-list .cvrgRequestPreview a.post-tag {' +
+                                         '        display: inline-block;' +
+                                         '    }' +
+                                         '    .cv-list .cvrgRequestPreviewValidation {' +
+                                         '        color: red;' +
+                                         '        margin-top: 1em;' +
+                                         '    }' +
+                                         '    .cvrgRequestPreviewValidation {' +
+                                         '        margin-top: 1em;' +
+                                         '    }' +
+                                         '    .cvrgRequestPreviewValidationInvalid {' +
+                                         '        color: #8F5444;' +
+                                         '    }' +
+                                         '    .cvrgRequestPreviewValidationCritical {' +
+                                         '        color: red;' +
+                                         '    }' +
+                                         '    .cvrgItemMainDiv form input[type=number] {' +
+                                         '        width: 4.5em;' +
+                                         '        margin-left: 2em;' +
+                                         '        margin-right: .3em;' +
+                                         '    }' +
+                                         '    .cvrgItemMainDiv form input[type=number].cvrgDelayLengthNumber {' +
+                                         '        margin-left: 0;' +
+                                         '    }' +
+                                         '    .cvrgItemMainDiv form input[type=number].cvrgDelayLengthDays {' +
+                                         '        width: 5em;' +
+                                         '    }' +
+                                         '    .cvrgDelayLengthEndTimeSpan {' +
+                                         '        white-space: normal;' +
+                                         '    }' +
+                                         '    .cvrgDelayLengthEndTimeSpan,' +
+                                         '    .cvrgDelayLengthSpan {' +
+                                         '        display: block;' +
+                                         '        margin-top: .3em;' +
+                                         '    }' +
+                                         '    .cvrgDelayLengthEndTime {' +
+                                         '        font-weight: bold;' +
+                                         '    }' +
+                                         '    .cvrgDelayLengthSpan {' +
+                                         '        padding-left: 1em;' +
+                                         '        white-space: normal;' +
+                                         '    }' +
+                                         '    .cvrgItemMainDiv .cvrgDelayInputGroup {' +
+                                         '        white-space: nowrap;' +
+                                         '    }' +
+                                         '    .cvrgItemMainDiv .cvrgDelayInputGroup {' +
+                                         '        margin-left: 1em;' +
+                                         '    }' +
+                                         '    .cvrgItemMainDiv .cvrgDelayInputGroup:first-of-type {' +
+                                         '        margin-left: 0em;' +
+                                         '    }' +
+                                         '    .cv-list input[type="submit"][value="Save"]:not([disabled]) {' +
+                                         '        background-color: #20d020;' +
+                                         '        color: #fff;' +
+                                         '        border-color: #0c7;' +
+                                         '        box-shadow: inset 0px 1px 0px #66ef66;' +
+                                         '    } ' +
+                                         '    .cv-list input[type="submit"][value="Save"]:hover {' +
+                                         '        background-color: #4A4;' +
+                                         '        border-color: #20d020;' +
+                                         '        box-shadow: inset 0px 1px 0px #30d030;' +
+                                         '    } ' +
+                                         '</style>' +
+                                         ''));
 
     //Constructors for the CV Request GUI.
     //  Each item in the GUI has a constructor which is called by the GUI constructor.
@@ -1436,63 +1436,73 @@
         this.gui = _gui;
         this.guiType = _guiType;
         this.item = $('' +
-            '<dd>' +
-            '    <a href="javascript:void(0)">Send request</a>' +
-            '    <div class="cvrgItemMainDiv" style="display:none">' +
-            '        <form>' +
-            '            <div class="cvrgReasonRow">' +
-            '                <input type="text" placeholder="Request reason" spellcheck="true" title="' + reasonTooltip + '" required/>' +
-            '                <input type="submit" value="Send"/>' +
-            '            </div>' +
-            '            <label class="cvrgRequestType">' +
-            '                Request Type: ' +
-            '                <select name="requestType">' +
-            '                    <option value="cv-pls" title="Close vote request">cv-pls</option>' + //Used only as the default. Replaced in populateSelectOptions
-            '                </select>' +
-            '            </label>' +
-            '            <span class="cvrgDelayLengthSpan" style="display:none;">' +
-            '                <span class="cvrgDelayInputGroup">' +
-            '                    <input class="cvrgDelayLengthNumber cvrgDelayLengthDays" type="number" title="Number of days from now that you want to revisit this post." min="0" max="999" value="0">' +
-            '                        Days' +
-            '                    </input>' +
-            '                </span>' +
-            '                <span class="cvrgDelayInputGroup">' +
-            '                    <input class="cvrgDelayLengthNumber cvrgDelayLengthHours" type="number" title="Number of hours from now that you want to revisit this post." min="0" max="23" value="0">' +
-            '                        Hours' +
-            '                    </input>' +
-            '                </span>' +
-            '                <span class="cvrgDelayInputGroup">' +
-            '                    <input class="cvrgDelayLengthNumber cvrgDelayLengthMinutes" type="number" title="Number of minutes from now that you want to revisit this post." min="0" max="59" value="0">' +
-            '                        Minutes' +
-            '                    </input>' +
-            '                </span>' +
-            '            </span>' +
-            '            <span class="cvrgDelayLengthEndTimeSpan" style="display:none;" title="A tab will automatically be opened with this post the first time you visit a page on which this userscript loads after this date/time.">' +
-            '                Revisit after: ' +
-            '                <span class="cvrgDelayLengthEndTime">' +
-            '                </span>' +
-            '            </span>' +
-            '        </form>' +
-            '        <div class="cvrgRequestPreviewAndValidation">' +
-            '            <div class="cvrgRequestPreviewContainer">' +
-            '                <span class="cvrgRequestPreviewHeadingSpan" style="display: none;" title="The preview does not currently render some chat formatting (e.g. [security.se] does not show as a link)."">Request Preview:</span>' +
-            '                <div class="cvrgRequestPreview">' +
-            '                </div>' +
-            '            </div>' +
-            '            <div class="cvrgRequestPreviewValidation">' +
-            '                <div class="cvrgRequestPreviewValidationInvalid" style="display: none;" title="If this is not a revisit, then these problems will result in you having to confirm that you want to send the request.">' +
-            '                </div>' +
-            '                <div class="cvrgRequestPreviewValidationCritical" style="display: none;" title="These issues will need to be resolved prior to the script sending the request for you.">' +
-            '                </div>' +
-            '            </div>' +
-            '        </div>' +
-            '    </div>' +
-            '    <hr>' +
-            '</dd>' +
-            '');
+                      '<dd>' +
+                      '    <a href="javascript:void(0)">Send request</a>' +
+                      '    <div class="cvrgItemMainDiv" style="display:none">' +
+                      '        <form>' +
+                      '            <div class="cvrgReasonRow">' +
+                      '                <input type="text" placeholder="Request reason" spellcheck="true" title="' + reasonTooltip + '" required/>' +
+                      '                <input type="submit" value="Send"/>' +
+                      '            </div>' +
+                      '            <label class="cvrgRequestType">' +
+                      '                Request Type: ' +
+                      '                <select name="requestType">' +
+                      '                    <option value="cv-pls" title="Close vote request">cv-pls</option>' + //Used only as the default. Replaced in populateSelectOptions
+                      '                </select>' +
+                      '            </label>' +
+                      '        <label class="cvrgSDReport">' +
+                      '               SD Report: ' +
+                      '               <input type="checkbox" id="chkSDReport" class="chkSDReport">' +
+                      '        </label>' +
+                      '        <label class="cvrgNATO">' +
+                      '               NATO: ' +
+                      '               <input type="checkbox" id="chkNATO" class="chkNATO">' +
+                      '        </label>' +
+                      '            <span class="cvrgDelayLengthSpan" style="display:none;">' +
+                      '                <span class="cvrgDelayInputGroup">' +
+                      '                    <input class="cvrgDelayLengthNumber cvrgDelayLengthDays" type="number" title="Number of days from now that you want to revisit this post." min="0" max="999" value="0">' +
+                      '                        Days' +
+                      '                    </input>' +
+                      '                </span>' +
+                      '                <span class="cvrgDelayInputGroup">' +
+                      '                    <input class="cvrgDelayLengthNumber cvrgDelayLengthHours" type="number" title="Number of hours from now that you want to revisit this post." min="0" max="23" value="0">' +
+                      '                        Hours' +
+                      '                    </input>' +
+                      '                </span>' +
+                      '                <span class="cvrgDelayInputGroup">' +
+                      '                    <input class="cvrgDelayLengthNumber cvrgDelayLengthMinutes" type="number" title="Number of minutes from now that you want to revisit this post." min="0" max="59" value="0">' +
+                      '                        Minutes' +
+                      '                    </input>' +
+                      '                </span>' +
+                      '            </span>' +
+                      '            <span class="cvrgDelayLengthEndTimeSpan" style="display:none;" title="A tab will automatically be opened with this post the first time you visit a page on which this userscript loads after this date/time.">' +
+                      '                Revisit after: ' +
+                      '                <span class="cvrgDelayLengthEndTime">' +
+                      '                </span>' +
+                      '            </span>' +
+                      '        </form>' +
+                      '        <div class="cvrgRequestPreviewAndValidation">' +
+                      '            <div class="cvrgRequestPreviewContainer">' +
+                      '                <span class="cvrgRequestPreviewHeadingSpan" style="display: none;" title="The preview does not currently render some chat formatting (e.g. [security.se] does not show as a link)."">Request Preview:</span>' +
+                      '                <div class="cvrgRequestPreview">' +
+                      '                </div>' +
+                      '            </div>' +
+                      '            <div class="cvrgRequestPreviewValidation">' +
+                      '                <div class="cvrgRequestPreviewValidationInvalid" style="display: none;" title="If this is not a revisit, then these problems will result in you having to confirm that you want to send the request.">' +
+                      '                </div>' +
+                      '                <div class="cvrgRequestPreviewValidationCritical" style="display: none;" title="These issues will need to be resolved prior to the script sending the request for you.">' +
+                      '                </div>' +
+                      '            </div>' +
+                      '        </div>' +
+                      '    </div>' +
+                      '    <hr>' +
+                      '</dd>' +
+                      '');
         var item = this.item;
         this.requestReasonInput = $('input[type="text"]', item);
         var requestTypeInput = this.requestTypeInput = $('select[name="requestType"]', item);
+        var SDReport = this.SDReport = $('#chkSDReport', item);
+        var NATO = this.NATO = $('#chkNATO', item);
         requestTypeInput.val('cv-pls');
         var sendButton = this.sendButton = item.find('input[type="submit"]');
         this.populateSelectOptions();
@@ -1515,6 +1525,24 @@
             //The type of request has changed.
             thisGuiItem.userChangedRequestType = true;
             thisGuiItem.adjustDisplayToRequestReason();
+        });
+        this.SDReport.on('change', function() {
+            var reason = $('.cvrgReasonRow').find('input[type=text]').val();
+            if ($(this).is(':checked')) {
+                $('.cvrgReasonRow').find('input[type=text]').val(reason + ' (SD Report)')
+            }
+            else{
+                $('.cvrgReasonRow').find('input[type=text]').val($.trim(reason.replace(/\(SD Report\)/, '')));
+            }
+        });
+        this.NATO.on('change', function() {
+            var reason = $('.cvrgReasonRow').find('input[type=text]').val();
+            if ($(this).is(':checked')) {
+                $('.cvrgReasonRow').find('input[type=text]').val(reason + ' (NATO)')
+            }
+            else{
+                $('.cvrgReasonRow').find('input[type=text]').val($.trim(reason.replace(/\(NATO\)/, '')));
+            }
         });
         $('.cvrgDelayLengthNumber', this.item).on('change keyup click paste', this.updateDelayUntilTime.bind(this));
         this.reasonEdited = false;
@@ -1752,7 +1780,7 @@
             let tmpRequestReason = this.requestReasonInput.val();
             //Add '(No Roomba: ...'
             if (this.guiType === 'question' && newRequestType === 'del-pls' && isQuestionClosed(this.questionContext) &&
-                    (didChangeReason || !tmpRequestReason || (cvplsRememberedReason && tmpRequestReason === cvplsRememberedReason.reason)) && !/roomba/i.test(tmpRequestReason)) {
+                (didChangeReason || !tmpRequestReason || (cvplsRememberedReason && tmpRequestReason === cvplsRememberedReason.reason)) && !/roomba/i.test(tmpRequestReason)) {
                 let startParan = ' (';
                 let endParan = ')';
                 if (!tmpRequestReason) {
@@ -1914,17 +1942,17 @@
                 (!isGuiReviewSE ? '<option value="spam" title="Spam flag request">spam</option>' : '') +
                 (!isGuiReviewSE ? '<option value="offensive" title="Rude/offensive flag request">offensive</option>' : '') +
                 ((((isSOCVR && (configOptions.checkboxes.canReportSmokeDetectorSOCVR || configOptions.checkboxes.alwaysCharcoal)) || (!isSOCVR && !isKnownSite && configOptions.checkboxes.canReportSmokeDetectorOther) || onlySdSpamOffensive || configOptions.checkboxes.alwaysCharcoal) && (this.guiType === 'answer' || this.guiType === 'question')) ? '' +
-                    '<option value="!!/report" title="Report this post to SmokeDetector">!!/report</option>' +
-                    '<option value="!!/report-force" title="Report this post to SmokeDetector">!!/report-force</option>' +
-                    '<option value="!!/scan" title="Have SmokeDetector scan this post">!!/scan</option>' +
-                    '<option value="!!/scan-force" title="Report this post to SmokeDetector">!!/scan-force</option>' +
-                    '<option value="!!/addblu-" title="Have SmokeDetector add the user to the blacklist.">!!/addblu-</option>' +
-                    '<option value="!!/rmblu-" title="Have SmokeDetector remove the user from the blacklist.">!!/rmblu-</option>' +
-                    '<option value="!!/addwlu-" title="Have SmokeDetector add the user to the whitelist.">!!/addwlu-</option>' +
-                    '<option value="!!/rmwlu-" title="Have SmokeDetector remove the user from the whitelist.">!!/rmwlu-</option>' +
-                    //SOCVR does not permit reporting of users. See room meeting: https://socvr.org/room-info/room-meetings/2016-08 and https://chat.stackoverflow.com/transcript/message/32060005#32060005
-                    ((isSOCVR && !configOptions.checkboxes.alwaysCharcoal) ? '' : '<option value="!!/reportuser" title="Report this post\'s author to SmokeDetector (all their posts are spam).">!!/reportuser</option>') +
-                    '' : ''));
+                 '<option value="!!/report" title="Report this post to SmokeDetector">!!/report</option>' +
+                 '<option value="!!/report-force" title="Report this post to SmokeDetector">!!/report-force</option>' +
+                 '<option value="!!/scan" title="Have SmokeDetector scan this post">!!/scan</option>' +
+                 '<option value="!!/scan-force" title="Report this post to SmokeDetector">!!/scan-force</option>' +
+                 '<option value="!!/addblu-" title="Have SmokeDetector add the user to the blacklist.">!!/addblu-</option>' +
+                 '<option value="!!/rmblu-" title="Have SmokeDetector remove the user from the blacklist.">!!/rmblu-</option>' +
+                 '<option value="!!/addwlu-" title="Have SmokeDetector add the user to the whitelist.">!!/addwlu-</option>' +
+                 '<option value="!!/rmwlu-" title="Have SmokeDetector remove the user from the whitelist.">!!/rmwlu-</option>' +
+                 //SOCVR does not permit reporting of users. See room meeting: https://socvr.org/room-info/room-meetings/2016-08 and https://chat.stackoverflow.com/transcript/message/32060005#32060005
+                 ((isSOCVR && !configOptions.checkboxes.alwaysCharcoal) ? '' : '<option value="!!/reportuser" title="Report this post\'s author to SmokeDetector (all their posts are spam).">!!/reportuser</option>') +
+                 '' : ''));
             /* eslint-enable no-nested-ternary */
             //Restore the request type, which would have been cleared by reconstructing the <option> elements.
             this.requestTypeInput.val(requestType);
@@ -2271,7 +2299,7 @@
                     //  Unless the only activity is deleted answers.
                     const deletedAnswers =  $('.answer.deleted-answer', questionContext);
                     const mostRecentDeletedAnswerTime = deletedAnswers.find('.post-signature:last-of-type .relativetime').toArray()
-                        .reduce((maxTime, timeEl) => (timeEl.title ? Math.max((new Date(timeEl.title.trim().replace(/ /, 'T'))).valueOf(), maxTime) : maxTime), 0);
+                    .reduce((maxTime, timeEl) => (timeEl.title ? Math.max((new Date(timeEl.title.trim().replace(/ /, 'T'))).valueOf(), maxTime) : maxTime), 0);
                     let activityLink = $('#sidebar #qinfo .lastactivity-link');
                     if (activityLink.length === 0) {
                         //For question activity link under the question title.
@@ -2627,15 +2655,15 @@
         addRoom: function(room, isChecked) {
             //Add a line for the specified room
             this.list.append($('' +
-                '<dd class="cvrgItemRoomContainer" title="' + room.url + '">' +
-                '    <label>' +
-                '        <input type="radio" name="target-room" value="' + room.url + '"' + (isChecked ? ' checked' : '') + '>' + room.name +
-                '    </label>' +
-                '    <form>' +
-                '        <button>-</button>' +
-                '    </form>' +
-                '</dd>' +
-                ''));
+                               '<dd class="cvrgItemRoomContainer" title="' + room.url + '">' +
+                               '    <label>' +
+                               '        <input type="radio" name="target-room" value="' + room.url + '"' + (isChecked ? ' checked' : '') + '>' + room.name +
+                               '    </label>' +
+                               '    <form>' +
+                               '        <button>-</button>' +
+                               '    </form>' +
+                               '</dd>' +
+                               ''));
         },
         addAllRooms: function() {
             //Add a listing for each room in the RoomList
@@ -2694,15 +2722,15 @@
     //Options Gui Item
     function GuiItemOptions(_gui, _guiType) {
         this.item = $('' +
-            '<dd>' +
-            '    <a href="javascript:void(0)">Options</a>' +
-            '    <div class="cvrgItemMainDiv" style="display:none;">' +
-            '        <dl class="cvrgOptionsList">' +
-            '        </dl>' +
-            '    </div>' +
-            '    <hr>' +
-            '</dd>' +
-            '');
+                      '<dd>' +
+                      '    <a href="javascript:void(0)">Options</a>' +
+                      '    <div class="cvrgItemMainDiv" style="display:none;">' +
+                      '        <dl class="cvrgOptionsList">' +
+                      '        </dl>' +
+                      '    </div>' +
+                      '    <hr>' +
+                      '</dd>' +
+                      '');
         this.optionsList = this.item.find('.cvrgOptionsList');
         //Create a checkbox for each knownOption checkbox
         Object.keys(knownOptions.checkboxes).forEach(function(key) {
@@ -2799,26 +2827,26 @@
         createCheckboxItem: function(optionKey, checkboxItem) {
             //Create a checkbox option entry.
             return $('' +
-                '<dd>' +
-                '    <div class="cvrgOptionSubItem">' +
-                '        <label title="' + checkboxItem.tooltip + '">' +
-                '            <input type="checkbox" name="cvrg-optionCheckbox-' + optionKey + '" ' + (configOptions.checkboxes[optionKey] ? ' checked' : '') + '>' + checkboxItem.text +
-                '        </label>' +
-                '    </div>' +
-                '    <hr>' +
-                '</dd>' +
-                '');
+                     '<dd>' +
+                     '    <div class="cvrgOptionSubItem">' +
+                     '        <label title="' + checkboxItem.tooltip + '">' +
+                     '            <input type="checkbox" name="cvrg-optionCheckbox-' + optionKey + '" ' + (configOptions.checkboxes[optionKey] ? ' checked' : '') + '>' + checkboxItem.text +
+                     '        </label>' +
+                     '    </div>' +
+                     '    <hr>' +
+                     '</dd>' +
+                     '');
         },
         createButtonItem: function(optionKey, buttonItem) {
             //Create a action button option entry.
             return $('' +
-                '<dd>' +
-                '    <div class="cvrgOptionSubItem">' +
-                '        <a href="javascript:void(0)" name="cvrg-optionButton-' + optionKey + '" title="' + buttonItem.tooltip + '"></a>' +
-                '    </div>' +
-                '    <hr>' +
-                '</dd>' +
-                '');
+                     '<dd>' +
+                     '    <div class="cvrgOptionSubItem">' +
+                     '        <a href="javascript:void(0)" name="cvrg-optionButton-' + optionKey + '" title="' + buttonItem.tooltip + '"></a>' +
+                     '    </div>' +
+                     '    <hr>' +
+                     '</dd>' +
+                     '');
         },
         createButtonItemText: function(optionKey) {
             //Create the text for an action button.
@@ -2828,17 +2856,17 @@
         createNumberItem: function(optionKey, numberItem) {
             //Create a number option entry.
             return $('' +
-                '<dd>' +
-                '    <div class="cvrgOptionSubItem">' +
-                '        <div class="cvrgOptionsNumberContainer" title="' + numberItem.tooltip + '">' +
-                             numberItem.textPre +
-                '            <input type="number" min="' + numberItem.min + '" max="' + numberItem.max + '" name="cvrg-optionNumber-' + optionKey + '" style="' + numberItem.style + '"/>' +
-                             numberItem.textPost +
-                '        </div>' +
-                '    </div>' +
-                '    <hr>' +
-                '</dd>' +
-                '');
+                     '<dd>' +
+                     '    <div class="cvrgOptionSubItem">' +
+                     '        <div class="cvrgOptionsNumberContainer" title="' + numberItem.tooltip + '">' +
+                     numberItem.textPre +
+                     '            <input type="number" min="' + numberItem.min + '" max="' + numberItem.max + '" name="cvrg-optionNumber-' + optionKey + '" style="' + numberItem.style + '"/>' +
+                     numberItem.textPost +
+                     '        </div>' +
+                     '    </div>' +
+                     '    <hr>' +
+                     '</dd>' +
+                     '');
         },
         configOptionsChanged: function() {
             //The config options have changed external to this tab.
@@ -2853,20 +2881,20 @@
     function GuiOptionSubItemShortcutKey(_gui) {
         //Set shortcut key
         this.item = $('' +
-            '<dd>' +
-            '    <div class="cvrgOptionSubItem">' +
-            '        <div>Set keyboard shortcut</div>' +
-            '        <div class="cvrgOptionSubItem">' +
-            '            <label>' +
-            '                Ctrl-Shift-' +
-            '                <input name="cvrgShortcutKey" type="text" size="1" maxlength="1"/>' +
-            '                <span class="cvrgShortcutDefined">None</span>' +
-            '            </label>' +
-            '        </div>' +
-            '    </div>' +
-            '    <hr>' +
-            '</dd>' +
-            '');
+                      '<dd>' +
+                      '    <div class="cvrgOptionSubItem">' +
+                      '        <div>Set keyboard shortcut</div>' +
+                      '        <div class="cvrgOptionSubItem">' +
+                      '            <label>' +
+                      '                Ctrl-Shift-' +
+                      '                <input name="cvrgShortcutKey" type="text" size="1" maxlength="1"/>' +
+                      '                <span class="cvrgShortcutDefined">None</span>' +
+                      '            </label>' +
+                      '        </div>' +
+                      '    </div>' +
+                      '    <hr>' +
+                      '</dd>' +
+                      '');
         var shortcutKeyGui = this; // eslint-disable-line consistent-this
         $('input[type="text"]', this.item).on('keydown', function(e) {
             //Let the Tab key perform the normal input focus change w/o setting the shortcut key.
@@ -2903,13 +2931,13 @@
     function GuiOptionSubItemUpdate(_gui) {
         //Check for updates
         this.item = $('' +
-            '<dd>' +
-            '    <div class="cvrgOptionSubItem">' +
-            '        <a href="javascript:void(0)">Check for updates</a>' +
-            '    </div>' +
-            '</dd>' +
-            '<hr>' +
-            '');
+                      '<dd>' +
+                      '    <div class="cvrgOptionSubItem">' +
+                      '        <a href="javascript:void(0)">Check for updates</a>' +
+                      '    </div>' +
+                      '</dd>' +
+                      '<hr>' +
+                      '');
         this.gui = _gui;
         this.item.find('a').on('click', function(e) {
             e.preventDefault();
@@ -3471,7 +3499,7 @@
         //  user script storage, then listen for changes to the shortcut key (e.g. in another tab).
         if (!canListenGMStorage || //Not available: Greasemonkey
             configOptionsChangeListener //Already added, don't add again
-        ) {
+           ) {
             return;
         }
         configOptionsChangeListener = GM_addValueChangeListener('configOptions', function(name, oldValue, newValue, remote) {
@@ -3579,7 +3607,7 @@
         //  user script storage, then listen for changes to the shortcut key (e.g. in another tab).
         if (!canListenGMStorage || //Not available: Greasemonkey
             shortcutKeyChangeListener //Already added, don't add again
-        ) {
+           ) {
             return;
         }
         shortcutKeyChangeListener = GM_addValueChangeListener('shortcutKey', function(name, oldValue, newValue, remote) {
@@ -4482,7 +4510,7 @@
         //  user script storage, then listen for changes to the shortcut key (e.g. in another tab).
         if (!canListenGMStorage || //Not available: Greasemonkey
             rememberedRequestsChangeListener //Already added, don't add again
-        ) {
+           ) {
             return;
         }
         rememberedRequestsChangeListener = GM_addValueChangeListener(rememberedRequestStorage, function(name, oldValue, newValue, remote) {
@@ -4530,7 +4558,7 @@
                 prevNotifyContainerHeight === notifyContainerHeight &&
                 prevTopbarMarginTop === topbarMarginTop &&
                 prevContainerMarginTop === containerMarginTop
-            ) {
+               ) {
                 //Do no more. We've already set this state.
                 return;
             }
