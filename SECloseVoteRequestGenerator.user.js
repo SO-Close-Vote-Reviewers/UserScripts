@@ -1450,6 +1450,14 @@
             '                    <option value="cv-pls" title="Close vote request">cv-pls</option>' + //Used only as the default. Replaced in populateSelectOptions
             '                </select>' +
             '            </label>' +
+            '        <label class="cvrgSDReport cvrgAddMessage">' +
+            '               SD Report: ' +
+            '               <input type="checkbox"  class="sdReportCheckbox">' +
+            '        </label>' +
+            '        <label class="cvrgNATO cvrgAddMessage">' +
+            '               NATO: ' +
+            '               <input type="checkbox" class="natoCheckbox">' +
+            '        </label>' +
             '            <span class="cvrgDelayLengthSpan" style="display:none;">' +
             '                <span class="cvrgDelayInputGroup">' +
             '                    <input class="cvrgDelayLengthNumber cvrgDelayLengthDays" type="number" title="Number of days from now that you want to revisit this post." min="0" max="999" value="0">' +
@@ -1491,7 +1499,9 @@
             '</dd>' +
             '');
         var item = this.item;
-        this.requestReasonInput = $('input[type="text"]', item);
+        var requestReasonInput = this.requestReasonInput = $('input[type="text"]', item);
+        var sdReport = this.sdReport = $('.sdReportCheckbox', item);
+        var natoReport = this.natoReport = $('.natoCheckbox', item);
         var requestTypeInput = this.requestTypeInput = $('select[name="requestType"]', item);
         requestTypeInput.val('cv-pls');
         var sendButton = this.sendButton = item.find('input[type="submit"]');
@@ -1515,6 +1525,24 @@
             //The type of request has changed.
             thisGuiItem.userChangedRequestType = true;
             thisGuiItem.adjustDisplayToRequestReason();
+        });
+        this.sdReport.on('change', function() {
+            var reason = $('.cvrgReasonRow').find(requestReasonInput).val();
+            if ($(this).is(':checked')) {
+                $('.cvrgReasonRow').find(requestReasonInput).val(reason + ' (SD Report)')
+            }
+            else{
+                $('.cvrgReasonRow').find(requestReasonInput).val($.trim(reason.replace(/\(SD Report\)/, '')));
+            }
+        });
+        this.natoReport.on('change', function() {
+            var reason = $('.cvrgReasonRow').find(requestReasonInput).val();
+            if ($(this).is(':checked')) {
+                $('.cvrgReasonRow').find(requestReasonInput).val(reason + ' (NATO)')
+            }
+            else{
+                $('.cvrgReasonRow').find(requestReasonInput).val($.trim(reason.replace(/\(NATO\)/, '')));
+            }
         });
         $('.cvrgDelayLengthNumber', this.item).on('change keyup click paste', this.updateDelayUntilTime.bind(this));
         this.reasonEdited = false;
