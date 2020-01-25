@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        1.8.13.0
+// @version        1.8.13.1
 // @description    ALPHA: This script generates formatted close-/delete-/reopen-/undelete-vote requests, spam/offensive flag requests, Smoke Detector reports, and approve-/reject-pls requests for suggested edits, then sends them to a specified chat room.
 // @author         @TinyGiant @Makyen
 // @contributor    @rene @Tunaki
@@ -191,8 +191,8 @@
     //  to stay away from anything the user is going to type as a single character. In particular,
     //  that means they need to not be "a".
     const defaultQuickSubstitutions = {
-        't': 'Too Broad',
-        'u': 'Unclear',
+        't': 'Needs More Focus',
+        'u': 'Needs Details or Clarity',
         'p': 'Primarily Opinion Based',
         'o': 'Opinion Based',
         'd': 'Duplicate',
