@@ -27,3 +27,4 @@ I license all of my contributions to this repository under the MIT License:
 
 * Makyen
 * rschrieken
+* Tyler-H
