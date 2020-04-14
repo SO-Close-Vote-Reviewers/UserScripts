@@ -26,3 +26,4 @@ Individuals who have no contributions prior to 2020-04-15T00:00:00.000Z may opti
 I license all of my contributions to this repository under the MIT License:
 
 * Makyen
+* rschrieken
