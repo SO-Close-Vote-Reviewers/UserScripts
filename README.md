@@ -24,9 +24,9 @@ Sending a close vote request does not obligate any user to contribute a close vo
 **Please use the reason that you voted or flagged!** You are submitting a request for review of *your* close vote decision. Users will reply to your review request based on the reason that you enter. If you don't have 3000 reputation yet (and don't have close votes) you should be submitting requests for the close reason that *you* flagged it to be closed for. This is an educational tool for all of us to learn exactly what is on-topic and what is off-topic.
 
 ### Installation
-To install this script [click here](https://github.com/SO-Close-Vote-Reviewers/UserScripts/blob/master/SECloseVoteRequestGenerator.user.js) or otherwise visit the following URL, and Greasemonkey/Tampermonkey should ask you to install it.
+To install this script [click here](https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/SECloseVoteRequestGenerator.user.js) or otherwise visit the following URL, and Greasemonkey/Tampermonkey should ask you to install it.
 
-     https://github.com/SO-Close-Vote-Reviewers/UserScripts/blob/master/SECloseVoteRequestGenerator.user.js
+     https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/SECloseVoteRequestGenerator.user.js
      
 ### Updating
 This script has an auto-update feature. It will check for a new version every time the script is run, don't worry it is a very lightweight request. If there is an update available, the script will ask you if you want to install it automatically or not. If not, it will not remind you for that version.
