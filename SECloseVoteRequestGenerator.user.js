@@ -1455,6 +1455,36 @@
         '        vertical-align :middle;' +
         '        margin-left: 5px;' +
         '    } ' +
+        '    .cvrgCVPopupAndWasWrapper {' +
+        '        text-align: left;' +
+        '    }' +
+        '    .cvrgCVPopupAndWasWrapper[disabled] {' +
+        '        opacity: .4;' +
+        '        pointer-events: none;' +
+        '    }' +
+        '    .cvrgCVPopupSDAndNatoWithFake {' +
+        '        display: inline-block;' +
+        '        position: relative;' +
+        '    }' +
+        '    .cvrgCVPopupFakeSDReportCheckboxwrapper {' +
+        '        visibility: hidden;' +
+        '    }' +
+        '    .cvrgCVPopupSDAndNato {' +
+        '        display: inline-block;' +
+        '        transform: scale(0.85) rotate(360deg);' +
+        '        position: absolute;' +
+        '        top: -50%;' +
+        '    }' +
+        '    .cvrgCVPopupIsSDReportCheckboxLabel {' +
+        '        white-space: nowrap;' +
+        '        display: block;' +
+        '        transform: translateY(-1px);' +
+        '    }' +
+        '    .cvrgCVPopupIsNatoCheckboxLabel {' +
+        '        white-space: nowrap;' +
+        '        display: block;' +
+        '        transform: translateY(1px);' +
+        '    }' +
         '</style>' +
         ''));
 
@@ -1562,7 +1592,7 @@
             thisGuiItem.userChangedRequestType = true;
             thisGuiItem.adjustDisplayToRequestReason();
         });
-        sdReportCheckbox.on('change', function() {
+        sdReportCheckbox.on('change cvrgSyncState', function() {
             var originalReason = requestReasonInput.val();
             var reason = originalReason.replace(/ ?\(?\bSD Report\b\)?/ig, '');
             if (sdReportCheckbox.is(':checked')) {
@@ -1578,7 +1608,7 @@
                 thisGuiItem.handleReasonInput();
             }
         });
-        natoReportCheckbox.on('change', function() {
+        natoReportCheckbox.on('change cvrgSyncState', function() {
             var originalReason = requestReasonInput.val();
             var reason = originalReason.replace(/ ?\(?\bNATO\b\)?/ig, '');
             if (natoReportCheckbox.is(':checked')) {
@@ -3415,6 +3445,7 @@
         CVRGUI.setCvpButtonToCurrentRequestType();
         saveCopyOfQuestionTitles();
     }
+
     //Get the remembered requests prior to generating the GUIs for the first time.
     rememberedRequests = getGMStorageJSON(rememberedRequestStorage);
     addCvplsToDom();
@@ -3685,6 +3716,7 @@
 
     //Add Send cv-pls request checkbox to close dialog & monitor for CV submit.
     var cvplsRequestedAfterVote = false; //Holds user selection until after recording of vote acknowledged.
+    var cvplsRequestedAfterVoteOptions = {}; //Holds user selected options until after recording of vote acknowledged.
     function closeVoteDialogIsOpen() {
         //The Close Vote Dialog is open
         var popup = $('#popup-close-question').first();
@@ -3742,16 +3774,27 @@
         }
 
         var cvplsCheckbox = $('<label><input class="cvrgCVPopupSendCvplsCheckbox" type="checkbox">Send cv-pls request</label>');
+        var cvplsInput = cvplsCheckbox.find('input');
         var cvrgCheckboxWrapper = $('<div class="cvrgCVPopupCheckboxWrapper"></div>').append(cvplsCheckbox);
-        remainingVotes.before(cvrgCheckboxWrapper);
+        var andWasWrapper = $(' <span class="cvrgCVPopupAndWasWrapper" disabled="true"> & was:<div class="cvrgCVPopupSDAndNatoWithFake"><div class="cvrgCVPopupFakeSDReportCheckboxwrapper"><label class=""><input class="" type="checkbox">SD Report</label></div><div class="cvrgCVPopupSDAndNato"><label class="cvrgCVPopupIsSDReportCheckboxLabel"><input class="cvrgCVPopupIsSDReportCheckbox" type="checkbox">SD Report</label><label class="cvrgCVPopupIsNatoCheckboxLabel"><input class="cvrgCVPopupIsNatoCheckbox" type="checkbox">NATO</label></div></div></span>');
+        remainingVotes.before(cvrgCheckboxWrapper.append(andWasWrapper));
+        var andWasSpan = cvrgCheckboxWrapper.find('.cvrgCVPopupAndWasWrapper');
         popup.addClass('cvrgClosePopupContainsCVRGCheckbox');
+        cvplsInput.on('change', function() {
+            andWasSpan.attr('disabled', !cvplsInput.is(':checked'));
+        });
         $('.js-popup-submit', popup).click(function() {
             //Clicking on the Vote To Close button
             var $this = $(this);
-            if (cvplsCheckbox.find('input').is(':checked')) {
+            if (cvplsInput.is(':checked')) {
                 cvplsRequestedAfterVote = $this.closest('.question').data('questionid');
+                cvplsRequestedAfterVoteOptions = {
+                    sdReport: cvrgCheckboxWrapper.find('.cvrgCVPopupIsSDReportCheckbox').is(':checked'),
+                    nato: cvrgCheckboxWrapper.find('.cvrgCVPopupIsNatoCheckbox').is(':checked'),
+                };
             } else {
                 cvplsRequestedAfterVote = false;
+                cvplsRequestedAfterVoteOptions = {};
             }
             //This is not redundant with detecting most of the same information from the $.ajax call. The AJAX call
             // does not contain the text from an already existing "other" reason, it only contains the ID for that reason.
@@ -3780,7 +3823,9 @@
     window.addEventListener('cvrg-requestPostRequestForNextVote', function(e) {
         e.preventDefault();
         e.stopImmediatePropagation();
-        cvplsRequestedAfterVote = JSON.parse(e.detail).questionId;
+        const detail = JSON.parse(e.detail);
+        cvplsRequestedAfterVote = detail.questionId;
+        cvplsRequestedAfterVoteOptions = detail.options || {};
     }, true);
 
     function executeInPage(functionToRunInPage, leaveInPage, id) {
@@ -4034,6 +4079,9 @@
                 cvplsRequestedAfterVote = false;
                 //Ensure we're sending a cv-pls, just in case.
                 questionGui.requestTypeInput.val('cv-pls');
+                //Apply known options, if they exist
+                questionGui.items.send.sdReportCheckbox.prop('checked', !!cvplsRequestedAfterVoteOptions.sdReport).trigger('cvrgSyncState');
+                questionGui.items.send.natoReportCheckbox.prop('checked', !!cvplsRequestedAfterVoteOptions.nato).trigger('cvrgSyncState');
                 questionGui.submitRequest();
             }
         },
