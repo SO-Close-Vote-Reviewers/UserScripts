@@ -181,6 +181,8 @@
         this.siteRegExp = _siteRegExp;
         this.offTopicCloseReasons = _offTopicCloseReasons;
         this.quickSubstitutions = new QuickSubstitutions(_quickSubstitutions);
+        //The offTopicScrapeMatch object defines matches which are tested against the information provided in the
+        //  question post notices in order to determine the reason that the question was closed.
         this.offTopicScrapeMatch = _offTopicScrapeMatch;
         this.defaultRoomKey = _defaultRoomKey;
         this.defaultRoom = JSON.parse(JSON.stringify(knownRooms[_defaultRoomKey].room));
@@ -1832,6 +1834,11 @@
             }
             let tmpRequestReason = this.requestReasonInput.val();
             //Add '(No Roomba: ...'
+            //For closed questions, the following attempts to determine the reason for the question being closed. It did
+            //  this by scraping the question's post notice. As of 2020-04-15, it has not been updated to accommodate the
+            //  new post notices that were rolled out network wide some time ago. At this point, it's my expectation that
+            //  it will be adapted to use data retrieved from the SE API, once I deploy a generalized method of obtaining
+            //  the data from the SE API once per page, rather than have multiple scripts fetching the same data.
             if (this.guiType === 'question' && newRequestType === 'del-pls' && isQuestionClosed(this.questionContext) &&
                     (didChangeReason || !tmpRequestReason || (cvplsRememberedReason && tmpRequestReason === cvplsRememberedReason.reason)) && !/roomba/i.test(tmpRequestReason)) {
                 let startParan = ' (';
