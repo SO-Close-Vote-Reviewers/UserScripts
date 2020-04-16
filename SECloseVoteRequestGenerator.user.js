@@ -1320,8 +1320,9 @@
         '        padding-left: 0;' +
         '    }' +
         '    .cv-list label.cvrgRequestType {' +
-        '        display: block;' +
+        '        display: inline-block;' +
         '        padding: 5px 0px;' +
+        '        white-space: nowrap;' +
         '    }' +
         '    .cv-list div.cvrgOptionSubItem  {' +
         '        margin-left: 15px;' +
@@ -1424,6 +1425,21 @@
         '        border-color: #20d020;' +
         '        box-shadow: inset 0px 1px 0px #30d030;' +
         '    } ' +
+        '    .cv-list .cvrgRequestTypeAndCheckboxContainer {' +
+        '        display: block;' +
+        '        white-space: normal;' +
+        '    } ' +
+        '    .cv-list .cvrgNatoAndSDReportCheckboxContainer {' +
+        '        display: inline-block;' +
+        '        white-space: nowrap;' +
+        '        margin-left: 20px;' +
+        '    } ' +
+        '    .cv-list .cvrgNatoAndSDReportCheckboxContainer label:first-of-type {' +
+        '        padding-left: 10px;' +
+        '    } ' +
+        '    .cv-list .cvrgNatoAndSDReportCheckboxContainer label input[type="checkbox"] {' +
+        '        margin-right: 3px;' +
+        '    }' +
         '</style>' +
         ''));
 
@@ -1444,20 +1460,25 @@
             '                <input type="text" placeholder="Request reason" spellcheck="true" title="' + reasonTooltip + '" required/>' +
             '                <input type="submit" value="Send"/>' +
             '            </div>' +
-            '            <label class="cvrgRequestType">' +
-            '                Request Type: ' +
-            '                <select name="requestType">' +
-            '                    <option value="cv-pls" title="Close vote request">cv-pls</option>' + //Used only as the default. Replaced in populateSelectOptions
-            '                </select>' +
-            '            </label>' +
-            '        <label class="cvrgSDReport cvrgAddMessage">' +
-            '               SD Report: ' +
-            '               <input type="checkbox"  class="sdReportCheckbox">' +
-            '        </label>' +
-            '        <label class="cvrgNATO cvrgAddMessage">' +
-            '               NATO: ' +
-            '               <input type="checkbox" class="natoCheckbox">' +
-            '        </label>' +
+            '            <div class="cvrgRequestTypeAndCheckboxContainer">' +
+            '                <label class="cvrgRequestType">' +
+            '                    Request Type: ' +
+            '                    <select name="requestType">' +
+            '                        <option value="cv-pls" title="Close vote request">cv-pls</option>' + //Used only as the default. Replaced in populateSelectOptions
+            '                    </select>' +
+            '                </label>' +
+            '                <div class="cvrgNatoAndSDReportCheckboxContainer">' +
+            '                    is: ' +
+            '                    <label class="cvrgSDReport cvrgAddMessage" title="Selecting this will add/remove &quot;(SD Report)&quot; to/from the report reason">' +
+            '                        <input type="checkbox"  class="cvrgSdReportCheckbox">' +
+            '                        SD Report' +
+            '                    </label>' +
+            '                    <label class="cvrgNATO cvrgAddMessage" title="Selecting this will add/remove &quot;(NATO)&quot; to/from the report reason">' +
+            '                        <input type="checkbox" class="cvrgNatoCheckbox">' +
+            '                        NATO' +
+            '                    </label>' +
+            '                </div>' +
+            '            </div>' +
             '            <span class="cvrgDelayLengthSpan" style="display:none;">' +
             '                <span class="cvrgDelayInputGroup">' +
             '                    <input class="cvrgDelayLengthNumber cvrgDelayLengthDays" type="number" title="Number of days from now that you want to revisit this post." min="0" max="999" value="0">' +
@@ -1500,8 +1521,8 @@
             '');
         var item = this.item;
         var requestReasonInput = this.requestReasonInput = $('input[type="text"]', item);
-        var sdReport = this.sdReport = $('.sdReportCheckbox', item);
-        var natoReport = this.natoReport = $('.natoCheckbox', item);
+        var sdReportCheckbox = this.sdReportCheckbox = $('.cvrgSdReportCheckbox', item);
+        var natoReportCheckbox = this.natoReportCheckbox = $('.cvrgNatoCheckbox', item);
         var requestTypeInput = this.requestTypeInput = $('select[name="requestType"]', item);
         requestTypeInput.val('cv-pls');
         var sendButton = this.sendButton = item.find('input[type="submit"]');
@@ -1526,29 +1547,43 @@
             thisGuiItem.userChangedRequestType = true;
             thisGuiItem.adjustDisplayToRequestReason();
         });
-        this.sdReport.on('change', function() {
-            var reason = $('.cvrgReasonRow').find(requestReasonInput).val();
-            if ($(this).is(':checked')) {
-                $('.cvrgReasonRow').find(requestReasonInput).val(reason + ' (SD Report)')
+        sdReportCheckbox.on('change', function() {
+            var originalReason = requestReasonInput.val();
+            var reason = originalReason.replace(/ ?\(?\bSD Report\b\)?/ig, '');
+            if (sdReportCheckbox.is(':checked')) {
+                if (/ ?\(?\bSD Report\b\)?/i.test(originalReason)) {
+                    //If the reason already indicates it's from an SD report, then don't change it.
+                    reason = originalReason;
+                } else {
+                    reason += ' (SD Report)';
+                }
             }
-            else{
-                $('.cvrgReasonRow').find(requestReasonInput).val($.trim(reason.replace(/\(SD Report\)/, '')));
+            if (reason !== originalReason) {
+                requestReasonInput.val(reason);
+                thisGuiItem.handleReasonInput();
             }
         });
-        this.natoReport.on('change', function() {
-            var reason = $('.cvrgReasonRow').find(requestReasonInput).val();
-            if ($(this).is(':checked')) {
-                $('.cvrgReasonRow').find(requestReasonInput).val(reason + ' (NATO)')
+        natoReportCheckbox.on('change', function() {
+            var originalReason = requestReasonInput.val();
+            var reason = originalReason.replace(/ ?\(?\bNATO\b\)?/ig, '');
+            if (natoReportCheckbox.is(':checked')) {
+                if (/ ?\(?\bNATO\b\)?/i.test(originalReason)) {
+                    //If the reason already indicates it's from NATO, then don't change it.
+                    reason = originalReason;
+                } else {
+                    reason += ' (NATO)';
+                }
             }
-            else{
-                $('.cvrgReasonRow').find(requestReasonInput).val($.trim(reason.replace(/\(NATO\)/, '')));
+            if (reason !== originalReason) {
+                requestReasonInput.val(reason);
+                thisGuiItem.handleReasonInput();
             }
         });
         $('.cvrgDelayLengthNumber', this.item).on('change keyup click paste', this.updateDelayUntilTime.bind(this));
         this.reasonEdited = false;
         this.boundHandleReasonInput = this.handleReasonInput.bind(this);
         //User input for the request reason
-        this.requestReasonInput.on('keyup paste input', this.debounceReasonInput.bind(this));
+        requestReasonInput.on('keyup paste input', this.debounceReasonInput.bind(this));
         $('form', this.item).on('submit', function(e) {
             //Submit the Request
             function htmlReasonArrayToText(array) {
@@ -1740,6 +1775,11 @@
             }
             $(window).off('cvrg-insertMarkdownReady');
         },
+        checkNatoOrSDReportCheckboxIfInReasonText: function() {
+            var reason = this.requestReasonInput.val();
+            this.sdReportCheckbox.prop('checked', / ?\(?\bSD Report\b\)?/i.test(reason));
+            this.natoReportCheckbox.prop('checked', / ?\(?\bNATO\b\)?/i.test(reason));
+        },
         adjustDisplayToRequestReason: function() {
             //Adjust the display and store the old request reason when the request type is changed.
             var newRequestType = this.requestTypeInput.val();
@@ -1850,6 +1890,7 @@
             this.currentRequestType = newRequestType;
             this.setInputAttributesByRequestType();
             this.reasonEdited = false;
+            this.checkNatoOrSDReportCheckboxIfInReasonText();
             this.updatePreview();
         },
         setRequestTypeByGuiButton: function() {
@@ -1968,6 +2009,7 @@
         handleReasonInput: function() {
             //An event occurred indicating the request reason changed.
             this.reasonEdited = true;
+            this.checkNatoOrSDReportCheckboxIfInReasonText();
             this.updatePreview();
         },
         generateRequestKey: function(requestType) {
