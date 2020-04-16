@@ -1450,6 +1450,9 @@
         '    }' +
         '    .cvrgCVPopupCheckboxWrapper {' +
         '        display: inline-block;' +
+        '        text-align: left;' +
+        '        margin: auto;' +
+        '        width: unset !important;;' +
         '    } ' +
         '    .cvrgCVPopupCheckboxWrapper label input[type="checkbox"] {' +
         '        vertical-align :middle;' +
@@ -1457,6 +1460,9 @@
         '    } ' +
         '    .cvrgCVPopupAndWasWrapper {' +
         '        text-align: left;' +
+        '        white-space: nowrap;' +
+        '        display: inline-block;' +
+        '        margin-left: 5px;' +
         '    }' +
         '    .cvrgCVPopupAndWasWrapper[disabled] {' +
         '        opacity: .4;' +
@@ -1477,19 +1483,29 @@
         '        position: absolute;' +
         '        top: -50%;' +
         '    }' +
+        '    .cvrgCVPopupIsNatoCheckboxLabel,' +
         '    .cvrgCVPopupIsSDReportCheckboxLabel {' +
         '        white-space: nowrap;' +
-        '        display: block;' +
+        '        display: block !important;' +
+        '    }' +
+        '    .cvrgCVPopupIsSDReportCheckboxLabel {' +
         '        transform: translateY(-1px);' +
         '        -webkit-transform: translateY(-1px);' +
         '        -ms-transform: translateY(-1px);' +
         '    }' +
         '    .cvrgCVPopupIsNatoCheckboxLabel {' +
-        '        white-space: nowrap;' +
-        '        display: block;' +
         '        transform: translateY(1px);' +
         '        -webkit-transform: translateY(1px);' +
         '        -ms-transform: translateY(1px);' +
+        '    }' +
+        '    @media (min-width: 0px) and (max-width: 880px) {' +
+        '        .cvrgCVPopupCheckboxWrapper {' +
+        '            transform: translateY(-10px);' +
+        '        }' +
+        '        .cvrgCVPopupAndWasWrapper {' +
+        '            transform: translateY(10px);' +
+        '            display: block;' +
+        '        }' +
         '    }' +
         '</style>' +
         ''));
