@@ -1514,11 +1514,11 @@
             '                </label>' +
             '                <div class="cvrgNatoAndSDReportCheckboxContainer">' +
             '                    is: ' +
-            '                    <label class="cvrgSDReport cvrgAddMessage" title="Selecting this will add/remove &quot;(SD Report)&quot; to/from the report reason">' +
+            '                    <label class="cvrgSDReport cvrgAddMessage" title="Add/remove &quot;(SD Report)&quot; to/from the report reason">' +
             '                        <input type="checkbox"  class="cvrgSdReportCheckbox">' +
             '                        SD Report' +
             '                    </label>' +
-            '                    <label class="cvrgNATO cvrgAddMessage" title="Selecting this will add/remove &quot;(NATO)&quot; to/from the report reason">' +
+            '                    <label class="cvrgNATO cvrgAddMessage" title="Add/remove &quot;(NATO)&quot; to/from the report reason">' +
             '                        <input type="checkbox" class="cvrgNatoCheckbox">' +
             '                        NATO' +
             '                    </label>' +
@@ -3773,10 +3773,10 @@
             });
         }
 
-        var cvplsCheckbox = $('<label><input class="cvrgCVPopupSendCvplsCheckbox" type="checkbox">Send cv-pls request</label>');
+        var cvplsCheckbox = $('<label class="cvrgCVPopupSendCvplsLabel" title="Send a cv-pls request immediately after voting to close."><input class="cvrgCVPopupSendCvplsCheckbox" type="checkbox">Send cv-pls request</label>');
         var cvplsInput = cvplsCheckbox.find('input');
         var cvrgCheckboxWrapper = $('<div class="cvrgCVPopupCheckboxWrapper"></div>').append(cvplsCheckbox);
-        var andWasWrapper = $(' <span class="cvrgCVPopupAndWasWrapper" disabled="true"> & was:<div class="cvrgCVPopupSDAndNatoWithFake"><div class="cvrgCVPopupFakeSDReportCheckboxwrapper"><label class=""><input class="" type="checkbox">SD Report</label></div><div class="cvrgCVPopupSDAndNato"><label class="cvrgCVPopupIsSDReportCheckboxLabel"><input class="cvrgCVPopupIsSDReportCheckbox" type="checkbox">SD Report</label><label class="cvrgCVPopupIsNatoCheckboxLabel"><input class="cvrgCVPopupIsNatoCheckbox" type="checkbox">NATO</label></div></div></span>');
+        var andWasWrapper = $(' <span class="cvrgCVPopupAndWasWrapper" disabled="true"> & was:<div class="cvrgCVPopupSDAndNatoWithFake"><div class="cvrgCVPopupFakeSDReportCheckboxwrapper"><label class=""><input class="" type="checkbox">SD Report</label></div><div class="cvrgCVPopupSDAndNato"><label class="cvrgCVPopupIsSDReportCheckboxLabel" title="This will add &quot;(SD Report)&quot; to the report reason"><input class="cvrgCVPopupIsSDReportCheckbox" type="checkbox">SD Report</label><label class="cvrgCVPopupIsNatoCheckboxLabel" title="This will add/remove &quot;(NATO)&quot; to the report reason"><input class="cvrgCVPopupIsNatoCheckbox" type="checkbox">NATO</label></div></div></span>');
         remainingVotes.before(cvrgCheckboxWrapper.append(andWasWrapper));
         var andWasSpan = cvrgCheckboxWrapper.find('.cvrgCVPopupAndWasWrapper');
         popup.addClass('cvrgClosePopupContainsCVRGCheckbox');
