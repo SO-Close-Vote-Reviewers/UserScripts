@@ -2420,7 +2420,8 @@
                 questionRoombaDays = parseInt(questionRoombaInfo.replace(/^\D*(\d*)\D*$/, '$1'), 10);
                 this.questionRoombaDays = questionRoombaDays;
             }
-            if (postIsLocked) {
+            if (postIsLocked && requestType.indexOf('!!/') !== 0) {
+                //Being locked is not a critical issue for SD commands.
                 criticalRequestReasons.push('The post is locked.');
             } else {
                 if (isQuestionLocked) {
