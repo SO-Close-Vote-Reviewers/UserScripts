@@ -1444,6 +1444,13 @@
         '    .cv-list .cvrgNatoAndSDReportCheckboxContainer label input[type="checkbox"] {' +
         '        margin-right: 3px;' +
         '    }' +
+        '    .cvrgCVPopupCheckboxWrapper {' +
+        '        display: inline-block;' +
+        '    } ' +
+        '    .cvrgCVPopupCheckboxWrapper label input[type="checkbox"] {' +
+        '        vertical-align :middle;' +
+        '        margin-left: 5px;' +
+        '    } ' +
         '</style>' +
         ''));
 
@@ -1724,11 +1731,11 @@
                         var closeVoteReason = /^You voted to close as '([^.]+)'\..*$/.exec(closeQuestionLink.first().attr('title') || '');
                         closeVoteReason = (closeVoteReason === null) ? '' : closeVoteReason[1];
                         //normalize the reasons
-                        if (closeVoteReason === 'off-topic') {
-                            //"off-topic" is an incomplete close vote reason.
+                        if (closeVoteReason === 'Not suitable for this site') {
+                            //"Not suitable for this site"/"off-topic" is an incomplete close vote reason.
                             // If that's all we know, leave the request reason blank to encourage the
                             // user to enter a more specific reason.
-                            reasonInput.attr('placeholder', 'Request reason (you voted "off-topic:???")');
+                            reasonInput.attr('placeholder', 'Request reason (you voted "Not suitable for this site: ???")');
                             closeVoteReason = '';
                         }
                         if (closeVoteReason) {
@@ -3671,7 +3678,8 @@
     function closeVoteDialogIsOpen() {
         //The Close Vote Dialog is open
         var popup = $('#popup-close-question').first();
-        var remainingVotes = $('.remaining-votes', popup);
+        var popupActions = $('.popup-actions', popup);
+        var remainingVotes = $('.grid > span:contains(vote)', popupActions);
         //It's possible for getGuiForEl to return null, but that really only happens if something has gone wrong elsewhere
         var guiForQuestionOpeningPopup = CVRGUI.getGuiForEl(popup);
         if (guiForQuestionOpeningPopup) {
@@ -3685,12 +3693,12 @@
             return false;
         }
         //Don't add twice, if called a second time for the same popup.
-        if ($('label:contains(cv-pls)', popup).length) {
+        if (popup.hasClass('cvrgClosePopupContainsCVRGCheckbox') || $('label:contains(cv-pls)', popup).length) {
             return false;
         }
 
         if (currentSiteConfig.name === 'Default') {
-            var offTopicInputs = $('.close-as-off-topic-pane input', popup);
+            var offTopicInputs = $('.site-specific-pane input', popup);
             offTopicInputs.each(function() {
                 const value = this.value;
                 const thisParent = this.parentNode;
@@ -3723,19 +3731,21 @@
             });
         }
 
-        var checkbox = $('<label><input type="checkbox" style="vertical-align:middle;margin-left: 5px;">Send cv-pls request</label>');
-        remainingVotes.append(checkbox);
-        $('.popup-submit').click(function() {
+        var cvplsCheckbox = $('<label><input class="cvrgCVPopupSendCvplsCheckbox" type="checkbox">Send cv-pls request</label>');
+        var cvrgCheckboxWrapper = $('<div class="cvrgCVPopupCheckboxWrapper"></div>').append(cvplsCheckbox);
+        remainingVotes.before(cvrgCheckboxWrapper);
+        popup.addClass('cvrgClosePopupContainsCVRGCheckbox');
+        $('.js-popup-submit', popup).click(function() {
             //Clicking on the Vote To Close button
             var $this = $(this);
-            if (checkbox.find('input').is(':checked')) {
+            if (cvplsCheckbox.find('input').is(':checked')) {
                 cvplsRequestedAfterVote = $this.closest('.question').data('questionid');
             } else {
                 cvplsRequestedAfterVote = false;
             }
             //This is not redundant with detecting most of the same information from the $.ajax call. The AJAX call
             // does not contain the text from an already existing "other" reason, it only contains the ID for that reason.
-            const customReasonSelected = $('input[name="close-as-off-topic-reason"]:checked', popup);
+            const customReasonSelected = $('input[name="siteSpecificCloseReasonId"]:checked', popup);
             if (customReasonSelected.length  && customReasonSelected.val() === '3') {
                 var parent = customReasonSelected.parent().parent();
                 var userCustomTextArea = $('textarea', parent);
@@ -3981,14 +3991,14 @@
             //  not detect the text used when an already existing "other" (custom) close reason is used.
             var cvplsReasonInput = questionGui.requestReasonInput;
             var origReasonVal = cvplsReasonInput.val();
-            cvplsReasonInput.val(closeData.closeReasonId.replace(/(?!^)([A-Z])/g, ' $1'));
-            if (closeData.closeReasonId === 'OffTopic') {
-                cvplsReasonInput.val(offTopicCloseReasons[closeData.closeAsOffTopicReasonId]);
+            cvplsReasonInput.val(closeData.closeReasonId.replace('NeedMoreFocus', 'NeedsMoreFocus').replace(/(?!^)([A-Z])/g, ' $1'));
+            if (closeData.closeReasonId === 'SiteSpecific') {
+                cvplsReasonInput.val(offTopicCloseReasons[closeData.siteSpecificCloseReasonId]);
             }
-            if (closeData.closeAsOffTopicReasonId == 3) { // eslint-disable-line eqeqeq
-                cvplsReasonInput.val('Custom: ' + closeData.offTopicOtherText.replace(closeData.originalOffTopicOtherText, '').trim());
-                if (origReasonVal && (closeData.offTopicOtherCommentId || !cvplsReasonInput.val())) {
-                    //If the user selected an already existing "other" reason (i.e. offTopicOtherCommentId is valid), then we
+            if (closeData.siteSpecificCloseReasonId == 3) { // eslint-disable-line eqeqeq
+                cvplsReasonInput.val('Custom: ' + closeData.siteSpecificOtherText.replace(closeData.originalSiteSpecificOtherText, '').trim());
+                if (origReasonVal && (closeData.siteSpecificOtherCommentId || !cvplsReasonInput.val())) {
+                    //If the user selected an already existing "other" reason (i.e. siteSpecificOtherCommentId is valid), then we
                     //  had to get the information from the close dialog, as it's not passed in the AJAX, just the ID is passed.
                     //Restore the already existing comment.
                     cvplsReasonInput.val(origReasonVal);
