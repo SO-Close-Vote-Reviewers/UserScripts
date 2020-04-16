@@ -1472,6 +1472,8 @@
         '    .cvrgCVPopupSDAndNato {' +
         '        display: inline-block;' +
         '        transform: scale(0.85) rotate(360deg);' +
+        '        -webkit-transform: scale(0.85) rotate(360deg);' +
+        '        -ms-transform: scale(0.85) rotate(360deg);' +
         '        position: absolute;' +
         '        top: -50%;' +
         '    }' +
@@ -1479,11 +1481,15 @@
         '        white-space: nowrap;' +
         '        display: block;' +
         '        transform: translateY(-1px);' +
+        '        -webkit-transform: translateY(-1px);' +
+        '        -ms-transform: translateY(-1px);' +
         '    }' +
         '    .cvrgCVPopupIsNatoCheckboxLabel {' +
         '        white-space: nowrap;' +
         '        display: block;' +
         '        transform: translateY(1px);' +
+        '        -webkit-transform: translateY(1px);' +
+        '        -ms-transform: translateY(1px);' +
         '    }' +
         '</style>' +
         ''));
