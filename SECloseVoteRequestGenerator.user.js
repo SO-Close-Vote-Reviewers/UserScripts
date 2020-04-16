@@ -192,7 +192,9 @@
     //  that means they need to not be "a".
     const defaultQuickSubstitutions = {
         't': 'Too Broad',
+        'f': 'Needs More Focus',
         'u': 'Unclear',
+        'c': 'Needs Details or Clarity',
         'p': 'Primarily Opinion Based',
         'o': 'Opinion Based',
         'd': 'Duplicate',
@@ -219,19 +221,19 @@
         'r': 'Typo or Cannot Reproduce',
         'g': 'General Computing',
         's': 'Super User',
-        'f': 'Server Fault',
+        'a': 'Server Fault',
         'l': 'Request for Off-Site Resource',
         'F': '(FireAlarm)',
         'N': '(NATO)',
         'S': '(SD report)',
-        'c': '(not enough code to duplicate)',
-        'b': '(no specific expected behavior)',
-        'e': '(no specific problem or error)',
+        'C': '(not enough code to duplicate)',
+        'B': '(no specific expected behavior)',
+        'E': '(no specific problem or error)',
     }, defaultQuickSubstitutions), {
         'reproduced': 'r',
         'general': 'g',
         'recommend': 'l',
-        'server': 'f',
+        'server': 'a',
         'working': 'm',
     }, 'SOCVR'));
     //Meta Stack Exchange
@@ -257,7 +259,7 @@
         23: 'Code not implemented or not working as intended',
         25: 'Authorship of code',
     }, defaultOffTopicCloseReasons), Object.assign({
-        'c': 'Lacks concrete context',
+        'l': 'Lacks concrete context',
         'i': 'Code not implemented or not working as intended',
         's': 'Authorship of code',
     }, defaultQuickSubstitutions), {
@@ -271,12 +273,12 @@
     }, defaultOffTopicCloseReasons), Object.assign({
         'b': 'Blatantly off-topic',
         'n': 'Not about mathematics',
-        'c': 'Missing context or other details',
+        'm': 'Missing context or other details',
         's': 'Seeking personal advice',
     }, defaultQuickSubstitutions), {
         //All of the off-topic reasons need to be specified, because the "Not about mathematics" reason contains no bold or italic text.
         //  As a result, we match against '', which will match anything.
-        'context': 'c',
+        'context': 'm',
         'advice': 's',
         '': 'n', //The closed text for this reason contains no bold or italic characters.
     }, 'CRUDE'));
