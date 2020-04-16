@@ -660,6 +660,10 @@
             return false;
         }
 
+        proposed = proposed.trim();
+        if (/[^\d.]/.test(proposed)) {
+            return false;
+        }
         proposed = proposed.split('.');
         current = current.split('.');
 
