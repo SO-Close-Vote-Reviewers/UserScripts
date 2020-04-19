@@ -228,7 +228,7 @@
         'F': '(FireAlarm)',
         'N': '(NATO)',
         'S': '(SD report)',
-        'C': '(not enough code to duplicate)',
+        'D': '(not enough code to duplicate)',
         'B': '(no specific expected behavior)',
         'E': '(no specific problem or error)',
     }, defaultQuickSubstitutions), {
