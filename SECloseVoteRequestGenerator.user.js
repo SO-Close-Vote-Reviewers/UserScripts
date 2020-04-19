@@ -223,7 +223,7 @@
         'r': 'Typo or Cannot Reproduce',
         'g': 'General Computing',
         's': 'Super User',
-        'a': 'Server Fault',
+        'v': 'Server Fault',
         'l': 'Request for Off-Site Resource',
         'F': '(FireAlarm)',
         'N': '(NATO)',
