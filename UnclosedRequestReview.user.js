@@ -2950,7 +2950,7 @@
             //Make sure the <a> only contains a single text node
             if (link.childNodes.length === 1 && link.firstChild.nodeName === '#text') {
                 let appendToContent = false;
-                if (/^\s*[cd]?(?:\d+|[a-z])\s*$/i.test(link.textContent)) {
+                if (/^\s*[cd]?(?:[\d-]+|[a-z])\s*$/i.test(link.textContent)) {
                     appendToContent = true;
                     if (isFirstMatching) {
                         link.classList.add('urrs-first-link-matching-pattern');
