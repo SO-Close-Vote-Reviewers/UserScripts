@@ -10,7 +10,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.7.0.0
+// @version        1.7.0.1
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/([\w-]*\.)*((stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com|mathoverflow.net)\/(c\/[^\/]*\/)?(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
@@ -3304,10 +3304,10 @@
 
         App.pipeMods.edit = function(data) {
             App.funcs.popOriginals();
-            //var defaultBgColor = getComputedStyle(App.selections.body)["background-color"]; 
+            //var defaultBgColor = getComputedStyle(App.selections.body)["background-color"];
             var defaultBgColor = App.selections.body.css("background-color");
             // Visually confirm edit - SE makes it easy because the jQuery color animation plugin seems to be there by default
-            App.selections.body.animate({ backgroundColor: '#c8ffa7' }, 10);
+            App.selections.body.animate({ backgroundColor: retrieveCSSVariable("--green-200") }, 10);
             App.selections.body.animate({ backgroundColor: defaultBgColor }, 1000);
 
             // List of fields to be edited
@@ -3558,6 +3558,15 @@ function escapeTag(tag) {
                          return escaped;
                      });
     return "(?:\\s|\\b|$)" + retag + "(?:\\s|\\b|$)";  // hack - enclose tag in regexp boundary checks. WBN to do this in the taglist regexp.
+}
+
+/**
+ * Pass a CSS variable to get its value
+ * @param {string} val - for example "--black" or "--green-600"
+ */
+function retrieveCSSVariable(val) {
+    return getComputedStyle(document.body)
+        .getPropertyValue(val);
 }
 
 // Better handling of indentation and the TAB key when editing posts
