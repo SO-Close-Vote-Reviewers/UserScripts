@@ -3503,7 +3503,6 @@
                          '}' +
                          '.diffbody {' +
                          '    white-space: pre-wrap;' +
-                         '    font-family: "courier new", "lucida sans typewriter", mono, monospace' +
                          '}' +
                          '.add {' +
                          '    background: var(--green-100);' +
