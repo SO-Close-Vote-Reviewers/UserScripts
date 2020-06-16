@@ -3304,7 +3304,6 @@
 
         App.pipeMods.edit = function(data) {
             App.funcs.popOriginals();
-            //var defaultBgColor = getComputedStyle(App.selections.body)["background-color"];
             var defaultBgColor = App.selections.body.css("background-color");
             // Visually confirm edit - SE makes it easy because the jQuery color animation plugin seems to be there by default
             App.selections.body.animate({ backgroundColor: retrieveCSSVariable("--green-200") }, 10);
