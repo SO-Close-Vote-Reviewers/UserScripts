@@ -3183,8 +3183,8 @@
             var strings = [];
             function maakRij(type, rij) {
                 if (!type) return strings.push(rij.replace(/\</g, '&lt;')), true;
-                if (type === '+') return strings.push('<span class="add">' + rij.replace(/\</g, '&lt;').replace(/(?=\n)/g,'↵') + '</span>'), true;
-                if (type === '-') return strings.push('<span class="del">' + rij.replace(/\</g, '&lt;').replace(/(?=\n)/g,'↵') + '</span>'), true;
+                if (type === '+') return strings.push('<span class="diff-add">' + rij.replace(/\</g, '&lt;').replace(/(?=\n)/g,'↵') + '</span>'), true;
+                if (type === '-') return strings.push('<span class="diff-delete">' + rij.replace(/\</g, '&lt;').replace(/(?=\n)/g,'↵') + '</span>'), true;
             }
 
             function getDiff(matrix, b1, b2, x, y) {
@@ -3304,10 +3304,11 @@
 
         App.pipeMods.edit = function(data) {
             App.funcs.popOriginals();
-
+            //var defaultBgColor = getComputedStyle(App.selections.body)["background-color"]; 
+            var defaultBgColor = App.selections.body.css("background-color");
             // Visually confirm edit - SE makes it easy because the jQuery color animation plugin seems to be there by default
             App.selections.body.animate({ backgroundColor: '#c8ffa7' }, 10);
-            App.selections.body.animate({ backgroundColor: '#fff' }, 1000);
+            App.selections.body.animate({ backgroundColor: defaultBgColor }, 1000);
 
             // List of fields to be edited
             var fields = {body:'body',title:'title'};
@@ -3494,7 +3495,7 @@
         // This is the styling for the diff output.
         $('body').append('<style>' +
                          '.difftitle {' +
-                         '    color: rgb(34, 34, 34);' +
+                         '    color: var(--black);' +
                          '    font-size: 24px;' +
                          '    font-weight: normal;' +
                          '    line-height: 36px;' +
@@ -3505,10 +3506,10 @@
                          '    font-family: "courier new", "lucida sans typewriter", mono, monospace' +
                          '}' +
                          '.add {' +
-                         '    background: #CFC;' +
+                         '    background: var(--green-100);' +
                          '}' +
                          '.del {' +
-                         '    background: #FCC;' +
+                         '    background: var(--red-700);' +
                          '}' +
                          '</style>');
     } catch (e) {
