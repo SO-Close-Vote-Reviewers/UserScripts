@@ -7,6 +7,7 @@
 // @contributor    Tiny Giant
 // @contributor    Mogsdad
 // @contributor    Makyen
+// @contributor    VLAZ
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
