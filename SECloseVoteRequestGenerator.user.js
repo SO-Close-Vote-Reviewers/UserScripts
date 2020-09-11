@@ -31,7 +31,7 @@
 // @grant          GM.addValueChangeListener
 // ==/UserScript==
 /* jshint jquery:    true */
-/* globals unsafeWindow, StackExchange, Markdown, toStaticHTML, tagRendererRaw, GM_getValue, GM_setValue, GM_deleteValue, GM_addValueChangeListener, GM_openInTab, GM, $, jQuery */
+/* globals unsafeWindow, StackExchange, Markdown, toStaticHTML, tagRendererRaw, GM_getValue, GM_setValue, GM_deleteValue, GM_addValueChangeListener, GM_openInTab, GM, $, jQuery */ // eslint-disable-line no-unused-vars, no-redeclare
 
 (function() {
     'use strict';
