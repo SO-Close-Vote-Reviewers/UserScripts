@@ -11,7 +11,7 @@
 // @exclude        *://chat.*.stackexchange.com/*
 // @exclude        *://api.*.stackexchange.com/*
 // @exclude        *://data.stackexchange.com/*
-// @require        https://code.jquery.com/jquery-2.1.4.min.js
+// @require        https://code.jquery.com/jquery-3.5.0.min.js
 // @require        https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/gm4-polyfill.js
 // @connect        raw.githubusercontent.com
 // @connect        chat.stackoverflow.com
