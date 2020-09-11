@@ -554,7 +554,8 @@
             }));
         });
     }
-    executeInPage(inPageInsertMarkdownInTarget, true, 'cvrg-insertMarkdownInTarget');
+    //Temporarily disable the in page Markdown converter due to significant SE code changes.
+    //executeInPage(inPageInsertMarkdownInTarget, true, 'cvrg-insertMarkdownInTarget');
 
     // Message number, just a number used to start, which is not
     // guaranteed to be unique (i.e. it could have collisions with other
