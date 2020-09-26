@@ -3611,26 +3611,20 @@
                         //In order to get any deleted messages that are beyond the last one shown in the room, but still in the
                         //  time-frame of the current transcript page, we guess at a message ID which is hopefully somewhat beyond
                         //  the last message actually in the time-frame.
-                        getEvents(room, fkey, 500, lastMessageId + chatTranscriptEndMessagesOffset).then((firstResponse) => {
-                            transcriptEvents = firstResponse.events;
+                        //Then, we keep fetching further and further back until we reach the beginning of the transcript page.
+                        function handleEvents(response) {
+                            transcriptEvents = response.events.concat(transcriptEvents);
                             const firstEventId = transcriptEvents[0].message_id;
                             const lastEventId = transcriptEvents[transcriptEvents.length - 1].message_id;
                             if (firstEventId < firstMessageId) {
                                 getTranscriptEventsResolve(transcriptEvents);
                                 return;
                             } //else
-                            //Currently, we only do one more getEvents. This should do more, if needed.
-                            getEvents(room, fkey, 500, firstEventId).then((secondResponse) => {
-                                transcriptEvents = secondResponse.events.concat(transcriptEvents);
-                                const secondFirstEventId = transcriptEvents[0].message_id;
-                                //This is just assumed to be enough.
-                                getTranscriptEventsResolve(transcriptEvents);
-                            }, (error) => {
-                                getTranscriptEventsReject(error);
-                            });
-                        }, (error) => {
-                            getTranscriptEventsReject(error);
-                        });
+                            // Get another page of events and recurse.
+                            getEvents(room, fkey, 500, firstEventId).then(handleEvents, getTranscriptEventsReject);
+                        }
+                        getEvents(room, fkey, 500, lastMessageId + chatTranscriptEndMessagesOffset)
+                            .then(handleEvents, getTranscriptEventsReject);
                     });
                 }
 
@@ -3735,10 +3729,9 @@
 
         function addDeletedEventsToTranscript(allEvents) {
             //This assumes that all transcript pages have < 500 messages, which in brief testing appears true.
-            //It also assumes that adding 15000 to the last message number will result in both getting any messages
-            //  which are after the last non-deleted one in the day and that it won't result in too few events at the
-            //  beginning of the period. This really should be replaced with code that makes sure we obtain all
-            //  the relevant events for the period covered by the transcript.
+            //It also assumes that adding 15000 to the last message number will result in getting any messages
+            //  which are after the last non-deleted one in the day. This really should be replaced with code
+            //  that makes sure we obtain all the relevant events for the period covered by the transcript.
             const [transcriptDateStart, transcriptDateEnd] = getTranscriptDate();
             const transcriptStart = transcriptDateStart.getTime() / 1000;//SE Chat events are to the second, not millisecond.
             const transcriptEnd = transcriptDateEnd.getTime() / 1000;//SE Chat events are to the second, not millisecond.
