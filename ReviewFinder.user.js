@@ -1,10 +1,16 @@
 // ==UserScript==
 // @name         find reviews
 // @namespace    http://stackoverflow.com/users/578411/rene
-// @version      0.3
+// @version      0.4
 // @description  find reviews from the history pages 
 // @author       rene
 // @match        *://stackoverflow.com/review/*/history
+// @match        *://*.stackexchange.com/review/*/history
+// @match        *://*.superuser.com/review/*/history
+// @match        *://*.serverfault.com/review/*/history
+// @match        *://*.askubuntu.com/review/*/history
+// @match        *://*.stackapps.com/review/*/history
+// @match        *://*.mathoverflow.net/review/*/history
 // @grant        none
 // ==/UserScript==
 
