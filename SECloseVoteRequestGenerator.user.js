@@ -49,6 +49,8 @@
     const requestInfoStateWithMatchingTime = ['posted', 'delayed', 'closeVoted', 'deleteVoted'];
     const delayableRequestTypes = ['revisit'];
     const delayableRequestRegex = / \(in (?:(\d+(?:\.\d+)?)|N) days?\)/;
+    const SDRegex = / *\(?\bSD report\b\)?/ig;
+    const NATORegex = / *\(?\bNATO\b\)?/ig;
     const scriptInstanceIdentifier = Math.random().toString(); //Not perfectly unique, but should be close.
     const canListenGMStorage = typeof GM_addValueChangeListener === 'function'; //Not available: Greasemonkey
     const isQuestionPage = window.location.pathname.indexOf('/questions/') === 0;
@@ -1834,38 +1836,32 @@
             thisGuiItem.userChangedRequestType = true;
             thisGuiItem.adjustDisplayToRequestReason();
         });
-        sdReportCheckbox.on('change cvrgSyncState', function() {
-            var originalReason = requestReasonInput.val();
-            var reason = originalReason.replace(/ ?\(?\bSD report\b\)?/ig, '');
-            if (sdReportCheckbox.is(':checked')) {
-                if (/ ?\(?\bSD report\b\)?/i.test(originalReason)) {
-                    //If the reason already indicates it's from an SD report, then don't change it.
+        function addTextToReasonIfNotPresentAndCheckboxChecked(checkbox, textRegex, addText) {
+            const originalReason = requestReasonInput.val();
+            textRegex.lastIndex = 0;
+            let reason = originalReason.replace(textRegex, '');
+            if (checkbox.is(':checked')) {
+                const clonedPreview = thisGuiItem.requestPreview.clone();
+                clonedPreview.find('a').remove();
+                textRegex.lastIndex = 0;
+                const regexInOrigReason = textRegex.test(originalReason);
+                textRegex.lastIndex = 0;
+                const regexInPreviewText = textRegex.test(clonedPreview.text());
+                if (regexInOrigReason || regexInPreviewText) {
+                    //If the reason or preview already matches the regex, then don't change the reason.
                     reason = originalReason;
                 } else {
-                    reason += ' (SD report)';
+                    reason = reason.trim() + addText;
                 }
             }
             if (reason !== originalReason) {
                 requestReasonInput.val(reason);
                 thisGuiItem.handleReasonInput();
             }
-        });
-        natoReportCheckbox.on('change cvrgSyncState', function() {
-            var originalReason = requestReasonInput.val();
-            var reason = originalReason.replace(/ ?\(?\bNATO\b\)?/ig, '');
-            if (natoReportCheckbox.is(':checked')) {
-                if (/ ?\(?\bNATO\b\)?/i.test(originalReason)) {
-                    //If the reason already indicates it's from NATO, then don't change it.
-                    reason = originalReason;
-                } else {
-                    reason += ' (NATO)';
-                }
-            }
-            if (reason !== originalReason) {
-                requestReasonInput.val(reason);
-                thisGuiItem.handleReasonInput();
-            }
-        });
+        }
+
+        sdReportCheckbox.on('change cvrgSyncState', addTextToReasonIfNotPresentAndCheckboxChecked.bind(thisGuiItem, sdReportCheckbox, SDRegex, ' (SD report)'));
+        natoReportCheckbox.on('change cvrgSyncState', addTextToReasonIfNotPresentAndCheckboxChecked.bind(thisGuiItem, natoReportCheckbox, NATORegex, ' (NATO)'));
         $('.cvrgDelayLengthNumber', this.item).on('change keyup click paste', this.updateDelayUntilTime.bind(this));
         this.reasonEdited = false;
         this.boundHandleReasonInput = this.handleReasonInput.bind(this);
@@ -2057,10 +2053,24 @@
                 this.updateRequestInfoIfChanged('quick');
             }
         },
-        checkNatoOrSDReportCheckboxIfInReasonText: function() {
-            var reason = this.requestReasonInput.val();
-            this.sdReportCheckbox.prop('checked', / ?\(?\bSD report\b\)?/i.test(reason));
-            this.natoReportCheckbox.prop('checked', / ?\(?\bNATO\b\)?/i.test(reason));
+        checkNatoOrSDReportCheckboxIfInPreview: function() {
+            const clonedPreview = this.requestPreview.clone();
+            clonedPreview.find('a').remove();
+            const previewText = clonedPreview.text();
+            SDRegex.lastIndex = 0;
+            NATORegex.lastIndex = 0;
+            const sdInPreview = SDRegex.test(previewText);
+            const natoInPreview = NATORegex.test(previewText);
+            this.sdReportCheckbox.prop('checked', sdInPreview);
+            this.natoReportCheckbox.prop('checked', natoInPreview);
+            //If the request text doesn't contain the regex, but the preview does, then we disable the chceckbox.
+            const requestText = this.requestReasonInput.val();
+            SDRegex.lastIndex = 0;
+            NATORegex.lastIndex = 0;
+            const sdInRequest = SDRegex.test(requestText);
+            const natoInRequest = NATORegex.test(requestText);
+            this.sdReportCheckbox.prop('disabled', sdInPreview && !sdInRequest);
+            this.natoReportCheckbox.prop('disabled', natoInPreview && !natoInRequest);
         },
         adjustDisplayToRequestReason: function() {
             //Adjust the display and store the old request reason when the request type is changed.
@@ -2177,8 +2187,8 @@
             this.currentRequestType = newRequestType;
             this.setInputAttributesByRequestType();
             this.reasonEdited = false;
-            this.checkNatoOrSDReportCheckboxIfInReasonText();
             this.updatePreview();
+            this.checkNatoOrSDReportCheckboxIfInPreview();
         },
         setRequestTypeByGuiButton: function() {
             //Set the request type based on the text displayed in the button the user clicked to open the GUI.
@@ -2296,8 +2306,8 @@
         handleReasonInput: function() {
             //An event occurred indicating the request reason changed.
             this.reasonEdited = true;
-            this.checkNatoOrSDReportCheckboxIfInReasonText();
             this.updatePreview();
+            this.checkNatoOrSDReportCheckboxIfInPreview();
         },
         generateRequestKey: function(requestType) {
             //Generate the key under which the request is stored. The key looks like:
