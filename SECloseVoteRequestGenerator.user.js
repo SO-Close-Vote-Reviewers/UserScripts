@@ -36,6 +36,7 @@
 (function() {
     'use strict';
 
+    const parser = new DOMParser();
     //The RoomList is the list of chat rooms to which to send requests. It's effectively a class, but a one-off.
     const RoomList = {};
     var CVRGUI;
@@ -328,10 +329,6 @@
     setGlobalVariablesByConfigOptions();
     //Get the href for the user's profile.
     var currentUserHref = $('.topbar .profile-me,.so-header .my-profile,.top-bar .my-profile').attr('href');
-    var insertMarkdownReady = false;
-    $(window).on('cvrg-insertMarkdownReady', function() {
-        insertMarkdownReady = true;
-    });
 
     //MathJax corrupts the text contents of titles (from a programmatic POV:  .text(),
     //  .textContent, and .innerText).  In order have requests contain the actual title text,
@@ -488,79 +485,296 @@
 
     var URL = 'https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/CVRG-Mak-new-version/SECloseVoteRequestGenerator.user.js';
 
-    function inPageInsertMarkdownInTarget() {
-        //The thing that's still needed is sanitizing, which may need to be added here from GitHub:
-        if (typeof unsafeWindow !== 'undefined') {
-            //Prevent this running when not in the page context.
-            return;
+    /* linkifyTextURLs was originally highlight text via RegExp
+     * Copied by Makyen from Makyen's use of it in MagicTag2, which was copied from Makyen's
+     * answer to: Highlight a word of text on the page using .replace() at:
+     *     https://stackoverflow.com/a/40712458/3773011
+     * and substantially rewritten for the SOCVR Archiver. This was copied from there.
+     */
+    function linkifyTextURLs(element, useSpan) {
+        //This changes bare http/https/ftp URLs into links with link-text a shortened version of the URL.
+        //  If useSpan is truthy, then a span with the new elements replaces the text node.
+        //  If useSpan is falsy, then the new nodes are added as children of the same element as the text node being replaced.
+        //  The [\u200c\u200b] characters are added by SE chat to facilitate word-wrapping & should be removed from the URL.
+        const urlSplitRegex = /((?:\b(?:https?|ftp):\/\/)(?:[\w.~:\/?#[\]@!$&'()*+,;=\u200c\u200b-]{2,}))/g; // eslint-disable-line no-useless-escape
+        const urlRegex = /(?:\b(?:https?|ftp):\/\/)([\w.~:\/?#[\]@!$&'()*+,;=\u200c\u200b-]{2,})/g; // eslint-disable-line no-useless-escape
+        if (!element) {
+            throw new Error('element is invalid');
         }
-        var cacheOneEvent = null;
 
-        function cacheEvent(e) {
-            cacheOneEvent = e;
-        }
-        var eventToListenTo = 'cvrg-insertMarkdownInTarget';
-        var $win = $(window);
-        $win.on(eventToListenTo, cacheEvent);
-        //We need the Markdown.Converter, which is in the 'editor', which is not auto-loaded on deleted question pages/reviews.
-        StackExchange.using('editor', function() {
-            var converter;
-            function insertMarkdownFromEvent(e) {
-                //If toStaticHTML() is not available, use only the very simple sanitization of changing all '<' to '&lt;' and '>' to '&gt;'
-                //  This will result in a different look than what will actually happen when converted from Markdown, but won't execute code.
-                //toStaticHTML() does not replace all HTML tags (e.g. <video>). In fact, it adds to <video> and corrupts what is displayed.
-                //  Thus, we still have to do simple sanitation first.
-                //This simple sanitation is insufficient, but good enough for what we're doing.
-                // < and > should never appear in a tag, or link text, but this will mangle them if there are such.
-                // It's not intended to be a full implementation of sanitation.
-                //XXX Do we really need to substitute for ">"?
-                //var sanitizedDetail = e.detail.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                var sanitizedDetail = e.detail.replace(/</g, '&lt;');
-                //On balance, it's probably better to also use toStaticHTML() than not to do so.
-                sanitizedDetail = typeof toStaticHTML === 'function' ? toStaticHTML(sanitizedDetail) : sanitizedDetail;
-                const target = $(e.target);
-                target.append(converter.makeHtml(sanitizedDetail).replace(/\[(?:meta-)?tag:([^\]]+)]/g, function(match, p1) {
-                    return tagRendererRaw(p1);
-                }));
-                //If the source doesn't have any &lt;, it would be beneficial to traverse all the <code> to change any back to <.
-                if (!/(?:&lt;|&gt;|&amp;)/.test(e.detail)) {
-                    //If the text already contained a "&lt;", "&gt;" or "&amp;", then don't bother trying to substitute the characters back in.
-                    //  i.e. only fix the simple case.
-                    target.find('code').find('*').addBack().contents().addBack().filter(function() {
-                        return this.nodeType === 3;
-                    }).each(function() {
-                        this.textContent = this.textContent.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+        function handleTextNode(textNode) {
+            const textNodeParent = textNode.parentNode;
+            if (textNode.nodeName !== '#text' ||
+                textNodeParent.nodeName === 'SCRIPT' ||
+                textNodeParent.nodeName === 'STYLE'
+            ) {
+                //Don't do anything except on text nodes, which are not children
+                //  of <script> or <style>.
+                return;
+            }
+            const origText = textNode.textContent;
+            urlSplitRegex.lastIndex = 0;
+            const splits = origText.split(urlSplitRegex);
+            //Only change the DOM if we detected a URL in the text
+            if (splits.length > 1) {
+                //Create a span to hold the new elements.
+                const newSpan = document.createElement('span');
+                splits.forEach((split) => {
+                    if (!split) {
+                        return;
+                    } //else
+                    urlRegex.lastIndex = 0;
+                    //Remove the extra characters SE chat adds to long character sequences.
+                    split = split.replace(/[\u200c\u200b]/g, '');
+                    const newHtml = split.replace(urlRegex, (match, p1) => {
+                        //Try to match what SE uses.
+                        if (p1.length > 32) {
+                            //Reduce length & add ellipse.
+                            p1 = p1.split(/\//g).reduce((sum, part, index) => {
+                                if (sum[sum.length - 1] === '…' || sum.length >= 31) {
+                                    //We've found all we want.
+                                    return sum;
+                                }
+                                if (index === 0) {
+                                    if (part.length > 31) {
+                                        return part.slice(0, 29) + '…';
+                                    }
+                                    return part;
+                                }
+                                if ((sum.length + part.length) > 29) {
+                                    return sum + '/…';
+                                }
+                                return sum + '/' + part;
+                            }, '');
+                        }
+                        return `<a href="${match}">${p1}</a>`;
                     });
+                    //Compare the strings, as it should be faster than a second RegExp operation and
+                    //  lets us use the RegExp in only one place.
+                    if (newHtml !== split) {
+                        newSpan.insertAdjacentHTML('beforeend', newHtml);
+                    } else {
+                        //No text replacement was made; just add a text node.
+                        // These are placed as explicit text nodes because it's possible that the textContent could be valid HTML.
+                        // e.g. what if we're replacing into "You want it to look like <b>https://example.com</b>", where that's
+                        //  the <b> & </b> are actual text, not elements.
+                        newSpan.appendChild(document.createTextNode(split));
+                    }
+                });
+                //Replace the textNode with either the new span, or the new nodes.
+                if (useSpan) {
+                    //Replace the textNode with the new span containing the link.
+                    textNodeParent.replaceChild(newSpan, textNode);
+                } else {
+                    const textNodeNextSibling = textNode.nextSibling;
+                    while (newSpan.firstChild) {
+                        textNodeParent.insertBefore(newSpan.firstChild, textNodeNextSibling);
+                    }
+                    textNode.remove();
                 }
             }
-            //Make sure the tagRenderer has been initialized.
-            if (!window.tagRendererRaw && typeof window.initTagRenderer === 'function') {
-                window.initTagRenderer();
+        }
+        const textNodes = [];
+        //Create a NodeIterator to get the text nodes in the body of the document
+        const nodeIter = document.createNodeIterator(element, NodeFilter.SHOW_TEXT);
+        let currentNode = nodeIter.nextNode();
+        //Add the text nodes found to the list of text nodes to process, if it's not a child of an <a>, <script>, or <style>.
+        while (currentNode) {
+            let parent = currentNode.parentNode;
+            while (
+                parent && parent.nodeName !== 'A' &&
+                parent.nodeName !== 'SCRIPT' &&
+                parent.nodeName !== 'STYLE' &&
+                parent.nodeName !== 'CODE'
+            ) {
+                parent = parent.parentElement;
             }
-            /* jshint -W003 */
-            converter = new Markdown.Converter({
-                nonAsciiLetters: true,
-                asteriskIntraWordEmphasis: StackExchange.settings.markdown.asteriskIntraWordEmphasis,
-                autoNewlines: StackExchange.settings.markdown.autoNewlines,
-            });
-            /* jshint +W003 */
-            $win.off(eventToListenTo, cacheEvent);
-            $win.on(eventToListenTo, insertMarkdownFromEvent);
-            //If there has been a markdown event prior to being ready, send the most recent. This is insufficient for situations where there
-            //  might have been events on multiple elements, but the most likely thing is to only have the user be interacting with one, or at
-            //  least the most recent interaction (event) is the most important.
-            if (cacheOneEvent) {
-                insertMarkdownFromEvent(cacheOneEvent);
+            if (!parent && currentNode.textContent.length > 7) {
+                textNodes.push(currentNode);
             }
-            //Broadcast that insertMarkdown is ready. This is used to .show() the preview.
-            window.dispatchEvent(new CustomEvent('cvrg-insertMarkdownReady', {
-                bubbles: true,
-                cancelable: true,
-            }));
+            currentNode = nodeIter.nextNode();
+        }
+        //Process each text node
+        textNodes.forEach(function(el) {
+            handleTextNode(el);
         });
+        return element;
     }
-    //Temporarily disable the in page Markdown converter due to significant SE code changes.
-    //executeInPage(inPageInsertMarkdownInTarget, true, 'cvrg-insertMarkdownInTarget');
+
+    //For Chat Markdown converter
+    const hostname = window.location.hostname;
+    //Site list: https://stackoverflow.com/topbar/site-switcher/site-list
+    const mainMetaDomain = 'meta.stackexchange.com';
+    const isMetaSite = /\bmeta\./.test(hostname);
+    const isMainSite = !isMetaSite || hostname === mainMetaDomain;
+    const mainDomain = (function() {
+        if (isMainSite) {
+            return hostname;
+        } //else
+        if (isMetaSite) {
+            return hostname.replace(/\bmeta\./, '');
+        }
+        return '';
+    })();
+    const metaDomain = (function() {
+        if (isMetaSite) {
+            return hostname;
+        } //else
+        if (hostname === 'stackapps.com') {
+            return mainMetaDomain;
+        }
+        if (hostname.indexOf('stackoverflow.com') > -1) {
+            return hostname.replace('stackoverflow.com', 'meta.stackoverflow.com');
+        }
+        if (hostname.indexOf('stackexchange.com') > -1) {
+            return hostname.replace('stackexchange.com', 'meta.stackexchange.com');
+        }
+        return 'meta.' + hostname;
+    })();
+    //We have a global list, so we're not re-compiling the regexes each time we convert chat Markdown text.
+    const chatMarkdownMagicTagSubstitutions = [
+        //"Magic" links:  https://meta.stackexchange.com/questions/92060/add-data-se-style-magic-links-to-comments/94000#94000
+        //Straight "magic" link substitutions:
+        [/\[so\]/gi, linkAsHTML('Stack Overflow', 'https://stackoverflow.com/')],
+        [/\[su\]/gi, linkAsHTML('Super User', 'https://superuser.com/')],
+        [/\[sf\]/gi, linkAsHTML('Server Fault', 'https://serverfault.com/')],
+        [/\[metase\]/gi, linkAsHTML('Meta Stack Exchange', 'https://meta.stackexchange.com/')],
+        [/\[meta.se\]/gi, linkAsHTML('Meta Stack Exchange', 'https://meta.stackexchange.com/')],
+        [/\[a51\]/gi, linkAsHTML('Area 51', 'https://area51.stackexchange.com/')],
+        [/\[se\]/gi, linkAsHTML('Stack Exchange', 'https://stackexchange.com/')],
+        [/\[es.so\]/gi, linkAsHTML('Stack Overflow en español', 'https://es.stackoverflow.com/')],
+        [/\[pt.so\]/gi, linkAsHTML('Stack Overflow em Português', 'https://pt.stackoverflow.com/')],
+        [/\[ja.so\]/gi, linkAsHTML('スタック・オーバーフロー', 'https://ja.stackoverflow.com/')],
+        [/\[ru.so\]/gi, linkAsHTML('Stack Overflow на русском', 'https://ru.stackoverflow.com/')],
+        [/\[ubuntu.se\]/gi, linkAsHTML('Ask Ubuntu', 'https://askubuntu.com/')],
+        [/\[mathoverflow.se\]/gi, linkAsHTML('MathOverflow', 'https://mathoverflow.net/')],
+        [/\[chat-faq\]/gi, linkAsHTML('chat faq', 'https://chat.stackoverflow.com/faq')], //This magic link only works in chat.
+        //Other SE sites (does not currently attempt to verify that the SE site actually exists or get the site's real name):
+        //[something.se]:
+        [/\[([\w-]+)\.se\]/gi, linkAsHTML('$1', '//$1.stackexchange.com/', 'If this is a real SE site, the full site name will be displayed in chat.')], //Does not attempt to use the user readable site name
+        //Other SE meta sites (does not currently attempt to verify that the SE site actually exists or get the site's real name):
+        //[sitename.meta.se]:
+        [/\[meta\.([\w-]+)\.se\]/gi, linkAsHTML('Meta $1', 'https://$1.meta.stackexchange.com/', 'If this is a real SE site, the full meta site name will be displayed in chat.')], //Does not attempt to use the user readable site name
+        //[meta.sitename.se]:
+        [/\[([\w-]+)\.meta\.se\]/gi, linkAsHTML('Meta $1', 'https://$1.meta.stackexchange.com/', 'If this is a real SE site, the full meta site name will be displayed in chat.')], //Does not attempt to use the user readable site name
+        [/\[main\]/gi, linkAsHTML('Main Site', `https:\//${mainDomain}/`, 'In chat, this will display the name of the main site')], // eslint-disable-line no-useless-escape
+        [/\[meta\]/gi, linkAsHTML('Meta Site', `https:\//${metaDomain}/`, 'In chat, this will display the name of the meta site')], // eslint-disable-line no-useless-escape
+        [/\[ask\]/gi, linkAsHTML('How to Ask', `https:\//${mainDomain}/questions/how-to-ask`)], // eslint-disable-line no-useless-escape
+        [/\[answer\]/gi, linkAsHTML('How to Answer', `https:\//${mainDomain}/questions/how-to-answer`)], // eslint-disable-line no-useless-escape
+        //Post-process tags, as they require HTML:
+        // https://regex101.com/r/DYvjhz/1/
+        //The regex used here is overly permissive of what characters are permitted in a tag. See:
+        //  https://meta.stackexchange.com/questions/22624/what-symbols-characters-are-not-allowed-in-tags
+        //for more information about what is actually permitted in a tag.
+        //If we wanted the HTML which would actually be used in chat.SO (need to re-verify):
+        //.replace(/\[tag:([^+"<>\]\s-][^"<>\]\s]{0,34})\]/gi, `<span class="ob-post-tag" style="background-color: #E0EAF1; color: #3E6D8E; border-color: #3E6D8E; border-style: solid;"><a href="/questions/tagged/$1" class="post-tag js-gps-track" title="" rel="tag">$1</a></span>`)
+        //Main site HTML (when on a main site)
+        [/\[tag:([^+"<>\]\s-][^"<>\]\s]{0,34})\]/gi, `<a href="https://${mainDomain}/questions/tagged/$1" class="post-tag js-gps-track" title="" rel="tag">$1</a>`],
+        //Meta tags:
+        [/\[meta-tag:([^+"<>\]\s-][^"<>\]\s]{0,34})\]/gi, `<a href="https://${metaDomain}/questions/tagged/$1" class="post-tag js-gps-track" title="" rel="tag">$1</a>`],
+    ].map(([basicRegex, replaceText]) => [
+        //None of these substitutions should happen for text in code format.
+        new RegExp(`${basicRegex.source}(?!(?:[^<]|<(?!\/?code>))*<\/code>)`, basicRegex.flags), // eslint-disable-line no-useless-escape
+        replaceText,
+    ]);
+
+    function linkAsHTML(displayText, url, titleText) {
+        return `<a href="${url}"${titleText ? ` title="${titleText}"` : ''}>${displayText}</a>`;
+    }
+
+    function chatMarkdownToHTML(chatMarkdown) {
+        //Note: Uses parser (global);
+        //Deficiencies:
+        //  Does not use actual SE site names, nor verify that in [foo.se] "foo.stackexchange.com" is a real SE site.
+        //  Tags:
+        //    Does not check what, if any, site is associated with the target Room. Tag Markdown doesn't work on chat.se unless the room has an associated site.
+        function applyAllChatMarkdownMagicTagSubstitutions(text) {
+            chatMarkdownMagicTagSubstitutions.forEach(([regex, replaceText]) => {
+                regex.lastIndex = 0;
+                text = text.replace(regex, replaceText);
+            });
+            return text;
+        }
+
+        const strikeoutChatMarkdown = chatMarkdown
+            .replace(/Q/g, 'Qa') //Any "Q" is now "Qa". This allows the use of any "Q[^a]" text sequence to hold special meaning during substitutions, until reversed.
+            .replace(/</g, 'Qb') //Prevent any existing HTML text from functioning, but don't have markdownToHTML affect it. Chat doesn't support user's directly adding HTML.
+            .replace(/(^|[^-])---((?:[^\s-].*?[^\s-]|[^\s-]))---(?!-)/g, '$1<s>$2</s>'); //Implement chat strikeout Markdown.  https://regex101.com/r/NXXtwF/1/
+        const markdownHTMLWithoutMagicTags = markdownToHTML(strikeoutChatMarkdown)
+            //Undo the substitutions which prevented markdownToHTML from affecting existing HTML
+            .replace(/Qb/g, '&lt;')
+            .replace(/Qa/g, 'q');
+        const markdownAsHTML = applyAllChatMarkdownMagicTagSubstitutions(markdownHTMLWithoutMagicTags);
+        const asDOM = parser.parseFromString(`<div>${markdownAsHTML}</div>`, 'text/html');
+        const linkified = linkifyTextURLs(asDOM.body.firstChild, true);
+        return linkified.innerHTML;
+    }
+
+    function markdownToHTML(src) {
+        /* markdownToHTML is from
+         *     https://github.com/p01/mmd.js/blob/master/mmd.js
+         * It is Copyright (c) 2012 Mathieu 'p01' Henri and released under the MIT license, which can be found at:
+         *     https://github.com/p01/mmd.js/blob/master/LICENSE
+         * It has been modified.
+         */
+        var h = '';
+        const whiteListedTagsRegex = /&lt;((?:br|hr)\s*\/?|\/?(?:b|code|dd|del|dl|dt|em|h1|h2|h3|i|kbd|li|ol|p|pre|s|strike|strong|sub|sup|ul)\s*|\/(?:a|blockquote|div|ol|pre|span)\s*|(?:(?:a\b(?: +(?:href|title|rel|alt)="[^"<>]*")*)|(?:blockquote\b(?: +(?:class)="[^"<>]*")*)|(?:div\b(?: +(?:class|data-lang|data-hide|data-console|data-babel)="[^"<>]*")*)|(?:ol\b(?: +(?:start)="[^"<>]*")*)|(?:pre\b(?: +(?:class)="[^"<>]*")*)|(?:span\b(?: +(?:class|dir)="[^"<>]*")*)\s*)|(?:(?:img\b(?: +(?:src|width|height|alt|title)="[^"<>]*")*)\s*\/?))&gt;/gi;
+
+        function escape(t, noWhitelistedTags) {
+            if (noWhitelistedTags) {
+                return new Option(t).innerHTML;
+            } // else
+            whiteListedTagsRegex.lastIndex = 0;
+            return new Option(t).innerHTML.replace(whiteListedTagsRegex, '<$1>');
+        }
+        function inlineEscape(s) {
+            const out = escape(s)
+                //Images
+                .replace(/!\[([^\]]*)]\(([^(]+)\)/g, '<img alt="$1" src="$2">')
+                //Links with alt text.
+                //https://regex101.com/r/ZUwKmC/1
+                //.replace(/\[((?:[^\]\\]|\\]|\\)+)]\(([^ (]+?)(?: +"([^\r\n]+?)")?\)/g, (match, p1, p2, p3) => `<a href="${p2}"${(p3 ? (` title=\"${p3.replace(/\"/g, '&quot;')}\"`) : '')}>${p1.replace(/\\([\[\]])/g, '$1')}</a>`)
+                //Links with alt text and up to 3 levels of extra non-escaped () in the link URL.
+                //It looks like the Chat Markdown actually handles an arbitrary number of nested () in the URL, as long as they are matched, or escaped.
+                //We really should switch to actually parsing those, rather than using a regex for the full parse. We could reasonably use a regex to just get potential links and then
+                //code to parse them.
+                // p1 = link text
+                // p2 = URL
+                // p3 = title text, if it exists
+                //https://regex101.com/r/kjLtjp/1
+                .replace(/\[((?:[^\]\\]|\\]|\\)+)]\(((?:[^\s\\()]|\\(?![()\s])|\\[()]|\((?:[^\s\\()]|\\(?![()\s])|\\[()]|\((?:[^\s\\()]|\\(?![()\s])|\\[()]|\([^()\s]*\))+?\))+?\))+?)(?: +"([^\r\n]+?)")?\)/g, (match, p1, p2, p3) => `<a href="${p2.replace(/\\([()])/g, '$1')}"${(p3 ? (` title=\"${p3.replace(/\"/g, '&quot;')}\"`) : '')}>${p1.replace(/\\([\[\]])/g, '$1')}</a>`) // eslint-disable-line no-useless-escape
+                //Code format
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                //Bold/strong
+                .replace(/(\*\*|__)(?=\S)([^\r]*?\S[*_]*)\1/g, '<strong>$2</strong>')
+                //Italics
+                .replace(/(\*|_)(?=\S)([^\r]*?\S)\1/g, '<em>$2</em>');
+            return out;
+        }
+
+        /*eslint-disable */
+        src
+            .replace(/^\s+|\r|\s+$/g, '')
+            .replace(/  +\r?\n/g, '<br>')
+            .replace(/\t/g, '    ')
+            .split(/\n\n+/)
+            .forEach(function(b, f, R) {
+                f = b[0];
+                R = {
+                    '*':[/\n\* /,'<ul><li>','</li></ul>'],
+                    '1':[/\n[1-9]\d*\.? /,'<ol><li>','</li></ol>'],
+                    ' ':[/\n    /,'<pre><code>','</pre></code>','\n'],
+                    '>':[/\n> /,'<blockquote>','</blockquote>','\n']
+                }[f];
+                h += R ? R[1] + ('\n' + b)
+                    .split(R[0])
+                    .slice(1)
+                    .map(R[3] ? escape : inlineEscape)
+                    .join(R[3] || '</li>\n<li>') + R[2] : f == '#' ? '<h' + (f = b.indexOf(' ')) + '>' + inlineEscape(b.slice(f + 1)) + '</h' + f + '>' : f == '<' ? b : '<p>' + inlineEscape(b) + '</p>';
+            });
+        return h;
+        /*eslint-enable */
+    }
 
     // Message number, just a number used to start, which is not
     // guaranteed to be unique (i.e. it could have collisions with other
@@ -1833,10 +2047,6 @@
             this.questionActiveTime = null;
             this.tag = null;
             //Complete setup
-            if (!insertMarkdownReady) {
-                //If the insertMarkdown is not ready, be sure that we update the preview once it's ready.
-                $(window).on('cvrg-insertMarkdownReady', this.updatePreview.bind(this));
-            }
             this.adjustDisplayToRequestReason();
             this.sendButton[0].disabled = false;
             this.currentRequestType = this.requestTypeInput.val();
@@ -1846,7 +2056,6 @@
             if (this.reasonEdited && this.requestTypeInput.val()) {
                 this.updateRequestInfoIfChanged('quick');
             }
-            $(window).off('cvrg-insertMarkdownReady');
         },
         checkNatoOrSDReportCheckboxIfInReasonText: function() {
             var reason = this.requestReasonInput.val();
@@ -2192,11 +2401,8 @@
             var request = requestAndValidate.request;
             var invalidRequestReasons = (requestAndValidate.invalidRequestReasons || []);
             var criticalRequestReasons = (requestAndValidate.criticalRequestReasons || []);
-            this.requestPreview[0].dispatchEvent(new CustomEvent('cvrg-insertMarkdownInTarget', {
-                bubbles: true,
-                cancelable: true,
-                detail: request,
-            }));
+            const requestAsHTML = chatMarkdownToHTML(request);
+            $(this.requestPreview[0]).append(requestAsHTML);
             var preview = this.requestPreview.find('*');
             if (preview.length) {
                 this.requestPreview.show();
