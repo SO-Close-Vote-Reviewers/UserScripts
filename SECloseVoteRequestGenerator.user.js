@@ -2880,7 +2880,7 @@
             if (!tag) {
                 //huh, sponsored tags have images =/ and off-topic tag like C++ are URL encoded -> get the text only
                 if (isGuiReviewSE) {
-                    this.tag = tag = $('.post-taglist a.post-tag', questionContext).first().text();
+                    this.tag = tag = $('.post-taglist a.post-tag, .summary > h2 > .post-tag', questionContext).first().text();
                 } else {
                     this.tag = tag = $('.question .post-taglist a.post-tag', questionContext).first().text();
                 }
