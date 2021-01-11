@@ -451,6 +451,19 @@
         return isLocked;
     }
 
+    function isPostCommentLocked(post) {
+        let isCommentLocked = false;
+        $(post).find('.iconLightbulb, .iconLock').closest('.grid').each(function() {
+            const $this = $(this);
+            const firstBoldText = $this.find('b').first().text();
+            const isLocked = /community wiki|locked/i.test(firstBoldText);
+            if (isLocked) {
+                isCommentLocked = /Comments .{0,30}\bhave been disabled/.test($this.text());
+            }
+        });
+        return isCommentLocked;
+    }
+
     function getQuestionContext(element) {
         //If there's more than one question, the context is the closest .mainbar
         //This is different in
@@ -2036,7 +2049,9 @@
             this.postTime = null;
             this.closedTimeMs = null;
             this.isQuestionLocked = null;
+            this.isQuestionCommentLocked = null;
             this.postIsLocked = null;
+            this.postIsCommentLocked = null;
             this.isQuestionBounty = null;
             this.questionRoombaInfo = null;
             this.questionRoombaDays = null;
@@ -2660,6 +2675,7 @@
             var isTag20k = false;
             var closedTimeMs = this.closedTimeMs;
             var isQuestionLocked = this.isQuestionLocked;
+            var isQuestionCommentLocked = this.isQuestionCommentLocked;
             if (closedTimeMs === null || isQuestionLocked === null) {
                 closedTimeMs = 0;
                 isQuestionLocked = false;
@@ -2682,13 +2698,20 @@
                     }
                 });
                 isQuestionLocked = isPostLocked(theQuestion);
+                isQuestionCommentLocked = isPostCommentLocked(theQuestion);
                 this.closedTimeMs = closedTimeMs;
                 this.isQuestionLocked = isQuestionLocked;
+                this.isQuestionCommentLocked = isQuestionCommentLocked;
             }
             var postIsLocked = this.postIsLocked;
             if (postIsLocked === null) {
                 postIsLocked = isPostLocked(post);
                 this.postIsLocked = postIsLocked;
+            }
+            var postIsCommentLocked = this.postIsCommentLocked;
+            if (postIsCommentLocked === null) {
+                postIsCommentLocked = isPostCommentLocked(post);
+                this.postIsCommentLocked = postIsCommentLocked;
             }
             var isQuestionBounty = this.isQuestionBounty;
             if (isQuestionBounty === null) {
@@ -2703,11 +2726,18 @@
                 questionRoombaDays = parseInt(questionRoombaInfo.replace(/^\D*(\d*)\D*$/, '$1'), 10);
                 this.questionRoombaDays = questionRoombaDays;
             }
-            if (postIsLocked && requestType.indexOf('!!/') !== 0) {
+            if (requestType.indexOf('!!/') === 0) {
+                //If it's an SD command, then remove any surounding quotes which the user may have added, as we add them automaticlly later.
+                reason = reason.replace(/^\s*"([^"]*)"\s*$/, '$1');
+                if (reason.indexOf('"') > -1) {
+                    criticalRequestReasons.push('Quotes not at the begining and end of the reason are not permitted in SD request reasons. Double quotes are permitted at the start and end of your request reason, but are not needed, as your request reason will be automatically appropriately quoted in your SD command.');
+                }
+            }
+            if (postIsLocked && !postIsCommentLocked && requestType.indexOf('!!/') !== 0) {
                 //Being locked is not a critical issue for SD commands.
                 criticalRequestReasons.push('The post is locked.');
             } else {
-                if (isQuestionLocked) {
+                if (isQuestionLocked && !isQuestionCommentLocked && requestType.indexOf('!!/') !== 0) {
                     //Sometimes the question being locked will be a critical issue, sometimes it will not really affect the request.
                     //  We should differentiate based on the different types of locks, but for now, just warn.
                     invalidRequestReasons.push('The question is locked.');
