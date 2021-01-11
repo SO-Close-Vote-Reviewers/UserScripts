@@ -4176,6 +4176,31 @@
         return markup.replace(/\[((?:[^\]]|\\\])+?)\]\(.+?\)/g, '$1'); //https://regex101.com/r/ibhmK7/2
     }
 
+    function watchPagejQueryAjaxComplete() {
+        function inPagejQueryAjaxWatchForComplete() {
+            if (typeof unsafeWindow !== 'undefined') {
+                //Prevent this running when not in the page context.
+                return;
+            }
+            function sendEvent(eventType, detail) {
+                window.dispatchEvent(new CustomEvent(eventType, {
+                    bubbles: true,
+                    cancelable: true,
+                    detail: JSON.stringify(detail),
+                }));
+            }
+            $(document).ajaxComplete(function(event, jqXHR, ajaxSettings) {                                                                                                                                                                                             //WinMerge ignore line
+                sendEvent('cvrg-jQuery-ajaxComplete', ajaxSettings);
+            });
+        }
+        window.addEventListener('cvrg-jQuery-ajaxComplete', () => {
+            //Try to add our post menu entry after anything else that may be run immediately by this event.
+            setTimeout(addCvplsToDom, 0);
+        });
+        executeInPage(inPagejQueryAjaxWatchForComplete, true, 'cvrg-watchPagejQuery-ajaxComplete');
+    }
+    watchPagejQueryAjaxComplete();
+
     function watchPagejQueryAjaxForCloseVoteAndComplete(listeners) {
         //Adds a listener which is called when the page uses $.ajax to send a close-vote to SE.
         //  This is done by wrapping $.ajax in the page context with a function which sends a
