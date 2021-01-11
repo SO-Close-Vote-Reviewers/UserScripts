@@ -2795,6 +2795,14 @@
                                 //Nothing but "off-topic".
                                 invalidRequestReasons.push('"off-topic" by itself is not a sufficient reason. More detail is required.');
                             }
+                            if (/^[\W_]*no[\W_]*Roomba(?:[\W_]*(?:accepted|answer|reopen|vote)s?)*[\W_]*$/ig.test(reason)) {
+                                //Nothing but "no roomba".
+                                if (isSOCVR) {
+                                    criticalRequestReasons.push('Just "no Roomba" by itself is not a sufficient reason for SOCVR. More detail is required.');
+                                } else {
+                                    invalidRequestReasons.push('Just "no Roomba" by itself isn\'t a good reason to delete. More detail is helpful.');
+                                }
+                            }
                         }
                     }
                 }
