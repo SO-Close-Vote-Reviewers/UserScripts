@@ -4038,10 +4038,10 @@
                 var userCustomTextArea = $('textarea', parent);
                 if (userCustomTextArea.length) {
                     //User entered a new custom reason.
-                    cvplsReasonInput.val('Custom: ' + userCustomTextArea.val().replace($('[name="original_text"]', parent).val(), ''));
+                    cvplsReasonInput.val('Custom: ' + userCustomTextArea.val().replace($('[name="originalSiteSpecificOtherText"]', parent).val(), ''));
                 } else {
                     //User selected an already existing custom reason. The actual close reason is not available in the CV AJAX.
-                    cvplsReasonInput.val('Custom: ' + $('span.action-name', parent).contents().first().text().trim().replace(/^Other: /, '').replace($('[name="original_text"]', parent.parent()).val(), ''));
+                    cvplsReasonInput.val('Custom: ' + $('.s-description', parent).contents().first().text().trim().replace(/^Other: /, '').replace($('[name="originalSiteSpecificOtherText"]', popup).val(), ''));
                 }
                 addNoCodeToValueIfIsMcve(cvplsReasonInput);
                 //NATO
@@ -4310,7 +4310,7 @@
                 cvplsReasonInput.val(offTopicCloseReasons[closeData.siteSpecificCloseReasonId]);
             }
             if (closeData.siteSpecificCloseReasonId == 3) { // eslint-disable-line eqeqeq
-                cvplsReasonInput.val('Custom: ' + closeData.siteSpecificOtherText.replace(closeData.originalSiteSpecificOtherText, '').trim());
+                cvplsReasonInput.val('Custom: ' + (closeData.siteSpecificOtherText || '').replace(closeData.originalSiteSpecificOtherText, '').trim());
                 if (origReasonVal && (closeData.siteSpecificOtherCommentId || !cvplsReasonInput.val())) {
                     //If the user selected an already existing "other" reason (i.e. siteSpecificOtherCommentId is valid), then we
                     //  had to get the information from the close dialog, as it's not passed in the AJAX, just the ID is passed.
