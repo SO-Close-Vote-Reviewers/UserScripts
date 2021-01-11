@@ -4031,7 +4031,7 @@
         //The Close Vote Dialog is open
         var popup = $('#popup-close-question').first();
         var popupActions = $('.popup-actions', popup);
-        var remainingVotes = $('.grid > span:contains(vote)', popupActions);
+        var remainingVotes = $('.grid > span:contains(vote),.grid > span:contains(flag)', popupActions);
         //It's possible for getGuiForEl to return null, but that really only happens if something has gone wrong elsewhere
         var guiForQuestionOpeningPopup = CVRGUI.getGuiForEl(popup);
         if (guiForQuestionOpeningPopup) {
