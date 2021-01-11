@@ -153,7 +153,7 @@
         checkboxes: {
             onlySocvrModeratedSites:           new CheckboxOption(false, 'Don\'t show this GUI on non-SOCVR moderated sites.', 'SOCVR moderates only ' + socvrModeratedSites.join(',') + '. Checking this prevents the cv-pls/del-pls GUI from being added on sites which SOCVR does not moderate.'),
             onlyKnownSites:                    new CheckboxOption(false, 'Don\'t show this GUI on sites not pre-configured in this script.', 'Known sites are those moderated by SOCVR: ' + socvrModeratedSites.join(',') + '; Code Review; Mathematics; and Meta Stackexchange. Checking this prevents the cv-pls/del-pls GUI from being added on other sites.'),
-            onlyCharcoalSDSpamOnUnknownSites:  new CheckboxOption(true, 'On sites not specifically configured in this script, use Charcoal HQ as default & show only SD Reports/spam report options.', 'On sites not specifically configured in this script, use Charcoal HQ as the default room and show only SD Reports, spam and offensive as report options. This will not replace the room currently defined on any site. Basically, for any site you have visited prior to setting this option, the site will have already been defined (used to be SOCVR, then changed to &quot;The Stack Exchange Network&quot;). On those sites, you will need to manually change the room.'),
+            onlyCharcoalSDSpamOnUnknownSites:  new CheckboxOption(true, 'On sites not specifically configured in this script, use Charcoal HQ as default & show only SD reports/spam report options.', 'On sites not specifically configured in this script, use Charcoal HQ as the default room and show only SD reports, spam and offensive as report options. This will not replace the room currently defined on any site. Basically, for any site you have visited prior to setting this option, the site will have already been defined (used to be SOCVR, then changed to &quot;The Stack Exchange Network&quot;). On those sites, you will need to manually change the room.'),
             alwaysCharcoal:                    new CheckboxOption(false, 'Always send SD commands to Charcoal HQ.', 'Regardless of the current room selection, always send SD commands to Charcoal HQ and show the SD command options on all sites.'),
             canReportSmokeDetectorSOCVR:       new CheckboxOption(false, 'SOCVR: Show request types for Smoke Detector.', 'When the target Room is SOCVR, show request type options for reporting to Smoke Detector (SD) that the question is spam/offensive, or that all the user\'s posts are spam/offensive. Using SD in SOCVR requires that you are approved to do so in SOCVR. If you\'re not yet approved, sending such reports will just have SD respond saying that you\'re not approved.'),
             canReportSmokeDetectorOther:       new CheckboxOption(false, 'non SOCVR/non Charcoal HQ rooms: Show request types for Smoke Detector.', 'For target rooms other than SOCVR, show request type options for reporting to Smoke Detector (SD) that the question is spam/offensive and other SD commands. Using SD requires that you are approved to do so in that Room. If you\'re not yet approved, sending such reports will just have SD respond saying that you\'re not approved.'),
@@ -1756,9 +1756,9 @@
             '                </label>' +
             '                <div class="cvrgNatoAndSDReportCheckboxContainer">' +
             '                    is: ' +
-            '                    <label class="cvrgSDReport cvrgAddMessage" title="Add/remove &quot;(SD Report)&quot; to/from the report reason">' +
+            '                    <label class="cvrgSDReport cvrgAddMessage" title="Add/remove &quot;(SD report)&quot; to/from the report reason">' +
             '                        <input type="checkbox"  class="cvrgSdReportCheckbox">' +
-            '                        SD Report' +
+            '                        SD report' +
             '                    </label>' +
             '                    <label class="cvrgNATO cvrgAddMessage" title="Add/remove &quot;(NATO)&quot; to/from the report reason">' +
             '                        <input type="checkbox" class="cvrgNatoCheckbox">' +
@@ -1836,13 +1836,13 @@
         });
         sdReportCheckbox.on('change cvrgSyncState', function() {
             var originalReason = requestReasonInput.val();
-            var reason = originalReason.replace(/ ?\(?\bSD Report\b\)?/ig, '');
+            var reason = originalReason.replace(/ ?\(?\bSD report\b\)?/ig, '');
             if (sdReportCheckbox.is(':checked')) {
-                if (/ ?\(?\bSD Report\b\)?/i.test(originalReason)) {
+                if (/ ?\(?\bSD report\b\)?/i.test(originalReason)) {
                     //If the reason already indicates it's from an SD report, then don't change it.
                     reason = originalReason;
                 } else {
-                    reason += ' (SD Report)';
+                    reason += ' (SD report)';
                 }
             }
             if (reason !== originalReason) {
@@ -2059,7 +2059,7 @@
         },
         checkNatoOrSDReportCheckboxIfInReasonText: function() {
             var reason = this.requestReasonInput.val();
-            this.sdReportCheckbox.prop('checked', / ?\(?\bSD Report\b\)?/i.test(reason));
+            this.sdReportCheckbox.prop('checked', / ?\(?\bSD report\b\)?/i.test(reason));
             this.natoReportCheckbox.prop('checked', / ?\(?\bNATO\b\)?/i.test(reason));
         },
         adjustDisplayToRequestReason: function() {
@@ -4010,7 +4010,7 @@
         var cvplsCheckbox = $('<label class="cvrgCVPopupSendCvplsLabel" title="Send a cv-pls request immediately after voting to close."><input class="cvrgCVPopupSendCvplsCheckbox" type="checkbox">Send cv-pls request</label>');
         var cvplsInput = cvplsCheckbox.find('input');
         var cvrgCheckboxWrapper = $('<div class="cvrgCVPopupCheckboxWrapper"></div>').append(cvplsCheckbox);
-        var andWasWrapper = $(' <span class="cvrgCVPopupAndWasWrapper" disabled="true"> & was:<div class="cvrgCVPopupSDAndNatoWithFake"><div class="cvrgCVPopupFakeSDReportCheckboxwrapper"><label class=""><input class="" type="checkbox">SD Report</label></div><div class="cvrgCVPopupSDAndNato"><label class="cvrgCVPopupIsSDReportCheckboxLabel" title="This will add &quot;(SD Report)&quot; to the report reason"><input class="cvrgCVPopupIsSDReportCheckbox" type="checkbox">SD Report</label><label class="cvrgCVPopupIsNatoCheckboxLabel" title="This will add/remove &quot;(NATO)&quot; to the report reason"><input class="cvrgCVPopupIsNatoCheckbox" type="checkbox">NATO</label></div></div></span>');
+        var andWasWrapper = $(' <span class="cvrgCVPopupAndWasWrapper" disabled="true"> & was:<div class="cvrgCVPopupSDAndNatoWithFake"><div class="cvrgCVPopupFakeSDReportCheckboxwrapper"><label class=""><input class="" type="checkbox">SD report</label></div><div class="cvrgCVPopupSDAndNato"><label class="cvrgCVPopupIsSDReportCheckboxLabel" title="This will add &quot;(SD report)&quot; to the report reason"><input class="cvrgCVPopupIsSDReportCheckbox" type="checkbox">SD report</label><label class="cvrgCVPopupIsNatoCheckboxLabel" title="This will add/remove &quot;(NATO)&quot; to the report reason"><input class="cvrgCVPopupIsNatoCheckbox" type="checkbox">NATO</label></div></div></span>');
         remainingVotes.before(cvrgCheckboxWrapper.append(andWasWrapper));
         var andWasSpan = cvrgCheckboxWrapper.find('.cvrgCVPopupAndWasWrapper');
         popup.addClass('cvrgClosePopupContainsCVRGCheckbox');
