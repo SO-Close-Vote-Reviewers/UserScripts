@@ -4601,43 +4601,74 @@
         //  and executing the callback in order to give any other instance which is attempting to get a lock
         //  at exactly the same time to complete doing so. After the timeout, the last to have requested a lock
         //  is the owner.
-        var lockKey = storageKey + '-Lock';
-        var currentLockJSON = getGMStorage(lockKey);
-        var isCurrentLockValid = true;
-        var currentLock;
-        try {
-            currentLock = JSON.parse(currentLockJSON);
-        } catch (e) {
-            isCurrentLockValid = false;
-        }
-        if (isCurrentLockValid) {
-            //Check for ways a currently existing lock might be invalid.
-            if (currentLock) {
-                if (!currentLock.time || currentLock.time < (Date.now() - (1 * 60 * 1000))) {
-                    //A lock that was obtained more than 2 minutes ago is invalid.
-                    isCurrentLockValid = false;
-                }
-            } else {
+        callback = typeof callback === 'function' ? callback : function() {}; // eslint-disable-line no-empty-function
+        failCallback = typeof failCallback === 'function' ? failCallback : function() {}; // eslint-disable-line no-empty-function
+        const lockKey = storageKey + '-Lock';
+        let currentNow;
+        let currentLockJSON;
+        let isCurrentLockValid;
+        let currentLock;
+
+        function fetchLockAndEvaluate() {
+            currentNow = Date.now();
+            currentLockJSON = getGMStorage(lockKey);
+            isCurrentLockValid = true;
+            try {
+                currentLock = JSON.parse(currentLockJSON);
+            } catch (e) {
                 isCurrentLockValid = false;
             }
-        }
-        if (isCurrentLockValid) {
-            //Some other CVRG has a valid lock on the delayedRequest list.
-            console.log('Some other instance has a lock on ' + storageKey + ': currentLock:', currentLock);
-            if (typeof failCallback === 'function') {
-                failCallback();
+            if (isCurrentLockValid) {
+                //Check for ways a currently existing lock might be invalid.
+                if (currentLock) {
+                    if (!currentLock.time || currentLock.time < (currentNow - (1 * 60 * 1000))) {
+                        //A lock that was obtained more than 1 minute ago is invalid.
+                        isCurrentLockValid = false;
+                    }
+                } else {
+                    isCurrentLockValid = false;
+                }
             }
-            return null;
         }
-        setGMStorageJSON(lockKey, {
-            time: Date.now(),
-            url: location.href,
-            instanceId: scriptInstanceIdentifier,
-        });
-        //The callback has to release the lock, if desired.
-        //The setTimeout is used to allow any other instances to be attempting to get the lock
-        //  at the same time. Whichever one was last, will have obtained the lock.
-        setTimeout(doIfLockOwner, (delay ? delay : 1000), storageKey, callback, failCallback);
+
+        function tryToObtainLock() {
+            const newLockData = {
+                time: currentNow,
+                timeAsJSON: new Date(currentNow).toJSON(),
+                url: location.href,
+                instanceId: scriptInstanceIdentifier,
+            };
+            setGMStorageJSON(lockKey, newLockData);
+            //The callback has to release the lock, if desired.
+            //The setTimeout is used to allow any other instances to be attempting to get the lock
+            //  at the same time. Whichever one was last, will have obtained the lock.
+            //setTimeout(doIfLockOwner, (delay ? delay : 1000), storageKey, callback, failCallback);
+            //*TESTING
+            setTimeout(doIfLockOwner, (delay ? delay : 1000), storageKey, () => {
+                callback();
+            }, () => {
+                console.error('Tried to establish lock, but failed. Some other instance got it for:', lockKey, ':: lock:', getGMStorageJSON(lockKey));
+                failCallback();
+            });
+            //*/
+        }
+
+        fetchLockAndEvaluate();
+        if (isCurrentLockValid && !isThisInstanceOwner(currentLock)) {
+            //Some other CVRG has a valid lock on the delayedRequest list.
+            //Retry the attempt once after a brief delay.
+            setTimeout(() => {
+                fetchLockAndEvaluate();
+                if (isCurrentLockValid && !isThisInstanceOwner(currentLock)) {
+                    console.log('Retried: Some other instance has a lock on ' + storageKey + ': currentLock:', currentLock);
+                    failCallback();
+                } else {
+                    tryToObtainLock();
+                }
+            }, 1000);
+        } else {
+            tryToObtainLock();
+        }
     }
 
     function isThisInstanceOwner(lock) {
@@ -4645,10 +4676,16 @@
     }
 
     function releaseGMStorageLockIfOwner(storageKey) {
-        var lockKey = storageKey + '-Lock';
-        var lock = getGMStorageJSON(lockKey);
+        const lockKey = storageKey + '-Lock';
+        const lock = getGMStorageJSON(lockKey);
         if (isThisInstanceOwner(lock)) {
-            GM_deleteValue(lockKey);
+            //Deleting the key is the right way to go, but TM in FF66 does not propagate the change from
+            // GM_deleteValue to other tabs. This results in always having to wait for the lock to expire.
+            //GM_deleteValue(lockKey);
+            lock.time = 0; //Indicate the lock is no longer valid.
+            setGMStorageJSON(lockKey, lock);
+        } else {
+            console.error(`Was supposed to release lock on ${storageKey}, but WAS NOT OWNER. old lock:`, lock);
         }
     }
 
@@ -4684,6 +4721,8 @@
                 if (typeof callback === 'function') {
                     callback();
                 }
+                //Release the lock
+                releaseGMStorageLockIfOwner(storageKey);
             }, failCallback, delayForLock);
         } else if (quick === 'retry') {
             //retry really needs to be a queue per storage key. As it is, operations could occur out of order.
@@ -4692,10 +4731,14 @@
                 if (typeof callback === 'function') {
                     callback();
                 }
+                //Release the lock
+                releaseGMStorageLockIfOwner(storageKey);
             });
         } else {
             console.error('quickLockOrRetryGMStorageAtomicUpdate: quick not understood:', quick);
             console.trace();
+            //Whatever was expected to happen really won't happen correctly.
+            throw new Error('quickLockOrRetryGMStorageAtomicUpdate: quick not understood:');
         }
     }
 
@@ -4717,7 +4760,7 @@
     //      those and delete the ones which have information about delayed requests.
     function deleteDelayedRequests(event) {
         //Clear the delayed requests, per user action
-        //Deleting the keys is the right way to go, but TM in FF66 does not propagate the change from
+        //Deleting the keys is the "right" way to go, but TM in FF66 does not propagate the change from
         // GM_deleteValue to other tabs. This results in always having to wait for the lock to expire.
         if (!confirm('Are you sure you want to delete your revisit requests?')) {
             return;
@@ -4738,15 +4781,22 @@
         return Object.keys(getGMStorageJSON(delayedRequestStorage)).length;
     }
 
+    function getCountOfDueDelayedRequests() {
+        //Check to see if any delayed requests need action.
+        const later = getGMStorageJSON(delayedRequestStorage);
+        const actionable = getObjectKeysOlderThanDays(later, 'actionTime', 0);
+        return actionable.length;
+    }
+
     function checkDelayedRequestsAndProcess() {
         //Check to see if any delayed requests need action.
         //  This *must* be run only after getting a lock on the delayedRequestStorage in order to prevent
         //  having multiple tabs which are opened at the same time sending duplicate requests.
-        var originalRoom = getCurrentRoom();
-        var later = getGMStorageJSON(delayedRequestStorage);
+        const originalRoom = getCurrentRoom();
+        const later = getGMStorageJSON(delayedRequestStorage);
         //Get an Array of delayed requests where the .actionTime is prior to now.
-        var actionable = getObjectKeysOlderThanDays(later, 'actionTime', 0);
-        var actioned = [];
+        const actionable = getObjectKeysOlderThanDays(later, 'actionTime', 0);
+        const actioned = [];
 
         function processActionable(itemKey, hasRoom, success) {
             if (itemKey) {
@@ -4819,9 +4869,31 @@
         processActionable();
     }
 
-    //Try to get a lock on the delayed request list, if so, process it for any to send.
-    //Do nothing if unable to get a lock. That case should be that another tab is processing.
-    ifNotLockedGetLockOnGMStorageAndDo(delayedRequestStorage, checkDelayedRequestsAndProcess);
+    function checkForDueDelayedRequestsWhenTabVisibleConfirmAndOpen() {
+        //Check for delayed requests which are due.
+        const countDelayedRequestsDueAtStartup = getCountOfDueDelayedRequests();
+        if (countDelayedRequestsDueAtStartup > 0) {
+            setTimeout(() => {
+                let isAreDue = `Request Generator:\n\nThere is ${countDelayedRequestsDueAtStartup} post for which a delayed visit is due. Open it now?`;
+                if (countDelayedRequestsDueAtStartup > 1) {
+                    isAreDue = `Request Generator:\n\nThere are ${countDelayedRequestsDueAtStartup} posts for which delayed visits are due. Open them now?`;
+                }
+                if (confirm(isAreDue)) {
+                    //Try to get a lock on the delayed request list, if so, process it for any to send.
+                    //Do nothing if unable to get a lock. That case should be that another tab is processing.
+                    //Only get a lock if we are going to do something with it.
+                    ifNotLockedGetLockOnGMStorageAndDo(delayedRequestStorage, checkDelayedRequestsAndProcess);
+                }
+            }, 0);
+        }
+    }
+    //XXX At least on Firefox, this does not, necessarily, result in the tab getting the most recent version of the data in Tampermonkey (only one tested).
+    if (document.hidden) {
+        //Check for delayed requests that are due once the tab is visible.
+        $(window).one('visibilitychange', checkForDueDelayedRequestsWhenTabVisibleConfirmAndOpen);
+    } else {
+        checkForDueDelayedRequestsWhenTabVisibleConfirmAndOpen();
+    }
 
     //Remembered requests
     function RequestInfo(_postType, _postId, _requestType, _reason, _state) {
@@ -4854,19 +4926,21 @@
         */
     }
 
-    //XX Should not prune revisit requests which have not passed, or been deleted.
     function pruneRememberedRequests() {
-        //Actually prune the requests list. Non-critical. If we don't get a lock, we'll just get it next time.
-        ifNotLockedGetLockOnGMStorageAndDo(rememberedRequestStorage, function() {
-            atomicObjectUpdate(rememberedRequestStorage, 'delete', function(requests) {
-                //Get a list of all remembered requests which have not been changed in user set # days.
-                var toDelete = getObjectKeysOlderThanDays(requests, ['createdTime', 'updatedTime', 'delayedTime', 'postedTime'], configOptions.numbers.daysRememberRequests);
-                return toDelete;
-                //return getObjectKeysOlderThanDays(requests, ['createdTime', 'updatedTime', 'delayedTime', 'postedTime'], configOptions.numbers.daysRememberRequests);
+
+        function getRequestsToDelete(requests) {
+            //Get a list of all remembered requests which have not been changed in user set # days.
+            return getObjectKeysOlderThanDays(requests, ['createdTime', 'updatedTime', 'delayedTime', 'postedTime'], configOptions.numbers.daysRememberRequests);
+        }
+        //Only get a lock if we are actually going to do something with it.
+        if (getRequestsToDelete(getGMStorageJSON(rememberedRequestStorage)).length) {
+            //Actually prune the requests list. Non-critical. If we don't get a lock, we'll just get it next time.
+            ifNotLockedGetLockOnGMStorageAndDo(rememberedRequestStorage, function() {
+                atomicObjectUpdate(rememberedRequestStorage, 'delete', getRequestsToDelete);
+                releaseGMStorageLockIfOwner(rememberedRequestStorage);
+                rememberedRequests = getGMStorageJSON(rememberedRequestStorage);
             });
-            releaseGMStorageLockIfOwner(rememberedRequestStorage);
-            rememberedRequests = getGMStorageJSON(rememberedRequestStorage);
-        });
+        }
     }
     pruneRememberedRequests();
 
@@ -4961,7 +5035,7 @@
             }
             startObservingTopbarStyle();
             if (dontSetTimer !== true) {
-                //Set a few timers to re-adjust the margin. Something keeps resetting it.
+                //Set a timer to re-adjust the margin. Something keeps resetting it.
                 clearTimeout(topbarNotifierTimer);
                 topbarNotifierTimer = setTimeout(adjustTopbarMarginToNotifyContainer, 50, true, 50);
             }
