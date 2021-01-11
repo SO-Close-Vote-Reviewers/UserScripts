@@ -4437,6 +4437,7 @@
                     cancelable: true,
                 }));
                 var toReturn = origSEFuction.apply(this, arguments);
+                //This fires when the function returns. If it returns a Promise, we don't do anything about that.
                 window.dispatchEvent(new Event(eventTypeBase + '-after', {
                     bubbles: true,
                     cancelable: true,
