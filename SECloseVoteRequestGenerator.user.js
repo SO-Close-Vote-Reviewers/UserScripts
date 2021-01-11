@@ -2715,7 +2715,7 @@
             }
             var isQuestionBounty = this.isQuestionBounty;
             if (isQuestionBounty === null) {
-                isQuestionBounty = $('.question-status.bounty', questionContext).length > 0;
+                isQuestionBounty = $('.question-status.bounty, aside.js-post-notice a[href*="/help/bounty"]:contains("bounty")', questionContext).length > 0;
                 this.isQuestionBounty = isQuestionBounty;
             }
             var questionRoombaInfo = this.questionRoombaInfo;
