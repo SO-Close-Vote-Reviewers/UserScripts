@@ -2151,7 +2151,7 @@
             if (this.guiType === 'question' && newRequestType === 'del-pls' && isQuestionClosed(this.questionContext) &&
                     (didChangeReason || !tmpRequestReason || (cvplsRememberedReason && tmpRequestReason === cvplsRememberedReason.reason)) && !/roomba/i.test(tmpRequestReason)) {
                 let startParan = ' (';
-                let endParan = ')';
+                const endParan = ')';
                 if (!tmpRequestReason) {
                     const questionStatusH2 = $('.question-status h2', this.questionContext);
                     if (questionStatusH2.length) {
@@ -2176,8 +2176,7 @@
                         }
                     }
                     if (!tmpRequestReason) {
-                        startParan = '';
-                        endParan = '';
+                        startParan = '(';
                     }
                 }
                 const hasAccepted = !!$('.js-accepted-answer-indicator:not(.d-none):not(dno)', this.questionContext).length;
