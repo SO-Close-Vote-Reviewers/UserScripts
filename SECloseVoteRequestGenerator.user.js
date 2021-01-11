@@ -353,7 +353,7 @@
     if (isNato) {
         isNatoWithoutEnhancement = true;
         $('body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td:last-of-type').filter(function() {
-            return !$(this).find('.post-menu').length;
+            return !$(this).find('.post-menu, .js-post-menu').length;
         }).append($('<div class="post-menu cvrgFakePostMenu"></div>'));
         var rows = $('body.tools-page #mainbar > table.default-view-post-table > tbody > tr');
         rows.each(function() {
@@ -406,6 +406,23 @@
                 $el.val(currentVal + ': no code block');
             }
         }
+    }
+
+    function capitalizeFirstLetterOfGridCellChildLink(element) {
+        const $element = $(element);
+        if ($element.is('.grid--cell')) {
+            $element.children('a').first().each(function() {
+                const child = this.firstChild;
+                if (child.nodeName === '#text') {
+                    const childText = child.textContent;
+                    child.textContent = childText[0].toUpperCase() + childText.slice(1);
+                }
+            });
+        }
+    }
+
+    function addSlinkClassToAllLinkChildren(el) {
+        el.find('a').addClass('s-link');
     }
 
     function getRequestTypeByQuestionStatus(inPost) {
@@ -1478,7 +1495,7 @@
         '        color:#444;' +
         '        text-decoration:none;' +
         '    } ' +
-        '    .subheader.tools-rev span.cvrgui {' +
+        '    .subheader.tools-rev .cvrgui {' +
         '        top:12px;' +
         '        margin-left: 10px;' +
         '        position: relative;' +
@@ -1507,7 +1524,7 @@
         '    .cv-list.cvrg-isDelayedRequest {' +
         '        border: 3px solid #20d020;' +
         '    }' +
-        '    .subheader.tools-rev span.cvrgui .cv-list {' +
+        '    .subheader.tools-rev .cvrgui .cv-list {' +
         '        left: 0;' +
         '        top: 150%;' +
         '    }' +
@@ -2207,7 +2224,7 @@
         },
         setRequestTypeByGuiButton: function() {
             //Set the request type based on the text displayed in the button the user clicked to open the GUI.
-            var requestType = this.gui.button.text();
+            var requestType = this.gui.button.text().toLowerCase();
             if (requestType === 'reopen/del-pls') {
                 if ($('.question .js-vote-up-btn.fc-theme-primary', this.questionContext).length) {
                     //User has voted-up the question, so this is likely a reopen-pls.
@@ -2447,6 +2464,9 @@
                 //It's a revisit, so it's never considered a critical problem.
                 this.requestPreviewValidation.toggle(!!invalidRequestReasons.length);
                 this.requestPreviewValidationCritical.html('').hide();
+            }
+            if (this.gui.isPostMenuGrid) {
+                addSlinkClassToAllLinkChildren(this.requestPreview);
             }
         },
         generateRequestAndValidate: function() {
@@ -2925,7 +2945,7 @@
             if (isGuiReviewSE) {
                 let suggestedEditUrl = window.location.href;
                 if (window.location.href.indexOf('/question') > -1) {
-                    suggestedEditUrl = urlBase + this.gui.wrapper.closest('.post-menu .post-menu-container, .post-menu').children('a[href^="/review"]').attr('href');
+                    suggestedEditUrl = urlBase + this.gui.wrapper.closest('.post-menu .post-menu-container, .post-menu, .js-post-menu > .grid > .grid--cell').children('a[href^="/review"]').attr('href');
                 }
                 request = createTagMarkdown(requestType) + ' ' + reason + ' [Suggested Edit](' + suggestedEditUrl + ') by ' + userMarkdown + ' changing: ' + titleMarkdown + (/tag (?:wiki|excerpt)/.test(titleMarkdown) ? ' for ' + questionTagMarkdown : '');
             }
@@ -3324,15 +3344,16 @@
     //Create a cv-pls GUI
     var guiCount = 0;
 
-    function Gui(_guiType, _id, _reportVisible) {
+    function Gui(_guiType, _id, _reportVisible, _isPostMenuGrid) {
         //Construct a CVR GUI
         guiCount++;
         var gui = this; // eslint-disable-line consistent-this
         this.guiType = _guiType;
         this[_guiType + 'Id'] = _id;
         this.reportVisible = _reportVisible;
+        this.isPostMenuGrid = _isPostMenuGrid;
         //A <span> that contains the entire GUI.
-        this.wrapper = $('<span class="cvrgui" data-gui-type="' + _guiType + '" data-gui-id="' + _id + '"/>');
+        this.wrapper = $(`<${_isPostMenuGrid ? 'div' : 'span'} class="cvrgui${_isPostMenuGrid ? ' grid--cell' : ''}" data-gui-type="${_guiType}" data-gui-id="${_id}"/>`);
         //The link used as the cv-pls/del-pls/etc. button on each post
         this.button = $('<a href="javascript:void(0)" class="cv-button"></a>');
         this.wrapper.append(this.button);
@@ -3382,6 +3403,11 @@
         };
         $(document).on('click', this.documentClickListener);
         this.setCvpButtonToCurrentRequestType();
+        if (_isPostMenuGrid) {
+            //This is going to be in a post-menu grid
+            capitalizeFirstLetterOfGridCellChildLink(this.wrapper);
+            addSlinkClassToAllLinkChildren(this.list);
+        }
     }
     Object.assign(Gui.prototype, {
         //Main GUI prototype methods.
@@ -3402,6 +3428,7 @@
                 requestTooltip = 'review-pls request';
             }
             this.button.attr('title', 'Send a ' + requestTooltip);
+            capitalizeFirstLetterOfGridCellChildLink(this.button.parent());
         },
         setCvpButtonToCurrentRequestType: function() {
             //Change the main GUI cv-pls link to display the request type
@@ -3635,7 +3662,7 @@
             const origLength = list.length;
             //Putting the GUI in when the .post-menu is .preview-options messes up the page-UI interaction for
             //  editing. This should be further investigated, but just not putting it there is sufficient.
-            $(`.${postType} .post-menu:not(.preview-options) .post-menu-container, .${postType} .post-menu:not(.preview-options)`).filter(function() {
+            $(`.${postType} .post-menu:not(.preview-options) .post-menu-container, .${postType} .post-menu:not(.preview-options), .${postType} .js-post-menu:not(.preview-options) > .grid`).filter(function() {
                 const $this = $(this);
                 if ($this.is('.post-menu')) {
                     if ($this.children('.post-menu-container').length || $this.find('.post-menu-container').length) {
@@ -3650,10 +3677,12 @@
                     //The closest .question/.answer for this .post-menu .post-menu-container is not the type we're looking for.
                     return;
                 } //else
-                if (!$('span.cvrgui', this).length) {
+                if (!$('.cvrgui', this).length) {
                     //No cvrgui on this post yet
-                    const newGui = new Gui(postType, $this.closest('.' + postType).data(postType + 'id'), CVRGUI);
-                    $this.append('<span class="lsep">|</span>'); //separator between each .post-menu .post-menu-container item
+                    const newGui = new Gui(postType, $this.closest('.' + postType).data(postType + 'id'), CVRGUI, $this.is('.js-post-menu > .grid'));
+                    if ($this.is('.post-menu')) {
+                        $this.append('<span class="lsep">|</span>'); //separator between each .post-menu .post-menu-container item
+                    }
                     $this.append(newGui.wrapper);
                     list.push(newGui);
                 }
@@ -3670,7 +3699,7 @@
         addCvplsToDomForPostType(CVRGUI.questions, 'question');
         addCvplsToDomForPostType(CVRGUI.answers, 'answer');
         function removeNonMatchingReviewGui(context, reviewId) {
-            $('span.cvrgui', context).each(function() {
+            $('.cvrgui', context).each(function() {
                 const currentGuiId = this.dataset.guiId;
                 if (!currentGuiId || currentGuiId !== reviewId) {
                     const prev = this.previousSibling;
@@ -3690,7 +3719,7 @@
             const toolsSubHeader = $('.subheader.tools-rev');
             //Remove any exiting GUI which doesn't match the current review.
             removeNonMatchingReviewGui(toolsSubHeader, reviewId);
-            if (!$('span.cvrgui', toolsSubHeader).length) {
+            if (!$('.cvrgui', toolsSubHeader).length) {
                 //No GUI yet.
                 const filterSummary = $('.review-filter-summary', toolsSubHeader);
                 const newGui = new Gui('reviewSE', reviewId, CVRGUI);
@@ -3701,7 +3730,7 @@
         }
         const suggestedEditPopup = $('.popup-suggested-edit');
         if (suggestedEditPopup.length) {
-            const postMenu = suggestedEditPopup.closest('.post-menu .post-menu-container, .post-menu');
+            const postMenu = suggestedEditPopup.closest('.post-menu .post-menu-container, .post-menu, .js-post-menu > .grid > .grid--cell');
             const reviewId = (postMenu.children('a[href^="/review"]').attr('href').match(/\/(\d+)$/) || ['', ''])[1];
             removeNonMatchingReviewGui(suggestedEditPopup, reviewId);
             let reviewPlsContainer = $('.cvrg-review-pls-container', suggestedEditPopup);
@@ -3709,7 +3738,7 @@
                 suggestedEditPopup.find('.suggested-edit-container').prepend('<div class="cvrg-review-pls-container"></div>');
                 reviewPlsContainer = suggestedEditPopup.children('.cvrg-review-pls-container');
             }
-            if (!$('span.cvrgui', reviewPlsContainer).length) {
+            if (!$('.cvrgui', reviewPlsContainer).length) {
                 //No GUI yet.
                 const newGui = new Gui('reviewSE', reviewId, CVRGUI);
                 //Prevent the <a> elements in the GUI from opening a new tab or navigating, except those that have something that might be a valid URL for href.
