@@ -2927,7 +2927,7 @@
                 if (window.location.href.indexOf('/question') > -1) {
                     suggestedEditUrl = urlBase + this.gui.wrapper.closest('.post-menu .post-menu-container, .post-menu').children('a[href^="/review"]').attr('href');
                 }
-                request = createTagMarkdown(requestType) + ' ' + reason + ' [Suggested Edit](' + suggestedEditUrl + ') by ' + userMarkdown + ' changing: ' + titleMarkdown + (/tag (?:wiki|excerpt)/.test(titleMarkdown) ? ' ' + questionTagMarkdown : '');
+                request = createTagMarkdown(requestType) + ' ' + reason + ' [Suggested Edit](' + suggestedEditUrl + ') by ' + userMarkdown + ' changing: ' + titleMarkdown + (/tag (?:wiki|excerpt)/.test(titleMarkdown) ? ' for ' + questionTagMarkdown : '');
             }
             if (request.length > 500) {
                 criticalRequestReasons.push(`Request > 500 characters. (${request.length})`);
