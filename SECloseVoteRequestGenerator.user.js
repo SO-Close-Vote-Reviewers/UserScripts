@@ -480,7 +480,7 @@
 
     //Substitution rules for request reasons.
     //Construct a tooltip showing the substitutions which will be made in request reasons.
-    var reasonTooltip = 'Single character substitutions:\r\n' + Object.keys(reasons.substitutions).filter(function(key) {
+    var reasonTooltip = 'Enter your reason for the request.\r\nIf you want to type less text, there are\r\nsome single character text shortcuts when\r\na character is surrounded by whitespace:\r\n' + Object.keys(reasons.substitutions).filter(function(key) {
         return key !== 'get';
     }).sort().map(function(key) {
         return key + ' --> ' + reasons.substitutions[key];
