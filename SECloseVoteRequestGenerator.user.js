@@ -51,7 +51,12 @@
     const scriptInstanceIdentifier = Math.random().toString(); //Not perfectly unique, but should be close.
     const canListenGMStorage = typeof GM_addValueChangeListener === 'function'; //Not available: Greasemonkey
     const isQuestionPage = window.location.pathname.indexOf('/questions/') === 0;
-    const questionActivityWarningAge = 1000 * 60 * 60 * 24 * 30; //30 days
+    const SECOND_IN_MILLISECONDS = 1000;
+    const MINUTE_IN_MILLISECONDS = 60 * SECOND_IN_MILLISECONDS;
+    const HOUR_IN_MILLISECONDS = 60 * MINUTE_IN_MILLISECONDS;
+    const DAY_IN_MILLISECONDS = 24 * HOUR_IN_MILLISECONDS;
+    const MONTH_IN_MILLISECONDS = Math.round((365.25 * DAY_IN_MILLISECONDS) / 12) + (3 * DAY_IN_MILLISECONDS);
+    const questionActivityWarningAge = (6 * MONTH_IN_MILLISECONDS) + (7 * DAY_IN_MILLISECONDS); //6 months plus a bit
     let openedAsDelayedRequestNoticeId = [];
     const requestTypesWithNoReason = ['!!/reportuser', '!!/addblu-', '!!/rmblu-', '!!/addwlu-', '!!/rmwlu-', 'spam'];
     const requestTypesWithOptionalReason = ['!!/report', '!!/report-force', '!!/scan', '!!/scan-force', 'spam', 'offensive', 'reflag NAA', 'reflag VLQ'];
