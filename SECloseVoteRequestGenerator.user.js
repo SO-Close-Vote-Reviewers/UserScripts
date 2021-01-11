@@ -5068,7 +5068,7 @@
             }
         }
 
-        function adjustTopbarMarginToNotifyContainer(dontSetTimer, delayedBy) {
+        function adjustTopbarMarginToNotifyContainer(dontSetTimer) {
             //The observer is called for your own changes, so need to stop observing prior to making a change.
             const isScrolled = !!window.scrollY;
             const notifyContainerDisplay = notifyContainer.css('display');
