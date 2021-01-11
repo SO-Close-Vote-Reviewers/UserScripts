@@ -1729,9 +1729,9 @@
         '    }' +
         '    .cvrgCVPopupSDAndNato {' +
         '        display: inline-block;' +
-        '        transform: scale(0.85) rotate(360deg);' +
-        '        -webkit-transform: scale(0.85) rotate(360deg);' +
-        '        -ms-transform: scale(0.85) rotate(360deg);' +
+        '        transform: scale(0.86) rotate(360deg);' +
+        '        -webkit-transform: scale(0.86) rotate(360deg);' +
+        '        -ms-transform: scale(0.86) rotate(360deg);' +
         '        position: absolute;' +
         '        top: -50%;' +
         '    }' +
