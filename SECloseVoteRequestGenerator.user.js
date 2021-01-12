@@ -735,7 +735,7 @@
         const markdownHTMLWithoutMagicTags = markdownToHTML(strikeoutChatMarkdown)
             //Undo the substitutions which prevented markdownToHTML from affecting existing HTML
             .replace(/Qb/g, '&lt;')
-            .replace(/Qa/g, 'q');
+            .replace(/Qa/g, 'Q');
         const markdownAsHTML = applyAllChatMarkdownMagicTagSubstitutions(markdownHTMLWithoutMagicTags);
         const asDOM = parser.parseFromString(`<div>${markdownAsHTML}</div>`, 'text/html');
         const linkified = linkifyTextURLs(asDOM.body.firstChild, true);
