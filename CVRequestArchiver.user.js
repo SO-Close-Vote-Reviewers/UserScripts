@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      3.3.0
+// @version      3.3.1
 // @description  Scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests and SD, FireAlarm, Queen, etc. reports for status, then moves the completed or expired ones.
 // @author       @TinyGiant @rene @Tunaki @Makyen
 // @updateURL    https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/CVRequestArchiver.user.js
@@ -229,6 +229,18 @@
                     new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
                 ]),
             },
+            {//Ministry of Silly Hats
+                name: 'Ministry of Silly Hats',
+                primeRoom: 92764,
+                chatServer: soChat,
+                defaultTargetRoom: 23262,
+                rooms: makeRoomsByNumberObject([
+                    //Ministry of Silly Hats (for extended, off-topic discussions)
+                    new TargetRoom(92764, soChat, 'Ministry of Silly Hats', 'Ministry', 'M', 'Ministry', commonRoomOptions.allTrue),
+                    //Trash can
+                    new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
+                ]),
+            },
             {//SOCVR
                 name: 'SOCVR',
                 primeRoom: 41570,
@@ -245,6 +257,8 @@
                     new TargetRoom(68414, soChat, 'SOCVR Testing Facility', 'Testing', 'Te', 'Test', commonRoomOptions.allTrue),
                     //Private for SD posts that have especially offensive content.
                     new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                    //Ministry of Silly Hats (for extended, off-topic discussions)
+                    new TargetRoom(92764, soChat, 'Ministry of Silly Hats', 'Ministry', 'M', 'Ministry', commonRoomOptions.targetOnly),
                 ]),
                 //Semi-auto scanning:
                 //On Chat.SO, many of the properties are common for all rooms. Those are in soChatScanning. However,
