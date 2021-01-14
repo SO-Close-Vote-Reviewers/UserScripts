@@ -7,10 +7,11 @@
 // @contributor    Tiny Giant
 // @contributor    Mogsdad
 // @contributor    Makyen
+// @contributor    VLAZ
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.7.0.0
+// @version        1.7.0.3
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/([\w-]*\.)*((stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com|mathoverflow.net)\/(c\/[^\/]*\/)?(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
@@ -57,7 +58,7 @@
             //    badphrases which relies on "_xPlacexHolderx" starting a placeholder.
             "auto":        "_xPlacexHolderxAutoxInsertxTextxPlacexHolderx_",
             "quote":       "_xPlacexHolderxBlockxQuotexPlacexHolderx_",
-            "inline":      "_xPlacexHolderxCodexInlinexPlacexHolderx_",
+            "backickCode": "_xPlacexHolderxCodexPreserveBlockxPlacexHolderx_",
             "block":       "_xPlacexHolderxCodexBlockxPlacexHolderx_",
             "blockStart":  "_xPlacexHolderxCodexBlockxStartxPlacexHolderx_",
             "lsec":        "_xPlacexHolderxLinkxSectionxPlacexHolderx_",
@@ -78,9 +79,9 @@
             //blockquotes
             //        https://regex101.com/r/fU5lE6/1
             "quote":  /^\>(?:(?!\n\n)[^])+/gm,
-            //inline code
-            //        https://regex101.com/r/9JOfKb/1/
-            "inline": /(?:```(?:[^`](?!\n\n))+?```|`(?:[^`](?!\n\n))+?`)/g,
+            //code surrounded by backticks
+            //        https://regex101.com/r/8tZD3i/2
+            "backickCode": /(?:(?:^(`{3,})[^]+?\1)|(`+)(?:\\`|[^`](?!\n\n))+\2)/gm,
             //code blocks and multiline inline code.
             //        https://regex101.com/r/eC7mF7/4
             "block":  /(?:(?:^[ \t]*(?:[\r\n]|\r\n))?`[^`]+`|(?:^[ \t]*(?:[\r\n]|\r\n))^(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ \t]+\n)*)+)+)/gm,
@@ -3134,7 +3135,7 @@
                 '<span class="ToolkitFix" title="Fix the content!" style="background-size:contain !important">' +
                 '    <svg viewBox="0 0 319 318" >' +
                 '        <g transform="translate(-216,-363)">' +
-                '            <path style="fill:#444444" d="m 263,680 c -1,-1 -12,-11 -23,-22 l -21,-21 -1,-3 -1,-3 2,-4 2,-4 128,-128 128,-128 5,0 5,0 23,23 23,23 0,6 0,6 -128,128 -128,128 -4,1 -4,1 -3,-1 z m 237,-263 c 0,-1 -15,-17 -18,-18 l -2,-1 -28,28 c -15,15 -28,28 -28,28 0,0 4,5 10,10 l 10,10 28,-28 c 15,-15 28,-28 28,-29 z m 9,110 c -1,-4 -2,-8 -3,-9 l -1,-2 -8,-2 c -10,-3 -10,-3 1,-7 l 9,-3 2,-8 2,-8 1,0 1,0 2,8 2,8 9,3 9,3 -1,1 c -1,1 -4,2 -8,3 l -7,2 -3,8 -3,8 -1,0 -1,0 -2,-7 z M 323,470 c -0,-1 -3,-8 -5,-16 -3,-8 -5,-16 -6,-17 l -1,-2 -4,-1 c -2,-1 -10,-3 -18,-6 l -13,-4 2,-1 c 1,-1 9,-4 18,-6 l 16,-5 2,-4 c 1,-2 3,-10 6,-18 l 4,-14 1,10e-4 1,10e-4 5,17 c 3,9 5,17 6,18 l 1,1 16,5 c 14,4 20,7 19,8 -0,0 -8,3 -17,5 l -17,5 -1,2 c -1,2 -11,30 -11,33 0,2 -2,2 -3,1 z m -63,-63 c -0,-1 -2,-5 -3,-8 l -2,-7 -7,-2 c -4,-1 -8,-3 -8,-3 l -1,-1 9,-3 9,-3 2,-8 2,-8 1,-0 1,-0 2,8 2,8 9,3 9,3 -1,1 c -1,1 -5,2 -9,4 l -7,2 -3,8 -3,8 -1,0 c -1,0 -1,-1 -2,-2 z m 123,-5 c -1,-4 -2,-7 -3,-8 l -1,-2 -6,-2 c -3,-1 -7,-2 -8,-3 l -2,-2 9,-3 9,-3 2,-8 2,-8 1,0 1,0 2,8 2,8 9,3 9,3 -1,1 c -1,1 -4,2 -8,3 l -7,2 -3,8 -3,8 -1,0 -1,0 -2,-7 z"/>' +
+                '            <path style="fill:var(--black-600)" d="m 263,680 c -1,-1 -12,-11 -23,-22 l -21,-21 -1,-3 -1,-3 2,-4 2,-4 128,-128 128,-128 5,0 5,0 23,23 23,23 0,6 0,6 -128,128 -128,128 -4,1 -4,1 -3,-1 z m 237,-263 c 0,-1 -15,-17 -18,-18 l -2,-1 -28,28 c -15,15 -28,28 -28,28 0,0 4,5 10,10 l 10,10 28,-28 c 15,-15 28,-28 28,-29 z m 9,110 c -1,-4 -2,-8 -3,-9 l -1,-2 -8,-2 c -10,-3 -10,-3 1,-7 l 9,-3 2,-8 2,-8 1,0 1,0 2,8 2,8 9,3 9,3 -1,1 c -1,1 -4,2 -8,3 l -7,2 -3,8 -3,8 -1,0 -1,0 -2,-7 z M 323,470 c -0,-1 -3,-8 -5,-16 -3,-8 -5,-16 -6,-17 l -1,-2 -4,-1 c -2,-1 -10,-3 -18,-6 l -13,-4 2,-1 c 1,-1 9,-4 18,-6 l 16,-5 2,-4 c 1,-2 3,-10 6,-18 l 4,-14 1,10e-4 1,10e-4 5,17 c 3,9 5,17 6,18 l 1,1 16,5 c 14,4 20,7 19,8 -0,0 -8,3 -17,5 l -17,5 -1,2 c -1,2 -11,30 -11,33 0,2 -2,2 -3,1 z m -63,-63 c -0,-1 -2,-5 -3,-8 l -2,-7 -7,-2 c -4,-1 -8,-3 -8,-3 l -1,-1 9,-3 9,-3 2,-8 2,-8 1,-0 1,-0 2,8 2,8 9,3 9,3 -1,1 c -1,1 -5,2 -9,4 l -7,2 -3,8 -3,8 -1,0 c -1,0 -1,-1 -2,-2 z m 123,-5 c -1,-4 -2,-7 -3,-8 l -1,-2 -6,-2 c -3,-1 -7,-2 -8,-3 l -2,-2 9,-3 9,-3 2,-8 2,-8 1,0 1,0 2,8 2,8 9,3 9,3 -1,1 c -1,1 -4,2 -8,3 l -7,2 -3,8 -3,8 -1,0 -1,0 -2,-7 z"/>' +
                 '        </g>' +
                 '    </svg>' +
                 '</span>' +
@@ -3167,8 +3168,8 @@
                 'vertical-align': 'bottom',
                 'margin-left': '5px',
                 'font-size': '12px',
-                'color': '#424242',
-                'background': '#eee',
+                'color': 'var(--white)',
+                'background': 'var(--black-800)',
                 'border-radius': '3px',
                 'padding': '3px 6px'
             }).hide();
@@ -3183,8 +3184,8 @@
             var strings = [];
             function maakRij(type, rij) {
                 if (!type) return strings.push(rij.replace(/\</g, '&lt;')), true;
-                if (type === '+') return strings.push('<span class="add">' + rij.replace(/\</g, '&lt;').replace(/(?=\n)/g,'↵') + '</span>'), true;
-                if (type === '-') return strings.push('<span class="del">' + rij.replace(/\</g, '&lt;').replace(/(?=\n)/g,'↵') + '</span>'), true;
+                if (type === '+') return strings.push('<span class="diff-add">' + rij.replace(/\</g, '&lt;').replace(/(?=\n)/g,'↵') + '</span>'), true;
+                if (type === '-') return strings.push('<span class="diff-delete">' + rij.replace(/\</g, '&lt;').replace(/(?=\n)/g,'↵') + '</span>'), true;
             }
 
             function getDiff(matrix, b1, b2, x, y) {
@@ -3304,10 +3305,10 @@
 
         App.pipeMods.edit = function(data) {
             App.funcs.popOriginals();
-
+            var defaultBgColor = App.selections.body.css("background-color");
             // Visually confirm edit - SE makes it easy because the jQuery color animation plugin seems to be there by default
-            App.selections.body.animate({ backgroundColor: '#c8ffa7' }, 10);
-            App.selections.body.animate({ backgroundColor: '#fff' }, 1000);
+            App.selections.body.animate({ backgroundColor: retrieveCSSVariable("--green-200") }, 10);
+            App.selections.body.animate({ backgroundColor: defaultBgColor }, 1000);
 
             // List of fields to be edited
             var fields = {body:'body',title:'title'};
@@ -3494,7 +3495,7 @@
         // This is the styling for the diff output.
         $('body').append('<style>' +
                          '.difftitle {' +
-                         '    color: rgb(34, 34, 34);' +
+                         '    color: var(--black);' +
                          '    font-size: 24px;' +
                          '    font-weight: normal;' +
                          '    line-height: 36px;' +
@@ -3502,13 +3503,12 @@
                          '}' +
                          '.diffbody {' +
                          '    white-space: pre-wrap;' +
-                         '    font-family: "courier new", "lucida sans typewriter", mono, monospace' +
                          '}' +
                          '.add {' +
-                         '    background: #CFC;' +
+                         '    background: var(--green-100);' +
                          '}' +
                          '.del {' +
-                         '    background: #FCC;' +
+                         '    background: var(--red-700);' +
                          '}' +
                          '</style>');
     } catch (e) {
@@ -3557,6 +3557,15 @@ function escapeTag(tag) {
                          return escaped;
                      });
     return "(?:\\s|\\b|$)" + retag + "(?:\\s|\\b|$)";  // hack - enclose tag in regexp boundary checks. WBN to do this in the taglist regexp.
+}
+
+/**
+ * Pass a CSS variable to get its value
+ * @param {string} val - for example "--black" or "--green-600"
+ */
+function retrieveCSSVariable(val) {
+    return getComputedStyle(document.body)
+        .getPropertyValue(val);
 }
 
 // Better handling of indentation and the TAB key when editing posts
