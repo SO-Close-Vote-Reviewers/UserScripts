@@ -30,7 +30,7 @@
                 $review;
             // maybe answers
             if ($qlink.length === 0) {
-                   $qlink = $reviews.find('#content a[href*="/answers/' + postid + '#"]');
+                   $qlink = $reviews.find('#content a[href*="/' + postid + '#"]');
             }
             if ($qlink.length > 0) {
                 // find the review task by navigating up the dom
