@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         find reviews
 // @namespace    http://stackoverflow.com/users/578411/rene
-// @version      0.4
+// @version      0.5
 // @description  find reviews from the history pages 
 // @author       rene
 // @match        *://stackoverflow.com/review/*/history
@@ -14,9 +14,11 @@
 // @grant        none
 // ==/UserScript==
 
+/* global $: true */
+
 (function($) {
-    var hdr = $('.subheader h1');
-    
+    var hdr = $('.s-page-title--header'); // not a JS hook but there is nothing else to go on
+
     // search on single review page
     function searchPage(postid, page) {
         // get the specific page
@@ -24,11 +26,11 @@
             var $reviews = $(data),
                 result = {},
                 // check if post id is in the link
-                $qlink = $reviews.find('a.question-hyperlink[href*="/' + postid + '/"]'),
+                $qlink = $reviews.find('#content a[href*="/questions/' + postid + '/"]'),
                 $review;
             // maybe answers
             if ($qlink.length === 0) {
-                   $qlink = $reviews.find('a.answer-hyperlink[href*="/' + postid + '#"]');
+                   $qlink = $reviews.find('#content a[href*="/answers/' + postid + '#"]');
             }
             if ($qlink.length > 0) {
                 // find the review task by navigating up the dom
@@ -38,31 +40,43 @@
                 $review = $($qlink.parent().parent().find('td')[2]).find('a');
                 // build our result object
                 result = {text: 'found', url: $review.attr('href')};
+                state = 0;
             } else {
                 // stop if search needs to go beyond an insane amount of pages
-                if (page < 100) {
+                if (page < 400) {
                     // prevent getting throttled
-                    window.setTimeout( function () { searchPage(postid, page + 1);} , 500); // 500 ms 
-                    // some feedback
-                    result = { text: 'page ' + page + '...' , url: window.location + '/?page='+page };
+                    if (state === 1) {
+                        window.setTimeout( function () { searchPage(postid, page + 1);} , 500); // 500 ms
+                        // some feedback
+                        result = { text: 'page ' + page + '...' , url: window.location + '/?page='+page };
+                    } else {
+                        result = { text: 'stopped on page ' + page, url: window.location + '/?page='+page };
+                        state = 0;
+                    }
                 } else {
-                    // bail out 
-                    result = { text: 'no results in 100 pages', url: window.location + '/?page='+page};
+                    // bail out
+                    result = { text: 'no results in 400 pages', url: window.location + '/?page='+page};
+                    state = 0;
                 }
             }
             // show result object
             $('#search-result').attr('href', result.url).text(result.text);
         });
     }
-    
+
+    var state = 0;
     // gets the postid from the input box
     function startSearch() {
         var inp = $('#search-review').val(),
             page = 1;
-        $('#search-result').attr('href', '#').text('starting').show();
-        searchPage(inp, page);
+        if (state === 0) {
+          $('#search-result').attr('href', '#').text('starting').show();
+          searchPage(inp, page);
+        }
+
+        state++;
     }
-    
+
     // if you hate how things looks, apply css fu here
     hdr.append(
         $('<div id="search-for-review"></div>')
