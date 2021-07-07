@@ -11,10 +11,9 @@
 // @exclude        *://chat.*.stackexchange.com/*
 // @exclude        *://api.*.stackexchange.com/*
 // @exclude        *://data.stackexchange.com/*
-// @require        https://code.jquery.com/jquery-2.1.4.min.js
-// @require        https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/gm4-polyfill.js
-// @connect        github.com
-// @connect        raw.githubusercontent.com
+// @require        https://cdn.jsdelivr.net/npm/jquery@2.1.4/dist/jquery.min.js
+// @require        https://cdn.jsdelivr.net/gh/SO-Close-Vote-Reviewers/UserScripts@master/gm4-polyfill.js
+// @connect        cdn.jsdelivr.net
 // @connect        chat.stackoverflow.com
 // @connect        chat.stackexchange.com
 // @connect        chat.meta.stackexchange.com
@@ -139,7 +138,7 @@ if(typeof StackExchange === "undefined")
     var reasons = currentSiteConfig.quickSubstitutions;
     var offTopicCloseReasons = currentSiteConfig.offTopicCloseReasons;
 
-    var URL = "https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/SECloseVoteRequestGenerator.user.js";
+    var URL = "https://cdn.jsdelivr.net/gh/SO-Close-Vote-Reviewers/UserScripts@master/SECloseVoteRequestGenerator.user.js";
     var notifyint = 0;
     function notify(m,t) {
         var timeout;
@@ -181,7 +180,7 @@ if(typeof StackExchange === "undefined")
     function checkUpdates(force) {
         GM.xmlHttpRequest({
             method: 'GET',
-            url: 'https://raw.githubusercontent.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version',
+            url: 'https://cdn.jsdelivr.net/gh/SO-Close-Vote-Reviewers/UserScripts@master/SECloseVoteRequestGenerator.version',
             onload: function(response) {
                 var VERSION = response.responseText.trim();
                 if(isVersionNewer(VERSION,GM.info.script.version)) {
