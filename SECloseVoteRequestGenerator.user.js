@@ -408,9 +408,9 @@
         }
     }
 
-    function capitalizeFirstLetterOfGridCellChildLink(element) {
+    function capitalizeFirstLetterOfFlexItemChildLink(element) {
         const $element = $(element);
-        if ($element.is('.grid--cell')) {
+        if ($element.is('.flex--item')) {
             $element.children('a').first().each(function() {
                 const child = this.firstChild;
                 if (child.nodeName === '#text') {
@@ -470,7 +470,7 @@
 
     function isPostLocked(post) {
         let isLocked = false;
-        $(post).find('.iconLightbulb, .iconLock').closest('.grid').each(function() {
+        $(post).find('.iconLightbulb, .iconLock').closest('.d-flex').each(function() {
             const firstBoldText = $(this).find('b').first().text();
             isLocked = isLocked || /community wiki|locked/i.test(firstBoldText);
         });
@@ -479,7 +479,7 @@
 
     function isPostCommentLocked(post) {
         let isCommentLocked = false;
-        $(post).find('.iconLightbulb, .iconLock').closest('.grid').each(function() {
+        $(post).find('.iconLightbulb, .iconLock').closest('.d-flex').each(function() {
             const $this = $(this);
             const firstBoldText = $this.find('b').first().text();
             const isLocked = /community wiki|locked/i.test(firstBoldText);
@@ -2473,7 +2473,7 @@
                 this.requestPreviewValidation.toggle(!!invalidRequestReasons.length);
                 this.requestPreviewValidationCritical.html('').hide();
             }
-            if (this.gui.isPostMenuGrid) {
+            if (this.gui.isPostMenuFlex) {
                 addSlinkClassToAllLinkChildren(this.requestPreview);
             }
         },
@@ -2540,8 +2540,11 @@
             //  the question for which the close dialog is open (i.e. when the send cv-pls checkbox is checked).
             var postUser = this.postUser;
             if (!postUser) {
-                postUser = this.item.closest('.grid').children('.post-signature:last-of-type');
+                postUser = this.item.closest('.d-flex').closest('.d-flex').children('.post-signature:last-of-type');
                 //Some other HTML which SE has used.
+                if (postUser.length === 0) {
+                    postUser = this.item.closest('.grid').children('.post-signature:last-of-type');
+                }
                 if (postUser.length === 0) {
                     postUser = this.item.closest('.postcell').find('.post-signature:last-of-type:not(.popup .post-signature)');
                 }
@@ -2563,8 +2566,7 @@
                 //We don't want to consider any questions/answers which are not in the same question context.
                 //this.currentUserInQuestion = $('td.post-signature:last-of-type .user-details a[href="' + currentUserHref + '"]', questionContext).filter(function() {
                 //XXX SE Changed HTML prior o 2018-03-03 Need to test
-                //May, or may not need .grid--cell
-                this.currentUserInQuestion = $('.grid--cell.post-signature:last-of-type .user-details a[href="' + currentUserHref + '"]', questionContext).filter(function() {
+                this.currentUserInQuestion = $(`.post-signature:last-of-type .user-details a[href="${currentUserHref}"]`, questionContext).filter(function() {
                     return getQuestionContext(this)[0] === questionContext[0];
                 });
                 //Does not differentiate between answers which are deleted as a result of the question being deleted
@@ -2682,9 +2684,9 @@
                     let activityLink = $('#sidebar #qinfo .lastactivity-link');
                     if (activityLink.length === 0) {
                         //For question activity link under the question title.
-                        const underTitleQuestionStatus = $('#question-header ~ div.grid').first();
+                        const underTitleQuestionStatus = $('#question-header ~ div.d-flex').first();
                         if (underTitleQuestionStatus.length > 0) {
-                            activityLink = underTitleQuestionStatus.children('.grid--cell').filter(function() {
+                            activityLink = underTitleQuestionStatus.children('.flex--item').filter(function() {
                                 return $(this).text().trim().startsWith('Active');
                             }).find('a');
                         }
@@ -2716,9 +2718,9 @@
                         isQuestionLocked = true;
                     }
                 });
-                //2019-10 new post status locations
+                //2019-10 new post status locations; 2021-07-08 CSS updates
                 const theQuestion = $('.question', questionContext);
-                theQuestion.find('.iconEyeOff').closest('.grid').find('.relativetime').map(function() {
+                theQuestion.find('.iconEyeOff').closest('.d-flex').find('.relativetime').map(function() {
                     return this.previousSibling;
                 }).each(function() {
                     if (/closed/i.test(this.textContent)) {
@@ -2953,7 +2955,7 @@
             if (isGuiReviewSE) {
                 let suggestedEditUrl = window.location.href;
                 if (window.location.href.indexOf('/question') > -1) {
-                    suggestedEditUrl = urlBase + this.gui.wrapper.closest('.post-menu .post-menu-container, .post-menu, .js-post-menu > .grid > .grid--cell').children('a[href^="/review"]').attr('href');
+                    suggestedEditUrl = urlBase + this.gui.wrapper.closest('.post-menu .post-menu-container, .post-menu, .js-post-menu > .grid > .grid--cell, .js-post-menu > .d-flex > .flex--item').children('a[href^="/review"]').attr('href');
                 }
                 request = createTagMarkdown(requestType) + ' ' + reason + ' [Suggested Edit](' + suggestedEditUrl + ') by ' + userMarkdown + ' changing: ' + titleMarkdown + (/tag (?:wiki|excerpt)/.test(titleMarkdown) ? ' for ' + questionTagMarkdown : '');
             }
@@ -3352,16 +3354,16 @@
     //Create a cv-pls GUI
     var guiCount = 0;
 
-    function Gui(_guiType, _id, _reportVisible, _isPostMenuGrid) {
+    function Gui(_guiType, _id, _reportVisible, _isPostMenuFlex) {
         //Construct a CVR GUI
         guiCount++;
         var gui = this; // eslint-disable-line consistent-this
         this.guiType = _guiType;
         this[_guiType + 'Id'] = _id;
         this.reportVisible = _reportVisible;
-        this.isPostMenuGrid = _isPostMenuGrid;
+        this.isPostMenuFlex = _isPostMenuFlex;
         //A <span> that contains the entire GUI.
-        this.wrapper = $(`<${_isPostMenuGrid ? 'div' : 'span'} class="cvrgui${_isPostMenuGrid ? ' grid--cell' : ''}" data-gui-type="${_guiType}" data-gui-id="${_id}"/>`);
+        this.wrapper = $(`<${_isPostMenuFlex ? 'div' : 'span'} class="cvrgui${_isPostMenuFlex ? ' flex--item' : ''}" data-gui-type="${_guiType}" data-gui-id="${_id}"/>`);
         //The link used as the cv-pls/del-pls/etc. button on each post
         this.button = $('<a href="javascript:void(0)" class="cv-button"></a>');
         this.wrapper.append(this.button);
@@ -3411,9 +3413,9 @@
         };
         $(document).on('click', this.documentClickListener);
         this.setCvpButtonToCurrentRequestType();
-        if (_isPostMenuGrid) {
-            //This is going to be in a post-menu grid
-            capitalizeFirstLetterOfGridCellChildLink(this.wrapper);
+        if (_isPostMenuFlex) {
+            //This is going to be in a post-menu .d-flex
+            capitalizeFirstLetterOfFlexItemChildLink(this.wrapper);
             addSlinkClassToAllLinkChildren(this.list);
         }
     }
@@ -3436,7 +3438,7 @@
                 requestTooltip = 'review-pls request';
             }
             this.button.attr('title', 'Send a ' + requestTooltip);
-            capitalizeFirstLetterOfGridCellChildLink(this.button.parent());
+            capitalizeFirstLetterOfFlexItemChildLink(this.button.parent());
         },
         setCvpButtonToCurrentRequestType: function() {
             //Change the main GUI cv-pls link to display the request type
@@ -3670,7 +3672,13 @@
             const origLength = list.length;
             //Putting the GUI in when the .post-menu is .preview-options messes up the page-UI interaction for
             //  editing. This should be further investigated, but just not putting it there is sufficient.
-            $(`.${postType} .post-menu:not(.preview-options) .post-menu-container, .${postType} .post-menu:not(.preview-options), .${postType} .js-post-menu:not(.preview-options) > .grid`).filter(function() {
+            const nonGridJSPostMenus = $('.js-post-menu:not(.post-menu)').filter(function() {
+                //SE currently uses different HTML on review pages, where a .js-post-menu has buttons as its children.
+                //  However, those are all display:none, but that doesn't prevent us from adding a request button.
+                const $this = $(this);
+                return $this.children('button').length && !$this.children('.grid').length;
+            });
+            $(`.${postType} .post-menu:not(.preview-options) .post-menu-container, .${postType} .post-menu:not(.preview-options), .${postType} .js-post-menu:not(.preview-options) > .d-flex`).add(nonGridJSPostMenus).filter(function() {
                 const $this = $(this);
                 if ($this.is('.post-menu')) {
                     if ($this.children('.post-menu-container').length || $this.find('.post-menu-container').length) {
@@ -3687,7 +3695,7 @@
                 } //else
                 if (!$('.cvrgui', this).length) {
                     //No cvrgui on this post yet
-                    const newGui = new Gui(postType, $this.closest('.' + postType).data(postType + 'id'), CVRGUI, $this.is('.js-post-menu > .grid'));
+                    const newGui = new Gui(postType, $this.closest('.' + postType).attr(`data-${postType}id`), CVRGUI, $this.is('.js-post-menu > .d-flex'));
                     if ($this.is('.post-menu')) {
                         $this.append('<span class="lsep">|</span>'); //separator between each .post-menu .post-menu-container item
                     }
@@ -3736,10 +3744,11 @@
                 CVRGUI.reviews.push(newGui);
             }
         }
-        const suggestedEditPopup = $('.popup-suggested-edit');
+        const suggestedEditPopup = $('.js-popup-suggested-edit');
         if (suggestedEditPopup.length) {
-            const postMenu = suggestedEditPopup.closest('.post-menu .post-menu-container, .post-menu, .js-post-menu > .grid > .grid--cell');
-            const reviewId = (postMenu.children('a[href^="/review"]').attr('href').match(/\/(\d+)$/) || ['', ''])[1];
+            const postMenuItems = suggestedEditPopup.closest('.post-menu .post-menu-container, .post-menu, .js-post-menu > .grid > .grid--cell');
+            postMenuItems.add(suggestedEditPopup.closest('.js-post-menu').find('a.js-edit-pending').parent());
+            const reviewId = (postMenuItems.children('a[href^="/review"]').attr('href').match(/\/(\d+)$/) || ['', ''])[1];
             removeNonMatchingReviewGui(suggestedEditPopup, reviewId);
             let reviewPlsContainer = $('.cvrg-review-pls-container', suggestedEditPopup);
             if (!reviewPlsContainer.length) {
@@ -4040,7 +4049,7 @@
         //The Close Vote Dialog is open
         var popup = $('#popup-close-question').first();
         var popupActions = $('.popup-actions', popup);
-        var remainingVotes = $('.grid > span:contains(vote),.grid > span:contains(flag)', popupActions);
+        var remainingVotes = $('.d-flex > span:contains(vote),.d-flex > span:contains(flag)', popupActions);
         //It's possible for getGuiForEl to return null, but that really only happens if something has gone wrong elsewhere
         var guiForQuestionOpeningPopup = CVRGUI.getGuiForEl(popup);
         if (guiForQuestionOpeningPopup) {
