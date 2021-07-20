@@ -253,6 +253,9 @@
                     new TargetRoom(126195, soChat, 'SOCVR /dev/null', 'Null', 'N', 'Null', commonRoomOptions.allTrue),
                     //Testing Facility
                     new TargetRoom(68414, soChat, 'SOCVR Testing Facility', 'Testing', 'Te', 'Test', commonRoomOptions.allTrue),
+                    //The Ministry of Silly Hats
+                    //The "М" in 'Мinistry' is not actual capital M to have the Ministry sorted to the end of the room order.
+                    new TargetRoom(92764, soChat, 'The Ministry of Silly Hats', 'Мinistry', 'M', 'Minist', commonRoomOptions.noUI),
                     //Private for SD posts that have especially offensive content.
                     new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
