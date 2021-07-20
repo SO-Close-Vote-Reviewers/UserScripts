@@ -42,11 +42,36 @@
     }
     let room;
     let me;
-    let fkey;
     let isChat = false;
     const isSearch = /^\/+search/.test(window.location.pathname);
     const isTranscript = /^\/+transcript\//.test(window.location.pathname);
     const isUsersPage = /^\/+users\//.test(window.location.pathname);
+    const fkey = getFkey();
+
+    function getFkey() {
+        const fkeyFromFunction = window.fkey()?.fkey;
+        if (fkeyFromFunction && typeof fkeyFromFunction === 'string') {
+            return fkeyFromFunction;
+        } //else
+
+        //Try to get the fkey from the HTML. If not available, then get it from storage.
+        const $fkey = $('#fkey');
+        let alternateFkey = null;
+        if (isSearch || isUsersPage) {
+            //#fkey is not available in search and user pages, but is returned as a property value from window.fkey().
+            alternateFkey = getStorage('fkey');
+        } else {
+            if (!$fkey.length) {
+                return null;
+            }
+            alternateFkey = $fkey.val();
+        }
+        if (!alternateFkey) {
+            return null;
+        }
+        return alternateFkey;
+    }
+    setStorage('fkey', fkey);
 
     function startup() {
         if (typeof $ !== 'function') {
@@ -70,21 +95,6 @@
         if (!room && !isUsersPage && !isSearch) {
             return false;
         }
-
-        fkey = $('#fkey');
-        //fkey is not available in search and user pages
-        if (isSearch || isUsersPage) {
-            fkey = getStorage('fkey');
-        } else {
-            if (!fkey.length) {
-                return false;
-            }
-            fkey = fkey.val();
-        }
-        if (!fkey) {
-            return false;
-        }
-        setStorage('fkey', fkey);
 
         me = (/\d+/.exec($('#active-user').attr('class')) || [false])[0];
         //Get me from localStorage. (transcript doesn't contain who you are).
