@@ -281,6 +281,22 @@
                     new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
                 ]),
             },
+            {//Python
+                name: 'Python',
+                primeRoom: 6,
+                chatServer: soChat,
+                defaultTargetRoom: 71097,
+                rooms: makeRoomsByNumberObject([
+                    //SOBotics
+                    new TargetRoom(6, soChat, 'Python', 'Python', 'P', 'Py', commonRoomOptions.noUI),
+                    //Python Ouroboros - The Rotating Knives: The Python room's default trash bin.
+                    new TargetRoom(71097, soChat, 'Python Ouroboros - The Rotating Knives', 'Ouroboros', 'O', 'Ouroboros', commonRoomOptions.noUI),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'T', 'Private', commonRoomOptions.noUI),
+                    //Trash can
+                    new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
+                ]),
+            },
             {//SE Chat Default
                 name: 'SE Chat Default',
                 primeRoom: 99999999,
