@@ -228,17 +228,9 @@
             },
         };
         const targetRoomSets = [
-            {//SO Chat Default
-                name: 'SO Chat Default',
-                primeRoom: 99999999,
-                chatServer: soChat,
-                isSiteDefault: true,
-                defaultTargetRoom: 23262,
-                rooms: makeRoomsByNumberObject([
-                    //Trash can
-                    new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
-                ]),
-            },
+
+            //SO CHAT
+
             {//SOCVR
                 name: 'SOCVR',
                 primeRoom: 41570,
@@ -300,19 +292,22 @@
                     new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
                 ]),
             },
-            {//SE Chat Default
-                name: 'SE Chat Default',
+            {//SO Chat Default
+                name: 'SO Chat Default',
                 primeRoom: 99999999,
-                chatServer: seChat,
+                chatServer: soChat,
                 isSiteDefault: true,
-                defaultTargetRoom: 19718,
+                defaultTargetRoom: 23262,
                 rooms: makeRoomsByNumberObject([
-                    //Trash
-                    new TargetRoom(19718, soChat, 'Trash (room 19718: requires access)', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI), //User must have access.
-                    //Trash
-                    new TargetRoom(82806, seChat, 'Trash (room 82806)', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    //Trash can
+                    new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
+                    new TargetRoom(109494, soChat, 'friendly bin', 'friendly', 'f', 'friendly', commonRoomOptions.noUI),
                 ]),
             },
+
+
+            //SE CHAT
+
             {//Charcoal HQ
                 name: 'Charcoal HQ',
                 primeRoom: 11540,
@@ -402,17 +397,24 @@
                 ],
                 useCrudeRequestTypes: true,
             },
-            {//Meta SE Chat Default
-                name: 'Meta SE Chat Default',
+            {//SE Chat Default
+                name: 'SE Chat Default',
                 primeRoom: 99999999,
-                chatServer: mseChat,
+                chatServer: seChat,
                 isSiteDefault: true,
                 defaultTargetRoom: 19718,
                 rooms: makeRoomsByNumberObject([
-                    //Sandbox/Trash Bin/Something
-                    new TargetRoom(1196, mseChat, 'Sandbox/Trash Bin/Something', 'Something', trashcanEmoji, 'Something', commonRoomOptions.noUI),
+                    //Trash
+                    new TargetRoom(19718, soChat, 'Trash (room 19718: requires access)', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI), //User must have access.
+                    //Trash
+                    new TargetRoom(82806, seChat, 'Trash (room 82806)', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    //Private trash.
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private; room 658)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
             },
+
+            //MSE CHAT
+
             {//Tavern on the Meta
                 name: 'Tavern on the Meta',
                 primeRoom: 89,
@@ -446,6 +448,17 @@
                 excludedRequestTypes: [
                 ],
                 useCrudeRequestTypes: false,
+            },
+            {//Meta SE Chat Default
+                name: 'Meta SE Chat Default',
+                primeRoom: 99999999,
+                chatServer: mseChat,
+                isSiteDefault: true,
+                defaultTargetRoom: 19718,
+                rooms: makeRoomsByNumberObject([
+                    //Sandbox/Trash Bin/Something
+                    new TargetRoom(1196, mseChat, 'Sandbox/Trash Bin/Something', 'Something', trashcanEmoji, 'Something', commonRoomOptions.noUI),
+                ]),
             },
         ];
         targetRoomSets.forEach((roomSet) => {
