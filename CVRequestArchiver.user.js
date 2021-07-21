@@ -3212,7 +3212,7 @@
                     countPosts = posts.length;
                 }
             }
-            if (countPosts && window.confirm('Move ' + countPosts + ' message' + (countPosts === 1 ? '' : 's') + ' to ' + targetRoomsByRoomNumber[targetRoomId].fullName + '?')) {
+            if (countPosts && window.confirm(`Move ${countPosts} message${(countPosts === 1 ? '' : 's')} to ${(targetRoomsByRoomNumber[targetRoomId] || {fullName: `room # ${targetRoomId}`}).fullName}?`)) {
                 //Save a copy of the last information.
                 setStorageJSON('previousMoveTo', {
                     posts: posts,
@@ -3358,6 +3358,8 @@
                     targetRoom.roomNumber + '">' +
                     targetRoom.displayed + '</span>';
             }, '') + [
+                //Prompt for room
+                '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-prompt-for-room" title="Prompt you for a room to which to move this/selected message(s) (and any already in the list)." data-room-id="prompt">?</span>',
                 //Add message
                 '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-add-to-list" title="Add this/selected message(s) to the list." data-room-id="add">+</span>',
                 //remove message
@@ -3476,20 +3478,29 @@
             });
         }
 
+        function addMessageAndPriorSelectionToManualMoveList(message) {
+            const messageId = getMessageIdFromMessage(message);
+            addToLSManualMoveList(messageId);
+            addMessageToNoUserListIfMonologueIsNoUser(message);
+            addToLSManualMoveList(priorSelectionMessageIds);
+        }
+        
         function moveToInMetaHandler() {
             //Handle a click on the moveTo controls
             /* jshint -W040 */ //This is called as a jQuery event handler, which explicitly sets `this`.
-            var $this = $(this);
-            var roomId = this.dataset.roomId;
+            const $this = $(this);
+            let roomId = this.dataset.roomId;
             /* jshint +W040 */
-            var message = $this.closest('.message');
+            const message = $this.closest('.message');
             if (message.length) {
-                var messageId = getMessageIdFromMessage(message);
+                const messageId = getMessageIdFromMessage(message);
                 if (messageId) {
+                    if (roomId === 'prompt') {
+                        addMessageAndPriorSelectionToManualMoveList(message);
+                        roomId = ((prompt('To what room do you want to move messages (enter a room number or room URL)?') || '').match(/\d+/) || [])[0];
+                    }
                     if (roomId === 'add') {
-                        addToLSManualMoveList(messageId);
-                        addMessageToNoUserListIfMonologueIsNoUser(message);
-                        addToLSManualMoveList(priorSelectionMessageIds);
+                        addMessageAndPriorSelectionToManualMoveList(message);
                     } else if (roomId === 'remove') {
                         removeFromLSManualMoveList(messageId);
                         addMessageToNoUserListIfMonologueIsNoUser(message);
@@ -3499,9 +3510,7 @@
                     } else if (roomId === 'reselect') {
                         reselectLastLSMoveList();
                     } else if (+roomId) {
-                        addToLSManualMoveList(messageId);
-                        addMessageToNoUserListIfMonologueIsNoUser(message);
-                        addToLSManualMoveList(priorSelectionMessageIds);
+                        addMessageAndPriorSelectionToManualMoveList(message);
                         moveMoveList(roomId);
                     }
                 }
