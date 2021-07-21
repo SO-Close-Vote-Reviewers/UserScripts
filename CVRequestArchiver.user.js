@@ -2257,7 +2257,14 @@
                     nodes.cancel.disabled = false;
                     const jsonError = typeof xhr.responseJSON === 'object' ? `${xhr.responseJSON.error_id}: ${xhr.responseJSON.error_name}: ${xhr.responseJSON.error_message}` : '';
                     const errorText = `${(typeof xhr.statusText === 'string' ? `${xhr.statusText}: ` : '')}${jsonError}`;
-                    console.error('Error getting data for comments, answers, and questions', '\n::  xhr:', xhr, '\n::  statusText:', xhr.statusText, '\n::  xhr.responseJSON:', xhr.responseJSON, '\n::  jsonError:', jsonError, '\n::  errorText:', errorText);
+                    console.error(
+                        'Error getting data for comments, answers, and questions',
+                        '\n::  xhr:', xhr,
+                        '\n::  statusText:', xhr.statusText,
+                        '\n::  xhr.responseJSON:', xhr.responseJSON,
+                        '\n::  jsonError:', jsonError,
+                        '\n::  errorText:', errorText
+                    );
                     alert(`Something${((errorText && errorText.length < 300) ? ` (${errorText})` : '')} went wrong when trying to get data for comments, answers, and questions. Please try again.\nSee console for more information.`);
                 });
         }
@@ -3089,7 +3096,15 @@
                 url: 'https://' + window.location.hostname + '/messages/' + messageId + '/history',
                 success: callback,
                 error: function(xhr, status, error) {
-                    console.error('AJAX error getting history', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  room:', room, '\n::  fkey.length,:', fkey.length, '\n::  messageId:', messageId);
+                    console.error(
+                        'AJAX error getting history',
+                        '\n::  xhr:', xhr,
+                        '\n::  status:', status,
+                        '\n::  error:', error,
+                        '\n::  room:', room,
+                        '\n::  fkey.length,:', fkey.length,
+                        '\n::  messageId:', messageId
+                    );
                 },
             });
         }
