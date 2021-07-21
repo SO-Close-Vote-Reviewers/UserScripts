@@ -3072,6 +3072,7 @@
         var deletedMessagesWithoutDeletedContent;
         var delayBetweenGettingDeletedContent = 500;
         var gettingDeletedContent = 0;
+        var didGetDeletedContent = false;
 
         function addAllDeletedContent() {
             //Go through the DOM and add the content back in for all deleted messages which don't already have it added back in.
@@ -3079,14 +3080,34 @@
                 //Deleted messages are not to be shown here.
                 return;
             }
-            if (!gettingDeletedContent && (!deletedMessagesWithoutDeletedContent || !deletedMessagesWithoutDeletedContent.length)) {
-                deletedMessagesWithoutDeletedContent = $('.content .deleted').parent().filter(function() {
-                    return !$(this).children('.SOCVR-Archiver-deleted-content').length;
-                }).closest('.message');
-                if (deletedMessagesWithoutDeletedContent.length) {
-                    addNextDeletedContent();
+            if (!gettingDeletedContent) {
+                if (!deletedMessagesWithoutDeletedContent || !deletedMessagesWithoutDeletedContent.length) {
+                    deletedMessagesWithoutDeletedContent = $('.content .deleted').parent().filter(function() {
+                        return !$(this).children('.SOCVR-Archiver-deleted-content').length;
+                    }).closest('.message');
+                    if (deletedMessagesWithoutDeletedContent.length) {
+                        addNextDeletedContent();
+                        return;
+                    }
                 }
+                //We're not in the process of getting deleted content and we didn't find any new content to get.
+                requestURRSUpdateIfGotDeletedContent();
             }
+        }
+
+        function requestURRSUpdateIfGotDeletedContent() {
+            if (didGetDeletedContent) {
+                let eventToSend = 'urrs-Request-Info-update-desired';
+                if ($('.message.SOCVR-Archiver-contains-deleted-content .content a[href*="/q/"], .message.SOCVR-Archiver-contains-deleted-content .content a[href*="/a/"], .message.SOCVR-Archiver-contains-deleted-content .content a[href*="/question/"]').length) {
+                    //If there's a link to a question or answer in the deleted content, then request immediate update.
+                    eventToSend = 'urrs-Request-Info-update-immediate';
+                }
+                window.dispatchEvent(new CustomEvent(eventToSend, {
+                    bubbles: true,
+                    cancelable: true,
+                }));
+            }
+            didGetDeletedContent = false;
         }
 
         function addNextDeletedContent() {
@@ -3096,11 +3117,14 @@
                 if (deletedMessagesWithoutDeletedContent.length) {
                     gettingDeletedContent = setTimeout(addNextDeletedContent, delayToGetNextDeleted);
                 } else {
+                    //After we think we're done, we always start the process over, just to be sure we haven't missed something that was added
+                    //  after we started this process.
                     gettingDeletedContent = 0;
                     setTimeout(addAllDeletedContent, delayToGetNextDeleted);
                 }
             }
             gettingDeletedContent = 1;
+            didGetDeletedContent = true;
             if (deletedMessagesWithoutDeletedContent.length) {
                 const message = deletedMessagesWithoutDeletedContent.last();
                 //Remove the message we're working on.
