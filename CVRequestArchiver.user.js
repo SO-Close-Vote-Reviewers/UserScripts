@@ -1360,6 +1360,11 @@
             '#chat-body .monologue.mine:hover .messages .message:hover .meta .vote-count-container {',
             '    display: none;',
             '}',
+            //There's a problem under some conditions of the message .content jumping between different heights between when hovered and
+            //  when not. It may require any/all of the Archiver, URRS, FIRE, and AIM.
+            '.message .content a {',
+            '    display: inline;',
+            '}',
             (showMeta ? [
                 'div.message .meta {',
                 //A clearer indicator of separation between controls and message text.
