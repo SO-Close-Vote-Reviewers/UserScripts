@@ -1584,6 +1584,10 @@
             });
         }
 
+        function backoffTimer(backoff) {
+            return delay(backoff > 0 ? (backoff + 1) * 1000 : 0);
+        }
+
         function delay(time, delayedFunction) {
             //Return a Promise which is resolved after the specified delay and any specified function is called.
             //  Any additional arguments are passed to the delayedFunction and the return value from that function
@@ -2012,7 +2016,12 @@
             });
         }
 
-        function checkRequests(totalRequests, questionBackoff, answerBackoff, commentBackoff) {
+        //Initialize the backoff timers
+        //  For the SE API, backoff is per-endpoint.
+        var questionBackoff = backoffTimer(0);
+        var answerBackoff = backoffTimer(0);
+        var commentBackoff = backoffTimer(0);
+        function checkRequests(totalRequests) {
             //Each call to this checks one block of requests. It is looped through by being called at the end of the
             //  asynchronous operations in checkRequestsOthers.
             var remaining = getTotalLengthOfChunks(requests);
@@ -2021,10 +2030,10 @@
             setProgress('checking requests', remaining, totalRequests);
             //All request types have been reduced to their primary type equivalent (cv, delv, reopen, undelete).
             //  Any reply that extends when the FireAlarm/Queen is valid has already been rolled up into the event being treated as a cv-pls.
-            return checkRequestsOthers(currentRequests, totalRequests, questionBackoff, answerBackoff, commentBackoff);
+            return checkRequestsOthers(currentRequests, totalRequests);
         }
 
-        function checkRequestsOthers(currentRequests, totalRequests, questionBackoff, answerBackoff, commentBackoff) {
+        function checkRequestsOthers(currentRequests, totalRequests) {
             //The SE API is queried for each identified post, first as a question, then as an answer.
             //This could be more efficient. There is no need to request answer information when the data was returned as a question.
             //Further, it would be better to request everything as an answer first. This will give question information, which could be substituted
@@ -2033,9 +2042,6 @@
             //      is considered complete, then the request is listed for archiving. This should be updated to account for the possibility
             //      of having multiple posts in a request (which would also require accounting for things like a cv-pls dup with the dup-target
             //      in the request). Currently that situation is handled by the dup-question being closed qualifying the question for archiving.
-            questionBackoff = questionBackoff ? questionBackoff : 0;
-            answerBackoff = answerBackoff ? answerBackoff : 0;
-            commentBackoff = commentBackoff ? commentBackoff : 0;
 
             function makeSEApiUrl(requestsForUrl, type) {
                 var filters = {
@@ -2043,7 +2049,7 @@
                     answers: '!.UDo6l2k)5RjcU7O',
                     //Add various additional fields that can affect question actionability (e.g. locked, type of closure, bounty, etc.)
                     //  We don't account for all of those, but we should add handling for them.
-                    questions: '!)IMJPYyS5MRbtkRWem5RUmI*KeOh-.JZgOM2',
+                    questions: '!E-Pkeq16TOMhhkDlE3*qdvcSDSfgwsxSdIlhjY',
                 };
                 var filter = filters[type];
                 if (typeof filter !== 'string') {
@@ -2128,7 +2134,7 @@
             function handleQuestionResponse(responseData) {
                 return new Promise((resolve) => {
                     //Deal with the SE API response for questions.
-                    questionBackoff = responseData.backoff;
+                    questionBackoff = backoffTimer(responseData.backoff);
                     var items = responseData.items;
                     handleDeleteAndUndeleteWithValidData(items, currentRequests, 'question_id');
                     //Check for data returned for CLOSE and REOPEN
@@ -2189,7 +2195,7 @@
                 return new Promise((resolve) => {
                     //Deal with the SE API response for answers.
                     var answerItems = responseData.items;
-                    answerBackoff = responseData.backoff;
+                    answerBackoff = backoffTimer(responseData.backoff);
                     handleDeleteAndUndeleteWithValidData(answerItems, currentRequests, 'answer_id');
                     //All requests which were about answers have been handled.
                     convertOnlyQuestionRequestsToQuestion(answerItems, currentRequests, 'answer_id', 'question_id');
@@ -2200,7 +2206,7 @@
             function handleCommentResponse(responseData) {
                 return new Promise((resolve) => {
                     var commentItems = responseData.items;
-                    commentBackoff = responseData.backoff;
+                    commentBackoff = backoffTimer(responseData.backoff);
                     handleDeleteAndUndeleteWithValidData(commentItems, currentRequests, 'comment_id');
                     convertOnlyQuestionRequestsToQuestion(commentItems, currentRequests, 'comment_id', 'post_id');
                     resolve();
@@ -2231,15 +2237,19 @@
             //  will consider 30 requests/s/IP "very abusive". However, it should take significantly longer
             //  for the round trip than the average 67ms which would be needed to launch 30 requests in 1s.
             //Send the request for comments, then answers, then questions (converting to questions at each earlier stage, when needed).
-            return delay(commentBackoff * 1000)
+            //Wait for any existing comment backoff
+            return commentBackoff
+                //Send request for comments
                 .then(() => sendAjaxIfRequests(getOnlyCommentRequests(currentRequests), 'comments'))
                 .then(handleCommentResponse)
+                //Wait for any existing answer backoff
+                .then(() => answerBackoff)
                 //Send the request for answers
-                .then(() => delay(answerBackoff * 1000))
                 .then(() => sendAjaxIfRequests(getNonCommentRequests(currentRequests), 'answers'))
                 .then(handleAnswerResponse)
+                //Wait for any existing question backoff
+                .then(() => questionBackoff)
                 //Send the request for questions
-                .then(() => delay(questionBackoff * 1000))
                 .then(() => sendAjaxIfRequests(getNonCommentRequests(currentRequests), 'questions'))
                 .then(handleQuestionResponse)
                 .then(() => {
@@ -2252,7 +2262,7 @@
                         return checkDone();
                         //return false;
                     }
-                    return checkRequests(totalRequests, questionBackoff, answerBackoff, commentBackoff);
+                    return checkRequests(totalRequests);
                 }).catch(function(xhr) {
                     nodes.cancel.disabled = false;
                     const jsonError = typeof xhr.responseJSON === 'object' ? `${xhr.responseJSON.error_id}: ${xhr.responseJSON.error_name}: ${xhr.responseJSON.error_message}` : '';
