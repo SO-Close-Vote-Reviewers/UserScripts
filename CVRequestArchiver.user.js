@@ -2089,8 +2089,8 @@
                 for (const item of items) {
                     requestsToHandle.forEach((currentRequest, requestIndex) => {
                         if (currentRequest.post == item[itemIdPropKey]) { // eslint-disable-line eqeqeq
-                            if (item.locked_date) {
-                                //The post is locked. We can't do anything. The request is thus "complete".
+                            if (item.locked_date && !(item.notice && item.notice.body && item.notice.body.indexOf('<p>Lock the comments') === 0)) {
+                                //The post is locked, and it's not a comment lock. We can't do anything. The request is thus "complete".
                                 handleCompletedRequestForPost(currentRequest, item);
                                 indexesToDelete[requestIndex] = true;
                                 return true;
