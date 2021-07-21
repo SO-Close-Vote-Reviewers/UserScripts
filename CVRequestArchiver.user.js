@@ -1507,6 +1507,7 @@
                 fkey: userFkey,
                 msgCount: count,
                 mode: 'Messages',
+                //There is also a since property. That appears to be used to load new content on chat pages.
             };
             if (before) {
                 data.before = before;
