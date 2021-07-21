@@ -2242,7 +2242,21 @@
                         alert('There are too many requests to check: ${requestsToSend.length}. The Archiver can only handle a max of 100 active, non-time-expired requests at a time.\n\nPlease re-run the scan with fewer events selected.');
                         return Promise.reject();
                     }
-                    return $.ajax(makeSEApiUrl(requestsToSend, endpoint)).then(checkXhrStatus);
+                    return $.ajax(makeSEApiUrl(requestsToSend, endpoint))
+                        .then(checkXhrStatus, function(xhr, status, error) {
+                            console.error(
+                                'AJAX Error getting data from the SE API:',
+                                '\n  this:', this,
+                                '\n  xhr:', xhr,
+                                '\n  status:', status,
+                                '\n  error:', error,
+                                '\n  endpoint:', endpoint,
+                                '\n  requestsToSend:', requestsToSend
+                            );
+                            if (confirm(`There was an error getting data for ${endpoint} from the SE API. More information should be in the console.\n\nDo you want to retry the request?`)) {
+                                return sendAjaxIfRequests(requestsToSend, endpoint);
+                            }
+                        });
                 } // else
                 return Promise.resolve({items: []});
             }
