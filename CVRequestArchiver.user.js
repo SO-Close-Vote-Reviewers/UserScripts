@@ -657,25 +657,25 @@
         const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why\??|-)u?-?)+\s*.*$/i;
         const editMonitorRegEx = /bad edit/i;
         const crudeCloseRegexes = makeTagRegExArray('(?:cv|closev?)-?');
-        const aHrefQAPRtag = `<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`;  // eslint-disable-line no-useless-escape
+        const aHrefQAPRtag = `<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`; // eslint-disable-line no-useless-escape
         const aHrefQAPRtagWithS = aHrefQAPRtag + '\\s*';
         const endOfCrudeXnRegex = '(?:\\d+|[a-z])(?:\\s*:\\s*</b>[^<]*)?</a>\\W*(?:<br/?>)?\\W*)+$';
         //The CRUDE Xn regexes are based off of:
         //  https://regex101.com/r/GHYTaY/1
         const crudeCloseCnRegexes = [
-            new RegExp(`^\\s*(?:for\\W*)?(?:close|closure)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:c(?:lose)?)${endOfCrudeXnRegex}`, 'i'),  // eslint-disable-line no-useless-escape
+            new RegExp(`^\\s*(?:for\\W*)?(?:close|closure)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:c(?:lose)?)${endOfCrudeXnRegex}`, 'i'), // eslint-disable-line no-useless-escape
         ];
         const crudeReopenRegexes = makeTagRegExArray('re-?openv?-?');
         const crudeReopenRnRegexes = [
-            new RegExp(`^\\s*(?:for\\W*)?(?:reopen|unclose)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:r(?:eopen)?)${endOfCrudeXnRegex}`, 'i'),  // eslint-disable-line no-useless-escape
+            new RegExp(`^\\s*(?:for\\W*)?(?:reopen|unclose)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:r(?:eopen)?)${endOfCrudeXnRegex}`, 'i'), // eslint-disable-line no-useless-escape
         ];
         const crudeDeleteRegexes = makeTagRegExArray('d(?:el(?:ete|etion)?)?(?:v)?-?(?:vote)?-?');
         const crudeDeleteDnRegexes = [
-            new RegExp(`^\\s*(?:for\\W*)?(?:delete|deletion)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:d(?:el(?:ete)?)?)${endOfCrudeXnRegex}`, 'i'),  // eslint-disable-line no-useless-escape
+            new RegExp(`^\\s*(?:for\\W*)?(?:delete|deletion)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:d(?:el(?:ete)?)?)${endOfCrudeXnRegex}`, 'i'), // eslint-disable-line no-useless-escape
         ];
         const crudeUndeleteRegexes = makeTagRegExArray('un?-?d(?:el(?:ete|etion)?)?(?:v)?-?(?:vote)?-?');
         const crudeUndeleteUnRegexes = [
-            new RegExp(`^\\s*(?:for\\W*)?(?:undelete|undeletion)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:un?-?(?:del(?:ete)?)?)${endOfCrudeXnRegex}`, 'i'),  // eslint-disable-line no-useless-escape
+            new RegExp(`^\\s*(?:for\\W*)?(?:undelete|undeletion)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:un?-?(?:del(?:ete)?)?)${endOfCrudeXnRegex}`, 'i'), // eslint-disable-line no-useless-escape
         ];
 
         /* The RequestTypes Object contains definitions for the detections which are used to determine if a message should be archived.
