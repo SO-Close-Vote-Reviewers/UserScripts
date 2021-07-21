@@ -1515,16 +1515,35 @@
 
         var nextBefore;
 
-        function getEvents(roomNumber, userFkey, count, before) {
+        function getEventsWithBasicErrorHandling(roomNumber, userFkey, count, before) {
             if (count > 500 || count < 1) {
-                return Promise.reject(new Error('Count not in range (500 >= n >= 1)'));
+                return jQuery.Deferred().reject(new Error('Count not in range (500 >= n >= 1)'));
             } // else
             if (!roomNumber) {
-                return Promise.reject(new Error('Invalid room'));
+                return jQuery.Deferred().reject(new Error('Invalid room'));
             } // else
             if (!fkey) {
-                return Promise.reject(new Error('Invalid fkey'));
+                return jQuery.Deferred().reject(new Error('Invalid fkey'));
             } // else
+            return getEvents(roomNumber, userFkey, count, before)
+                .then(null, function(xhr, status, error) {
+                    console.error(
+                        'AJAX Error getting events:',
+                        '\n::  xhr:', xhr,
+                        '\n::  status:', status,
+                        '\n::  error:', error,
+                        '\n::  count:', count,
+                        '\n::  before:', before
+                    );
+                    if (confirm('$.ajax encountered an error getting events. See console for details.' + (error && error.length < 100 ? ' error: ' + error : '') +
+                            '\n\ncount:' + count + '::  before:' + before + '\n\nRetry fetching these?')) {
+                        //Allow the user to retry.
+                        return getEventsWithBasicErrorHandling(roomNumber, userFkey, count, before);
+                    }
+                });
+        }
+
+        function getEvents(roomNumber, userFkey, count, before) {
             const data = {
                 fkey: userFkey,
                 msgCount: count,
@@ -1558,7 +1577,7 @@
                     return false;
                 }
                 const msgCount = count > 500 ? 500 : count;
-                getEvents(room, fkey, msgCount, before).then(function(response) {
+                getEventsWithBasicErrorHandling(room, fkey, msgCount, before).then(function(response) {
                     var respEvents = response.events;
                     if (respEvents.length) {
                         respEvents.forEach(function(event) {
@@ -1586,22 +1605,6 @@
 
                     nextBefore = response.events[0].message_id;
                     resolve(getEventsAndScan(count - 500, response.events[0].message_id, promised, needParentList));
-                }, function(xhr, status, error) {
-                    console.error(
-                        'AJAX Error getting events:',
-                        '\n::  xhr:', xhr,
-                        '\n::  status:', status,
-                        '\n::  error:', error,
-                        '\n::  count:', count,
-                        '\n::  before:', before
-                    );
-                    if (confirm('$.ajax encountered an error getting events. See console for data.' + (error && error.length < 100 ? ' error: ' + error : '') +
-                            '\n\ncount:' + count + '::  before:' + before + '\n\nRetry fetching these?')) {
-                        //Allow the user to retry.
-                        resolve(getEventsAndScan(count, before, promised, needParentList));
-                    } else {
-                        reject(new Error('AJAX Error getting events: ' + error));
-                    }
                 });
             });
         }
