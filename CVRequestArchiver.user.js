@@ -725,7 +725,7 @@
                 replyToTypeKeys: Array of String
                     Matches if this is a reply to the specified type.
                 textRegexes: Array of RegExp | RegExp
-                    At least one of which must match the `.text()` content of the message with all <code> removed.
+                    At least one of which must match the `.text()` content of the message with all <code> removed, and all meta and chat links removed.
                 underAgeTypeKey: String (a RequestTypes key)
                     When the message is under the "alwaysArchiveAfterSeconds", treat matching messages as if they were of the specified type.
                     The RequestTypes is specified as the type's key.
@@ -1764,11 +1764,17 @@
             const messageAsDom = $(getHTMLTextAsDOM(message));
             //Remove any <code>
             messageAsDom.find('code').remove();
-            const messageWithoutCode = messageAsDom.html();
+            messageAsDom.find('a').each(function() {
+                targetRoomSet.regExp.chatMetaElimiation.lastIndex = 0;
+                if (targetRoomSet.regExp.chatMetaElimiation.test(this.href)) {
+                    this.remove();
+                }
+            });
+            const messageWithoutCodeAndMetaLinks = messageAsDom.html();
 
             //Prevent matches of the meta and chat sites (e.g. meta.stackoverflow.com)
             targetRoomSet.regExp.chatMetaElimiation.lastIndex = 0;
-            const messageWithoutCodeAndMeta = messageWithoutCode.replace(targetRoomSet.regExp.chatMetaElimiation, ' ');
+            const messageWithoutCodeAndMeta = messageWithoutCodeAndMetaLinks.replace(targetRoomSet.regExp.chatMetaElimiation, ' ');
             //Determine if it matches one of the RegExp.
             event.contentNoCode = messageWithoutCodeAndMeta;
             event.contentNoCodeText = messageAsDom.text();
