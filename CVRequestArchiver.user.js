@@ -2105,9 +2105,6 @@
                 //If the list of posts on the event is empty, then the event has had all of it's posts handled.
                 if (request.event.requestedPosts.length === 0) {
                     addEventToMessagesToMove(request.event);
-                    console.log('Message COMPLETE; it will be ARCHIVED: message_id:', request.event.message_id, '::  event:', request.event);                                                                                               //WinMerge ignore line
-                } else {                                                                                                                                                                                                                    //WinMerge ignore line
-                    console.log('Message NOT COMPLETE: remaining posts:', request.event.requestedPosts.length, ':: message_id:', request.event.message_id, '::  event:', request.event);                                                    //WinMerge ignore line
                 }
             }
 
