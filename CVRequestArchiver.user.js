@@ -3730,7 +3730,7 @@
 
         //Add Deleted messages to transcript pages
 
-        /* We get transcript events here and in other scripts (other scripts?). The "API" response data is shared, rather than get it twice.
+        /* We get transcript events here and in other scripts. The "API" response data is shared, rather than get it in each script.
          *   typeof window.transcriptChatEvents === 'undefined'
          *     No process has attempted to get the events.
          *   window.transcriptChatEvents = null
@@ -3752,43 +3752,42 @@
             // room that are in the time-frame for this transcript page.  While this is often true, it is by no means
             // guaranteed.
             return new Promise((resolve, reject) => {
-                function getTranscriptEvents() {
+                async function getTranscriptEvents() {
                     const chatTranscriptEndMessagesOffset = 15000;
-                    return new Promise((getTranscriptEventsResolve, getTranscriptEventsReject) => {
-                        //This should be based on the time we determine for the transcript, not just the IDs. This is so we
-                        //  have enough messages to cover any ones which were deleted in the time-frame of the current transcript display.
-                        let transcriptEvents = [];
-                        const messages = $('#transcript .message, #conversation .message');
-                        const firstMessage = messages.first();
-                        const lastMessage = messages.last();
-                        const firstMessageId = getMessageIdFromMessage(firstMessage);
-                        const lastMessageId = getMessageIdFromMessage(lastMessage);
-
-                        //Unfortunately, there doesn't appear to be an endpoint to get messages by date, only by message number.
-                        //In order to get any deleted messages that are beyond the last one shown in the room, but still in the
-                        //  time-frame of the current transcript page, we guess at a message ID which is hopefully somewhat beyond
-                        //  the last message actually in the time-frame.
-                        getEvents(room, fkey, 500, lastMessageId + chatTranscriptEndMessagesOffset).then((firstResponse) => {
-                            transcriptEvents = firstResponse.events;
-                            const firstEventId = transcriptEvents[0].message_id;
-                            const lastEventId = transcriptEvents[transcriptEvents.length - 1].message_id;
-                            if (firstEventId < firstMessageId) {
-                                getTranscriptEventsResolve(transcriptEvents);
-                                return;
-                            } //else
-                            //Currently, we only do one more getEvents. This should do more, if needed.
-                            getEvents(room, fkey, 500, firstEventId).then((secondResponse) => {
-                                transcriptEvents = secondResponse.events.concat(transcriptEvents);
-                                const secondFirstEventId = transcriptEvents[0].message_id;
-                                //This is just assumed to be enough.
-                                getTranscriptEventsResolve(transcriptEvents);
-                            }, (error) => {
-                                getTranscriptEventsReject(error);
-                            });
-                        }, (error) => {
-                            getTranscriptEventsReject(error);
-                        });
-                    });
+                    //This should be based on the time we determine for the transcript, not just the IDs. This is so we
+                    //  have enough messages to cover any ones which were deleted in the time-frame of the current transcript display.
+                    let transcriptEvents = [];
+                    const messages = $('#transcript .message, #conversation .message');
+                    const firstMessage = messages.first();
+                    const lastMessage = messages.last();
+                    const firstMessageId = getMessageIdFromMessage(firstMessage);
+                    const lastMessageId = getMessageIdFromMessage(lastMessage);
+                    const [transcriptDateStart, transcriptDateEnd] = getTranscriptDate();
+                    const transcriptStartTimestamp = transcriptDateStart.setMilliseconds(0).valueOf() / 1000;
+                    const transcriptEndTimestamp = transcriptDateEnd.setMilliseconds(0).valueOf() / 1000;
+                    //Unfortunately, there doesn't appear to be an endpoint to get messages by date, only by message number.
+                    //In order to get any deleted messages that are beyond the last one shown in the room, but still in the
+                    //  time-frame of the current transcript page, we guess at a message ID which is hopefully somewhat beyond
+                    //  the last message actually in the time-frame.
+                    const firstRequestBefore = lastMessageId === 0 ? 0 : lastMessageId + chatTranscriptEndMessagesOffset;
+                    const firstResponse = await getEvents(room, fkey, 500, firstRequestBefore);
+                    transcriptEvents = firstResponse.events;
+                    let firstEventId = transcriptEvents[0].message_id;
+                    let firstEventTimeStamp = transcriptEvents[0].time_stamp;
+                    const lastEventId = transcriptEvents[transcriptEvents.length - 1].message_id;
+                    const lastEventTimeStamp = transcriptEvents[transcriptEvents.length - 1].time_stamp;
+                    let lastFetchReceivedCount = transcriptEvents.length;
+                    let fetchCount = 0; //Have a limit to the number of fetches we might do, just in case.
+                    if (firstMessageId > 0) {
+                        while ((firstEventId > firstMessageId || firstEventTimeStamp > transcriptStartTimestamp) && lastFetchReceivedCount > 0 && fetchCount < 5) {
+                            const response = await getEvents(room, fkey, 500, firstEventId);
+                            fetchCount++;
+                            lastFetchReceivedCount = response.events.length;
+                            transcriptEvents = response.events.concat(transcriptEvents);
+                            firstEventId = transcriptEvents[0].message_id;
+                            firstEventTimeStamp = transcriptEvents[0].time_stamp;
+                        }
+                    } //else
                 }
 
                 function getAndShareTranscriptEventsProgress() {
@@ -3823,7 +3822,6 @@
                             cancelable: true,
                         }));
                     }
-                    //Only respond to the event once after events are available.                                                                                                                                                                             //WinMerge ignore line
                     //The events are available.
                     resolve(window.transcriptChatEvents);
                 }
