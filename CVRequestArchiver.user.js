@@ -3031,12 +3031,12 @@
         var chatListenerAddMetaTimeout = 0;
         var debounceGetAvatars = 0;
 
-        function doOncePerChatChangeAfterDOMUpdate(chatInfo) {
+        function doOncePerChatChangeAfterDOMUpdate(chatEvent) {
             //Things that we do to when the Chat changes to keep the page updated.
             addReplyToMine();
             addMoveToInMeta();
             recordOldestMessageInChat();
-            if (!chatInfo || chatInfo.event_type === 10 || chatInfo.event_type === 20) {
+            if (!chatEvent || chatEvent.event_type === 10 || chatEvent.event_type === 20) {
                 //This isn't called by a CHAT event, or a message was deleted (10) or moved-in (20) (which might already be deleted).
                 addAllDeletedContent();
             }
@@ -3046,26 +3046,26 @@
             debounceGetAvatars = setTimeout(getAvatars, 1000);
         }
 
-        function listenToChat(chatInfo) {
+        function archiverChatListener(chatEvent) {
             //Called when an event happens in chat. For add/delete this is called prior to the message being added or deleted.
             //Delay until after the content has been added. Only 0ms is required.
             //A delay of 100ms groups multiple CHAT events that happen at basically the same time.
             //  For showing deleted messages, it gives other implementations (e.g. non-privileged saving of deleted content) a chance to
             //  handle the deletion first.
             clearTimeout(chatListenerAddMetaTimeout);
-            chatListenerAddMetaTimeout = setTimeout(doOncePerChatChangeAfterDOMUpdate, 100, chatInfo);
-            if (chatInfo.event_type === 19) {
+            chatListenerAddMetaTimeout = setTimeout(doOncePerChatChangeAfterDOMUpdate, 100, chatEvent);
+            if (chatEvent.event_type === 19) {
                 //A message was moved out. We want to remove it from the moveList.
                 //This tracks messages which other people move. The user's own moves should be handled elsewhere.
                 //  This depends on having a tab open to chat.
-                var movedMessageId = chatInfo.message_id;
+                var movedMessageId = chatEvent.message_id;
                 removeFromLSManualMoveList(movedMessageId);
                 //Remove it from the popup
                 removeMessageIdFromPopupAndMoveList(movedMessageId);
             }
         }
-        if (CHAT && typeof CHAT.addEventHandlerHook === 'function') {
-            CHAT.addEventHandlerHook(listenToChat);
+        if (typeof CHAT !== 'undefined' && typeof CHAT?.addEventHandlerHook === 'function') {
+            CHAT.addEventHandlerHook(archiverChatListener);
         }
 
         //Add deleted content to be shown on hover.
