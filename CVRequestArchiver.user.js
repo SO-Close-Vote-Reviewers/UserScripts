@@ -3159,7 +3159,7 @@
                 deletedContent.removeClass('content').addClass('SOCVR-Archiver-deleted-content');
                 newContent.append(deletedContent);
                 //Indicate to the user that the content is available.
-                const marker = $('<span class="SOCVR-Archiver-deleted-content-marker">&#128065;</span>');
+                const marker = $('<span class="SOCVR-Archiver-deleted-content-marker" title="Click this icon to toggle between showing deleted messages upon hover and always showing them inline">&#128065;</span>');
                 newContent.find('.deleted').append(' ').append(marker.attr('title', 'Click this icon to show all deleted messages.')).after(marker.clone().attr('title', 'This message was deleted. Click this icon to show deleted content only on hover.'));
                 newContent.closest('.message').addClass('SOCVR-Archiver-contains-deleted-content');
             }
