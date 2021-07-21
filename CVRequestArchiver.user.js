@@ -2077,7 +2077,7 @@
                 if (typeof filter !== 'string') {
                     throw new Error('makeSEApiUrl: not a valid type:' + type);
                 } //else
-                return 'https://api.stackexchange.com/2.2/' + type + '/' + formatPosts(requestsForUrl) + '?' + [
+                return 'https://api.stackexchange.com/2.3/' + type + '/' + formatPosts(requestsForUrl) + '?' + [
                     'pagesize=100',
                     `site=${targetRoomSet.mainSiteSEApiParam}`,
                     'key=qhq7Mdy8)4lSXLCjrzQFaQ((',
