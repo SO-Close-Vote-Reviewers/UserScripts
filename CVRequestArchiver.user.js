@@ -2210,6 +2210,10 @@
             function sendAjaxIfRequests(requestsToSend, endpoint) {
                 //If there are requests, then send the $.ajax. If there aren't, then send an empty items.
                 if (Array.isArray(requestsToSend) && requestsToSend.length) {
+                    if (requestsToSend.length > 100) {
+                        alert('There are too many requests to check: ${requestsToSend.length}. The Archiver can only handle a max of 100 active, non-time-expired requests at a time.\n\nPlease re-run the scan with fewer events selected.');
+                        return Promise.reject();
+                    }
                     return $.ajax(makeSEApiUrl(requestsToSend, endpoint)).then(checkXhrStatus);
                 } // else
                 return Promise.resolve({items: []});
