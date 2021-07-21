@@ -3240,6 +3240,11 @@
                 setProgress('moving messages', moveSomePostsTotal, moveSomePostsTotal);
                 moveSomePostsTotal = 0;
                 //Done with messages. Normal completion.
+                //When we move a message, it's possible that it had replies or was a reply. In those cases, it's possible
+                //  for there to be reply-child or reply-parent classes left on .message elements which will never be
+                //  removed. So, we remove all existing ones. This might result in not showing the parent or child
+                //  of the currently hovered message, but that will be fixed as the mouse is moved.
+                $('.message.reply-child, .message.reply-parent').removeClass('reply-child reply-parent');
                 if (Array.isArray(postsWithoutUserId) && postsWithoutUserId.length) {
                     alert('The following messages don\'t have an identified "user_id". Trying to move them will result in an API error. Any other messages which were to be moved were moved. See the console for additional information.\n\n' + postsWithoutUserId.join(', '));
                 }
