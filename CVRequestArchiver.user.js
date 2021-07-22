@@ -3744,8 +3744,10 @@
          *     Getting events is complete in a script.
          *   Array.isArray(window.transcriptChatEvents) === true && window.transcriptChatEvents.length > 0
          *     Events are valid on window.transcriptChatEvents
-         *   CustomEvent 'transcript-events-received' is fired from the script which received the transcript events.
-         *   CustomEvent 'transcript-events-received' is received in all scripts not doing the AJAX call to get the transcript events.
+         *   CustomEvent 'transcript-events-received' is fired from the script which fetched the transcript events.
+         *   CustomEvent 'transcript-events-received' is received in all scripts not doing the AJAX call(s) to get the transcript events.
+         *   CustomEvent 'transcript-events-rejected' is fired from the script which was getting transcript events when a non-recovered error occurs.
+         *   CustomEvent 'transcript-events-rejected' is received in all scripts not doing the AJAX call(s): Causes the Promise to be rejected.
          */
         function getAndShareTranscriptEvents() {
             let gettingTranscriptEvents = false;
@@ -3758,11 +3760,16 @@
             // guaranteed.
             return new Promise((resolve, reject) => {
                 async function getTranscriptEvents() {
-                    const chatTranscriptEndMessagesOffset = 15000;
+                    const DEFAULT_CHAT_TRANSCRIPT_END_MESSAGES_OFFSET = 15000;
                     //This should be based on the time we determine for the transcript, not just the IDs. This is so we
                     //  have enough messages to cover any ones which were deleted in the time-frame of the current transcript display.
                     let transcriptEvents = [];
                     const messages = $('#transcript .message, #conversation .message');
+                    if (messages.length === 0) {
+                        //There are no messages on this transcript or conversation page. While we do want to get any transcript events which occurred here,
+                        //  we don't currently support that.
+                        throw new Error('No transcript events in page. Getting any possible transcript events isn\'t supported in this situation.');
+                    }
                     const firstMessage = messages.first();
                     const lastMessage = messages.last();
                     const firstMessageId = getMessageIdFromMessage(firstMessage);
@@ -3774,18 +3781,68 @@
                     //In order to get any deleted messages that are beyond the last one shown in the room, but still in the
                     //  time-frame of the current transcript page, we guess at a message ID which is hopefully somewhat beyond
                     //  the last message actually in the time-frame.
-                    const firstRequestBefore = lastMessageId === 0 ? 0 : lastMessageId + chatTranscriptEndMessagesOffset;
-                    const firstResponse = await getEvents(room, fkey, 500, firstRequestBefore);
-                    transcriptEvents = firstResponse.events;
+                    let chatTranscriptEndMessagesOffset = DEFAULT_CHAT_TRANSCRIPT_END_MESSAGES_OFFSET;
+                    if (messages.length !== 1) {
+                        const firstToLastMessageIdDistance = lastMessageId - firstMessageId;
+                        const idChangePerMessage = firstToLastMessageIdDistance / messages.length;
+                        //If our first fetch of chat events doesn't get any events after the end of the transcript page, we get the HTML for the next day or time period,
+                        //  which is linked at the top of the transcript page and start fetching backward from that point. Doing that makes it highly likely we'll actually
+                        //  find a chat event which is in the current room and later than this page, if one exists.
+                        //  However, most of the time we are successful at guessing a message ID sufficiently after the most recent in the transcript, which saves us
+                        //  a fetch under most conditions, at the cost of an extra one rarely.
+                        //Use an offset that should be in the ballpark of 200 messages after the last message shown on the current page.
+                        //We want to pick a number to increment the last ID by such that will result in us almost always getting both all the transcript events shown on the page
+                        //  and at least one which is later. 200 is picked as a multiplier, because SE tends to subdivide dates such that each transcript page contains no more
+                        //  than 250, or so, messages.
+                        //  This will be sufficient for transcript pages probably about 99.9% of the time (probably better than that). What we might miss are deleted messages which are
+                        //  within the transcript timeframe, but which aren't within the number of message IDs equal to 200 * the average ID change per message.
+                        //  This would be most likely to happen if only a tight group of messages near the beginning of the timeframe remained undeleted and
+                        //  there were deleted messages substantially closer to the end of the timeframe.
+                        //If we don't get a transcript event which is later in time than what would be displayed on the current transcript page, then we do further processing and
+                        //  fetched to make it very likely that we will always end up with either the last event, if there are no more, or at least one event which is later than the
+                        //  current page.
+                        chatTranscriptEndMessagesOffset = Math.max(Math.ceil(200 * idChangePerMessage), DEFAULT_CHAT_TRANSCRIPT_END_MESSAGES_OFFSET);
+                    }
+                    let firstRequestBefore = lastMessageId === 0 ? 0 : lastMessageId + chatTranscriptEndMessagesOffset;
+                    const nextSectionOrNextDayButton = $('#main a.button.noprint:contains(next day), #main a.button.noprint:contains(last day)').first().add($('#main .pager .page-numbers.current').first().next('a')).last();
+                    if (!nextSectionOrNextDayButton.length) {
+                        //We're at the end of the transcript, so get events from the end.
+                        //We'll actually make the request for this where we make the "second" request.
+                        firstRequestBefore = 0;
+                    }
+                    let lastEventTimeStampOfFirstResponse = -1000;
+                    if (firstRequestBefore) {
+                        const firstResponse = await getEventsWithBasicErrorHandling(room, fkey, 500, firstRequestBefore);
+                        transcriptEvents = firstResponse.events;
+                        lastEventTimeStampOfFirstResponse = transcriptEvents[transcriptEvents.length - 1].time_stamp;
+                    }
+                    if (lastEventTimeStampOfFirstResponse < transcriptEndTimestamp) {
+                        //We didn't get enough messages to cover to the end of the transcript. In theory, there could be any number of deleted messages which
+                        //  we need to get, but we're only going to make one more attempt at finding messages beyond the current time.
+                        let secondTryFirstBefore = 0;
+                        if (nextSectionOrNextDayButton.length) {
+                            const nextDayUrl = nextSectionOrNextDayButton.attr('href');
+                            const nextDayHtml = await $.get(nextDayUrl);
+                            const nextDayAsDom = parser.parseFromString(nextDayHtml, 'text/html');
+                            const firstMessageIdOfNextSectionOrDay = Number((nextDayAsDom.querySelector('#main .message') || {id: 'foo-0'}).id.split('-')[1]);
+                            secondTryFirstBefore = firstMessageIdOfNextSectionOrDay + 10; //We should end up getting a single message past the end time of the current page.
+                            if (!firstMessageIdOfNextSectionOrDay) {
+                                //If, for some reason, we didn't get a valid messageId for the first message on the next page, then just try further than we did before.
+                                secondTryFirstBefore = firstRequestBefore + (3 * chatTranscriptEndMessagesOffset);
+                            }
+                        } //else: There is no next day, so we're at the end of the transcript. We then get messages from the end, which is secondTryFirstBefore=0, which is already the case.
+                        const responseFromSecondFindEndAttempt = await getEventsWithBasicErrorHandling(room, fkey, 500, secondTryFirstBefore);
+                        //Use the new set of events as our starting point, which just drops the ones we actually got first (we will get them again, if needed).
+                        transcriptEvents = responseFromSecondFindEndAttempt.events;
+                    }
                     let firstEventId = transcriptEvents[0].message_id;
                     let firstEventTimeStamp = transcriptEvents[0].time_stamp;
                     const lastEventId = transcriptEvents[transcriptEvents.length - 1].message_id;
-                    const lastEventTimeStamp = transcriptEvents[transcriptEvents.length - 1].time_stamp;
                     let lastFetchReceivedCount = transcriptEvents.length;
                     let fetchCount = 0; //Have a limit to the number of fetches we might do, just in case.
                     if (firstMessageId > 0) {
-                        while ((firstEventId > firstMessageId || firstEventTimeStamp > transcriptStartTimestamp) && lastFetchReceivedCount > 0 && fetchCount < 5) {
-                            const response = await getEvents(room, fkey, 500, firstEventId);
+                        while ((firstEventId > firstMessageId || firstEventTimeStamp > transcriptStartTimestamp) && lastFetchReceivedCount > 0 && fetchCount < 10) {
+                            const response = await getEventsWithBasicErrorHandling(room, fkey, 500, firstEventId);
                             fetchCount++;
                             lastFetchReceivedCount = response.events.length;
                             transcriptEvents = response.events.concat(transcriptEvents);
@@ -3793,20 +3850,52 @@
                             firstEventTimeStamp = transcriptEvents[0].time_stamp;
                         }
                     } //else
+                    const allEventsReceived = transcriptEvents;
+                    if (transcriptStartTimestamp && transcriptEndTimestamp && transcriptStartTimestamp !== transcriptEndTimestamp) {
+                        //It looks like the start and end time_stamps for the page are valid, so filter the events down to only what's in the time period.
+                        transcriptEvents = transcriptEvents.filter((event) => !event.time_stamp || (event.time_stamp >= transcriptStartTimestamp && event.time_stamp <= transcriptEndTimestamp));
+                    }
+                    return [transcriptEvents, allEventsReceived];
                 }
 
-                function getAndShareTranscriptEventsProgress() {
+                function rejectWithError() {
+                    console.error('Rejecting getAndShareTranscriptEvents Promise');
+                    reject(new Error('Getting transcript events failed.'));
+                }
+
+                /*
+                    checkAndAdvanceGettingTranscriptState is a state machine which walks through either getting the transcript events or waiting for another script to get them.
+                        It currently relies on the scripts sharing the same window scope.
+                        It is called to start the process, to continue to the process, or in response to an event from another script.
+                        window.transcriptChatEvents    gettingTranscriptEvents      What
+                                 undefined                     any                  Starting. This process will get events. window.transcriptChatEvents = null; gettingTranscriptEvents=true;
+                                                                                        when have events, window.transcriptChatEvents = transcriptEvents; and re-call checkAndAdvanceGettingTranscriptState.
+                                                                                        If error-out, then reject and send a reject Event.
+                                    null                       true                 This script is in the process of getting events. Do nothing; waiting to be called again.
+                                                                                        Shouldn't actually get here unless the script which is using this calls twice.
+                                    null                       false                Another script is in the process of getting chatEvents. Listen for an Event to be fired.
+                                    other                      true                 This script has gotten chatEvents. Send Event; resolve with chatEvents
+                                    other                      false                Another script has gotten chatEvents. Stop listening for the Event; resolve with chatEvents
+                 */
+                function checkAndAdvanceGettingTranscriptState() {
                     if (typeof window.transcriptChatEvents === 'undefined') {
                         window.transcriptChatEvents = null; //Indicate that we are requesting the chat events.
                         gettingTranscriptEvents = true;
-                        getTranscriptEvents().then((response) => {
-                            window.transcriptChatEvents = response;
-                            getAndShareTranscriptEventsProgress();
+                        getTranscriptEvents().then(([transcriptEvents, allEventsReceived]) => {
+                            window.transcriptChatEvents = transcriptEvents;
+                            //We got the events, so should make them available, if something in the future wants to use them.
+                            window.transcriptChatEventsAllReceived = allEventsReceived;
+                            //We're done, but we handle that the same way we would if we received an event indicating that we're done.
+                            checkAndAdvanceGettingTranscriptState();
                         }, () => {
-                            //We can continue upon failure.
-                            console.error('Getting transcript events failed:');
+                            //We don't continue upon failure. There's already rudimentary error handling, with a choice by the user to
+                            //  retry or not.
                             window.transcriptChatEvents = [];
-                            reject(new Error('Getting transcript events failed'));
+                            rejectWithError();
+                            window.dispatchEvent(new CustomEvent('transcript-events-reject', {
+                                bubbles: true,
+                                cancelable: true,
+                            }));
                         });
                         return;
                     }
@@ -3817,10 +3906,12 @@
                         }
                         //Some other process is getting the events.
                         //  We wait to be informed that they are available.
-                        window.addEventListener('transcript-events-received', getAndShareTranscriptEventsProgress);
+                        window.addEventListener('transcript-events-received', checkAndAdvanceGettingTranscriptState);
+                        window.addEventListener('transcript-events-rejected', rejectWithError);
                         return;
                     }
-                    window.removeEventListener('transcript-events-received', getAndShareTranscriptEventsProgress);
+                    window.removeEventListener('transcript-events-received', checkAndAdvanceGettingTranscriptState);
+                    window.removeEventListener('transcript-events-rejected', rejectWithError);
                     if (gettingTranscriptEvents) {
                         window.dispatchEvent(new CustomEvent('transcript-events-received', {
                             bubbles: true,
@@ -3830,7 +3921,7 @@
                     //The events are available.
                     resolve(window.transcriptChatEvents);
                 }
-                getAndShareTranscriptEventsProgress();
+                checkAndAdvanceGettingTranscriptState();
             });
         }
 
@@ -3894,11 +3985,6 @@
         }
 
         function addDeletedEventsToTranscript(allEvents) {
-            //This assumes that all transcript pages have < 500 messages, which in brief testing appears true.
-            //It also assumes that adding 15000 to the last message number will result in both getting any messages
-            //  which are after the last non-deleted one in the day and that it won't result in too few events at the
-            //  beginning of the period. This really should be replaced with code that makes sure we obtain all
-            //  the relevant events for the period covered by the transcript.
             const [transcriptDateStart, transcriptDateEnd] = getTranscriptDate();
             const transcriptStart = transcriptDateStart.getTime() / 1000;//SE Chat events are to the second, not millisecond.
             const transcriptEnd = transcriptDateEnd.getTime() / 1000;//SE Chat events are to the second, not millisecond.
@@ -3954,7 +4040,7 @@
             doOncePerChatChangeAfterDOMUpdate();
         }
 
-        /*Copied from the Unclosed Request Review Script & modified to get start and end times.*/
+        /*Copied by the original author from the Unclosed Request Review Script & modified to get start and end times.*/
         function getTranscriptDate() {
             //Get the date for the transcript
             const bodyDateStart = document.body.dataset.archiverTranscriptDateStart;
