@@ -1533,7 +1533,7 @@
                         '\n::  status:', status,
                         '\n::  error:', error,
                         '\n::  count:', count,
-                        '\n::  before:', before
+                        '\n::  before:', before,
                     );
                     if (confirm('$.ajax encountered an error getting events. See console for details.' + (error && error.length < 100 ? ' error: ' + error : '') +
                             '\n\ncount:' + count + '::  before:' + before + '\n\nRetry fetching these?')) {
@@ -2254,7 +2254,7 @@
                                 '\n  status:', status,
                                 '\n  error:', error,
                                 '\n  endpoint:', endpoint,
-                                '\n  requestsToSend:', requestsToSend
+                                '\n  requestsToSend:', requestsToSend,
                             );
                             if (confirm(`There was an error getting data for ${endpoint} from the SE API. More information should be in the console.\n\nDo you want to retry the request?`)) {
                                 return sendAjaxIfRequests(requestsToSend, endpoint);
@@ -2312,7 +2312,7 @@
                         '\n::  statusText:', xhr.statusText,
                         '\n::  xhr.responseJSON:', xhr.responseJSON,
                         '\n::  jsonError:', jsonError,
-                        '\n::  errorText:', errorText
+                        '\n::  errorText:', errorText,
                     );
                     alert(`Something${((errorText && errorText.length < 300) ? ` (${errorText})` : '')} went wrong when trying to get data for comments, answers, and questions. Please try again.\nSee console for more information.`);
                 });
@@ -3182,7 +3182,7 @@
                         '\n::  error:', error,
                         '\n::  room:', room,
                         '\n::  fkey.length,:', fkey.length,
-                        '\n::  messageId:', messageId
+                        '\n::  messageId:', messageId,
                     );
                 },
             });
@@ -3340,7 +3340,7 @@
                         '\n::  formatted messagesBeingMoved:', messagesBeingMoved.join(','),
                         '\n::  posts:', posts,
                         '\n::  callback:', callback,
-                        '\n::  ajaxInfo:', ajaxInfo
+                        '\n::  ajaxInfo:', ajaxInfo,
                     );
                     alert('$.ajax encountered an error moving some posts. See console for details.' + (error && error.length < 100 ? ' error: ' + error : ''));
                     nodes.cancel.disabled = false;
