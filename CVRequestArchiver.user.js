@@ -2242,8 +2242,8 @@
                 //If there are requests, then send the $.ajax. If there aren't, then send an empty items.
                 if (Array.isArray(requestsToSend) && requestsToSend.length) {
                     if (requestsToSend.length > 100) {
-                        alert('There are too many requests to check: ${requestsToSend.length}. The Archiver can only handle a max of 100 active, non-time-expired requests at a time.\n\nPlease re-run the scan with fewer events selected.');
-                        return Promise.reject();
+                        alert(`There are too many requests to check: ${requestsToSend.length}. The Archiver can only handle a max of 100 active, non-time-expired requests at a time.\n\nPlease re-run the scan with fewer events selected.`);
+                        return Promise.reject(new Error('Too many requests to check (> 100). Scan fewer events.'));
                     }
                     return $.ajax(makeSEApiUrl(requestsToSend, endpoint))
                         .then(checkXhrStatus, function(xhr, status, error) {
@@ -2818,14 +2818,9 @@
             });
             //Request that the unclosed request review script update request-info for the page, including the popup.
             var shownToBeMovedMessages = $(shownToBeMoved).find('.message');
-            var eventToSend = (shownToBeMovedMessages.length === priorMessagesShown.length) ? 'urrs-Request-Info-update-desired' : 'urrs-Request-Info-update-immediate';
+            const urrsUpdateType = (shownToBeMovedMessages.length === priorMessagesShown.length) ? 'desired' : 'immediate';
             //Send the event, but after we're done processing & the display updates.
-            setTimeout(() => {
-                window.dispatchEvent(new CustomEvent(eventToSend, {
-                    bubbles: true,
-                    cancelable: true,
-                }));
-            }, 0);
+            setTimeout(requestURRSUpdate, 10, urrsUpdateType);
             priorMessagesShown = shownToBeMovedMessages;
             //Every once in a while the first .tiny-signature in the popup ends up with display:none;
             //This is a hack to try to eliminate the problem. The issue has not been reliably duplicated, so it's unclear if this will actually solve the issue.
@@ -3098,17 +3093,38 @@
             }
         }
 
+        let urrsUpdateRequestCooldownTimer = 0;
+        let urrsUpdateRequestCooldownTimerShouldRequest = false;
+        function requestURRSUpdate(updateType) {
+            //Ask the URRS to update the display of messages. However, only do so at most once every 5 seconds.
+            //  The limitation as to how often to update should really be in the URRS, and it will be, but
+            //  it's more likely that an update to this script will happen prior to an update of the URRS.
+            if (urrsUpdateRequestCooldownTimer) {
+                //We're in a cooldown period. Indicate that a request should be made after the cooldown, but wait.
+                urrsUpdateRequestCooldownTimerShouldRequest = true;
+                return;
+            }
+            urrsUpdateRequestCooldownTimerShouldRequest = false;
+            urrsUpdateRequestCooldownTimer = setTimeout(() => {
+                urrsUpdateRequestCooldownTimer = 0;
+                if (urrsUpdateRequestCooldownTimerShouldRequest) {
+                    requestURRSUpdate(updateType);
+                }
+            }, 5000);
+            window.dispatchEvent(new CustomEvent(`urrs-Request-Info-update-${updateType}`, {
+                bubbles: true,
+                cancelable: true,
+            }));
+        }
+
         function requestURRSUpdateIfGotDeletedContent() {
             if (didGetDeletedContent) {
-                let eventToSend = 'urrs-Request-Info-update-desired';
+                let urrsUpdateType = 'desired';
                 if ($('.message.SOCVR-Archiver-contains-deleted-content .content a[href*="/q/"], .message.SOCVR-Archiver-contains-deleted-content .content a[href*="/a/"], .message.SOCVR-Archiver-contains-deleted-content .content a[href*="/question/"]').length) {
                     //If there's a link to a question or answer in the deleted content, then request immediate update.
-                    eventToSend = 'urrs-Request-Info-update-immediate';
+                    urrsUpdateType = 'immediate';
                 }
-                window.dispatchEvent(new CustomEvent(eventToSend, {
-                    bubbles: true,
-                    cancelable: true,
-                }));
+                requestURRSUpdate(urrsUpdateType);
             }
             didGetDeletedContent = false;
         }
