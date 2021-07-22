@@ -1573,39 +1573,42 @@
                 if (count <= 0) {
                     //Done getting all requested events.
                     // Re-type those that need to have a parent found.
-                    resolve(promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents)));
+                    resolve(promised
+                        .then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length))
+                        .then(() => delay(0, scanEvents)));
                     return false;
                 }
                 const msgCount = count > 500 ? 500 : count;
-                getEventsWithBasicErrorHandling(room, fkey, msgCount, before).then(function(response) {
-                    var respEvents = response.events;
-                    if (respEvents.length) {
-                        respEvents.forEach(function(event) {
-                            event.timeStampUTC = (new Date(event.time_stamp * 1000)).toJSON();
-                        });
-                    }
-                    if (Array.isArray(response.events) && response.events.length) {
-                        //We are progressively fetching older events and each returned events array is in oldest first order.
-                        //  Putting newly fetched events at the front of the events array keeps the events in oldest first order.
-                        events.unshift(response.events);
-                    }
-                    //Adding 'reply-request' to this doesn't appear to help make the process significantly faster.
-                    promised = promised
-                        .then(() => delay(0, addEventsToByNumber, response.events, '', '', 'By Id'))
-                        .then(() => delay(0, scanStageEventChunk, response.events, assignEventBaseTypeAndContentWithoutCode, needParentList, 'typing............', totalEventsToFetch - count, totalEventsToFetch));
+                getEventsWithBasicErrorHandling(room, fkey, msgCount, before)
+                    .then(function(response) {
+                        var respEvents = response.events;
+                        if (respEvents.length) {
+                            respEvents.forEach(function(event) {
+                                event.timeStampUTC = (new Date(event.time_stamp * 1000)).toJSON();
+                            });
+                        }
+                        if (Array.isArray(response.events) && response.events.length) {
+                            //We are progressively fetching older events and each returned events array is in oldest first order.
+                            //  Putting newly fetched events at the front of the events array keeps the events in oldest first order.
+                            events.unshift(response.events);
+                        }
+                        //Adding 'reply-request' to this doesn't appear to help make the process significantly faster.
+                        promised = promised
+                            .then(() => delay(0, addEventsToByNumber, response.events, '', '', 'By Id'))
+                            .then(() => delay(0, scanStageEventChunk, response.events, assignEventBaseTypeAndContentWithoutCode, needParentList, 'typing............', totalEventsToFetch - count, totalEventsToFetch));
 
-                    if (!response.events[0]) {
-                        // No more events in the transcript
-                        // Re-type those that need to have a parent found.
-                        resolve(promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents)));
-                        return false;
-                    }
+                        if (!response.events[0]) {
+                            // No more events in the transcript
+                            // Re-type those that need to have a parent found.
+                            resolve(promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents)));
+                            return false;
+                        }
 
-                    nodes.scandate.textContent = new Date(1000 * response.events[0].time_stamp).toISOString();
+                        nodes.scandate.textContent = new Date(1000 * response.events[0].time_stamp).toISOString();
 
-                    nextBefore = response.events[0].message_id;
-                    resolve(getEventsAndScan(count - 500, response.events[0].message_id, promised, needParentList));
-                });
+                        nextBefore = response.events[0].message_id;
+                        resolve(getEventsAndScan(count - 500, response.events[0].message_id, promised, needParentList));
+                    }, reject);
             });
         }
 
