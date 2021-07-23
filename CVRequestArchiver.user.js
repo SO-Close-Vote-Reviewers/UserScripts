@@ -2368,15 +2368,20 @@
             nodes.indicator.value = messagesToMove.length + ' request' + ['', 's'][+(messagesToMove.length > 1)] + ' found';
         }
 
+        function savePostsListAsPreviousMove(posts, targetRoomId, sourceRoomId, action) {
+            return setStorageJSON('previousMoveTo', {
+                posts,
+                targetRoomId,
+                //You can't move from more than one room in a single AJAX call.
+                sourceRoomId,
+                action,
+            });
+        }
+
         function saveMoveInformationAndMovePosts() {
             //Prior to moving posts, save the list of posts so we can undo a move by assigning those messages to the manual move list, if the user clicks 'U'.
-            var ids = convertRequestsListToMessageIds(messagesToMove);
-            setStorageJSON('previousMoveTo', {
-                posts: ids,
-                targetRoomId: defaultTargetRoom,
-                //It would need to be tested to see if you really can only move from a single room, or if you can move from multiple rooms at a time.
-                sourceRoomId: room,
-            });
+            const ids = convertRequestsListToMessageIds(messagesToMove);
+            savePostsListAsPreviousMove(ids, defaultTargetRoom, room, 'move');
             //Use the global variables to call moveSomePosts();
             moveSomePosts(ids, defaultTargetRoom, () => {
                 //All done
@@ -3232,13 +3237,8 @@
                 }
             }
             if (countPosts && window.confirm(`Move ${countPosts} message${(countPosts === 1 ? '' : 's')} to ${(targetRoomsByRoomNumber[targetRoomId] || {fullName: `room # ${targetRoomId}`}).fullName}?`)) {
-                //Save a copy of the last information.
-                setStorageJSON('previousMoveTo', {
-                    posts: posts,
-                    targetRoomId: targetRoomId,
-                    //It would need to be tested to see if you really can only move from a single room, or if you can move from multiple rooms at a time.
-                    sourceRoomId: room,
-                });
+                //Save a copy of the last move information.
+                savePostsListAsPreviousMove(posts, targetRoomId, room, 'move');
                 //Move the posts
                 moveSomePosts(posts, targetRoomId, callback);
             } else {
