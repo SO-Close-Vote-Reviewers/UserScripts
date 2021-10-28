@@ -301,6 +301,8 @@
                 rooms: makeRoomsByNumberObject([
                     //Trash can
                     new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                     new TargetRoom(109494, soChat, 'friendly bin', 'friendly', 'f', 'friendly', commonRoomOptions.noUI),
                 ]),
             },
