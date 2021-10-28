@@ -320,15 +320,15 @@
                     new TargetRoom(11540, seChat, 'Charcoal HQ', 'Charcoal', 'C', 'CHQ', commonRoomOptions.noUI),
                     //Charcoal Test
                     new TargetRoom(65945, seChat, 'Charcoal Test', 'Test', 'CT', 'Test', commonRoomOptions.noUI),
-                    //Trash
-                    new TargetRoom(82806, seChat, 'Trash (room 82806)', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
-                    //Trash
-                    new TargetRoom(19718, seChat, 'Trash (room 19718: requires access)', 'Trash', 'T', 'Trash 19', commonRoomOptions.noUI),
+                    //Trash (public; not frozen)
+                    new TargetRoom(82806, seChat, 'Trash', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    //Trash 19718 (Gallery mode; ROs of other rooms are given explicit write access; currently frozen: 2021-10-28)
+                    new TargetRoom(19718, seChat, 'Trash (requires access)', 'Trash', 'T', 'Trash 19', commonRoomOptions.noUI),
                     //trash
                     //Room is frozen
                     //new TargetRoom(57121, seChat, 'trash (room 57121)', 'trash', 't', 'trash 57', commonRoomOptions.noUI),
                     //Private for SD posts that have especially offensive content.
-                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private; room 658)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
             },
             {//CRCQR
@@ -344,7 +344,7 @@
                     //CRCQR /dev/null
                     new TargetRoom(86077, soChat, 'CRCQR /dev/null', 'Null', 'N', 'Null', commonRoomOptions.allTrue),
                     //Private for SD posts that have especially offensive content.
-                    new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
                 //Semi-auto scanning:
                 //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
@@ -376,9 +376,9 @@
                     //CRUDE Archive
                     new TargetRoom(88696, soChat, 'CRUDE Archive', 'Archive', 'A', 'Archive', commonRoomOptions.allTrue),
                     //Trash
-                    new TargetRoom(82806, seChat, 'Trash (room 82806)', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    new TargetRoom(82806, seChat, 'Trash', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
                     //Private for SD posts that have especially offensive content.
-                    new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
                 //Semi-auto scanning:
                 //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
@@ -407,11 +407,11 @@
                 defaultTargetRoom: 19718,
                 rooms: makeRoomsByNumberObject([
                     //Trash
-                    new TargetRoom(19718, soChat, 'Trash (room 19718: requires access)', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI), //User must have access.
+                    new TargetRoom(19718, soChat, 'Trash (requires access)', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI), //User must have access.
                     //Trash
-                    new TargetRoom(82806, seChat, 'Trash (room 82806)', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    new TargetRoom(82806, seChat, 'Trash', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
                     //Private trash.
-                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private; room 658)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
             },
 
@@ -3378,11 +3378,7 @@
             //Create the HTML for the in-question moveTo controls for rooms in an order and given rooms data.
             return roomOrder.reduce((htmlText, key) => {
                 var targetRoom = roomsByRoomNumber[key];
-                return htmlText + '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-' +
-                    targetRoom.shortName + '" title="Move this/selected message(s) (and any already in the list) to ' +
-                    targetRoom.fullName + '." data-room-id="' +
-                    targetRoom.roomNumber + '">' +
-                    targetRoom.displayed + '</span>';
+                return htmlText + `<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-${targetRoom.shortName}" title="Move this/selected message(s) (and any already in the list) to ${targetRoom.fullName} (#${targetRoom.roomNumber})." data-room-id="${targetRoom.roomNumber}">${targetRoom.displayed}</span>`;
             }, '') + [
                 //Prompt for room
                 '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-prompt-for-room" title="Prompt you for a room to which to move this/selected message(s) (and any already in the list)." data-room-id="prompt">?</span>',
