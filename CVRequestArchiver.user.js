@@ -17,7 +17,8 @@
 /* jshint devel:     true */
 /* jshint esversion: 6 */
 /* jshint esnext: true */
-/* globals CHAT, $, jQuery */ //eslint-disable-line no-redeclare
+/* globals CHAT, $, jQuery, popUp */ //eslint-disable-line no-redeclare
+
 
 (function() {
     'use strict';
@@ -1367,6 +1368,42 @@
             '.message .content a {',
             '    display: inline;',
             '}',
+            '.SOCVR-Archiver-inline-popup-action-entry {',
+            '    cursor: pointer;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-action-entry {',
+            '    display: inline-block;',
+            '    min-width: 90%;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-action-entry:hover {',
+            '    background-color: #eee;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-action-entry.delete:before {',
+            '    content:"\\232b";',
+            '    color: red;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-list-length-container {',
+            '    display: inline-block;',
+            '    margin: auto;',
+            '    width: 100%;',
+            '    text-align: center;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-popup-title {',
+            '    width: calc(100% - 21px);',
+            '    text-align: center;',
+            '    display: inline-block;',
+            '    margin-left: 10px;',
+            '    margin-right: -7px;',
+            '}',
+            '.SOCVR-Archiver-sprite-placeholder {',
+            '    display: inline-block;',
+            '    width: 14px;',
+            '    height: 14px;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-action-active .SOCVR-Archiver-inline-popup-action-entry {',
+            '    cursor: not-allowed;',
+            '}',
+
             (showMeta ? [
                 'div.message .meta {',
                 //A clearer indicator of separation between controls and message text.
@@ -3404,6 +3441,8 @@
                 '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-clear-list" title="Clear the list." data-room-id="clear">*</span>',
                 //Undo/re-select the last moved list
                 '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-reselect" title="Re-select the messages which were last moved. This can be used to undo the last move by reselecting them (this control); going to the room they have been moved to; find one that\'s selected; then, manually moving them back by clicking on the control you want them moved to." data-room-id="reselect">U</span>',
+                //Open menu
+                '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-popup-menu" title="Open a popup from which you can select additional actions." data-room-id="popup-menu">&#8801;</span>',
             ].join('');
         }
 
@@ -3520,8 +3559,224 @@
             addMessageToNoUserListIfMonologueIsNoUser(message);
             addToLSManualMoveList(priorSelectionMessageIds);
         }
-        
-        function moveToInMetaHandler() {
+
+        function addAdditionalMoveListOptionsToPopup(popup) {
+            function MoveListPopupEntry(_displayText, _outerSpanClass, _imageSpanClass, _titleText, _action, _needModerator = false, _actionFunction = null) {
+                this.displayText = _displayText;
+                this.outerSpanClass = _outerSpanClass;
+                this.imageSpanClass = _imageSpanClass;
+                this.titleText = _titleText;
+                this.action = _action;
+                this.needModerator = _needModerator;
+                this.actionFunction = _actionFunction;
+            }
+
+            const moveListPopupEntries = [
+                //star/unstar tested, returns 'ok'; fails when trying to star/unstar your own; rate limited to 1/second
+                new MoveListPopupEntry('star/unstar as interesting (toggle)', 'star extra-links-unpin-cancel', 'sprite sprite-icon-star', 'Try to change the state of *your* stars on all highlighted messages. SE has implemented this as a toggle. In addition, after some time that you\'ve starred something becomes locked in, so you can\'t unstar your own star without canceling all stars on the message. If you use this on messages where your star is locked on, this will silently fail for that message. Effectively, the "unstar" ability is an "undo", which has a relatively brief period where you can actually undo.', 'star'),
+                //unstar (cancel-stars) tested, returns 'ok'; does not appear to be rate limited
+                new MoveListPopupEntry('cancel all stars', '', 'sprite sprite-icon-star-off', 'Cancel all stars on all highlighted messages', 'unstar'),
+                //owner-star (pin) tested, returns 'ok'; rate limited to 1/second; is actually a toggle; doing it again clears the pin, but not your own star, even on your own message
+                //owner-star then owner-star could be used to star your own posts.
+                //owner-star then owner-star can be used to re-pin something and reset the pin 14 day timer; must be done prior to expiration of the current pin.
+                new MoveListPopupEntry('pin', 'owner-star', 'img', 'Pin all highlighted messages (toggle)', 'owner-star'),
+                //unpin tested: returns 'ok'; doesn't fail when not pinned; doesn't appear to be rate limited.
+                new MoveListPopupEntry('unpin', 'owner-star', 'sprite sprite-ownerstar-off', 'Unpin all messages in the Manual Move List', 'unowner-star'),
+                //spam flag tested: returns 'ok'; rate limited to 1/second
+                new MoveListPopupEntry('flag as spam/offensive', 'flag', 'img', 'Flag all highlighted messages as spam/abusive.', 'flag'),
+                new MoveListPopupEntry('counter flag', '', 'SOCVR-Archiver-sprite-placeholder', 'Counter flag all highlighted messages', 'counter-flag'),
+                new MoveListPopupEntry('meh flag', '', 'SOCVR-Archiver-sprite-placeholder', 'Meh flag all highlighted messages', 'meh-flag'),
+                new MoveListPopupEntry('cancel flags', '', 'sprite sprite-flag-off', 'Cancel flags on all highlighted messages', 'cancel-flags', true),
+                //If already deleted, the response is 'This message has already been deleted.'
+                new MoveListPopupEntry('delete', 'delete', '', 'Delete all highlighted messages', 'delete', true),
+                //new MoveListPopupEntry('delete-img', 'delete', 'img', 'Delete all messages in the Manual Move List', 'delete'),
+                new MoveListPopupEntry('redact', '', 'SOCVR-Archiver-sprite-placeholder', 'Redact the message for all highlighted messages', 'redact', true),
+                //This does *not* respond with "OK". It gives a 302 response to redirect to /history for the message.
+                new MoveListPopupEntry('purge history', '', 'SOCVR-Archiver-sprite-placeholder', 'Purge the message history for all highlighted messages', 'purge-history', true),
+                new MoveListPopupEntry('redact and purge history', '', 'SOCVR-Archiver-sprite-placeholder', 'Redact and purge the message history for all highlighted messages', 'redact_purge-history', true),
+                //Sam's Chat Redact Messages script indicates we can/should delete the message first; tested.
+                new MoveListPopupEntry('delete, redact, and purge history', '', 'SOCVR-Archiver-sprite-placeholder', 'Redact, delete, and purge the message history for all highlighted messages', 'delete_redact_purge-history', true),
+            ];
+            const moveListPopupEntriesByAction = {};
+            moveListPopupEntries.forEach((entry) => {
+                moveListPopupEntriesByAction[entry.action] = entry;
+            });
+
+            function addActionToPopup(popupEntry) {
+                if (!popupEntry.needModerator || (popupEntry.needModerator && isModerator)) {
+                    popup.append(`<span class="SOCVR-Archiver-inline-popup-action-entry ${popupEntry.outerSpanClass}"${popupEntry.titleText ? ` title="${popupEntry.titleText}"` : ''} data-action="${popupEntry.action}">${popupEntry.imageSpanClass ? `<span class="${popupEntry.imageSpanClass}"></span>` : ''} ${popupEntry.displayText}</span></br>`);
+                }
+            }
+
+            function jQueryDeferredDelay(deferredDelay = 0) {
+                return jQuery.Deferred((deferred) => setTimeout(deferred.resolve, deferredDelay));
+            }
+
+            function jQueryGeneralAjaxErrorRetry(originalSettings) {
+                const keysToTransfer = [
+                    'url',
+                    'data',
+                    'type',
+                    'data',
+                    'success',
+                    'cache',
+                    'complete',
+                    'contentType',
+                    'dataTypes',
+                    'error',
+                    'statusCode',
+                    'timeout',
+                    'username',
+                ];
+                const settings = {};
+                keysToTransfer
+                    .filter((key) => Object.getOwnPropertyDescriptor(originalSettings, key))
+                    .forEach((key) => {
+                        settings[key] = originalSettings[key];
+                    });
+                return $.ajax(settings);
+            }
+
+            function jQueryDelayedRetryUponConflictResponse(jQueryXHROuter, statusOuter, errorOuter) {
+                let retryCount = 0;
+                function conflictDelayAutoRetryInner(jQueryXHR, status, error) {
+                    let isDelay = false;
+                    let seconds = 5; //Default delay for other errors.
+                    if (error === 'Conflict' && jQueryXHR.responseText) {
+                        //In chat, the delay response is in the form of:
+                        // "You can perform this action again in 4 seconds."
+                        seconds = (jQueryXHR.responseText.match(/(?:again|in)\D*(\d+)\s*seconds?/) || ['', 4])[1];
+                        isDelay = true;
+                    }
+                    if (retryCount > 4 || !isDelay) {
+                        //It's either been tried the maximum number of times, or the response isn't one we recognize as something for an auto-retry.
+                        //The following is used to be able to chain jQuery error/reject responses.
+                        return jQuery.Deferred().rejectWith(this, [jQueryXHR, status, error]);
+                    }
+                    retryCount++;
+                    return jQueryDeferredDelay(seconds * 1000).then(() => jQueryGeneralAjaxErrorRetry(this)).then(null, conflictDelayAutoRetryInner);
+                }
+                return conflictDelayAutoRetryInner.call(this, jQueryXHROuter, statusOuter, errorOuter);
+            }
+
+            function popupMenuEntryMessageActionHandler(messageID, menuEntry) {
+                const actions = menuEntry.action.split('_');
+                return actions.reduce((thenChain, action) => {
+                    if (action === 'redact') {
+                        return thenChain
+                            .then(() => postToChatWithConflictRetryAndUserOptionToRetryNoOKIsError(`/messages/${messageID}`, {text: '*[message redacted by a moderator]*'}));
+                    } //else
+                    return thenChain
+                        .then(() => postToChatWithConflictRetryAndUserOptionToRetryNoOKIsError(`/messages/${messageID}/${action}`));
+                }, jQuery.Deferred().resolve());
+            }
+
+            function postToChatWithConflictRetryAndUserOptionToRetryNoOKIsError(url, data = {}) {
+                data.fkey = fkey;
+                function sendChatPost() {
+                    return $.post(url, data)
+                        .then(null, jQueryDelayedRetryUponConflictResponse)
+                        .then(function(response) {
+                            if (this.url.endsWith('/purge-history')) {
+                                //The response from /purge-history is the entire history page. We don't want to log that.
+                                return jQuery.Deferred().resolveWith(this, [response]);
+                            }
+                            const responseIsString = typeof response === 'string';
+                            //The /purge-history endpoint doesn't respond with "ok". Actually it responds with a 302 and redirects
+                            //  to a GET of /history.
+                            if (this.url.endsWith('/purge-history') || (responseIsString && response.toLowerCase() === 'ok')) {
+                                return jQuery.Deferred().resolveWith(this, [response]);
+                            } //else
+                            const status = 488; //Something the server won't send.
+                            const statusText = 'Response was not "ok".';
+                            const fakeJqXHR = {
+                                status,
+                                statusText,
+                                fakeErrorOriginalResponse: response,
+                            };
+                            let responseText = response;
+                            if (typeof response === 'object') {
+                                responseText = JSON.stringify(response);
+                                fakeJqXHR.responseJSON = response;
+                            }
+                            try {
+                                //If the response was JSON text, then we want to keep it as JSON text.
+                                responseText = JSON.stringify(JSON.parse(response));
+                            } catch (error) {
+                                //Do nothing
+                            }
+                            fakeJqXHR.responseText = responseText;
+                            return jQuery.Deferred().rejectWith(this, [fakeJqXHR, status, statusText]);
+                        })
+                        .then(null, function(jQueryXHR, status, error) {
+                            console.error(
+                                'AJAX Error POSTing data to SE Chat:',
+                                '\n  this.url:', this.url,
+                                '\n  jQueryXHR.responseText:', jQueryXHR.responseText,
+                                '\n  status:', status,
+                                '\n  error:', error,
+                                '\n  jQueryXHR:', jQueryXHR,
+                            );
+                            if (confirm(`There was an error${(jQueryXHR.responseText || '').length < 300 ? `:\n\n"${jQueryXHR.responseText}"\n\n` : ' '}sending a POST to SE/SO chat at:\n${url}\n\nMore information should be in the console.\n\nDo you want to retry the request?`)) {
+                                return sendChatPost();
+                            } // else
+                            return jQuery.Deferred().rejectWith(this, [jQueryXHR, status, error]);
+                        });
+                }
+                return sendChatPost();
+            }
+
+            function setPopupMoveListLength() {
+                popup.find('.SOCVR-Archiver-inline-popup-list-length').text(manualMoveList.length);
+                popup.find('.SOCVR-Archiver-inline-popup-list-length-plural').text(manualMoveList.length === 1 ? '' : 's');
+            }
+
+            function handlePopupClick() {
+                if (popup.hasClass('SOCVR-Archiver-inline-popup-action-active')) {
+                    //We're already doing something.
+                    return;
+                }
+                popup.addClass('SOCVR-Archiver-inline-popup-action-active');
+                const $this = $(this);
+                const action = $this.data('action');
+                const menuEntry = moveListPopupEntriesByAction[action];
+                if (!action || !menuEntry) {
+                    console.error('Did not understand popup click. action:', action, ':: menuEntry:', menuEntry, ':: $this:', $this);
+                    return false;
+                }
+                const mmlPlural = manualMoveList.length === 1 ? '' : 's';
+                if (confirm(`Are you sure you want to\n${menuEntry.displayText} the\n\n${manualMoveList.length} message${mmlPlural}\n\n on the action list (i.e. ${mmlPlural ? 'all ' : ''}the highlighted message${mmlPlural})?`)) {
+                    savePostsListAsPreviousMove(manualMoveList, -9999, room, action);
+                    const handlerFunction = typeof menuEntry.actionFunction === 'function' ? menuEntry.actionFunction : popupMenuEntryMessageActionHandler;
+                    let thenChain = jQuery.Deferred().resolve();
+                    manualMoveList
+                        .sort((a, b) => a - b)
+                        .forEach((messageId) => {
+                            thenChain = thenChain
+                                .then(() => handlerFunction(messageId, menuEntry))
+                                .then(() => {
+                                    removeFromLSManualMoveList(messageId);
+                                    setPopupMoveListLength();
+                                });
+                        });
+                    thenChain.then(() => {
+                        popup.removeClass('SOCVR-Archiver-inline-popup-action-active');
+                        popup.find('.btn-close').click();
+                    }, () => alert('An error occurred while trying to perform the selected action. Please see the console for more details'));
+                }
+                return false;
+            }
+
+            popup
+                .append('<h3 class="SOCVR-Archiver-inline-popup-popup-title" title="The action you select will be performed on each highlighted message.">Additional list actions</h3>')
+                .append(`<span class="SOCVR-Archiver-inline-popup-list-length-container">(list contains <span class="SOCVR-Archiver-inline-popup-list-length">${manualMoveList.length}</span> message<span class="SOCVR-Archiver-inline-popup-list-length-plural">s</span>)</span>`)
+                .on('click', '.SOCVR-Archiver-inline-popup-action-entry', handlePopupClick);
+            moveListPopupEntries.forEach(addActionToPopup);
+            popup.append('<br><span>The selected action will be performed on each highlighted message.</span>');
+            setPopupMoveListLength();
+        }
+
+        function moveToInMetaHandler(event) {
             //Handle a click on the moveTo controls
             /* jshint -W040 */ //This is called as a jQuery event handler, which explicitly sets `this`.
             const $this = $(this);
@@ -3531,6 +3786,16 @@
             if (message.length) {
                 const messageId = getMessageIdFromMessage(message);
                 if (messageId) {
+                    if (roomId === 'popup-menu') {
+                        //The click to open results in also closing if done within the event handler, so we wait.
+                        addMessageAndPriorSelectionToManualMoveList(message);
+                        setTimeout(() => {
+                            const menuPopup = popUp(event.pageX, event.pageY, message);
+                            //menuPopup.append('This is an option.');
+                            menuPopup.css({width: '250px'});
+                            addAdditionalMoveListOptionsToPopup(menuPopup);
+                        });
+                    }
                     if (roomId === 'prompt') {
                         addMessageAndPriorSelectionToManualMoveList(message);
                         roomId = ((prompt('To what room do you want to move messages (enter a room number or room URL)?') || '').match(/\d+/) || [])[0];
