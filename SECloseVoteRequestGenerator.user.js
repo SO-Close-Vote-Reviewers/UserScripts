@@ -1789,11 +1789,11 @@
             '                </label>' +
             '                <div class="cvrgNatoAndSDReportCheckboxContainer">' +
             '                    is: ' +
-            '                    <label class="cvrgSDReport cvrgAddMessage" title="Add/remove &quot;(SD report)&quot; to/from the report reason">' +
+            '                    <label class="cvrgSDReport cvrgAddMessage" title="Add/remove &quot;(SD report)&quot; to/from the report reason.">' +
             '                        <input type="checkbox"  class="cvrgSdReportCheckbox">' +
             '                        SD report' +
             '                    </label>' +
-            '                    <label class="cvrgNATO cvrgAddMessage" title="Add/remove &quot;(NATO)&quot; to/from the report reason">' +
+            '                    <label class="cvrgNATO cvrgAddMessage" title="Add/remove &quot;(NATO)&quot; to/from the report reason.">' +
             '                        <input type="checkbox" class="cvrgNatoCheckbox">' +
             '                        NATO' +
             '                    </label>' +
