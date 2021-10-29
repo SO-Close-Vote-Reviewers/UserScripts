@@ -4044,6 +4044,7 @@
         var popup = $('#popup-close-question').first();
         var popupActions = $('.popup-actions', popup);
         var remainingVotes = $('.d-flex > span:contains(vote),.d-flex > span:contains(flag)', popupActions);
+        var backButton = $('.js-popup-back', popupActions);
         //It's possible for getGuiForEl to return null, but that really only happens if something has gone wrong elsewhere
         var guiForQuestionOpeningPopup = CVRGUI.getGuiForEl(popup);
         if (guiForQuestionOpeningPopup) {
@@ -4098,8 +4099,13 @@
         var cvplsCheckbox = $('<label class="cvrgCVPopupSendCvplsLabel" title="Send a cv-pls request immediately after voting to close."><input class="cvrgCVPopupSendCvplsCheckbox" type="checkbox">Send cv-pls request</label>');
         var cvplsInput = cvplsCheckbox.find('input');
         var cvrgCheckboxWrapper = $('<div class="cvrgCVPopupCheckboxWrapper"></div>').append(cvplsCheckbox);
-        var andWasWrapper = $(' <span class="cvrgCVPopupAndWasWrapper" disabled="true"> & was:<div class="cvrgCVPopupSDAndNatoWithFake"><div class="cvrgCVPopupFakeSDReportCheckboxwrapper"><label class=""><input class="" type="checkbox">SD report</label></div><div class="cvrgCVPopupSDAndNato"><label class="cvrgCVPopupIsSDReportCheckboxLabel" title="This will add &quot;(SD report)&quot; to the report reason"><input class="cvrgCVPopupIsSDReportCheckbox" type="checkbox">SD report</label><label class="cvrgCVPopupIsNatoCheckboxLabel" title="This will add/remove &quot;(NATO)&quot; to the report reason"><input class="cvrgCVPopupIsNatoCheckbox" type="checkbox">NATO</label></div></div></span>');
-        remainingVotes.before(cvrgCheckboxWrapper.append(andWasWrapper));
+        var andWasWrapper = $(' <span class="cvrgCVPopupAndWasWrapper" disabled="true"> & was:<div class="cvrgCVPopupSDAndNatoWithFake"><div class="cvrgCVPopupFakeSDReportCheckboxwrapper"><label class=""><input class="" type="checkbox">SD report</label></div><div class="cvrgCVPopupSDAndNato"><label class="cvrgCVPopupIsSDReportCheckboxLabel" title="This will add &quot;(SD report)&quot; to the report reason."><input class="cvrgCVPopupIsSDReportCheckbox" type="checkbox">SD report</label><label class="cvrgCVPopupIsNatoCheckboxLabel" title="This will add &quot;(NATO)&quot; to the report reason."><input class="cvrgCVPopupIsNatoCheckbox" type="checkbox">NATO</label></div></div></span>');
+        cvrgCheckboxWrapper.append(andWasWrapper)
+        if (remainingVotes.length) {
+            remainingVotes.before(cvrgCheckboxWrapper);
+        } else {
+            backButton.after(cvrgCheckboxWrapper);
+        }
         var andWasSpan = cvrgCheckboxWrapper.find('.cvrgCVPopupAndWasWrapper');
         popup.addClass('cvrgClosePopupContainsCVRGCheckbox');
         cvplsInput.on('change', function() {
