@@ -1495,15 +1495,7 @@
     $(document.documentElement).append($('' +
         '<style id="cvrg-styles">' +
         '    .post-menu > span > a,' +
-        '    .post-menu .post-menu-container > span > a {' +
-        '        padding:0 3px 2px 3px;' +
-        '        color:#888;' +
-        '    }' +
         '    .post-menu > span > a:hover,' +
-        '    .post-menu .post-menu-container > span > a:hover {' +
-        '        color:#444;' +
-        '        text-decoration:none;' +
-        '    } ' +
         '    .subheader.tools-rev .cvrgui {' +
         '        top:12px;' +
         '        margin-left: 10px;' +
@@ -1521,14 +1513,14 @@
         '        z-index:1002;' +
         '        position:absolute;' +
         '        white-space:nowrap;' +
-        '        outline:1px solid #ccc;' +
         '        border-radius:3px;' +
-        '        background:#FFF;' +
-        '        box-shadow:0px 5px 10px -5px rgb(0,0,0,0.5);' +
         '        left:15vw;' +
         '        width:70vw;' +
         '        max-width:700px;' +
-        '        border: 3px solid #fff;' +
+        '        background: var(--mp-main-bg-color);' +
+        '        border: 3px solid var(--mp-main-bg-color);' +
+        '        outline: 1px solid var(--mp-muted-color);' +
+        '        box-shadow: 0px 5px 10px -5px var(--mp-muted-color);' +
         '    }' +
         '    .cv-list.cvrg-isDelayedRequest {' +
         '        border: 3px solid #20d020;' +
@@ -1643,7 +1635,7 @@
         '        margin-top: 1em;' +
         '    }' +
         '    .cvrgRequestPreviewValidationInvalid {' +
-        '        color: #8F5444;' +
+        '        color: var(--mp-warning-color);' +
         '    }' +
         '    .cvrgRequestPreviewValidationCritical {' +
         '        color: red;' +
