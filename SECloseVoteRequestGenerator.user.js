@@ -2789,8 +2789,9 @@
                             if (this.guiType === 'answer') {
                                 isTag20k = true;
                                 //On NATO without NATO Enhancements, we don't verify the answer's score. We could do a SE API call to get it, but don't do so.
-                                if (!isNatoWithoutEnhancement && postScore > -1) {
-                                    invalidRequestReasons.push('Answers must be at a score &lt;= -1.');
+                                const maxDelPlsAnswerScore = isSOCVR ? 0 : -1; //SOCVR permits del-pls requests where a single downvote is required.
+                                if (!isNatoWithoutEnhancement && postScore > maxDelPlsAnswerScore) {
+                                    invalidRequestReasons.push(`Answers must be at a score &lt;= ${maxDelPlsAnswerScore}.`);
                                 }
                             } else if (this.guiType === 'question') {
                                 if (!isQuestionClosed(questionContext)) {
@@ -2801,8 +2802,9 @@
                                     var twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
                                     if (!isDelayedRequest && (Date.now() - closedTimeMs) <= twoDaysInMs) {
                                         //For posts we are going to delete in 2 days, it doesn't need to pass this criteria.
-                                        if (postScore > -3) {
-                                            invalidRequestReasons.push('Questions must be at a score &lt;= -3 (20k+), or have been closed for &gt; 2 days.');
+                                        const maxDelPlsQuestionScore = isSOCVR ? -2 : -3; //SOCVR permits del-pls requests where a single downvote is required.
+                                        if (postScore > maxDelPlsQuestionScore) {
+                                            invalidRequestReasons.push(`Questions must be at a score &lt;= ${maxDelPlsQuestionScore} (20k+), or have been closed for &gt; 2 days.`);
                                         }
                                         isTag20k = true;
                                     }
