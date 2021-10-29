@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      3.3.0
-// @description  Scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests and SD, FireAlarm, Queen, etc. reports for status, then moves the completed or expired ones.
+// @version      3.4.0
+// @description  Moves messages or performs other actions on Chat messages. In some rooms, including SOCVR, it scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests and SD, FireAlarm, Queen, etc. reports for status, then moves the completed or expired ones.
 // @author       @TinyGiant @rene @Tunaki @Makyen
 // @updateURL    https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/CVRequestArchiver.user.js
 // @downloadURL  https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/CVRequestArchiver.user.js
@@ -17,7 +17,8 @@
 /* jshint devel:     true */
 /* jshint esversion: 6 */
 /* jshint esnext: true */
-/* globals CHAT, $, jQuery */ //eslint-disable-line no-redeclare
+/* globals CHAT, $, jQuery, popUp */ //eslint-disable-line no-redeclare
+
 
 (function() {
     'use strict';
@@ -42,11 +43,36 @@
     }
     let room;
     let me;
-    let fkey;
     let isChat = false;
     const isSearch = /^\/+search/.test(window.location.pathname);
     const isTranscript = /^\/+transcript\//.test(window.location.pathname);
     const isUsersPage = /^\/+users\//.test(window.location.pathname);
+    const fkey = getFkey();
+
+    function getFkey() {
+        const fkeyFromFunction = window.fkey()?.fkey;
+        if (fkeyFromFunction && typeof fkeyFromFunction === 'string') {
+            return fkeyFromFunction;
+        } //else
+
+        //Try to get the fkey from the HTML. If not available, then get it from storage.
+        const $fkey = $('#fkey');
+        let alternateFkey = null;
+        if (isSearch || isUsersPage) {
+            //#fkey is not available in search and user pages, but is returned as a property value from window.fkey().
+            alternateFkey = getStorage('fkey');
+        } else {
+            if (!$fkey.length) {
+                return null;
+            }
+            alternateFkey = $fkey.val();
+        }
+        if (!alternateFkey) {
+            return null;
+        }
+        return alternateFkey;
+    }
+    setStorage('fkey', fkey);
 
     function startup() {
         if (typeof $ !== 'function') {
@@ -70,21 +96,6 @@
         if (!room && !isUsersPage && !isSearch) {
             return false;
         }
-
-        fkey = $('#fkey');
-        //fkey is not available in search and user pages
-        if (isSearch || isUsersPage) {
-            fkey = getStorage('fkey');
-        } else {
-            if (!fkey.length) {
-                return false;
-            }
-            fkey = fkey.val();
-        }
-        if (!fkey) {
-            return false;
-        }
-        setStorage('fkey', fkey);
 
         me = (/\d+/.exec($('#active-user').attr('class')) || [false])[0];
         //Get me from localStorage. (transcript doesn't contain who you are).
@@ -218,17 +229,9 @@
             },
         };
         const targetRoomSets = [
-            {//SO Chat Default
-                name: 'SO Chat Default',
-                primeRoom: 99999999,
-                chatServer: soChat,
-                isSiteDefault: true,
-                defaultTargetRoom: 23262,
-                rooms: makeRoomsByNumberObject([
-                    //Trash can
-                    new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
-                ]),
-            },
+
+            //SO CHAT
+
             {//SOCVR
                 name: 'SOCVR',
                 primeRoom: 41570,
@@ -243,6 +246,9 @@
                     new TargetRoom(126195, soChat, 'SOCVR /dev/null', 'Null', 'N', 'Null', commonRoomOptions.allTrue),
                     //Testing Facility
                     new TargetRoom(68414, soChat, 'SOCVR Testing Facility', 'Testing', 'Te', 'Test', commonRoomOptions.allTrue),
+                    //The Ministry of Silly Hats
+                    //The "М" in 'Мinistry' is not actual capital M to have the Ministry sorted to the end of the room order.
+                    new TargetRoom(92764, soChat, 'The Ministry of Silly Hats', 'Мinistry', 'M', 'Minist', commonRoomOptions.noUI),
                     //Private for SD posts that have especially offensive content.
                     new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
@@ -271,19 +277,40 @@
                     new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
                 ]),
             },
-            {//SE Chat Default
-                name: 'SE Chat Default',
-                primeRoom: 99999999,
-                chatServer: seChat,
-                isSiteDefault: true,
-                defaultTargetRoom: 19718,
+            {//Python
+                name: 'Python',
+                primeRoom: 6,
+                chatServer: soChat,
+                defaultTargetRoom: 71097,
                 rooms: makeRoomsByNumberObject([
-                    //Trash
-                    new TargetRoom(19718, soChat, 'Trash (room 19718: requires access)', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI), //User must have access.
-                    //Trash
-                    new TargetRoom(82806, seChat, 'Trash (room 82806)', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    //SOBotics
+                    new TargetRoom(6, soChat, 'Python', 'Python', 'P', 'Py', commonRoomOptions.noUI),
+                    //Python Ouroboros - The Rotating Knives: The Python room's default trash bin.
+                    new TargetRoom(71097, soChat, 'Python Ouroboros - The Rotating Knives', 'Ouroboros', 'O', 'Ouroboros', commonRoomOptions.noUI),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'T', 'Private', commonRoomOptions.noUI),
+                    //Trash can
+                    new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
                 ]),
             },
+            {//SO Chat Default
+                name: 'SO Chat Default',
+                primeRoom: 99999999,
+                chatServer: soChat,
+                isSiteDefault: true,
+                defaultTargetRoom: 23262,
+                rooms: makeRoomsByNumberObject([
+                    //Trash can
+                    new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                    new TargetRoom(109494, soChat, 'friendly bin', 'friendly', 'f', 'friendly', commonRoomOptions.noUI),
+                ]),
+            },
+
+
+            //SE CHAT
+
             {//Charcoal HQ
                 name: 'Charcoal HQ',
                 primeRoom: 11540,
@@ -294,15 +321,15 @@
                     new TargetRoom(11540, seChat, 'Charcoal HQ', 'Charcoal', 'C', 'CHQ', commonRoomOptions.noUI),
                     //Charcoal Test
                     new TargetRoom(65945, seChat, 'Charcoal Test', 'Test', 'CT', 'Test', commonRoomOptions.noUI),
-                    //Trash
-                    new TargetRoom(82806, seChat, 'Trash (room 82806)', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
-                    //Trash
-                    new TargetRoom(19718, seChat, 'Trash (room 19718: requires access)', 'Trash', 'T', 'Trash 19', commonRoomOptions.noUI),
+                    //Trash (public; not frozen)
+                    new TargetRoom(82806, seChat, 'Trash', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    //Trash 19718 (Gallery mode; ROs of other rooms are given explicit write access; currently frozen: 2021-10-28)
+                    new TargetRoom(19718, seChat, 'Trash (requires access)', 'Trash', 'T', 'Trash 19', commonRoomOptions.noUI),
                     //trash
                     //Room is frozen
                     //new TargetRoom(57121, seChat, 'trash (room 57121)', 'trash', 't', 'trash 57', commonRoomOptions.noUI),
                     //Private for SD posts that have especially offensive content.
-                    new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
             },
             {//CRCQR
@@ -318,7 +345,7 @@
                     //CRCQR /dev/null
                     new TargetRoom(86077, soChat, 'CRCQR /dev/null', 'Null', 'N', 'Null', commonRoomOptions.allTrue),
                     //Private for SD posts that have especially offensive content.
-                    new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
                 //Semi-auto scanning:
                 //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
@@ -350,9 +377,9 @@
                     //CRUDE Archive
                     new TargetRoom(88696, soChat, 'CRUDE Archive', 'Archive', 'A', 'Archive', commonRoomOptions.allTrue),
                     //Trash
-                    new TargetRoom(82806, seChat, 'Trash (room 82806)', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    new TargetRoom(82806, seChat, 'Trash', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
                     //Private for SD posts that have especially offensive content.
-                    new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
                 //Semi-auto scanning:
                 //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
@@ -373,17 +400,24 @@
                 ],
                 useCrudeRequestTypes: true,
             },
-            {//Meta SE Chat Default
-                name: 'Meta SE Chat Default',
+            {//SE Chat Default
+                name: 'SE Chat Default',
                 primeRoom: 99999999,
-                chatServer: mseChat,
+                chatServer: seChat,
                 isSiteDefault: true,
                 defaultTargetRoom: 19718,
                 rooms: makeRoomsByNumberObject([
-                    //Sandbox/Trash Bin/Something
-                    new TargetRoom(1196, mseChat, 'Sandbox/Trash Bin/Something', 'Something', trashcanEmoji, 'Something', commonRoomOptions.noUI),
+                    //Trash
+                    new TargetRoom(19718, soChat, 'Trash (requires access)', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI), //User must have access.
+                    //Trash
+                    new TargetRoom(82806, seChat, 'Trash', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    //Private trash.
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
             },
+
+            //MSE CHAT
+
             {//Tavern on the Meta
                 name: 'Tavern on the Meta',
                 primeRoom: 89,
@@ -417,6 +451,17 @@
                 excludedRequestTypes: [
                 ],
                 useCrudeRequestTypes: false,
+            },
+            {//Meta SE Chat Default
+                name: 'Meta SE Chat Default',
+                primeRoom: 99999999,
+                chatServer: mseChat,
+                isSiteDefault: true,
+                defaultTargetRoom: 19718,
+                rooms: makeRoomsByNumberObject([
+                    //Sandbox/Trash Bin/Something
+                    new TargetRoom(1196, mseChat, 'Sandbox/Trash Bin/Something', 'Something', trashcanEmoji, 'Something', commonRoomOptions.noUI),
+                ]),
             },
         ];
         targetRoomSets.forEach((roomSet) => {
@@ -591,7 +636,7 @@
             return [new RegExp(regexText, 'i')];
         }
 
-        const cvRegexes = makeTagRegExArray('(?:cv|closev?)-?', please).concat(makeTagRegExArray('(?:dup(?:licate)?)-?', please), makeTagRegExArray('(?:dup(?:licate)?)-?'));
+        const cvRegexes = makeTagRegExArray('(?:cv|closev?|cls)-?', please).concat(makeTagRegExArray('(?:dup(?:licate)?)-?', please), makeTagRegExArray('(?:dup(?:licate)?)-?'));
         const deleteRegexes = makeTagRegExArray('d(?:el(?:ete|etion)?)?(?:v)?-?(?:vote)?-?', please);
         const undeleteRegexes = makeTagRegExArray('un-?del(?:ete|etion)?(?:v)?-?(?:vote)?(?:-?answers?|-?questions?)?-?', please);
         const reopenRegexes = makeTagRegExArray('(?:re-?)?open-?', please);
@@ -610,30 +655,30 @@
         ];
         //We need to choose if we want more SD commands to be archived.
         //We probably don't want to archive: (?!blame|lick|wut|coffee|tea|brownie)
-        const sdBangBangCommandsRegEx = /^\s*!!\/(?:report|scan|feedback)/i;
+        const sdBangBangCommandsRegEx = /^\s*(?:!!\/|sdc )(?:report|scan|feedback)/i;
         // https://regex101.com/r/3M6xoA/1/
         const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why\??|-)u?-?)+\s*.*$/i;
         const editMonitorRegEx = /bad edit/i;
         const crudeCloseRegexes = makeTagRegExArray('(?:cv|closev?)-?');
-        const aHrefQAPRtag = `<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`;  // eslint-disable-line no-useless-escape
+        const aHrefQAPRtag = `<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`; // eslint-disable-line no-useless-escape
         const aHrefQAPRtagWithS = aHrefQAPRtag + '\\s*';
         const endOfCrudeXnRegex = '(?:\\d+|[a-z])(?:\\s*:\\s*</b>[^<]*)?</a>\\W*(?:<br/?>)?\\W*)+$';
         //The CRUDE Xn regexes are based off of:
         //  https://regex101.com/r/GHYTaY/1
         const crudeCloseCnRegexes = [
-            new RegExp(`^\\s*(?:for\\W*)?(?:close|closure)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:c(?:lose)?)${endOfCrudeXnRegex}`, 'i'),  // eslint-disable-line no-useless-escape
+            new RegExp(`^\\s*(?:for\\W*)?(?:close|closure)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:c(?:lose)?)${endOfCrudeXnRegex}`, 'i'), // eslint-disable-line no-useless-escape
         ];
         const crudeReopenRegexes = makeTagRegExArray('re-?openv?-?');
         const crudeReopenRnRegexes = [
-            new RegExp(`^\\s*(?:for\\W*)?(?:reopen|unclose)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:r(?:eopen)?)${endOfCrudeXnRegex}`, 'i'),  // eslint-disable-line no-useless-escape
+            new RegExp(`^\\s*(?:for\\W*)?(?:reopen|unclose)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:r(?:eopen)?)${endOfCrudeXnRegex}`, 'i'), // eslint-disable-line no-useless-escape
         ];
         const crudeDeleteRegexes = makeTagRegExArray('d(?:el(?:ete|etion)?)?(?:v)?-?(?:vote)?-?');
         const crudeDeleteDnRegexes = [
-            new RegExp(`^\\s*(?:for\\W*)?(?:delete|deletion)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:d(?:el(?:ete)?)?)${endOfCrudeXnRegex}`, 'i'),  // eslint-disable-line no-useless-escape
+            new RegExp(`^\\s*(?:for\\W*)?(?:delete|deletion)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:d(?:el(?:ete)?)?)${endOfCrudeXnRegex}`, 'i'), // eslint-disable-line no-useless-escape
         ];
         const crudeUndeleteRegexes = makeTagRegExArray('un?-?d(?:el(?:ete|etion)?)?(?:v)?-?(?:vote)?-?');
         const crudeUndeleteUnRegexes = [
-            new RegExp(`^\\s*(?:for\\W*)?(?:undelete|undeletion)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:un?-?(?:del(?:ete)?)?)${endOfCrudeXnRegex}`, 'i'),  // eslint-disable-line no-useless-escape
+            new RegExp(`^\\s*(?:for\\W*)?(?:undelete|undeletion)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:un?-?(?:del(?:ete)?)?)${endOfCrudeXnRegex}`, 'i'), // eslint-disable-line no-useless-escape
         ];
 
         /* The RequestTypes Object contains definitions for the detections which are used to determine if a message should be archived.
@@ -683,7 +728,7 @@
                 replyToTypeKeys: Array of String
                     Matches if this is a reply to the specified type.
                 textRegexes: Array of RegExp | RegExp
-                    At least one of which must match the `.text()` content of the message with all <code> removed.
+                    At least one of which must match the `.text()` content of the message with all <code> removed, and all meta and chat links removed.
                 underAgeTypeKey: String (a RequestTypes key)
                     When the message is under the "alwaysArchiveAfterSeconds", treat matching messages as if they were of the specified type.
                     The RequestTypes is specified as the type's key.
@@ -1220,6 +1265,11 @@
             '}',
             'body:not(.SOCVR-Archiver-alwaysShowDeleted) .message.SOCVR-Archiver-contains-deleted-content .content {',
             '    overflow: unset;',
+            '    display: block;',
+            '}',
+            //Needed for seeing hovered deleted content on mobile.
+            '#chat .monologue .message:hover .content {',
+            '    overflow: unset;',
             '}',
             '.SOCVR-Archiver-hide-message-meta-menu .meta {',
             '    display: none !important;',
@@ -1237,13 +1287,25 @@
             '    color: white;',
             '    background-color: black;',
             '}',
+            '.message.reply-child.SOCVR-Archiver-multiMove-selected .meta,',
             '.message.reply-child.SOCVR-Archiver-multiMove-selected,',
+            '.message.reply-parent.SOCVR-Archiver-multiMove-selected  .meta,',
             '.message.reply-parent.SOCVR-Archiver-multiMove-selected {',
             '    background-color: lightBlue !important;',
             '}',
             '.message.selected.SOCVR-Archiver-multiMove-selected .meta,',
             '.message.selected.SOCVR-Archiver-multiMove-selected {',
             '    background-color: #c8d8e4 !important;',
+            '}',
+            '.highlight.SOCVR-Archiver-multiMove-selected .meta,',
+            '.highlight.SOCVR-Archiver-multiMove-selected {',
+            '    background-color: #eeeebb !important;',
+            '}',
+            '.message.highlight.reply-child.SOCVR-Archiver-multiMove-selected .meta,',
+            '.message.highlight.reply-child.SOCVR-Archiver-multiMove-selected,',
+            '.message.highlight.reply-parent.SOCVR-Archiver-multiMove-selected  .meta,',
+            '.message.highlight.reply-parent.SOCVR-Archiver-multiMove-selected {',
+            '    background-color: #ccf !important;',
             '}',
             '.SOCVR-Archiver-multiMove-selected .meta,',
             '.SOCVR-Archiver-multiMove-selected {',
@@ -1301,6 +1363,47 @@
             '#chat-body .monologue.mine:hover .messages .message:hover .meta .vote-count-container {',
             '    display: none;',
             '}',
+            //There's a problem under some conditions of the message .content jumping between different heights between when hovered and
+            //  when not. It may require any/all of the Archiver, URRS, FIRE, and AIM.
+            '.message .content a {',
+            '    display: inline;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-action-entry {',
+            '    cursor: pointer;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-action-entry {',
+            '    display: inline-block;',
+            '    min-width: 90%;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-action-entry:hover {',
+            '    background-color: #eee;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-action-entry.delete:before {',
+            '    content:"\\232b";',
+            '    color: red;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-list-length-container {',
+            '    display: inline-block;',
+            '    margin: auto;',
+            '    width: 100%;',
+            '    text-align: center;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-popup-title {',
+            '    width: calc(100% - 21px);',
+            '    text-align: center;',
+            '    display: inline-block;',
+            '    margin-left: 10px;',
+            '    margin-right: -7px;',
+            '}',
+            '.SOCVR-Archiver-sprite-placeholder {',
+            '    display: inline-block;',
+            '    width: 14px;',
+            '    height: 14px;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-action-active .SOCVR-Archiver-inline-popup-action-entry {',
+            '    cursor: not-allowed;',
+            '}',
+
             (showMeta ? [
                 'div.message .meta {',
                 //A clearer indicator of separation between controls and message text.
@@ -1451,20 +1554,40 @@
 
         var nextBefore;
 
-        function getEvents(roomNumber, userFkey, count, before) {
+        function getEventsWithBasicErrorHandling(roomNumber, userFkey, count, before) {
             if (count > 500 || count < 1) {
-                return Promise.reject(new Error('Count not in range (500 >= n >= 1)'));
+                return jQuery.Deferred().reject(new Error('Count not in range (500 >= n >= 1)'));
             } // else
             if (!roomNumber) {
-                return Promise.reject(new Error('Invalid room'));
+                return jQuery.Deferred().reject(new Error('Invalid room'));
             } // else
             if (!fkey) {
-                return Promise.reject(new Error('Invalid fkey'));
+                return jQuery.Deferred().reject(new Error('Invalid fkey'));
             } // else
+            return getEvents(roomNumber, userFkey, count, before)
+                .then(null, function(xhr, status, error) {
+                    console.error(
+                        'AJAX Error getting events:',
+                        '\n::  xhr:', xhr,
+                        '\n::  status:', status,
+                        '\n::  error:', error,
+                        '\n::  count:', count,
+                        '\n::  before:', before,
+                    );
+                    if (confirm('$.ajax encountered an error getting events. See console for details.' + (error && error.length < 100 ? ' error: ' + error : '') +
+                            '\n\ncount:' + count + '::  before:' + before + '\n\nRetry fetching these?')) {
+                        //Allow the user to retry.
+                        return getEventsWithBasicErrorHandling(roomNumber, userFkey, count, before);
+                    }
+                });
+        }
+
+        function getEvents(roomNumber, userFkey, count, before) {
             const data = {
                 fkey: userFkey,
                 msgCount: count,
                 mode: 'Messages',
+                //There is also a since property. That appears to be used to load new content on chat pages.
             };
             if (before) {
                 data.before = before;
@@ -1489,52 +1612,47 @@
                 if (count <= 0) {
                     //Done getting all requested events.
                     // Re-type those that need to have a parent found.
-                    resolve(promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents)));
+                    resolve(promised
+                        .then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length))
+                        .then(() => delay(0, scanEvents)));
                     return false;
                 }
                 const msgCount = count > 500 ? 500 : count;
-                getEvents(room, fkey, msgCount, before).then(function(response) {
-                    var respEvents = response.events;
-                    if (respEvents.length) {
-                        respEvents.forEach(function(event) {
-                            event.timeStampUTC = (new Date(event.time_stamp * 1000)).toJSON();
-                        });
-                    }
-                    events.push(response.events);
-                    //Adding 'reply-request' to this doesn't appear to help make the process significantly faster.
-                    promised = promised
-                        .then(() => delay(0, addEventsToByNumber, response.events, '', '', 'By Id'))
-                        .then(() => delay(0, scanStageEventChunk, response.events, assignEventBaseTypeAndContentWithoutCode, needParentList, 'typing............', totalEventsToFetch - count, totalEventsToFetch));
+                getEventsWithBasicErrorHandling(room, fkey, msgCount, before)
+                    .then(function(response) {
+                        var respEvents = response.events;
+                        if (respEvents.length) {
+                            respEvents.forEach(function(event) {
+                                event.timeStampUTC = (new Date(event.time_stamp * 1000)).toJSON();
+                            });
+                        }
+                        if (Array.isArray(response.events) && response.events.length) {
+                            //We are progressively fetching older events and each returned events array is in oldest first order.
+                            //  Putting newly fetched events at the front of the events array keeps the events in oldest first order.
+                            events.unshift(response.events);
+                        }
+                        //Adding 'reply-request' to this doesn't appear to help make the process significantly faster.
+                        promised = promised
+                            .then(() => delay(0, addEventsToByNumber, response.events, '', '', 'By Id'))
+                            .then(() => delay(0, scanStageEventChunk, response.events, assignEventBaseTypeAndContentWithoutCode, needParentList, 'typing............', totalEventsToFetch - count, totalEventsToFetch));
 
-                    if (!response.events[0]) {
-                        // No more events in the transcript
-                        // Re-type those that need to have a parent found.
-                        resolve(promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents)));
-                        return false;
-                    }
+                        if (!response.events[0]) {
+                            // No more events in the transcript
+                            // Re-type those that need to have a parent found.
+                            resolve(promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents)));
+                            return false;
+                        }
 
-                    nodes.scandate.textContent = new Date(1000 * response.events[0].time_stamp).toISOString();
+                        nodes.scandate.textContent = new Date(1000 * response.events[0].time_stamp).toISOString();
 
-                    nextBefore = response.events[0].message_id;
-                    resolve(getEventsAndScan(count - 500, response.events[0].message_id, promised, needParentList));
-                }, function(xhr, status, error) {
-                    console.error(
-                        'AJAX Error getting events:',
-                        '\n::  xhr:', xhr,
-                        '\n::  status:', status,
-                        '\n::  error:', error,
-                        '\n::  count:', count,
-                        '\n::  before:', before
-                    );
-                    if (confirm('$.ajax encountered an error getting events. See console for data.' + (error && error.length < 100 ? ' error: ' + error : '') +
-                            '\n\ncount:' + count + '::  before:' + before + '\n\nRetry fetching these?')) {
-                        //Allow the user to retry.
-                        resolve(getEventsAndScan(count, before, promised, needParentList));
-                    } else {
-                        reject(new Error('AJAX Error getting events: ' + error));
-                    }
-                });
+                        nextBefore = response.events[0].message_id;
+                        resolve(getEventsAndScan(count - 500, response.events[0].message_id, promised, needParentList));
+                    }, reject);
             });
+        }
+
+        function backoffTimer(backoff) {
+            return delay(backoff > 0 ? (backoff + 1) * 1000 : 0);
         }
 
         function delay(time, delayedFunction) {
@@ -1717,11 +1835,17 @@
             const messageAsDom = $(getHTMLTextAsDOM(message));
             //Remove any <code>
             messageAsDom.find('code').remove();
-            const messageWithoutCode = messageAsDom.html();
+            messageAsDom.find('a').each(function() {
+                targetRoomSet.regExp.chatMetaElimiation.lastIndex = 0;
+                if (targetRoomSet.regExp.chatMetaElimiation.test(this.href)) {
+                    this.remove();
+                }
+            });
+            const messageWithoutCodeAndMetaLinks = messageAsDom.html();
 
             //Prevent matches of the meta and chat sites (e.g. meta.stackoverflow.com)
             targetRoomSet.regExp.chatMetaElimiation.lastIndex = 0;
-            const messageWithoutCodeAndMeta = messageWithoutCode.replace(targetRoomSet.regExp.chatMetaElimiation, ' ');
+            const messageWithoutCodeAndMeta = messageWithoutCodeAndMetaLinks.replace(targetRoomSet.regExp.chatMetaElimiation, ' ');
             //Determine if it matches one of the RegExp.
             event.contentNoCode = messageWithoutCodeAndMeta;
             event.contentNoCodeText = messageAsDom.text();
@@ -1959,7 +2083,12 @@
             });
         }
 
-        function checkRequests(totalRequests, questionBackoff, answerBackoff, commentBackoff) {
+        //Initialize the backoff timers
+        //  For the SE API, backoff is per-endpoint.
+        var questionBackoff = backoffTimer(0);
+        var answerBackoff = backoffTimer(0);
+        var commentBackoff = backoffTimer(0);
+        function checkRequests(totalRequests) {
             //Each call to this checks one block of requests. It is looped through by being called at the end of the
             //  asynchronous operations in checkRequestsOthers.
             var remaining = getTotalLengthOfChunks(requests);
@@ -1968,10 +2097,10 @@
             setProgress('checking requests', remaining, totalRequests);
             //All request types have been reduced to their primary type equivalent (cv, delv, reopen, undelete).
             //  Any reply that extends when the FireAlarm/Queen is valid has already been rolled up into the event being treated as a cv-pls.
-            return checkRequestsOthers(currentRequests, totalRequests, questionBackoff, answerBackoff, commentBackoff);
+            return checkRequestsOthers(currentRequests, totalRequests);
         }
 
-        function checkRequestsOthers(currentRequests, totalRequests, questionBackoff, answerBackoff, commentBackoff) {
+        function checkRequestsOthers(currentRequests, totalRequests) {
             //The SE API is queried for each identified post, first as a question, then as an answer.
             //This could be more efficient. There is no need to request answer information when the data was returned as a question.
             //Further, it would be better to request everything as an answer first. This will give question information, which could be substituted
@@ -1980,9 +2109,6 @@
             //      is considered complete, then the request is listed for archiving. This should be updated to account for the possibility
             //      of having multiple posts in a request (which would also require accounting for things like a cv-pls dup with the dup-target
             //      in the request). Currently that situation is handled by the dup-question being closed qualifying the question for archiving.
-            questionBackoff = questionBackoff ? questionBackoff : 0;
-            answerBackoff = answerBackoff ? answerBackoff : 0;
-            commentBackoff = commentBackoff ? commentBackoff : 0;
 
             function makeSEApiUrl(requestsForUrl, type) {
                 var filters = {
@@ -1990,13 +2116,13 @@
                     answers: '!.UDo6l2k)5RjcU7O',
                     //Add various additional fields that can affect question actionability (e.g. locked, type of closure, bounty, etc.)
                     //  We don't account for all of those, but we should add handling for them.
-                    questions: '!)IMJPYyS5MRbtkRWem5RUmI*KeOh-.JZgOM2',
+                    questions: '!E-Pkeq16TOMhhkDlE3*qdvcSDSfgwsxSdIlhjY',
                 };
                 var filter = filters[type];
                 if (typeof filter !== 'string') {
                     throw new Error('makeSEApiUrl: not a valid type:' + type);
                 } //else
-                return 'https://api.stackexchange.com/2.2/' + type + '/' + formatPosts(requestsForUrl) + '?' + [
+                return 'https://api.stackexchange.com/2.3/' + type + '/' + formatPosts(requestsForUrl) + '?' + [
                     'pagesize=100',
                     `site=${targetRoomSet.mainSiteSEApiParam}`,
                     'key=qhq7Mdy8)4lSXLCjrzQFaQ((',
@@ -2024,9 +2150,6 @@
                 //If the list of posts on the event is empty, then the event has had all of it's posts handled.
                 if (request.event.requestedPosts.length === 0) {
                     addEventToMessagesToMove(request.event);
-                    console.log('Message COMPLETE; it will be ARCHIVED: message_id:', request.event.message_id, '::  event:', request.event);                                                                                               //WinMerge ignore line
-                } else {                                                                                                                                                                                                                    //WinMerge ignore line
-                    console.log('Message NOT COMPLETE: remaining posts:', request.event.requestedPosts.length, ':: message_id:', request.event.message_id, '::  event:', request.event);                                                    //WinMerge ignore line
                 }
             }
 
@@ -2036,8 +2159,8 @@
                 for (const item of items) {
                     requestsToHandle.forEach((currentRequest, requestIndex) => {
                         if (currentRequest.post == item[itemIdPropKey]) { // eslint-disable-line eqeqeq
-                            if (item.locked_date) {
-                                //The post is locked. We can't do anything. The request is thus "complete".
+                            if (item.locked_date && !(item.notice && item.notice.body && item.notice.body.indexOf('<p>Lock the comments') === 0)) {
+                                //The post is locked, and it's not a comment lock. We can't do anything. The request is thus "complete".
                                 handleCompletedRequestForPost(currentRequest, item);
                                 indexesToDelete[requestIndex] = true;
                                 return true;
@@ -2075,7 +2198,7 @@
             function handleQuestionResponse(responseData) {
                 return new Promise((resolve) => {
                     //Deal with the SE API response for questions.
-                    questionBackoff = responseData.backoff;
+                    questionBackoff = backoffTimer(responseData.backoff);
                     var items = responseData.items;
                     handleDeleteAndUndeleteWithValidData(items, currentRequests, 'question_id');
                     //Check for data returned for CLOSE and REOPEN
@@ -2136,7 +2259,7 @@
                 return new Promise((resolve) => {
                     //Deal with the SE API response for answers.
                     var answerItems = responseData.items;
-                    answerBackoff = responseData.backoff;
+                    answerBackoff = backoffTimer(responseData.backoff);
                     handleDeleteAndUndeleteWithValidData(answerItems, currentRequests, 'answer_id');
                     //All requests which were about answers have been handled.
                     convertOnlyQuestionRequestsToQuestion(answerItems, currentRequests, 'answer_id', 'question_id');
@@ -2147,7 +2270,7 @@
             function handleCommentResponse(responseData) {
                 return new Promise((resolve) => {
                     var commentItems = responseData.items;
-                    commentBackoff = responseData.backoff;
+                    commentBackoff = backoffTimer(responseData.backoff);
                     handleDeleteAndUndeleteWithValidData(commentItems, currentRequests, 'comment_id');
                     convertOnlyQuestionRequestsToQuestion(commentItems, currentRequests, 'comment_id', 'post_id');
                     resolve();
@@ -2157,7 +2280,25 @@
             function sendAjaxIfRequests(requestsToSend, endpoint) {
                 //If there are requests, then send the $.ajax. If there aren't, then send an empty items.
                 if (Array.isArray(requestsToSend) && requestsToSend.length) {
-                    return $.ajax(makeSEApiUrl(requestsToSend, endpoint)).then(checkXhrStatus);
+                    if (requestsToSend.length > 100) {
+                        alert(`There are too many requests to check: ${requestsToSend.length}. The Archiver can only handle a max of 100 active, non-time-expired requests at a time.\n\nPlease re-run the scan with fewer events selected.`);
+                        return Promise.reject(new Error('Too many requests to check (> 100). Scan fewer events.'));
+                    }
+                    return $.ajax(makeSEApiUrl(requestsToSend, endpoint))
+                        .then(checkXhrStatus, function(xhr, status, error) {
+                            console.error(
+                                'AJAX Error getting data from the SE API:',
+                                '\n  this:', this,
+                                '\n  xhr:', xhr,
+                                '\n  status:', status,
+                                '\n  error:', error,
+                                '\n  endpoint:', endpoint,
+                                '\n  requestsToSend:', requestsToSend,
+                            );
+                            if (confirm(`There was an error getting data for ${endpoint} from the SE API. More information should be in the console.\n\nDo you want to retry the request?`)) {
+                                return sendAjaxIfRequests(requestsToSend, endpoint);
+                            }
+                        });
                 } // else
                 return Promise.resolve({items: []});
             }
@@ -2174,15 +2315,19 @@
             //  will consider 30 requests/s/IP "very abusive". However, it should take significantly longer
             //  for the round trip than the average 67ms which would be needed to launch 30 requests in 1s.
             //Send the request for comments, then answers, then questions (converting to questions at each earlier stage, when needed).
-            return delay(commentBackoff * 1000)
+            //Wait for any existing comment backoff
+            return commentBackoff
+                //Send request for comments
                 .then(() => sendAjaxIfRequests(getOnlyCommentRequests(currentRequests), 'comments'))
                 .then(handleCommentResponse)
+                //Wait for any existing answer backoff
+                .then(() => answerBackoff)
                 //Send the request for answers
-                .then(() => delay(answerBackoff * 1000))
                 .then(() => sendAjaxIfRequests(getNonCommentRequests(currentRequests), 'answers'))
                 .then(handleAnswerResponse)
+                //Wait for any existing question backoff
+                .then(() => questionBackoff)
                 //Send the request for questions
-                .then(() => delay(questionBackoff * 1000))
                 .then(() => sendAjaxIfRequests(getNonCommentRequests(currentRequests), 'questions'))
                 .then(handleQuestionResponse)
                 .then(() => {
@@ -2195,12 +2340,19 @@
                         return checkDone();
                         //return false;
                     }
-                    return checkRequests(totalRequests, questionBackoff, answerBackoff, commentBackoff);
+                    return checkRequests(totalRequests);
                 }).catch(function(xhr) {
                     nodes.cancel.disabled = false;
                     const jsonError = typeof xhr.responseJSON === 'object' ? `${xhr.responseJSON.error_id}: ${xhr.responseJSON.error_name}: ${xhr.responseJSON.error_message}` : '';
                     const errorText = `${(typeof xhr.statusText === 'string' ? `${xhr.statusText}: ` : '')}${jsonError}`;
-                    console.error('Error getting data for comments, answers, and questions', '\n::  xhr:', xhr, '\n::  statusText:', xhr.statusText, '\n::  xhr.responseJSON:', xhr.responseJSON, '\n::  jsonError:', jsonError, '\n::  errorText:', errorText);
+                    console.error(
+                        'Error getting data for comments, answers, and questions',
+                        '\n::  xhr:', xhr,
+                        '\n::  statusText:', xhr.statusText,
+                        '\n::  xhr.responseJSON:', xhr.responseJSON,
+                        '\n::  jsonError:', jsonError,
+                        '\n::  errorText:', errorText,
+                    );
                     alert(`Something${((errorText && errorText.length < 300) ? ` (${errorText})` : '')} went wrong when trying to get data for comments, answers, and questions. Please try again.\nSee console for more information.`);
                 });
         }
@@ -2255,15 +2407,20 @@
             nodes.indicator.value = messagesToMove.length + ' request' + ['', 's'][+(messagesToMove.length > 1)] + ' found';
         }
 
+        function savePostsListAsPreviousMove(posts, targetRoomId, sourceRoomId, action) {
+            return setStorageJSON('previousMoveTo', {
+                posts,
+                targetRoomId,
+                //You can't move from more than one room in a single AJAX call.
+                sourceRoomId,
+                action,
+            });
+        }
+
         function saveMoveInformationAndMovePosts() {
             //Prior to moving posts, save the list of posts so we can undo a move by assigning those messages to the manual move list, if the user clicks 'U'.
-            var ids = convertRequestsListToMessageIds(messagesToMove);
-            setStorageJSON('previousMoveTo', {
-                posts: ids,
-                targetRoomId: defaultTargetRoom,
-                //It would need to be tested to see if you really can only move from a single room, or if you can move from multiple rooms at a time.
-                sourceRoomId: room,
-            });
+            const ids = convertRequestsListToMessageIds(messagesToMove);
+            savePostsListAsPreviousMove(ids, defaultTargetRoom, room, 'move');
             //Use the global variables to call moveSomePosts();
             moveSomePosts(ids, defaultTargetRoom, () => {
                 //All done
@@ -2480,6 +2637,12 @@
                 '        }',
                 '        #SOCVR-Archiver-messagesToMove-container h1 {',
                 '            text-align: center;',
+                '        }',
+                '        #SOCVR-Archiver-messagesToMove-container button {',
+                '            cursor: pointer;',
+                '        }',
+                '        #SOCVR-Archiver-messagesToMove-container button:disabled {',
+                '            cursor: default;',
                 '        }',
                 '        .SOCVR-Archiver-moveCount-container {',
                 '            text-align: center;',
@@ -2699,14 +2862,9 @@
             });
             //Request that the unclosed request review script update request-info for the page, including the popup.
             var shownToBeMovedMessages = $(shownToBeMoved).find('.message');
-            var eventToSend = (shownToBeMovedMessages.length === priorMessagesShown.length) ? 'urrs-Request-Info-update-desired' : 'urrs-Request-Info-update-immediate';
+            const urrsUpdateType = (shownToBeMovedMessages.length === priorMessagesShown.length) ? 'desired' : 'immediate';
             //Send the event, but after we're done processing & the display updates.
-            setTimeout(() => {
-                window.dispatchEvent(new CustomEvent(eventToSend, {
-                    bubbles: true,
-                    cancelable: true,
-                }));
-            }, 0);
+            setTimeout(requestURRSUpdate, 10, urrsUpdateType);
             priorMessagesShown = shownToBeMovedMessages;
             //Every once in a while the first .tiny-signature in the popup ends up with display:none;
             //This is a hack to try to eliminate the problem. The issue has not been reliably duplicated, so it's unclear if this will actually solve the issue.
@@ -2915,12 +3073,12 @@
         var chatListenerAddMetaTimeout = 0;
         var debounceGetAvatars = 0;
 
-        function doOncePerChatChangeAfterDOMUpdate(chatInfo) {
+        function doOncePerChatChangeAfterDOMUpdate(chatEvent) {
             //Things that we do to when the Chat changes to keep the page updated.
             addReplyToMine();
             addMoveToInMeta();
             recordOldestMessageInChat();
-            if (!chatInfo || chatInfo.event_type === 10 || chatInfo.event_type === 20) {
+            if (!chatEvent || chatEvent.event_type === 10 || chatEvent.event_type === 20) {
                 //This isn't called by a CHAT event, or a message was deleted (10) or moved-in (20) (which might already be deleted).
                 addAllDeletedContent();
             }
@@ -2930,32 +3088,33 @@
             debounceGetAvatars = setTimeout(getAvatars, 1000);
         }
 
-        function listenToChat(chatInfo) {
+        function archiverChatListener(chatEvent) {
             //Called when an event happens in chat. For add/delete this is called prior to the message being added or deleted.
             //Delay until after the content has been added. Only 0ms is required.
             //A delay of 100ms groups multiple CHAT events that happen at basically the same time.
             //  For showing deleted messages, it gives other implementations (e.g. non-privileged saving of deleted content) a chance to
             //  handle the deletion first.
             clearTimeout(chatListenerAddMetaTimeout);
-            chatListenerAddMetaTimeout = setTimeout(doOncePerChatChangeAfterDOMUpdate, 100, chatInfo);
-            if (chatInfo.event_type === 19) {
+            chatListenerAddMetaTimeout = setTimeout(doOncePerChatChangeAfterDOMUpdate, 100, chatEvent);
+            if (chatEvent.event_type === 19) {
                 //A message was moved out. We want to remove it from the moveList.
                 //This tracks messages which other people move. The user's own moves should be handled elsewhere.
                 //  This depends on having a tab open to chat.
-                var movedMessageId = chatInfo.message_id;
+                var movedMessageId = chatEvent.message_id;
                 removeFromLSManualMoveList(movedMessageId);
                 //Remove it from the popup
                 removeMessageIdFromPopupAndMoveList(movedMessageId);
             }
         }
-        if (CHAT && typeof CHAT.addEventHandlerHook === 'function') {
-            CHAT.addEventHandlerHook(listenToChat);
+        if (typeof CHAT !== 'undefined' && typeof CHAT?.addEventHandlerHook === 'function') {
+            CHAT.addEventHandlerHook(archiverChatListener);
         }
 
         //Add deleted content to be shown on hover.
         var deletedMessagesWithoutDeletedContent;
         var delayBetweenGettingDeletedContent = 500;
         var gettingDeletedContent = 0;
+        var didGetDeletedContent = false;
 
         function addAllDeletedContent() {
             //Go through the DOM and add the content back in for all deleted messages which don't already have it added back in.
@@ -2963,14 +3122,55 @@
                 //Deleted messages are not to be shown here.
                 return;
             }
-            if (!gettingDeletedContent && (!deletedMessagesWithoutDeletedContent || !deletedMessagesWithoutDeletedContent.length)) {
-                deletedMessagesWithoutDeletedContent = $('.content .deleted').parent().filter(function() {
-                    return !$(this).children('.SOCVR-Archiver-deleted-content').length;
-                }).closest('.message');
-                if (deletedMessagesWithoutDeletedContent.length) {
-                    addNextDeletedContent();
+            if (!gettingDeletedContent) {
+                if (!deletedMessagesWithoutDeletedContent || !deletedMessagesWithoutDeletedContent.length) {
+                    deletedMessagesWithoutDeletedContent = $('.content .deleted').parent().filter(function() {
+                        return !$(this).children('.SOCVR-Archiver-deleted-content').length;
+                    }).closest('.message');
+                    if (deletedMessagesWithoutDeletedContent.length) {
+                        addNextDeletedContent();
+                        return;
+                    }
                 }
+                //We're not in the process of getting deleted content and we didn't find any new content to get.
+                requestURRSUpdateIfGotDeletedContent();
             }
+        }
+
+        let urrsUpdateRequestCooldownTimer = 0;
+        let urrsUpdateRequestCooldownTimerShouldRequest = false;
+        function requestURRSUpdate(updateType) {
+            //Ask the URRS to update the display of messages. However, only do so at most once every 5 seconds.
+            //  The limitation as to how often to update should really be in the URRS, and it will be, but
+            //  it's more likely that an update to this script will happen prior to an update of the URRS.
+            if (urrsUpdateRequestCooldownTimer) {
+                //We're in a cooldown period. Indicate that a request should be made after the cooldown, but wait.
+                urrsUpdateRequestCooldownTimerShouldRequest = true;
+                return;
+            }
+            urrsUpdateRequestCooldownTimerShouldRequest = false;
+            urrsUpdateRequestCooldownTimer = setTimeout(() => {
+                urrsUpdateRequestCooldownTimer = 0;
+                if (urrsUpdateRequestCooldownTimerShouldRequest) {
+                    requestURRSUpdate(updateType);
+                }
+            }, 5000);
+            window.dispatchEvent(new CustomEvent(`urrs-Request-Info-update-${updateType}`, {
+                bubbles: true,
+                cancelable: true,
+            }));
+        }
+
+        function requestURRSUpdateIfGotDeletedContent() {
+            if (didGetDeletedContent) {
+                let urrsUpdateType = 'desired';
+                if ($('.message.SOCVR-Archiver-contains-deleted-content .content a[href*="/q/"], .message.SOCVR-Archiver-contains-deleted-content .content a[href*="/a/"], .message.SOCVR-Archiver-contains-deleted-content .content a[href*="/question/"]').length) {
+                    //If there's a link to a question or answer in the deleted content, then request immediate update.
+                    urrsUpdateType = 'immediate';
+                }
+                requestURRSUpdate(urrsUpdateType);
+            }
+            didGetDeletedContent = false;
         }
 
         function addNextDeletedContent() {
@@ -2980,11 +3180,14 @@
                 if (deletedMessagesWithoutDeletedContent.length) {
                     gettingDeletedContent = setTimeout(addNextDeletedContent, delayToGetNextDeleted);
                 } else {
+                    //After we think we're done, we always start the process over, just to be sure we haven't missed something that was added
+                    //  after we started this process.
                     gettingDeletedContent = 0;
                     setTimeout(addAllDeletedContent, delayToGetNextDeleted);
                 }
             }
             gettingDeletedContent = 1;
+            didGetDeletedContent = true;
             if (deletedMessagesWithoutDeletedContent.length) {
                 const message = deletedMessagesWithoutDeletedContent.last();
                 //Remove the message we're working on.
@@ -2995,7 +3198,7 @@
                     doMoreDeletedContentIfNeeded(true);
                     return;
                 }
-                //Mark this message as in the process of being handled, so there isn't duplicate fetches of history, should another script be doing the same thing.
+                //Mark this message as in the process of being handled, so there aren't duplicate fetches of history, should another script be doing the same thing.
                 message.addClass('SOCVR-Archiver-deleted-content-in-process');
                 const messageId = getMessageIdFromMessage(message);
                 getMessageMostRecentVersionFromHistory(messageId, function(deletedContent) {
@@ -3019,7 +3222,7 @@
                 deletedContent.removeClass('content').addClass('SOCVR-Archiver-deleted-content');
                 newContent.append(deletedContent);
                 //Indicate to the user that the content is available.
-                const marker = $('<span class="SOCVR-Archiver-deleted-content-marker">&#128065;</span>');
+                const marker = $('<span class="SOCVR-Archiver-deleted-content-marker" title="Click this icon to toggle between showing deleted messages upon hover and always showing them inline">&#128065;</span>');
                 newContent.find('.deleted').append(' ').append(marker.attr('title', 'Click this icon to show all deleted messages.')).after(marker.clone().attr('title', 'This message was deleted. Click this icon to show deleted content only on hover.'));
                 newContent.closest('.message').addClass('SOCVR-Archiver-contains-deleted-content');
             }
@@ -3027,21 +3230,43 @@
 
         function fechHistoryForMessage(messageId, callback) {
             //Get the history page for a message.
-            $.ajax({
+            return $.ajax({
                 type: 'GET',
                 url: 'https://' + window.location.hostname + '/messages/' + messageId + '/history',
                 success: callback,
                 error: function(xhr, status, error) {
-                    console.error('AJAX error getting history', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  room:', room, '\n::  fkey.length,:', fkey.length, '\n::  messageId:', messageId);
+                    console.error(
+                        'AJAX error getting history',
+                        '\n::  xhr:', xhr,
+                        '\n::  status:', status,
+                        '\n::  error:', error,
+                        '\n::  room:', room,
+                        '\n::  fkey.length,:', fkey.length,
+                        '\n::  messageId:', messageId,
+                    );
                 },
             });
         }
 
-        function getMessageMostRecentVersionFromHistory(messageId, callback) {
-            //Get the last version of a message prior to it being deleted.
-            fechHistoryForMessage(messageId, function(data) {
-                var newDoc = jQuery.parseHTML(data);
-                callback($('.message .content', newDoc).first());
+        function getMessageMostRecentVersionFromHistory(messageId, lastContentCallback) {
+            return getAndParseMessageHistory(messageId).then((messageInfo) => {
+                if (typeof lastContentCallback === 'function') {
+                    lastContentCallback(messageInfo.lastContent);
+                }
+                return messageInfo.lastContent;
+            });
+        }
+
+        function getAndParseMessageHistory(messageId) {
+            //Get the data contained on the history page, including the last version of a message (prior to it being deleted).
+            return fechHistoryForMessage(messageId).then(function(historyHtml) {
+                const historyDom = parser.parseFromString(historyHtml, 'text/html');
+                const lastContent = $('.message .content', historyDom).first();
+                const lastContentIsPartial = !!lastContent.find('.partial').length;
+                return {
+                    lastContent,
+                    lastContentIsPartial,
+                };
             });
         }
 
@@ -3064,14 +3289,9 @@
                     countPosts = posts.length;
                 }
             }
-            if (countPosts && window.confirm('Move ' + countPosts + ' message' + (countPosts === 1 ? '' : 's') + ' to ' + targetRoomsByRoomNumber[targetRoomId].fullName + '?')) {
-                //Save a copy of the last information.
-                setStorageJSON('previousMoveTo', {
-                    posts: posts,
-                    targetRoomId: targetRoomId,
-                    //It would need to be tested to see if you really can only move from a single room, or if you can move from multiple rooms at a time.
-                    sourceRoomId: room,
-                });
+            if (countPosts && window.confirm(`Move ${countPosts} message${(countPosts === 1 ? '' : 's')} to ${(targetRoomsByRoomNumber[targetRoomId] || {fullName: `room # ${targetRoomId}`}).fullName}?`)) {
+                //Save a copy of the last move information.
+                savePostsListAsPreviousMove(posts, targetRoomId, room, 'move');
                 //Move the posts
                 moveSomePosts(posts, targetRoomId, callback);
             } else {
@@ -3092,6 +3312,11 @@
                 setProgress('moving messages', moveSomePostsTotal, moveSomePostsTotal);
                 moveSomePostsTotal = 0;
                 //Done with messages. Normal completion.
+                //When we move a message, it's possible that it had replies or was a reply. In those cases, it's possible
+                //  for there to be reply-child or reply-parent classes left on .message elements which will never be
+                //  removed. So, we remove all existing ones. This might result in not showing the parent or child
+                //  of the currently hovered message, but that will be fixed as the mouse is moved.
+                $('.message.reply-child, .message.reply-parent').removeClass('reply-child reply-parent');
                 if (Array.isArray(postsWithoutUserId) && postsWithoutUserId.length) {
                     alert('The following messages don\'t have an identified "user_id". Trying to move them will result in an API error. Any other messages which were to be moved were moved. See the console for additional information.\n\n' + postsWithoutUserId.join(', '));
                 }
@@ -3184,7 +3409,7 @@
                         '\n::  formatted messagesBeingMoved:', messagesBeingMoved.join(','),
                         '\n::  posts:', posts,
                         '\n::  callback:', callback,
-                        '\n::  ajaxInfo:', ajaxInfo
+                        '\n::  ajaxInfo:', ajaxInfo,
                     );
                     alert('$.ajax encountered an error moving some posts. See console for details.' + (error && error.length < 100 ? ' error: ' + error : ''));
                     nodes.cancel.disabled = false;
@@ -3204,12 +3429,10 @@
             //Create the HTML for the in-question moveTo controls for rooms in an order and given rooms data.
             return roomOrder.reduce((htmlText, key) => {
                 var targetRoom = roomsByRoomNumber[key];
-                return htmlText + '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-' +
-                    targetRoom.shortName + '" title="Move this/selected message(s) (and any already in the list) to ' +
-                    targetRoom.fullName + '." data-room-id="' +
-                    targetRoom.roomNumber + '">' +
-                    targetRoom.displayed + '</span>';
+                return htmlText + `<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-${targetRoom.shortName}" title="Move this/selected message(s) (and any already in the list) to ${targetRoom.fullName} (#${targetRoom.roomNumber})." data-room-id="${targetRoom.roomNumber}">${targetRoom.displayed}</span>`;
             }, '') + [
+                //Prompt for room
+                '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-prompt-for-room" title="Prompt you for a room to which to move this/selected message(s) (and any already in the list)." data-room-id="prompt">?</span>',
                 //Add message
                 '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-add-to-list" title="Add this/selected message(s) to the list." data-room-id="add">+</span>',
                 //remove message
@@ -3218,6 +3441,8 @@
                 '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-clear-list" title="Clear the list." data-room-id="clear">*</span>',
                 //Undo/re-select the last moved list
                 '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-reselect" title="Re-select the messages which were last moved. This can be used to undo the last move by reselecting them (this control); going to the room they have been moved to; find one that\'s selected; then, manually moving them back by clicking on the control you want them moved to." data-room-id="reselect">U</span>',
+                //Open menu
+                '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-popup-menu" title="Open a popup from which you can select additional actions." data-room-id="popup-menu">&#8801;</span>',
             ].join('');
         }
 
@@ -3328,20 +3553,255 @@
             });
         }
 
-        function moveToInMetaHandler() {
+        function addMessageAndPriorSelectionToManualMoveList(message) {
+            const messageId = getMessageIdFromMessage(message);
+            addToLSManualMoveList(messageId);
+            addMessageToNoUserListIfMonologueIsNoUser(message);
+            addToLSManualMoveList(priorSelectionMessageIds);
+        }
+
+        function addAdditionalMoveListOptionsToPopup(popup) {
+            function MoveListPopupEntry(_displayText, _outerSpanClass, _imageSpanClass, _titleText, _action, _needModerator = false, _actionFunction = null) {
+                this.displayText = _displayText;
+                this.outerSpanClass = _outerSpanClass;
+                this.imageSpanClass = _imageSpanClass;
+                this.titleText = _titleText;
+                this.action = _action;
+                this.needModerator = _needModerator;
+                this.actionFunction = _actionFunction;
+            }
+
+            const moveListPopupEntries = [
+                //star/unstar tested, returns 'ok'; fails when trying to star/unstar your own; rate limited to 1/second
+                new MoveListPopupEntry('star/unstar as interesting (toggle)', 'star extra-links-unpin-cancel', 'sprite sprite-icon-star', 'Try to change the state of *your* stars on all highlighted messages. SE has implemented this as a toggle. In addition, after some time that you\'ve starred something becomes locked in, so you can\'t unstar your own star without canceling all stars on the message. If you use this on messages where your star is locked on, this will silently fail for that message. Effectively, the "unstar" ability is an "undo", which has a relatively brief period where you can actually undo.', 'star'),
+                //unstar (cancel-stars) tested, returns 'ok'; does not appear to be rate limited
+                new MoveListPopupEntry('cancel all stars', '', 'sprite sprite-icon-star-off', 'Cancel all stars on all highlighted messages', 'unstar'),
+                //owner-star (pin) tested, returns 'ok'; rate limited to 1/second; is actually a toggle; doing it again clears the pin, but not your own star, even on your own message
+                //owner-star then owner-star could be used to star your own posts.
+                //owner-star then owner-star can be used to re-pin something and reset the pin 14 day timer; must be done prior to expiration of the current pin.
+                new MoveListPopupEntry('pin', 'owner-star', 'img', 'Pin all highlighted messages (toggle)', 'owner-star'),
+                //unpin tested: returns 'ok'; doesn't fail when not pinned; doesn't appear to be rate limited.
+                new MoveListPopupEntry('unpin', 'owner-star', 'sprite sprite-ownerstar-off', 'Unpin all messages in the Manual Move List', 'unowner-star'),
+                //spam flag tested: returns 'ok'; rate limited to 1/second
+                new MoveListPopupEntry('flag as spam/offensive', 'flag', 'img', 'Flag all highlighted messages as spam/abusive.', 'flag'),
+                new MoveListPopupEntry('counter flag', '', 'SOCVR-Archiver-sprite-placeholder', 'Counter flag all highlighted messages', 'counter-flag'),
+                new MoveListPopupEntry('meh flag', '', 'SOCVR-Archiver-sprite-placeholder', 'Meh flag all highlighted messages', 'meh-flag'),
+                new MoveListPopupEntry('cancel flags', '', 'sprite sprite-flag-off', 'Cancel flags on all highlighted messages', 'cancel-flags', true),
+                //If already deleted, the response is 'This message has already been deleted.'
+                new MoveListPopupEntry('delete', 'delete', '', 'Delete all highlighted messages', 'delete', true),
+                //new MoveListPopupEntry('delete-img', 'delete', 'img', 'Delete all messages in the Manual Move List', 'delete'),
+                new MoveListPopupEntry('redact', '', 'SOCVR-Archiver-sprite-placeholder', 'Redact the message for all highlighted messages', 'redact', true),
+                //This does *not* respond with "OK". It gives a 302 response to redirect to /history for the message.
+                new MoveListPopupEntry('purge history', '', 'SOCVR-Archiver-sprite-placeholder', 'Purge the message history for all highlighted messages', 'purge-history', true),
+                new MoveListPopupEntry('redact and purge history', '', 'SOCVR-Archiver-sprite-placeholder', 'Redact and purge the message history for all highlighted messages', 'redact_purge-history', true),
+                //Sam's Chat Redact Messages script indicates we can/should delete the message first; tested.
+                new MoveListPopupEntry('delete, redact, and purge history', '', 'SOCVR-Archiver-sprite-placeholder', 'Redact, delete, and purge the message history for all highlighted messages', 'delete_redact_purge-history', true),
+            ];
+            const moveListPopupEntriesByAction = {};
+            moveListPopupEntries.forEach((entry) => {
+                moveListPopupEntriesByAction[entry.action] = entry;
+            });
+
+            function addActionToPopup(popupEntry) {
+                if (!popupEntry.needModerator || (popupEntry.needModerator && isModerator)) {
+                    popup.append(`<span class="SOCVR-Archiver-inline-popup-action-entry ${popupEntry.outerSpanClass}"${popupEntry.titleText ? ` title="${popupEntry.titleText}"` : ''} data-action="${popupEntry.action}">${popupEntry.imageSpanClass ? `<span class="${popupEntry.imageSpanClass}"></span>` : ''} ${popupEntry.displayText}</span></br>`);
+                }
+            }
+
+            function jQueryDeferredDelay(deferredDelay = 0) {
+                return jQuery.Deferred((deferred) => setTimeout(deferred.resolve, deferredDelay));
+            }
+
+            function jQueryGeneralAjaxErrorRetry(originalSettings) {
+                const keysToTransfer = [
+                    'url',
+                    'data',
+                    'type',
+                    'data',
+                    'success',
+                    'cache',
+                    'complete',
+                    'contentType',
+                    'dataTypes',
+                    'error',
+                    'statusCode',
+                    'timeout',
+                    'username',
+                ];
+                const settings = {};
+                keysToTransfer
+                    .filter((key) => Object.getOwnPropertyDescriptor(originalSettings, key))
+                    .forEach((key) => {
+                        settings[key] = originalSettings[key];
+                    });
+                return $.ajax(settings);
+            }
+
+            function jQueryDelayedRetryUponConflictResponse(jQueryXHROuter, statusOuter, errorOuter) {
+                let retryCount = 0;
+                function conflictDelayAutoRetryInner(jQueryXHR, status, error) {
+                    let isDelay = false;
+                    let seconds = 5; //Default delay for other errors.
+                    if (error === 'Conflict' && jQueryXHR.responseText) {
+                        //In chat, the delay response is in the form of:
+                        // "You can perform this action again in 4 seconds."
+                        seconds = (jQueryXHR.responseText.match(/(?:again|in)\D*(\d+)\s*seconds?/) || ['', 4])[1];
+                        isDelay = true;
+                    }
+                    if (retryCount > 4 || !isDelay) {
+                        //It's either been tried the maximum number of times, or the response isn't one we recognize as something for an auto-retry.
+                        //The following is used to be able to chain jQuery error/reject responses.
+                        return jQuery.Deferred().rejectWith(this, [jQueryXHR, status, error]);
+                    }
+                    retryCount++;
+                    return jQueryDeferredDelay(seconds * 1000).then(() => jQueryGeneralAjaxErrorRetry(this)).then(null, conflictDelayAutoRetryInner);
+                }
+                return conflictDelayAutoRetryInner.call(this, jQueryXHROuter, statusOuter, errorOuter);
+            }
+
+            function popupMenuEntryMessageActionHandler(messageID, menuEntry) {
+                const actions = menuEntry.action.split('_');
+                return actions.reduce((thenChain, action) => {
+                    if (action === 'redact') {
+                        return thenChain
+                            .then(() => postToChatWithConflictRetryAndUserOptionToRetryNoOKIsError(`/messages/${messageID}`, {text: '*[message redacted by a moderator]*'}));
+                    } //else
+                    return thenChain
+                        .then(() => postToChatWithConflictRetryAndUserOptionToRetryNoOKIsError(`/messages/${messageID}/${action}`));
+                }, jQuery.Deferred().resolve());
+            }
+
+            function postToChatWithConflictRetryAndUserOptionToRetryNoOKIsError(url, data = {}) {
+                data.fkey = fkey;
+                function sendChatPost() {
+                    return $.post(url, data)
+                        .then(null, jQueryDelayedRetryUponConflictResponse)
+                        .then(function(response) {
+                            if (this.url.endsWith('/purge-history')) {
+                                //The response from /purge-history is the entire history page. We don't want to log that.
+                                return jQuery.Deferred().resolveWith(this, [response]);
+                            }
+                            const responseIsString = typeof response === 'string';
+                            //The /purge-history endpoint doesn't respond with "ok". Actually it responds with a 302 and redirects
+                            //  to a GET of /history.
+                            if (this.url.endsWith('/purge-history') || (responseIsString && response.toLowerCase() === 'ok')) {
+                                return jQuery.Deferred().resolveWith(this, [response]);
+                            } //else
+                            const status = 488; //Something the server won't send.
+                            const statusText = 'Response was not "ok".';
+                            const fakeJqXHR = {
+                                status,
+                                statusText,
+                                fakeErrorOriginalResponse: response,
+                            };
+                            let responseText = response;
+                            if (typeof response === 'object') {
+                                responseText = JSON.stringify(response);
+                                fakeJqXHR.responseJSON = response;
+                            }
+                            try {
+                                //If the response was JSON text, then we want to keep it as JSON text.
+                                responseText = JSON.stringify(JSON.parse(response));
+                            } catch (error) {
+                                //Do nothing
+                            }
+                            fakeJqXHR.responseText = responseText;
+                            return jQuery.Deferred().rejectWith(this, [fakeJqXHR, status, statusText]);
+                        })
+                        .then(null, function(jQueryXHR, status, error) {
+                            console.error(
+                                'AJAX Error POSTing data to SE Chat:',
+                                '\n  this.url:', this.url,
+                                '\n  jQueryXHR.responseText:', jQueryXHR.responseText,
+                                '\n  status:', status,
+                                '\n  error:', error,
+                                '\n  jQueryXHR:', jQueryXHR,
+                            );
+                            if (confirm(`There was an error${(jQueryXHR.responseText || '').length < 300 ? `:\n\n"${jQueryXHR.responseText}"\n\n` : ' '}sending a POST to SE/SO chat at:\n${url}\n\nMore information should be in the console.\n\nDo you want to retry the request?`)) {
+                                return sendChatPost();
+                            } // else
+                            return jQuery.Deferred().rejectWith(this, [jQueryXHR, status, error]);
+                        });
+                }
+                return sendChatPost();
+            }
+
+            function setPopupMoveListLength() {
+                popup.find('.SOCVR-Archiver-inline-popup-list-length').text(manualMoveList.length);
+                popup.find('.SOCVR-Archiver-inline-popup-list-length-plural').text(manualMoveList.length === 1 ? '' : 's');
+            }
+
+            function handlePopupClick() {
+                if (popup.hasClass('SOCVR-Archiver-inline-popup-action-active')) {
+                    //We're already doing something.
+                    return;
+                }
+                popup.addClass('SOCVR-Archiver-inline-popup-action-active');
+                const $this = $(this);
+                const action = $this.data('action');
+                const menuEntry = moveListPopupEntriesByAction[action];
+                if (!action || !menuEntry) {
+                    console.error('Did not understand popup click. action:', action, ':: menuEntry:', menuEntry, ':: $this:', $this);
+                    return false;
+                }
+                const mmlPlural = manualMoveList.length === 1 ? '' : 's';
+                if (confirm(`Are you sure you want to\n${menuEntry.displayText} the\n\n${manualMoveList.length} message${mmlPlural}\n\n on the action list (i.e. ${mmlPlural ? 'all ' : ''}the highlighted message${mmlPlural})?`)) {
+                    savePostsListAsPreviousMove(manualMoveList, -9999, room, action);
+                    const handlerFunction = typeof menuEntry.actionFunction === 'function' ? menuEntry.actionFunction : popupMenuEntryMessageActionHandler;
+                    let thenChain = jQuery.Deferred().resolve();
+                    manualMoveList
+                        .sort((a, b) => a - b)
+                        .forEach((messageId) => {
+                            thenChain = thenChain
+                                .then(() => handlerFunction(messageId, menuEntry))
+                                .then(() => {
+                                    removeFromLSManualMoveList(messageId);
+                                    setPopupMoveListLength();
+                                });
+                        });
+                    thenChain.then(() => {
+                        popup.removeClass('SOCVR-Archiver-inline-popup-action-active');
+                        popup.find('.btn-close').click();
+                    }, () => alert('An error occurred while trying to perform the selected action. Please see the console for more details'));
+                }
+                return false;
+            }
+
+            popup
+                .append('<h3 class="SOCVR-Archiver-inline-popup-popup-title" title="The action you select will be performed on each highlighted message.">Additional list actions</h3>')
+                .append(`<span class="SOCVR-Archiver-inline-popup-list-length-container">(list contains <span class="SOCVR-Archiver-inline-popup-list-length">${manualMoveList.length}</span> message<span class="SOCVR-Archiver-inline-popup-list-length-plural">s</span>)</span>`)
+                .on('click', '.SOCVR-Archiver-inline-popup-action-entry', handlePopupClick);
+            moveListPopupEntries.forEach(addActionToPopup);
+            popup.append('<br><span>The selected action will be performed on each highlighted message.</span>');
+            setPopupMoveListLength();
+        }
+
+        function moveToInMetaHandler(event) {
             //Handle a click on the moveTo controls
             /* jshint -W040 */ //This is called as a jQuery event handler, which explicitly sets `this`.
-            var $this = $(this);
-            var roomId = this.dataset.roomId;
+            const $this = $(this);
+            let roomId = this.dataset.roomId;
             /* jshint +W040 */
-            var message = $this.closest('.message');
+            const message = $this.closest('.message');
             if (message.length) {
-                var messageId = getMessageIdFromMessage(message);
+                const messageId = getMessageIdFromMessage(message);
                 if (messageId) {
+                    if (roomId === 'popup-menu') {
+                        //The click to open results in also closing if done within the event handler, so we wait.
+                        addMessageAndPriorSelectionToManualMoveList(message);
+                        setTimeout(() => {
+                            const menuPopup = popUp(event.pageX, event.pageY, message);
+                            //menuPopup.append('This is an option.');
+                            menuPopup.css({width: '250px'});
+                            addAdditionalMoveListOptionsToPopup(menuPopup);
+                        });
+                    }
+                    if (roomId === 'prompt') {
+                        addMessageAndPriorSelectionToManualMoveList(message);
+                        roomId = ((prompt('To what room do you want to move messages (enter a room number or room URL)?') || '').match(/\d+/) || [])[0];
+                    }
                     if (roomId === 'add') {
-                        addToLSManualMoveList(messageId);
-                        addMessageToNoUserListIfMonologueIsNoUser(message);
-                        addToLSManualMoveList(priorSelectionMessageIds);
+                        addMessageAndPriorSelectionToManualMoveList(message);
                     } else if (roomId === 'remove') {
                         removeFromLSManualMoveList(messageId);
                         addMessageToNoUserListIfMonologueIsNoUser(message);
@@ -3351,9 +3811,7 @@
                     } else if (roomId === 'reselect') {
                         reselectLastLSMoveList();
                     } else if (+roomId) {
-                        addToLSManualMoveList(messageId);
-                        addMessageToNoUserListIfMonologueIsNoUser(message);
-                        addToLSManualMoveList(priorSelectionMessageIds);
+                        addMessageAndPriorSelectionToManualMoveList(message);
                         moveMoveList(roomId);
                     }
                 }
@@ -3573,7 +4031,7 @@
 
         //Add Deleted messages to transcript pages
 
-        /* We get transcript events here and in other scripts (other scripts?). The "API" response data is shared, rather than get it twice.
+        /* We get transcript events here and in other scripts. The "API" response data is shared, rather than get it in each script.
          *   typeof window.transcriptChatEvents === 'undefined'
          *     No process has attempted to get the events.
          *   window.transcriptChatEvents = null
@@ -3582,8 +4040,10 @@
          *     Getting events is complete in a script.
          *   Array.isArray(window.transcriptChatEvents) === true && window.transcriptChatEvents.length > 0
          *     Events are valid on window.transcriptChatEvents
-         *   CustomEvent 'transcript-events-received' is fired from the script which received the transcript events.
-         *   CustomEvent 'transcript-events-received' is received in all scripts not doing the AJAX call to get the transcript events.
+         *   CustomEvent 'transcript-events-received' is fired from the script which fetched the transcript events.
+         *   CustomEvent 'transcript-events-received' is received in all scripts not doing the AJAX call(s) to get the transcript events.
+         *   CustomEvent 'transcript-events-rejected' is fired from the script which was getting transcript events when a non-recovered error occurs.
+         *   CustomEvent 'transcript-events-rejected' is received in all scripts not doing the AJAX call(s): Causes the Promise to be rejected.
          */
         function getAndShareTranscriptEvents() {
             let gettingTranscriptEvents = false;
@@ -3595,57 +4055,143 @@
             // room that are in the time-frame for this transcript page.  While this is often true, it is by no means
             // guaranteed.
             return new Promise((resolve, reject) => {
-                function getTranscriptEvents() {
-                    const chatTranscriptEndMessagesOffset = 15000;
-                    return new Promise((getTranscriptEventsResolve, getTranscriptEventsReject) => {
-                        //This should be based on the time we determine for the transcript, not just the IDs. This is so we
-                        //  have enough messages to cover any ones which were deleted in the time-frame of the current transcript display.
-                        let transcriptEvents = [];
-                        const messages = $('#transcript .message, #conversation .message');
-                        const firstMessage = messages.first();
-                        const lastMessage = messages.last();
-                        const firstMessageId = getMessageIdFromMessage(firstMessage);
-                        const lastMessageId = getMessageIdFromMessage(lastMessage);
-
-                        //Unfortunately, there doesn't appear to be an endpoint to get messages by date, only by message number.
-                        //In order to get any deleted messages that are beyond the last one shown in the room, but still in the
-                        //  time-frame of the current transcript page, we guess at a message ID which is hopefully somewhat beyond
-                        //  the last message actually in the time-frame.
-                        getEvents(room, fkey, 500, lastMessageId + chatTranscriptEndMessagesOffset).then((firstResponse) => {
-                            transcriptEvents = firstResponse.events;
-                            const firstEventId = transcriptEvents[0].message_id;
-                            const lastEventId = transcriptEvents[transcriptEvents.length - 1].message_id;
-                            if (firstEventId < firstMessageId) {
-                                getTranscriptEventsResolve(transcriptEvents);
-                                return;
-                            } //else
-                            //Currently, we only do one more getEvents. This should do more, if needed.
-                            getEvents(room, fkey, 500, firstEventId).then((secondResponse) => {
-                                transcriptEvents = secondResponse.events.concat(transcriptEvents);
-                                const secondFirstEventId = transcriptEvents[0].message_id;
-                                //This is just assumed to be enough.
-                                getTranscriptEventsResolve(transcriptEvents);
-                            }, (error) => {
-                                getTranscriptEventsReject(error);
-                            });
-                        }, (error) => {
-                            getTranscriptEventsReject(error);
-                        });
-                    });
+                async function getTranscriptEvents() {
+                    const DEFAULT_CHAT_TRANSCRIPT_END_MESSAGES_OFFSET = 15000;
+                    //This should be based on the time we determine for the transcript, not just the IDs. This is so we
+                    //  have enough messages to cover any ones which were deleted in the time-frame of the current transcript display.
+                    let transcriptEvents = [];
+                    const messages = $('#transcript .message, #conversation .message');
+                    if (messages.length === 0) {
+                        //There are no messages on this transcript or conversation page. While we do want to get any transcript events which occurred here,
+                        //  we don't currently support that.
+                        throw new Error('No transcript events in page. Getting any possible transcript events isn\'t supported in this situation.');
+                    }
+                    const firstMessage = messages.first();
+                    const lastMessage = messages.last();
+                    const firstMessageId = getMessageIdFromMessage(firstMessage);
+                    const lastMessageId = getMessageIdFromMessage(lastMessage);
+                    const [transcriptDateStart, transcriptDateEnd] = getTranscriptDate();
+                    const transcriptStartTimestamp = transcriptDateStart.setMilliseconds(0).valueOf() / 1000;
+                    const transcriptEndTimestamp = transcriptDateEnd.setMilliseconds(0).valueOf() / 1000;
+                    //Unfortunately, there doesn't appear to be an endpoint to get messages by date, only by message number.
+                    //In order to get any deleted messages that are beyond the last one shown in the room, but still in the
+                    //  time-frame of the current transcript page, we guess at a message ID which is hopefully somewhat beyond
+                    //  the last message actually in the time-frame.
+                    let chatTranscriptEndMessagesOffset = DEFAULT_CHAT_TRANSCRIPT_END_MESSAGES_OFFSET;
+                    if (messages.length !== 1) {
+                        const firstToLastMessageIdDistance = lastMessageId - firstMessageId;
+                        const idChangePerMessage = firstToLastMessageIdDistance / messages.length;
+                        //If our first fetch of chat events doesn't get any events after the end of the transcript page, we get the HTML for the next day or time period,
+                        //  which is linked at the top of the transcript page and start fetching backward from that point. Doing that makes it highly likely we'll actually
+                        //  find a chat event which is in the current room and later than this page, if one exists.
+                        //  However, most of the time we are successful at guessing a message ID sufficiently after the most recent in the transcript, which saves us
+                        //  a fetch under most conditions, at the cost of an extra one rarely.
+                        //Use an offset that should be in the ballpark of 200 messages after the last message shown on the current page.
+                        //We want to pick a number to increment the last ID by such that will result in us almost always getting both all the transcript events shown on the page
+                        //  and at least one which is later. 200 is picked as a multiplier, because SE tends to subdivide dates such that each transcript page contains no more
+                        //  than 250, or so, messages.
+                        //  This will be sufficient for transcript pages probably about 99.9% of the time (probably better than that). What we might miss are deleted messages which are
+                        //  within the transcript timeframe, but which aren't within the number of message IDs equal to 200 * the average ID change per message.
+                        //  This would be most likely to happen if only a tight group of messages near the beginning of the timeframe remained undeleted and
+                        //  there were deleted messages substantially closer to the end of the timeframe.
+                        //If we don't get a transcript event which is later in time than what would be displayed on the current transcript page, then we do further processing and
+                        //  fetched to make it very likely that we will always end up with either the last event, if there are no more, or at least one event which is later than the
+                        //  current page.
+                        chatTranscriptEndMessagesOffset = Math.max(Math.ceil(200 * idChangePerMessage), DEFAULT_CHAT_TRANSCRIPT_END_MESSAGES_OFFSET);
+                    }
+                    let firstRequestBefore = lastMessageId === 0 ? 0 : lastMessageId + chatTranscriptEndMessagesOffset;
+                    const nextSectionOrNextDayButton = $('#main a.button.noprint:contains(next day), #main a.button.noprint:contains(last day)').first().add($('#main .pager .page-numbers.current').first().next('a')).last();
+                    if (!nextSectionOrNextDayButton.length) {
+                        //We're at the end of the transcript, so get events from the end.
+                        //We'll actually make the request for this where we make the "second" request.
+                        firstRequestBefore = 0;
+                    }
+                    let lastEventTimeStampOfFirstResponse = -1000;
+                    if (firstRequestBefore) {
+                        const firstResponse = await getEventsWithBasicErrorHandling(room, fkey, 500, firstRequestBefore);
+                        transcriptEvents = firstResponse.events;
+                        lastEventTimeStampOfFirstResponse = transcriptEvents[transcriptEvents.length - 1].time_stamp;
+                    }
+                    if (lastEventTimeStampOfFirstResponse < transcriptEndTimestamp) {
+                        //We didn't get enough messages to cover to the end of the transcript. In theory, there could be any number of deleted messages which
+                        //  we need to get, but we're only going to make one more attempt at finding messages beyond the current time.
+                        let secondTryFirstBefore = 0;
+                        if (nextSectionOrNextDayButton.length) {
+                            const nextDayUrl = nextSectionOrNextDayButton.attr('href');
+                            const nextDayHtml = await $.get(nextDayUrl);
+                            const nextDayAsDom = parser.parseFromString(nextDayHtml, 'text/html');
+                            const firstMessageIdOfNextSectionOrDay = Number((nextDayAsDom.querySelector('#main .message') || {id: 'foo-0'}).id.split('-')[1]);
+                            secondTryFirstBefore = firstMessageIdOfNextSectionOrDay + 10; //We should end up getting a single message past the end time of the current page.
+                            if (!firstMessageIdOfNextSectionOrDay) {
+                                //If, for some reason, we didn't get a valid messageId for the first message on the next page, then just try further than we did before.
+                                secondTryFirstBefore = firstRequestBefore + (3 * chatTranscriptEndMessagesOffset);
+                            }
+                        } //else: There is no next day, so we're at the end of the transcript. We then get messages from the end, which is secondTryFirstBefore=0, which is already the case.
+                        const responseFromSecondFindEndAttempt = await getEventsWithBasicErrorHandling(room, fkey, 500, secondTryFirstBefore);
+                        //Use the new set of events as our starting point, which just drops the ones we actually got first (we will get them again, if needed).
+                        transcriptEvents = responseFromSecondFindEndAttempt.events;
+                    }
+                    let firstEventId = transcriptEvents[0].message_id;
+                    let firstEventTimeStamp = transcriptEvents[0].time_stamp;
+                    const lastEventId = transcriptEvents[transcriptEvents.length - 1].message_id;
+                    let lastFetchReceivedCount = transcriptEvents.length;
+                    let fetchCount = 0; //Have a limit to the number of fetches we might do, just in case.
+                    if (firstMessageId > 0) {
+                        while ((firstEventId > firstMessageId || firstEventTimeStamp > transcriptStartTimestamp) && lastFetchReceivedCount > 0 && fetchCount < 10) {
+                            const response = await getEventsWithBasicErrorHandling(room, fkey, 500, firstEventId);
+                            fetchCount++;
+                            lastFetchReceivedCount = response.events.length;
+                            transcriptEvents = response.events.concat(transcriptEvents);
+                            firstEventId = transcriptEvents[0].message_id;
+                            firstEventTimeStamp = transcriptEvents[0].time_stamp;
+                        }
+                    } //else
+                    const allEventsReceived = transcriptEvents;
+                    if (transcriptStartTimestamp && transcriptEndTimestamp && transcriptStartTimestamp !== transcriptEndTimestamp) {
+                        //It looks like the start and end time_stamps for the page are valid, so filter the events down to only what's in the time period.
+                        transcriptEvents = transcriptEvents.filter((event) => !event.time_stamp || (event.time_stamp >= transcriptStartTimestamp && event.time_stamp <= transcriptEndTimestamp));
+                    }
+                    return [transcriptEvents, allEventsReceived];
                 }
 
-                function getAndShareTranscriptEventsProgress() {
+                function rejectWithError() {
+                    console.error('Rejecting getAndShareTranscriptEvents Promise');
+                    reject(new Error('Getting transcript events failed.'));
+                }
+
+                /*
+                    checkAndAdvanceGettingTranscriptState is a state machine which walks through either getting the transcript events or waiting for another script to get them.
+                        It currently relies on the scripts sharing the same window scope.
+                        It is called to start the process, to continue to the process, or in response to an event from another script.
+                        window.transcriptChatEvents    gettingTranscriptEvents      What
+                                 undefined                     any                  Starting. This process will get events. window.transcriptChatEvents = null; gettingTranscriptEvents=true;
+                                                                                        when have events, window.transcriptChatEvents = transcriptEvents; and re-call checkAndAdvanceGettingTranscriptState.
+                                                                                        If error-out, then reject and send a reject Event.
+                                    null                       true                 This script is in the process of getting events. Do nothing; waiting to be called again.
+                                                                                        Shouldn't actually get here unless the script which is using this calls twice.
+                                    null                       false                Another script is in the process of getting chatEvents. Listen for an Event to be fired.
+                                    other                      true                 This script has gotten chatEvents. Send Event; resolve with chatEvents
+                                    other                      false                Another script has gotten chatEvents. Stop listening for the Event; resolve with chatEvents
+                 */
+                function checkAndAdvanceGettingTranscriptState() {
                     if (typeof window.transcriptChatEvents === 'undefined') {
                         window.transcriptChatEvents = null; //Indicate that we are requesting the chat events.
                         gettingTranscriptEvents = true;
-                        getTranscriptEvents().then((response) => {
-                            window.transcriptChatEvents = response;
-                            getAndShareTranscriptEventsProgress();
+                        getTranscriptEvents().then(([transcriptEvents, allEventsReceived]) => {
+                            window.transcriptChatEvents = transcriptEvents;
+                            //We got the events, so should make them available, if something in the future wants to use them.
+                            window.transcriptChatEventsAllReceived = allEventsReceived;
+                            //We're done, but we handle that the same way we would if we received an event indicating that we're done.
+                            checkAndAdvanceGettingTranscriptState();
                         }, () => {
-                            //We can continue upon failure.
-                            console.error('Getting transcript events failed:');
+                            //We don't continue upon failure. There's already rudimentary error handling, with a choice by the user to
+                            //  retry or not.
                             window.transcriptChatEvents = [];
-                            reject(new Error('Getting transcript events failed'));
+                            rejectWithError();
+                            window.dispatchEvent(new CustomEvent('transcript-events-reject', {
+                                bubbles: true,
+                                cancelable: true,
+                            }));
                         });
                         return;
                     }
@@ -3656,21 +4202,22 @@
                         }
                         //Some other process is getting the events.
                         //  We wait to be informed that they are available.
-                        window.addEventListener('transcript-events-received', getAndShareTranscriptEventsProgress);
+                        window.addEventListener('transcript-events-received', checkAndAdvanceGettingTranscriptState);
+                        window.addEventListener('transcript-events-rejected', rejectWithError);
                         return;
                     }
-                    window.removeEventListener('transcript-events-received', getAndShareTranscriptEventsProgress);
+                    window.removeEventListener('transcript-events-received', checkAndAdvanceGettingTranscriptState);
+                    window.removeEventListener('transcript-events-rejected', rejectWithError);
                     if (gettingTranscriptEvents) {
                         window.dispatchEvent(new CustomEvent('transcript-events-received', {
                             bubbles: true,
                             cancelable: true,
                         }));
                     }
-                    //Only respond to the event once after events are available.                                                                                                                                                                             //WinMerge ignore line
                     //The events are available.
                     resolve(window.transcriptChatEvents);
                 }
-                getAndShareTranscriptEventsProgress();
+                checkAndAdvanceGettingTranscriptState();
             });
         }
 
@@ -3734,11 +4281,6 @@
         }
 
         function addDeletedEventsToTranscript(allEvents) {
-            //This assumes that all transcript pages have < 500 messages, which in brief testing appears true.
-            //It also assumes that adding 15000 to the last message number will result in both getting any messages
-            //  which are after the last non-deleted one in the day and that it won't result in too few events at the
-            //  beginning of the period. This really should be replaced with code that makes sure we obtain all
-            //  the relevant events for the period covered by the transcript.
             const [transcriptDateStart, transcriptDateEnd] = getTranscriptDate();
             const transcriptStart = transcriptDateStart.getTime() / 1000;//SE Chat events are to the second, not millisecond.
             const transcriptEnd = transcriptDateEnd.getTime() / 1000;//SE Chat events are to the second, not millisecond.
@@ -3794,7 +4336,7 @@
             doOncePerChatChangeAfterDOMUpdate();
         }
 
-        /*Copied from the Unclosed Request Review Script & modified to get start and end times.*/
+        /*Copied by the original author from the Unclosed Request Review Script & modified to get start and end times.*/
         function getTranscriptDate() {
             //Get the date for the transcript
             const bodyDateStart = document.body.dataset.archiverTranscriptDateStart;
