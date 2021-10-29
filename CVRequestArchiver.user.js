@@ -3161,7 +3161,7 @@
                     doMoreDeletedContentIfNeeded(true);
                     return;
                 }
-                //Mark this message as in the process of being handled, so there isn't duplicate fetches of history, should another script be doing the same thing.
+                //Mark this message as in the process of being handled, so there aren't duplicate fetches of history, should another script be doing the same thing.
                 message.addClass('SOCVR-Archiver-deleted-content-in-process');
                 const messageId = getMessageIdFromMessage(message);
                 getMessageMostRecentVersionFromHistory(messageId, function(deletedContent) {
@@ -3193,7 +3193,7 @@
 
         function fechHistoryForMessage(messageId, callback) {
             //Get the history page for a message.
-            $.ajax({
+            return $.ajax({
                 type: 'GET',
                 url: 'https://' + window.location.hostname + '/messages/' + messageId + '/history',
                 success: callback,
@@ -3211,11 +3211,25 @@
             });
         }
 
-        function getMessageMostRecentVersionFromHistory(messageId, callback) {
-            //Get the last version of a message prior to it being deleted.
-            fechHistoryForMessage(messageId, function(data) {
-                var newDoc = jQuery.parseHTML(data);
-                callback($('.message .content', newDoc).first());
+        function getMessageMostRecentVersionFromHistory(messageId, lastContentCallback) {
+            return getAndParseMessageHistory(messageId).then((messageInfo) => {
+                if (typeof lastContentCallback === 'function') {
+                    lastContentCallback(messageInfo.lastContent);
+                }
+                return messageInfo.lastContent;
+            });
+        }
+
+        function getAndParseMessageHistory(messageId) {
+            //Get the data contained on the history page, including the last version of a message (prior to it being deleted).
+            return fechHistoryForMessage(messageId).then(function(historyHtml) {
+                const historyDom = parser.parseFromString(historyHtml, 'text/html');
+                const lastContent = $('.message .content', historyDom).first();
+                const lastContentIsPartial = !!lastContent.find('.partial').length;
+                return {
+                    lastContent,
+                    lastContentIsPartial,
+                };
             });
         }
 
