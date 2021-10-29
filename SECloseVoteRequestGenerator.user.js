@@ -341,8 +341,8 @@
     function saveCopyOfQuestionTitles() {
         $('#question-header h1 a, h1 a, .question-hyperlink, .answer-hyperlink').each(function() {
             const $this = $(this);
-            if (!$this.data('origText')) {
-                $this.data('origText', $this.text());
+            if (!$this.attr('data-orig-text')) {
+                $this.attr('data-orig-text', $this.text());
             }
         });
     }
@@ -359,7 +359,7 @@
         rows.each(function() {
             var $this = $(this);
             $this.addClass('answer cvrgFakeQuestionContext');
-            $this.data('answerid', $('.answer-hyperlink', $this).attr('href').replace(/^.*#(\d+)$/, '$1'));
+            $this.attr('data-answerid', $('.answer-hyperlink', $this).attr('href').replace(/^.*#(\d+)$/, '$1'));
         });
         //Observe for a change to the first TD within the first row of the page to detect the NATO Enhancements userscript.
         (new MutationObserver(function(mutations, observer) {
@@ -459,7 +459,7 @@
         const postNoticesRelativetimeContainerStartsWithClosed = anyElementTextStartsWithClosed(postNoticesRelativetimeContainers);
         const post201910CloseBannerExists = postNoticeIsDuplicateClosure || postNoticeBoldStartsWithClosed || postNoticesRelativetimeContainerStartsWithClosed;
         const closeButton = $('.js-close-question-link', questionContext);
-        const closeButtonIsClose = closeButton.data('isclosed') || closeButton.text().toLowerCase().indexOf('reopen') > -1;
+        const closeButtonIsClose = closeButton.attr('data-isclosed') || closeButton.text().toLowerCase().indexOf('reopen') > -1;
         return pre201910CloseBannerExists || post201910CloseBannerExists || closeButtonIsClose;
     }
 
@@ -2599,7 +2599,7 @@
                 questionTitleText = questionTitle.text();
                 if (questionTitle.find('.MathJax').length) {
                     //MathJax messes up the question title, so use one that's been saved, if available.
-                    const titleInData = questionTitle.data('origText');
+                    const titleInData = questionTitle.attr('data-origText');
                     if (titleInData) {
                         questionTitleText = titleInData;
                     }
@@ -2625,7 +2625,7 @@
                 } else {
                     postLinkHref = $('.js-share-link', post).attr('href');
                     if (!postLinkHref) {
-                        var postId = post.data(this.guiType + 'id');
+                        var postId = post.attr(`data-${this.guiType}id`);
                         postLinkHref = '/' + this.guiType[0] + '/' + postId;
                     }
                     //Remove the user ID portion of the share link, so duplicate posts count as ":visited" to the browser.
@@ -3660,7 +3660,7 @@
                 }
             }
             var postType = post.is('.question') ? 'question' : 'answer';
-            return this.getGuiForId(postType, post.data(postType + 'id'));
+            return this.getGuiForId(postType, post.attr(`data-${postType}id`));
         },
     };
 
@@ -3998,7 +3998,7 @@
                     //No question CVRGUI is visible.
                     return;
                 }
-                var firstVisibleQuestionGui = CVRGUI.getQuestionGuiForId(firstVisibleQuestion.data('questionid'));
+                var firstVisibleQuestionGui = CVRGUI.getQuestionGuiForId(firstVisibleQuestion.attr('data-questionid'));
                 if (firstVisibleQuestionGui && firstVisibleQuestionGui.isDefaultHidden()) {
                     //If there is a question CVRGUI button visible and it's default item is not shown, open the
                     //  GUI and show the default.
@@ -4115,7 +4115,7 @@
             //Clicking on the Vote To Close button
             var $this = $(this);
             if (cvplsInput.is(':checked')) {
-                cvplsRequestedAfterVote = $this.closest('.question').data('questionid');
+                cvplsRequestedAfterVote = $this.closest('.question').attr('data-questionid');
                 cvplsRequestedAfterVoteOptions = {
                     sdReport: cvrgCheckboxWrapper.find('.cvrgCVPopupIsSDReportCheckbox').is(':checked'),
                     nato: cvrgCheckboxWrapper.find('.cvrgCVPopupIsNatoCheckbox').is(':checked'),
