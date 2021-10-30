@@ -2573,7 +2573,17 @@
             //Works for review pages and within the Close Dialog question preview
             var questionTitleText = this.questionTitleText;
             var questionTitle = this.questionTitle;
-            if (!questionTitleText || !questionTitle) {
+            const that = this;
+            function cleanAndStoreTitleText() {
+                if (window.location.pathname === '/review/custom' || window.location.pathname === '/review/MagicTagReview') {
+                    //Magic Tag
+                    questionTitleText = questionTitleText.replace(/\s*-\s*(?:open|closed)\s*-\s*\d+\s*-\s*\d+\s*$/, '');
+                }
+                //Remove on hold, closed, duplicate
+                questionTitleText = questionTitleText.replace(/ \[(?:on hold|closed|duplicate)\]$/i, '');
+                that.questionTitleText = questionTitleText;
+            }
+            if (!questionTitleText || !questionTitle || questionTitle.length === 0) {
                 if (questionContext.is('#mainbar')) {
                     //The main question:
                     questionTitle = $('#question-header h1 a').first();
@@ -2592,19 +2602,27 @@
                 this.questionTitle = questionTitle;
                 questionTitleText = questionTitle.text();
                 if (questionTitle.find('.MathJax').length) {
-                    //MathJax messes up the question title, so use one that's been saved, if available.
-                    const titleInData = questionTitle.attr('data-origText');
+                    //MathJax messes up the question title, so we have to fetch the title from somewhere else.
+                    const currentRealtimeTitle = questionTitle.attr('data-realtime-text');
+                    const questionTitleHref = questionTitle.attr('href');
+                    if (!currentRealtimeTitle && questionTitleHref) {
+                        const questionId = (questionTitleHref.match(/\/q(?:uestions?)\/(\d+)/) || ['', ''])[1];
+                        $.get(`/posts/ajax-load-realtime/${questionId}?title=true`).done((response) => {
+                            const titleRealtime = (response.match(/data-title="(.*?)"\s*>/) || ['', ''])[1];
+                            if (titleRealtime) {
+                                questionTitle.attr('data-realtime-text', titleRealtime);
+                                questionTitleText = titleRealtime;
+                                cleanAndStoreTitleText();
+                            }
+                        });
+                    }
+
+                    const titleInData = currentRealtimeTitle || questionTitle.attr('data-orig-text');
                     if (titleInData) {
                         questionTitleText = titleInData;
                     }
                 }
-                if (window.location.pathname === '/review/custom' || window.location.pathname === '/review/MagicTagReview') {
-                    //Magic Tag
-                    questionTitleText = questionTitleText.replace(/\s*-\s*(?:open|closed)\s*-\s*\d+\s*-\s*\d+\s*$/, '');
-                }
-                //Remove on hold, closed, duplicate
-                questionTitleText = questionTitleText.replace(/ \[(?:on hold|closed|duplicate)\]$/i, '');
-                this.questionTitleText = questionTitleText;
+                cleanAndStoreTitleText();
             }
             //Get the link for the post
             var postLinkHref = this.postLinkHref;
