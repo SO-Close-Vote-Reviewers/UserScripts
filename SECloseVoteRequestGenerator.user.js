@@ -2552,7 +2552,7 @@
                     postUser = this.item.closest('td').find('.user-info');
                 }
                 if (isGuiReviewSE) {
-                    postUser = this.item.closest('#content').find('.user-info-actions .post-signature:last-of-type');
+                    postUser = $('.js-review-task .js-review-content #panel-revision .s-user-card');
                 }
                 this.postUser = postUser;
             }
@@ -2596,7 +2596,7 @@
                 if (isNatoWithoutEnhancement) {
                     questionTitle = $('.answer-hyperlink', questionContext).first();
                 }
-                if (isGuiReviewSE) {
+                if (isSuggestedEditReviewPage && isGuiReviewSE) {
                     questionTitle = $('.question-hyperlink,.answer-hyperlink', questionContext).first();
                 }
                 this.questionTitle = questionTitle;
@@ -2627,7 +2627,7 @@
             //Get the link for the post
             var postLinkHref = this.postLinkHref;
             if (!postLinkHref) {
-                if (isGuiReviewSE) {
+                if (isGuiReviewSE && isSuggestedEditReviewPage) {
                     postLinkHref = questionTitle.attr('href');
                     if (postLinkHref.indexOf('#') === -1) {
                         postLinkHref = postLinkHref.replace(/(\/\d+)\/[^/]*/, '$1');
@@ -2659,7 +2659,7 @@
             var userLink = this.userLink;
             var userMarkdown = this.userMarkdown;
             if (!userLink || !userMarkdown) {
-                var userDetails = postUser.find('.user-details');
+                var userDetails = postUser.find('.user-details, .s-user-card--info');
                 var userName = '';
                 if (postUser.length && !userDetails.length && /by\san\sanonymous\suser/.test(postUser.text())) {
                     //Anonymous user
@@ -2969,7 +2969,7 @@
             if (isGuiReviewSE) {
                 let suggestedEditUrl = window.location.href;
                 if (window.location.href.indexOf('/question') > -1) {
-                    suggestedEditUrl = urlBase + this.gui.wrapper.closest('.post-menu .post-menu-container, .post-menu, .js-post-menu > .grid > .grid--cell, .js-post-menu > .d-flex > .flex--item').children('a[href^="/review"]').attr('href');
+                    suggestedEditUrl = $('.js-edit-pending', post)[0].href;
                 }
                 request = createTagMarkdown(requestType) + ' ' + reason + ' [Suggested Edit](' + suggestedEditUrl + ') by ' + userMarkdown + ' changing: ' + titleMarkdown + (/tag (?:wiki|excerpt)/.test(titleMarkdown) ? ' for ' + questionTagMarkdown : '');
             }
@@ -3760,14 +3760,14 @@
         }
         const suggestedEditPopup = $('.js-popup-suggested-edit');
         if (suggestedEditPopup.length) {
-            const postMenuItems = suggestedEditPopup.closest('.post-menu .post-menu-container, .post-menu, .js-post-menu > .grid > .grid--cell');
-            postMenuItems.add(suggestedEditPopup.closest('.js-post-menu').find('a.js-edit-pending').parent());
+            const postMenu = suggestedEditPopup.closest('.js-post-menu');
+            const postMenuItems = postMenu.children('.d-flex').children('.flex--item');
             const reviewId = (postMenuItems.children('a[href^="/review"]').attr('href').match(/\/(\d+)$/) || ['', ''])[1];
             removeNonMatchingReviewGui(suggestedEditPopup, reviewId);
             let reviewPlsContainer = $('.cvrg-review-pls-container', suggestedEditPopup);
             if (!reviewPlsContainer.length) {
-                suggestedEditPopup.find('.suggested-edit-container').prepend('<div class="cvrg-review-pls-container"></div>');
-                reviewPlsContainer = suggestedEditPopup.children('.cvrg-review-pls-container');
+                suggestedEditPopup.children('.d-flex').first().prepend('<div class="cvrg-review-pls-container"></div>');
+                reviewPlsContainer = $('.cvrg-review-pls-container', suggestedEditPopup);
             }
             if (!$('.cvrgui', reviewPlsContainer).length) {
                 //No GUI yet.
