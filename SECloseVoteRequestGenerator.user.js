@@ -503,10 +503,10 @@
         //  Inside the Close Dialog within previewing a potential duplicate question. (.show-original)
         //  10k tools (NATO with NATO Enhancements): (body.tools-page #mainbar > table > tbody > tr > td)
         //  10k tools (NATO without NATO Enhancements): (.cvrgFakeQuestionContext is added to the DOM)
-        if (isSuggestedEditReviewPage) {
-            return $('.suggested-edit');
-        }
         var $el = (element instanceof jQuery) ? element : $(element);
+        if (isSuggestedEditReviewPage && element.closest('.s-page-title').length) {
+            return $('.js-review-task');
+        }
         var context = $el.closest('#mainbar,.review-content,.mainbar,#mainbar-full,.show-original,.cvrgFakeQuestionContext,body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td');
         if (!context.length) {
             return $(document);
@@ -3746,14 +3746,13 @@
             //Suggested Edit Review.
             const match = window.location.pathname.match(/^\/review\/suggested-edits\/(\d+)\b.*$/i);
             const reviewId = (match && match.length > 1) ? match[1] : '';
-            const toolsSubHeader = $('.subheader.tools-rev');
+            const titleHeader = $('.s-page-title .s-page-title--header');
             //Remove any exiting GUI which doesn't match the current review.
-            removeNonMatchingReviewGui(toolsSubHeader, reviewId);
-            if (!$('.cvrgui', toolsSubHeader).length) {
+            removeNonMatchingReviewGui(titleHeader, reviewId);
+            if (!$('.cvrgui', titleHeader).length) {
                 //No GUI yet.
-                const filterSummary = $('.review-filter-summary', toolsSubHeader);
                 const newGui = new Gui('reviewSE', reviewId, CVRGUI);
-                filterSummary.before(' ').before(newGui.wrapper);
+                titleHeader.append(newGui.wrapper.css('font-size', '13px'));
                 CVRGUI.cleanReviews();
                 CVRGUI.reviews.push(newGui);
             }
