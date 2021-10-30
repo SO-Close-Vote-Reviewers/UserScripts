@@ -4231,8 +4231,6 @@
             }
             /* We could do it in a more jQuery way, but that would be more work at this point and
             //   make it harder to convert to XMLHttpRequest, if desired to catch non-jQuery CV/DV from the page.
-                 $(document).ajaxComplete(function(event, jqXHR, ajaxSettings) {
-                 $(document).ajaxSuccess(function(event, jqXHR, ajaxSettings, data) {
             //*/
             //Override the $.ajax function so that we can know when an AJAX call completes, is successful, and get data which
             //  is sent in the close-vote POST which contains the type of vote.
