@@ -312,10 +312,11 @@
     const offTopicCloseReasons = currentSiteConfig.offTopicCloseReasons;
 
     //Set some global variables
-    var isSocvrSite = socvrModeratedSites.indexOf(window.location.hostname) > -1;
+    const isSocvrSite = socvrModeratedSites.indexOf(window.location.hostname) > -1;
     const isSocvrRoomUrlRegEx = knownRooms.SOCVR.urlDetectionRegExp;
-    var isNato = window.location.pathname.indexOf('tools/new-answers-old-questions') > -1;
-    var isSuggestedEditReviewPage = /^\/review\/suggested-edits(?:\/|$)/i.test(window.location.pathname);
+    const isNato = window.location.pathname.indexOf('tools/new-answers-old-questions') > -1;
+    const isSuggestedEditReviewPage = /^\/review\/suggested-edits(?:\/|$)/i.test(window.location.pathname);
+    const isReviewPage = /^\/review\//i.test(window.location.pathname);
     //Restore the options
     var configOptions = getConfigOptions();
     //If the options are set such that we don't show on non-SOCVR sites and this is not a SOCVR site, or we are only to run on known sites and this one isn't known, then stop processing.
@@ -504,12 +505,13 @@
         //  Inside the Close Dialog within previewing a potential duplicate question. (.show-original)
         //  10k tools (NATO with NATO Enhancements): (body.tools-page #mainbar > table > tbody > tr > td)
         //  10k tools (NATO without NATO Enhancements): (.cvrgFakeQuestionContext is added to the DOM)
-        var $el = (element instanceof jQuery) ? element : $(element);
+        const $el = (element instanceof jQuery) ? element : $(element);
         if (isSuggestedEditReviewPage && element.closest('.s-page-title').length) {
             return $('.js-review-task');
         }
-        var context = $el.closest('#mainbar,.review-content,.mainbar,#mainbar-full,.show-original,.cvrgFakeQuestionContext,body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td');
+        const context = $el.closest('#mainbar,.review-content,.mainbar,#mainbar-full,.show-original,.cvrgFakeQuestionContext,body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td,.js-review-task');
         if (!context.length) {
+            //A containing element which we recognize as the context for the element's question wasn't found.
             return $(document);
         }
         if (context.is('.cvrgFakeQuestionContext') || context.find('.question').length) {
@@ -2597,7 +2599,7 @@
                 if (isNatoWithoutEnhancement) {
                     questionTitle = $('.answer-hyperlink', questionContext).first();
                 }
-                if (isSuggestedEditReviewPage && isGuiReviewSE) {
+                if ((isSuggestedEditReviewPage && isGuiReviewSE) || questionContext.is('.js-review-task')) {
                     questionTitle = $('.question-hyperlink,.answer-hyperlink', questionContext).first();
                 }
                 this.questionTitle = questionTitle;
@@ -2628,12 +2630,23 @@
             //Get the link for the post
             var postLinkHref = this.postLinkHref;
             if (!postLinkHref) {
-                if (isGuiReviewSE && isSuggestedEditReviewPage) {
-                    postLinkHref = questionTitle.attr('href');
-                    if (postLinkHref.indexOf('#') === -1) {
-                        postLinkHref = postLinkHref.replace(/(\/\d+)\/[^/]*/, '$1');
-                    } else {
-                        postLinkHref = '/a/' + postLinkHref.match(/#(\d+)$/)[1];
+                if ((isSuggestedEditReviewPage && isGuiReviewSE) || questionContext.is('.js-review-task')) {
+                    ['answer', 'question'].forEach((postType) => {
+                        if (!postLinkHref) {
+                            const dataType = `data-${postType}id`;
+                            const wrapperContext = this.gui.wrapper.closest(`.${postType}answer[${dataType}]`);
+                            if (wrapperContext.length) {
+                                postLinkHref = `/${postType[0]}/${wrapperContext.attr(dataType)}`;
+                            }
+                        }
+                    });
+                    if (!postLinkHref) {
+                        postLinkHref = questionTitle.attr('href');
+                        if (postLinkHref.indexOf('#') === -1) {
+                            postLinkHref = postLinkHref.replace(/(\/\d+)\/[^/]*/, '$1');
+                        } else {
+                            postLinkHref = '/a/' + postLinkHref.match(/#(\d+)$/)[1];
+                        }
                     }
                 } else {
                     postLinkHref = $('.js-share-link', post).attr('href');
@@ -3726,6 +3739,12 @@
                     CVRGUI.cleanAnswers();
                 }
             }
+        }
+        if (isReviewPage) {
+            //Review pages have post menues for other answers, but not the .d-flex container under them, so we add those.
+            $('.js-post-menu').filter(function() {
+                return !$(this).children('.d-flex').length;
+            }).prepend('<div class="d-flex gs8 s-anchors s-anchors__muted fw-wrap"></div>');
         }
         addCvplsToDomForPostType(CVRGUI.questions, 'question');
         addCvplsToDomForPostType(CVRGUI.answers, 'answer');
