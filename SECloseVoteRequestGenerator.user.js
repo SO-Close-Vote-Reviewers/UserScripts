@@ -356,15 +356,21 @@
     var isNatoWithoutEnhancement = false;
     if (isNato) {
         isNatoWithoutEnhancement = true;
-        $('body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td:last-of-type').filter(function() {
-            return !$(this).find('.post-menu, .js-post-menu').length;
-        }).append($('<div class="post-menu cvrgFakePostMenu"></div>'));
-        var rows = $('body.tools-page #mainbar > table.default-view-post-table > tbody > tr');
+        const rows = $('body.tools-page #mainbar > table.default-view-post-table > tbody > tr');
         rows.each(function() {
-            var $this = $(this);
+            const $this = $(this);
             $this.addClass('answer cvrgFakeQuestionContext');
-            $this.attr('data-answerid', $('.answer-hyperlink', $this).attr('href').replace(/^.*#(\d+)$/, '$1'));
+            const answerId = $('.answer-hyperlink', $this).first().attr('href').replace(/^.*#(\d+)$/, '$1');
+            $this.attr('data-answerid', answerId);
+            const lastCellWithoutPostMenu = $this.children('td:last-of-type').filter(function() {
+                return !$(this).find('.post-menu, .js-post-menu').length;
+            });
+            lastCellWithoutPostMenu
+                .append($('<div class="js-post-menu pt2 cvrgFakePostMenu"><div class="d-flex gs8 s-anchors s-anchors__muted fw-wrap"></div></div>')) //The .js-post-menu should be given a data-post-id attribute with the current post number.
+                .find('.js-post-menu')
+                .attr('data-post-id', answerId);
         });
+        /* Disabled: This is currently detecting other things than just NATO Enhancements
         //Observe for a change to the first TD within the first row of the page to detect the NATO Enhancements userscript.
         (new MutationObserver(function(mutations, observer) {
             if (mutations.some((mutation) => (mutation.addedNodes ? mutation.target.nodeName === 'TD' : false))) {
@@ -379,6 +385,7 @@
         })).observe(rows.first().children('td')[0], {
             childList: true,
         }); //Only need to watch the first TD.
+        */
     }
 
     function addNatoIfIsNato(text) {
