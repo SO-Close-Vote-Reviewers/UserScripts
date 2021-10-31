@@ -31,6 +31,8 @@
 // @grant          GM.setValue
 // @grant          GM.deleteValue
 // @grant          GM.addValueChangeListener
+// @updateURL      https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/SECloseVoteRequestGenerator.user.js
+// @downloadURL    https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/SECloseVoteRequestGenerator.user.js
 // ==/UserScript==
 /* jshint jquery:    true */
 /* globals unsafeWindow, StackExchange, Markdown, toStaticHTML, tagRendererRaw, GM_getValue, GM_setValue, GM_deleteValue, GM_addValueChangeListener, GM_openInTab, GM, $, jQuery, makyenUtilities */ // eslint-disable-line no-unused-vars, no-redeclare
@@ -536,7 +538,7 @@
         return key + ' --> ' + reasons.substitutions[key];
     }).join('\r\n');
 
-    var URL = 'https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/CVRG-Mak-new-version/SECloseVoteRequestGenerator.user.js';
+    var URL = 'https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/SECloseVoteRequestGenerator.user.js';
 
     /* linkifyTextURLs was originally highlight text via RegExp
      * Copied by Makyen from Makyen's use of it in MagicTag2, which was copied from Makyen's
@@ -966,7 +968,7 @@
         //Check for updates to the version in SOCVR's userscript repository.
         GM.xmlHttpRequest({
             method: 'GET',
-            url: `https://raw.githubusercontent.com/SO-Close-Vote-Reviewers/UserScripts/CVRG-Mak-new-version/SECloseVoteRequestGenerator.version?CVRGcacheBusting=${Date.now()}`,
+            url: `https://raw.githubusercontent.com/SO-Close-Vote-Reviewers/UserScripts/master/SECloseVoteRequestGenerator.version?CVRGcacheBusting=${Date.now()}`,
             onload: function(response) {
                 const receivedVersion = response.responseText.trim();
                 if (isVersionNewer(receivedVersion, GM.info.script.version)) {
