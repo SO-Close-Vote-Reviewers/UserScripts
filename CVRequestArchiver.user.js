@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      3.1.0
-// @description  Scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests and SD, FireAlarm, Queen, etc. reports for status, then moves the completed or expired ones.
+// @version      3.4.0
+// @description  Moves messages or performs other actions on Chat messages. In some rooms, including SOCVR, it scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests and SD, FireAlarm, Queen, etc. reports for status, then moves the completed or expired ones.
 // @author       @TinyGiant @rene @Tunaki @Makyen
 // @updateURL    https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/CVRequestArchiver.user.js
 // @downloadURL  https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/CVRequestArchiver.user.js
@@ -17,7 +17,8 @@
 /* jshint devel:     true */
 /* jshint esversion: 6 */
 /* jshint esnext: true */
-/* globals CHAT, $, jQuery */
+/* globals CHAT, $, jQuery, popUp */ //eslint-disable-line no-redeclare
+
 
 (function() {
     'use strict';
@@ -42,17 +43,43 @@
     }
     let room;
     let me;
-    let fkey;
     let isChat = false;
     const isSearch = /^\/+search/.test(window.location.pathname);
     const isTranscript = /^\/+transcript\//.test(window.location.pathname);
     const isUsersPage = /^\/+users\//.test(window.location.pathname);
+    const fkey = getFkey();
+
+    function getFkey() {
+        const fkeyFromFunction = window.fkey()?.fkey;
+        if (fkeyFromFunction && typeof fkeyFromFunction === 'string') {
+            return fkeyFromFunction;
+        } //else
+
+        //Try to get the fkey from the HTML. If not available, then get it from storage.
+        const $fkey = $('#fkey');
+        let alternateFkey = null;
+        if (isSearch || isUsersPage) {
+            //#fkey is not available in search and user pages, but is returned as a property value from window.fkey().
+            alternateFkey = getStorage('fkey');
+        } else {
+            if (!$fkey.length) {
+                return null;
+            }
+            alternateFkey = $fkey.val();
+        }
+        if (!alternateFkey) {
+            return null;
+        }
+        return alternateFkey;
+    }
+    setStorage('fkey', fkey);
 
     function startup() {
         if (typeof $ !== 'function') {
             //jQuery doesn't exist yet. Try again later.
             //Should put a limit on the number of times this is retried.
             setTimeout(startup, 250);
+            return;
         }
         room = (/(?:chat(?:\.meta)?\.stack(?:overflow|exchange).com)\/rooms\/(\d+)/.exec(window.location.href) || [false, false])[1];
         isChat = !!room;
@@ -69,21 +96,6 @@
         if (!room && !isUsersPage && !isSearch) {
             return false;
         }
-
-        fkey = $('#fkey');
-        //fkey is not available in search and user pages
-        if (isSearch || isUsersPage) {
-            fkey = isSearch ? getStorage('fkey') : fkey;
-        } else {
-            if (!fkey.length) {
-                return false;
-            }
-            fkey = fkey.val();
-        }
-        if (!fkey) {
-            return false;
-        }
-        setStorage('fkey', fkey);
 
         me = (/\d+/.exec($('#active-user').attr('class')) || [false])[0];
         //Get me from localStorage. (transcript doesn't contain who you are).
@@ -123,37 +135,62 @@
         let messagesToMove = [];
         let events = [];
         let eventsByNum = {};
+        //A location to store the last room in which a message was which was added to the manual move list.
+        //  This is really a hack that will work most of the time. What should really be done here is record
+        //  the room that each message is in and move them separately by room.
+        //  Looks like if they are not all from the same room, but at least one is in the declared move-from room
+        //  then it will move the ones that are in the declared room and silently fail on those that are in any
+        //  other rooms.
+        let roomForMostRecentlyAddedManualMove = getStorage('roomForMostRecentlyAddedManualMove') || 0;
 
         const nodes = {};
         let avatarList = getStorageJSON('avatarList') || {};
         const $body = $(document.body);
         const nKButtonEntriesToScan = 3000;
-        //XXX User Id's are different on the 3 separate Chat servers. Thus, this needs to be expanded into a record for IDs on all
-        //  servers ans selected based on the one we're on. However, they are currently only used for creating the RequestTypes, which
-        //  are part of the functionality that's currently only enabled on chat.SO. When that is re-written to be usable on other
-        //  sites, or when these are used in some other manner, this will need to be expanded.
-        const knownUserIds = {
-            fireAlarm: 6373379,
-            smokeDetector: 3735529,
-            queen: 6294609,
-            fox9000: 3671802,
-            yam: 5285668,
-            panta: 1413395,
-        };
-        const parser = new DOMParser();
-
-        //Define Target Room Sets
-
         const soChat = 'chat.stackoverflow.com';
         const seChat = 'chat.stackexchange.com';
         const mseChat = 'chat.meta.stackexchange.com';
+        //User ID's are different on the 3 separate Chat servers.
+        //  If a user ID is not defined here for a particular server, then the RequestTypes which use it will not perform that portion of the testing for that
+        //  request type. This could result in erroneous operation.
+        const knownUserIdsByChatSite = {
+            [soChat]: {
+                fireAlarm: 6373379,
+                smokeDetector: 3735529,
+                queen: 6294609,
+                fox9000: 3671802,
+                yam: 5285668,
+                panta: 1413395,
+            },
+            [seChat]: {
+                fireAlarm: 212669,
+                smokeDetector: 120914,
+                queen: null, //No account found
+                fox9000: 118010,
+                yam: 323209,
+                panta: 141258,
+            },
+            [mseChat]: {
+                fireAlarm: 330041,
+                smokeDetector: 266345,
+                queen: null, //No account found
+                fox9000: 261079,
+                yam: 278816,
+                panta: 186472,
+            },
+        };
+        const parser = new DOMParser();
+        let replyNode = $();
+
+        //Define Target Room Sets
+
         //const trashcanEmoji = String.fromCodePoint(0x1F5D1) + String.fromCodePoint(0xFE0F);
         const trashcanEmoji = String.fromCodePoint(0x1F5D1);
-        function TargetRoom(_roomNumber, _server, _fullName, _shortName, _displayed, _classInfo, _options) {
+        function TargetRoom(_roomNumber, _chatServer, _fullName, _shortName, _displayed, _classInfo, _options) {
             //A class for target rooms.
             _options = (typeof _options === 'object' && _options !== null) ? _options : {};
             this.roomNumber = _roomNumber;
-            this.server = _server;
+            this.chatServer = _chatServer;
             this.fullName = _fullName;
             this.shortName = _shortName;
             this.displayed = _displayed;
@@ -178,22 +215,27 @@
             noUI: {showAsTarget: true, showMeta: true, showDeleted: true, showUI: false},
             onlyDeleted: {showAsTarget: false, showMeta: false, showDeleted: true, showUI: false},
         };
-        const targetRoomSets = [
-            {//SO Chat Default
-                name: 'SO Chat Default',
-                primeRoom: 99999999,
-                server: soChat,
-                isSiteDefault: true,
-                defaultTargetRoom: 23262,
-                rooms: makeRoomsByNumberObject([
-                    //Trash can
-                    new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
-                ]),
+        const soChatScanning = {
+            //On Chat.SO the following are the same for all room sets.
+            //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
+            mainSite: 'stackoverflow.com',
+            mainSiteSEApiParam: 'stackoverflow', //How to identify the main site to the SE API.
+            mainSiteRegExpText: 'stackoverflow\\.com',
+            regExp: {
+                //Various other RegExp are constructed and added to this list.
+                //chatMetaElimiation is used to remove chat and meta from detection by the RegExp looking for links to the main site.
+                //  The meta site is most important here. This is used due to the lack of look-behind in JavaScript RegExp.
+                chatMetaElimiation: /(?:meta|chat)\.stackoverflow\.com\/?/g,
             },
+        };
+        const targetRoomSets = [
+
+            //SO CHAT
+
             {//SOCVR
                 name: 'SOCVR',
                 primeRoom: 41570,
-                server: soChat,
+                chatServer: soChat,
                 defaultTargetRoom: 90230,
                 rooms: makeRoomsByNumberObject([
                     //SOCVR
@@ -204,14 +246,27 @@
                     new TargetRoom(126195, soChat, 'SOCVR /dev/null', 'Null', 'N', 'Null', commonRoomOptions.allTrue),
                     //Testing Facility
                     new TargetRoom(68414, soChat, 'SOCVR Testing Facility', 'Testing', 'Te', 'Test', commonRoomOptions.allTrue),
+                    //The Ministry of Silly Hats
+                    //The "М" in 'Мinistry' is not actual capital M to have the Ministry sorted to the end of the room order.
+                    new TargetRoom(92764, soChat, 'The Ministry of Silly Hats', 'Мinistry', 'M', 'Minist', commonRoomOptions.noUI),
                     //Private for SD posts that have especially offensive content.
                     new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
+                //Semi-auto scanning:
+                //On Chat.SO, many of the properties are common for all rooms. Those are in soChatScanning. However,
+                //  includedRequestTypes and excludedRequestTypes may vary per room.
+                //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
+                //includedRequestTypes: [],
+                //An optional list of RequestTypes keys (String). If it exists, these are excluded from RequestTypes used.
+                //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
+                excludedRequestTypes: [
+                ],
+                useCrudeRequestTypes: false,
             },
             {//SOBotics
                 name: 'SOBotics',
                 primeRoom: 111347,
-                server: soChat,
+                chatServer: soChat,
                 defaultTargetRoom: 170175,
                 rooms: makeRoomsByNumberObject([
                     //SOBotics
@@ -222,43 +277,185 @@
                     new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
                 ]),
             },
-            {//SE Chat Default
-                name: 'SE Chat Default',
-                primeRoom: 99999999,
-                server: seChat,
-                isSiteDefault: true,
-                defaultTargetRoom: 19718,
+            {//Python
+                name: 'Python',
+                primeRoom: 6,
+                chatServer: soChat,
+                defaultTargetRoom: 71097,
                 rooms: makeRoomsByNumberObject([
-                    //Trash
-                    new TargetRoom(19718, soChat, 'Trash (room 19718: requires access)', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI), //User must have access.
-                    //Trash
-                    new TargetRoom(82806, seChat, 'Trash (room 82806)', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    //SOBotics
+                    new TargetRoom(6, soChat, 'Python', 'Python', 'P', 'Py', commonRoomOptions.noUI),
+                    //Python Ouroboros - The Rotating Knives: The Python room's default trash bin.
+                    new TargetRoom(71097, soChat, 'Python Ouroboros - The Rotating Knives', 'Ouroboros', 'O', 'Ouroboros', commonRoomOptions.noUI),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'T', 'Private', commonRoomOptions.noUI),
+                    //Trash can
+                    new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
                 ]),
             },
+            {//SO Chat Default
+                name: 'SO Chat Default',
+                primeRoom: 99999999,
+                chatServer: soChat,
+                isSiteDefault: true,
+                defaultTargetRoom: 23262,
+                rooms: makeRoomsByNumberObject([
+                    //Trash can
+                    new TargetRoom(23262, soChat, 'Trash can', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(170175, soChat, 'Private Trash', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                    new TargetRoom(109494, soChat, 'friendly bin', 'friendly', 'f', 'friendly', commonRoomOptions.noUI),
+                ]),
+            },
+
+
+            //SE CHAT
+
             {//Charcoal HQ
                 name: 'Charcoal HQ',
                 primeRoom: 11540,
-                server: seChat,
+                chatServer: seChat,
                 defaultTargetRoom: 82806,
                 rooms: makeRoomsByNumberObject([
                     //Charcoal HQ
                     new TargetRoom(11540, seChat, 'Charcoal HQ', 'Charcoal', 'C', 'CHQ', commonRoomOptions.noUI),
                     //Charcoal Test
                     new TargetRoom(65945, seChat, 'Charcoal Test', 'Test', 'CT', 'Test', commonRoomOptions.noUI),
-                    //Trash
-                    new TargetRoom(82806, seChat, 'Trash (room 82806)', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
-                    //Trash
-                    new TargetRoom(19718, seChat, 'Trash (room 19718: requires access)', 'Trash', 'T', 'Trash 19', commonRoomOptions.noUI),
+                    //Trash (public; not frozen)
+                    new TargetRoom(82806, seChat, 'Trash', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    //Trash 19718 (Gallery mode; ROs of other rooms are given explicit write access; currently frozen: 2021-10-28)
+                    new TargetRoom(19718, seChat, 'Trash (requires access)', 'Trash', 'T', 'Trash 19', commonRoomOptions.noUI),
                     //trash
-                    new TargetRoom(57121, seChat, 'trash (room 57121)', 'trash', 't', 'trash 57', commonRoomOptions.noUI),
+                    //Room is frozen
+                    //new TargetRoom(57121, seChat, 'trash (room 57121)', 'trash', 't', 'trash 57', commonRoomOptions.noUI),
                     //Private for SD posts that have especially offensive content.
-                    new TargetRoom(658, seChat, 'Private Trash (Trashcan)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
                 ]),
+            },
+            {//CRCQR
+                name: 'CRCQR',
+                primeRoom: 85306,
+                chatServer: seChat,
+                defaultTargetRoom: 86076,
+                rooms: makeRoomsByNumberObject([
+                    //CRCQR
+                    new TargetRoom(85306, soChat, 'CRCQR', 'CRCQR', 'C', 'CRCQR', commonRoomOptions.allTrue),
+                    //CRCQR Graveyard
+                    new TargetRoom(86076, soChat, 'CRCQR Request Graveyard', 'Graveyard', 'G', 'Grave', commonRoomOptions.allTrue),
+                    //CRCQR /dev/null
+                    new TargetRoom(86077, soChat, 'CRCQR /dev/null', 'Null', 'N', 'Null', commonRoomOptions.allTrue),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                ]),
+                //Semi-auto scanning:
+                //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
+                mainSite: 'codereview.stackexchange.com',
+                mainSiteSEApiParam: 'codereview', //How to identify the main site to the SE API.
+                mainSiteRegExpText: 'codereview\\.stackexchange\\.com',
+                regExp: {
+                    //Various other RegExp are constructed and added to this list.
+                    //chatMetaElimiation is used to remove chat and meta from detection by the RegExp looking for links to the main site.
+                    //  The meta site is most important here. This is used due to the lack of look-behind in JavaScript RegExp.
+                    chatMetaElimiation: /meta\.codereview\.stackexchange\.com\/?/g, //This is the old meta domain, but is considered an alias by SE.
+                },
+                //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
+                //includedRequestTypes: [],
+                //An optional list of RequestTypes keys (String). If it exists, these are excluded from RequestTypes used.
+                //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
+                excludedRequestTypes: [
+                ],
+                useCrudeRequestTypes: false,
+            },
+            {//CRUDE
+                name: 'CRUDE',
+                primeRoom: 2165,
+                chatServer: seChat,
+                defaultTargetRoom: 88696,
+                rooms: makeRoomsByNumberObject([
+                    //CRUDE
+                    new TargetRoom(2165, soChat, 'CRUDE', 'CRUDE', 'C', 'CRUDE', commonRoomOptions.allTrue),
+                    //CRUDE Archive
+                    new TargetRoom(88696, soChat, 'CRUDE Archive', 'Archive', 'A', 'Archive', commonRoomOptions.allTrue),
+                    //Trash
+                    new TargetRoom(82806, seChat, 'Trash', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    //Private for SD posts that have especially offensive content.
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                ]),
+                //Semi-auto scanning:
+                //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
+                mainSite: 'math.stackexchange.com',
+                mainSiteSEApiParam: 'math', //How to identify the main site to the SE API.
+                mainSiteRegExpText: 'math\\.stackexchange\\.com',
+                regExp: {
+                    //Various other RegExp are constructed and added to this list.
+                    //chatMetaElimiation is used to remove chat and meta from detection by the RegExp looking for links to the main site.
+                    //  The meta site is most important here. This is used due to the lack of look-behind in JavaScript RegExp.
+                    chatMetaElimiation: /meta\.math\.stackexchange\.com\/?/g, //This is the old meta domain, but is considered an alias by SE.
+                },
+                //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
+                //includedRequestTypes: [],
+                //An optional list of RequestTypes keys (String). If it exists, these are excluded from RequestTypes used.
+                //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
+                excludedRequestTypes: [
+                ],
+                useCrudeRequestTypes: true,
+            },
+            {//SE Chat Default
+                name: 'SE Chat Default',
+                primeRoom: 99999999,
+                chatServer: seChat,
+                isSiteDefault: true,
+                defaultTargetRoom: 19718,
+                rooms: makeRoomsByNumberObject([
+                    //Trash
+                    new TargetRoom(19718, soChat, 'Trash (requires access)', 'Trash', trashcanEmoji, 'Trash', commonRoomOptions.noUI), //User must have access.
+                    //Trash
+                    new TargetRoom(82806, seChat, 'Trash', 'Trash', 'Tr', 'Trash 82', commonRoomOptions.noUI),
+                    //Private trash.
+                    new TargetRoom(658, seChat, 'Private Trash (Trashcan; mod-private)', 'Private', 'P', 'Private', commonRoomOptions.noUI),
+                ]),
+            },
+
+            //MSE CHAT
+
+            {//Tavern on the Meta
+                name: 'Tavern on the Meta',
+                primeRoom: 89,
+                chatServer: mseChat,
+                defaultTargetRoom: 1037,
+                rooms: makeRoomsByNumberObject([
+                    //Tavern on the Meta
+                    new TargetRoom(89, mseChat, 'Tavern on the Meta', 'Tavern', 'Ta', 'Tavern', commonRoomOptions.allTrue),
+                    //Chimney
+                    new TargetRoom(1037, mseChat, 'Chimney', 'Chimney', 'C', 'Chimney', commonRoomOptions.allTrue),
+                    //Sandbox/Trash Bin/Something
+                    new TargetRoom(1196, mseChat, 'Sandbox/Trash Bin/Something', 'Something', 'S', 'Something', commonRoomOptions.noUI),
+                    //Trashcan
+                    new TargetRoom(1251, mseChat, 'Trashcan', 'Trashcan', 'Tr', 'Trashcan', commonRoomOptions.noUI),
+                ]),
+                //Semi-auto scanning:
+                //The following properties are needed to have the archiver semi-automatically scan for messages to archive.
+                mainSite: 'meta.stackexchange.com',
+                mainSiteSEApiParam: 'meta', //How to identify the main site to the SE API.
+                mainSiteRegExpText: 'meta\\.stackexchange\\.com',
+                regExp: {
+                    //Various other RegExp are constructed and added to this list.
+                    //chatMetaElimiation is used to remove chat and meta from detection by the RegExp looking for links to the main site.
+                    //  This is used due to the lack of look-behind in JavaScript RegExp.
+                    chatMetaElimiation: /chat\.meta\.stackexchange\.com\/?/g, //This is the chat domain.
+                },
+                //An optional list of RequestTypes keys (String). If it exists, only the listed RequestTypes are included.
+                //includedRequestTypes: [],
+                //An optional list of RequestTypes keys (String). If it exists, these are excluded from RequestTypes used.
+                //  The exclusion happens after inclusion, so keys listed here will not be included even if in includedRequestTypes.
+                excludedRequestTypes: [
+                ],
+                useCrudeRequestTypes: false,
             },
             {//Meta SE Chat Default
                 name: 'Meta SE Chat Default',
                 primeRoom: 99999999,
-                server: mseChat,
+                chatServer: mseChat,
                 isSiteDefault: true,
                 defaultTargetRoom: 19718,
                 rooms: makeRoomsByNumberObject([
@@ -266,26 +463,15 @@
                     new TargetRoom(1196, mseChat, 'Sandbox/Trash Bin/Something', 'Something', trashcanEmoji, 'Something', commonRoomOptions.noUI),
                 ]),
             },
-            {//Tavern on the Meta
-                name: 'Tavern on the Meta',
-                primeRoom: 89,
-                server: mseChat,
-                defaultTargetRoom: 1037,
-                rooms: makeRoomsByNumberObject([
-                    //Tavern on the Meta
-                    new TargetRoom(89, mseChat, 'Tavern on the Meta', 'Tavern', 'Ta', 'Tavern', commonRoomOptions.noUI),
-                    //Chimney
-                    new TargetRoom(1037, mseChat, 'Chimney', 'Chimney', 'C', 'Chimney', commonRoomOptions.noUI),
-                    //Sandbox/Trash Bin/Something
-                    new TargetRoom(1196, mseChat, 'Sandbox/Trash Bin/Something', 'Something', 'S', 'Something', commonRoomOptions.noUI),
-                    //Trashcan
-                    new TargetRoom(1251, mseChat, 'Trashcan', 'Trashcan', 'Tr', 'Trashcan', commonRoomOptions.noUI),
-                ]),
-            },
         ];
+        targetRoomSets.forEach((roomSet) => {
+            if (roomSet.chatServer === soChat) {
+                Object.assign(roomSet, soChatScanning);
+            }
+        });
         const defaultDisabledTargetRoomSet = {
             primeRoom: 999999998,
-            server: window.location.hostname,
+            chatServer: window.location.hostname,
             defaultTargetRoom: 999999999,
             rooms: makeRoomsByNumberObject([
                 //Nowhere
@@ -293,7 +479,7 @@
                 new TargetRoom(999999999, window.location.hostname, 'Disabled', 'Disabled', 'D', 'Disabled', commonRoomOptions.onlyDeleted),
             ]),
         };
-        const siteTargetRoomSets = targetRoomSets.filter(({server}) => server === window.location.hostname);
+        const siteTargetRoomSets = targetRoomSets.filter(({chatServer}) => chatServer === window.location.hostname);
 
         // Determine the set of target rooms to use.
         const targetRoomSet = (siteTargetRoomSets.find((roomSet) => roomSet.rooms[room]) || siteTargetRoomSets.find(({isSiteDefault}) => isSiteDefault) || defaultDisabledTargetRoomSet);
@@ -320,7 +506,7 @@
         const currentRoomTargetInfo = targetRoomsByRoomNumber[room] || new TargetRoom(room, window.location.hostname, 'Default', 'Default', 'D', 'Default', commonRoomOptions.noUI);
         //The current room is not a valid room target.
         delete targetRoomsByRoomNumber[room];
-        //Remove any target rooms which are not to be used as a target.
+        //Remove any group rooms which are not to be used as a target.
         Object.keys(targetRoomsByRoomNumber).forEach((key) => {
             if (!targetRoomsByRoomNumber[key].showAsTarget) {
                 delete targetRoomsByRoomNumber[key];
@@ -328,15 +514,43 @@
         });
         //The order in which we want to display the controls. As it happens, an alpha-sort based on shortName works well.
         const targetRoomsByRoomNumberOrder = Object.keys(targetRoomsByRoomNumber).sort((a, b) => targetRoomsByRoomNumber[a].shortName > targetRoomsByRoomNumber[b].shortName);
+        const knownUserIds = knownUserIdsByChatSite[targetRoomSet.chatServer];
+        if (targetRoomSet.regExp) {
+            //Match and capture the ID for questions, answers, and posts URLs.
+            //e.g. /stackoverflow\.com\/(?:q[^\/]*|posts|a[^\/]*)\/+(\d+)/g
+            targetRoomSet.regExp.questionAnswerPostsId = new RegExp(`${targetRoomSet.mainSiteRegExpText}/(?:q[^/]*|posts|a[^/]*)/+(\\d+)`, 'g');
+            //The above will preferentially obtain questions over some answer URL formats: e.g.
+            //    https://stackoverflow.com/questions/7654321/foo-my-baz/1234567#1234567
+            //  That's good for cv-pls/reopen-pls, but for other types of requests we should be considering the answer instead, if the URL is the alternate answer URL.
+            //e.g. /(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"'])/g
+            targetRoomSet.regExp.answerIdFromQuestionUrl = new RegExp(`(?:^|[\\s\"\'])(?:(?:https?:)?(?:(?://)?(?:www\\.|//)?${targetRoomSet.mainSiteRegExpText}/))(?:q[^/]*|posts)[^\\s#]*#(\\d+)(?:$|[\\s"'])`, 'g'); // eslint-disable-line no-useless-escape
+            //Detect a comment URL
+            //e.g. /(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts|a)[^\s#]*#comment(\d+)(?:$|[\s"'_])/g
+            targetRoomSet.regExp.commentIdFromUrl = new RegExp(`(?:^|[\\s\"\'])(?:(?:https?:)?(?:(?://)?(?:www\\.|//)?${targetRoomSet.mainSiteRegExpText}/))(?:q[^/]*|posts|a)[^\\s#]*#comment(\\d+)(?:$|[\\s\"\'_])`, 'g'); // eslint-disable-line no-useless-escape
+        }
 
         //The UI doesn't currently function on sites other than chat.SO.
-        const showUI = (window.location.hostname === soChat && currentRoomTargetInfo.showUI) && !isTranscript && !isSearch;
+        const roomGroupStringPropertyKeysRequiredForUI = [
+            'mainSite',
+            'mainSiteSEApiParam',
+            'mainSiteRegExpText',
+        ];
+        const roomGroupRegExpPropertyKeysRequiredForUI = [
+            'chatMetaElimiation',
+            'questionAnswerPostsId',
+            'answerIdFromQuestionUrl',
+            'commentIdFromUrl',
+        ];
+        //Only show the UI if the target room specifies it, it's chat and enough information exists and is minimally valid.
+        const showUI = currentRoomTargetInfo.showUI && isChat && targetRoomSet.regExp &&
+            roomGroupStringPropertyKeysRequiredForUI.every((key) => typeof targetRoomSet[key] === 'string') &&
+            roomGroupRegExpPropertyKeysRequiredForUI.every((key) => targetRoomSet.regExp[key] instanceof RegExp);
         const showDeleted = currentRoomTargetInfo.showDeleted;
         const showMeta = currentRoomTargetInfo.showMeta || isUsersPage || (isSearch && !room);
         const addedMetaHtml = makeMetaRoomTargetsHtml();
         if (isUsersPage || (isSearch && !room)) {
             //There is no set room, so want to make sure we have user info for at least all the
-            //  rooms for which we have in a room target set for this server.
+            //  rooms for which we have in a room target set for this chatServer.
             const additionalUserInfoFetches = [];
             Object.keys(siteAllRooms).forEach((roomId, index) => {
                 if (typeof roRooms[roomId] !== 'boolean') {
@@ -379,16 +593,16 @@
         //Match if they get at least 2 characters of pls, just pl, or 1 extra character
         const please = '(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)';
         const hrefUrlTag = '(?:tagged\\/';
-        const endHrefToPlainText = '"|\\[(?:tag\\W?)?';
+        const endHrefToPlainText = '"|\\[(?:(?:meta-)?tag\\W?)?';
 
-        const endPlainTextToEndWithQuestion = '\\]).*stackoverflow\\.com\\/(?:[qa][^\\/]*|posts)\\/+(\\d+)';
-        const questionUrlToHrefTag = 'stackoverflow\\.com\\/(?:[qa][^\\/]*|posts)\\/+(\\d+).*(?:tagged\\/';
-        const endPlainTextToEndWithQuestionOrReview = '\\]).*stackoverflow\\.com\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+)';
-        const questionOrReviewUrlToHrefTag = 'stackoverflow\\.com\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+).*(?:tagged\\/';
+        const endPlainTextToEndWithQuestion = `\\]).*?${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts)\\/+(\\d+)`;
+        const questionUrlToHrefTag = `${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts)\\/+(\\d+).*(?:tagged\\/`;
+        const endPlainTextToEndWithQuestionOrReview = `\\]).*?${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+)`;
+        const questionOrReviewUrlToHrefTag = `${targetRoomSet.mainSiteRegExpText}\\/(?:[qa][^\\/]*|posts|review\\/[\\w-]+)\\/+(\\d+).*(?:tagged\\/`;
 
         const endPlainTextToEnd = '\\])';
         const endHrefPrefixToSpanText = '[^>]*><span[^>]*>';
-        const endSpanTextToPlainText = '<\\/span>|\\[(?:tag\\W?)?';
+        const endSpanTextToPlainText = '<\\/span>|\\[(?:(?:meta-)?tag\\W?)?';
 
         function makeTagRegExArray(prefix, additional, includeReviews) {
             prefix = typeof prefix === 'string' ? prefix : '';
@@ -407,9 +621,9 @@
                 ((includeReviews ? questionOrReviewUrlToHrefTag : questionUrlToHrefTag) + prefix + endHrefPrefixToSpanText + prefix + additional + endSpanTextToPlainText + prefix + additional + endPlainTextToEnd),
             ].join('|')) + ')';
             return [new RegExp(regexText, 'i')];
-            //Example produced from cv-pls:
-            //2018-10-04: https://regex101.com/r/ZVG2AE/1/
-            //(?:(?:tagged\/cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:tag\W?)?cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+).*(?:tagged\/cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:tag\W?)?cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\])|(?:tagged\/cv-[^>]*><span[^>]*>cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:tag\W?)?cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts)\/(\d+).*(?:tagged\/cv-[^>]*><span[^>]*>cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:tag\W?)?cv-(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]))
+            //Example produced from cv-pls (excludes the dup request types added to cvRegexes):
+            //2019-08-23: https://regex101.com/r/VbNPrg/1
+            //(?:(?:tagged\/(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:(?:meta-)?tag\W?)?(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*?stackoverflow\.com\/(?:[qa][^\/]*|posts)\/+(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts)\/+(\d+).*(?:tagged\/(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)"|\[(?:(?:meta-)?tag\W?)?(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\])|(?:tagged\/(?:cv|closev?)-?[^>]*><span[^>]*>(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:(?:meta-)?tag\W?)?(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]).*?stackoverflow\.com\/(?:[qa][^\/]*|posts)\/+(\d+)|stackoverflow\.com\/(?:[qa][^\/]*|posts)\/+(\d+).*(?:tagged\/(?:cv|closev?)-?[^>]*><span[^>]*>(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)<\/span>|\[(?:(?:meta-)?tag\W?)?(?:cv|closev?)-?(?:pl(?:ease|s|z)|p.?[sz]|.l[sz]|pl.?|.pl[sz]|p.l[sz]|pl.[sz]|pl[sz].)\]))/i
         }
 
         function makeActualTagWithoutQuestionmarkRegExArray(prefix, additional) {
@@ -422,18 +636,18 @@
             return [new RegExp(regexText, 'i')];
         }
 
-        const cvRegexes = makeTagRegExArray('cv-', please);
-        const deleteRegexes = makeTagRegExArray('d(?:el(?:ete)?)?(?:v)?-?(?:vote)?-', please);
-        const undeleteRegexes = makeTagRegExArray('un-?del(?:ete)?(?:v)?-?(?:vote)?(?:-?answers?|-?questions?)?-', please);
-        const reopenRegexes = makeTagRegExArray('(?:re-?)?open-', please);
+        const cvRegexes = makeTagRegExArray('(?:cv|closev?|cls)-?', please).concat(makeTagRegExArray('(?:dup(?:licate)?)-?', please), makeTagRegExArray('(?:dup(?:licate)?)-?'));
+        const deleteRegexes = makeTagRegExArray('d(?:el(?:ete|etion)?)?(?:v)?-?(?:vote)?-?', please);
+        const undeleteRegexes = makeTagRegExArray('un-?del(?:ete|etion)?(?:v)?-?(?:vote)?(?:-?answers?|-?questions?)?-?', please);
+        const reopenRegexes = makeTagRegExArray('(?:re-?)?open-?', please);
         const duplicateRegexes = makeTagRegExArray('pos?sib(?:le|el)-dup(?:e|licate)?');
-        const flagRegexes = makeTagRegExArray('(?:re-?)?flag-', please);
-        const flagAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('(?:re-?)?flag-', please);
+        const flagRegexes = makeTagRegExArray('(?:re-?)?flag-?', please);
+        const flagAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('(?:re-?)?flag-?', please);
         const spamRegexes = makeTagRegExArray('spam');
         const spamAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('spam');
         const offensiveRegexes = makeTagRegExArray('(?:off?en[cs]ive|rude|abb?u[cs]ive)');
         const offensiveAsTagRegexes = makeActualTagWithoutQuestionmarkRegExArray('(?:off?en[cs]ive|rude|abb?u[cs]ive)');
-        const approveRejectRegexes = makeTagRegExArray('(?:app?rove?|reject|rev[ie]+w)-(?:edit-?)?', please, true);
+        const approveRejectRegexes = makeTagRegExArray('(?:app?rove?|reject|rev[ie]+w)-?(?:edit-?)?', please, true);
         // FireAlarm reports
         const faRegexes = [
             /(?:\/\/stackapps\.com\/q\/7183\">FireAlarm(?:-Swift)?)/, // eslint-disable-line no-useless-escape
@@ -441,11 +655,31 @@
         ];
         //We need to choose if we want more SD commands to be archived.
         //We probably don't want to archive: (?!blame|lick|wut|coffee|tea|brownie)
-        //const sdBangBangCommandsRegEx = /^\s*!!\/(?!blame|lick|wut|coffee|tea|brownie)/i;
-        const sdBangBangCommandsRegEx = /^\s*!!\/(?:report|scan|feedback)/i;
-        // https://regex101.com/r/RJbnbS/1
-        const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why))?u?-?)+\s*$/i;
+        const sdBangBangCommandsRegEx = /^\s*(?:!!\/|sdc )(?:report|scan|feedback)/i;
+        // https://regex101.com/r/3M6xoA/1/
+        const sdFeedbacksRegEx = /^(?:@SmokeD?e?t?e?c?t?o?r?|\s*sd)(?:\s+\d*(?:k|v|n|naa|fp?|tp?|spam|rude|abus(?:iv)?e|offensive|v|vand|vandalism|notspam|true|false|ignore|del|delete|remove|gone|postgone|why\??|-)u?-?)+\s*.*$/i;
         const editMonitorRegEx = /bad edit/i;
+        const crudeCloseRegexes = makeTagRegExArray('(?:cv|closev?)-?');
+        const aHrefQAPRtag = `<a href=\"(?:https?:)?\/\/${targetRoomSet.mainSiteRegExpText}/(?:[qa][^/]*|posts|review/[\\w-]+)/+(\\d+)[^>]*>`; // eslint-disable-line no-useless-escape
+        const aHrefQAPRtagWithS = aHrefQAPRtag + '\\s*';
+        const endOfCrudeXnRegex = '(?:\\d+|[a-z])(?:\\s*:\\s*</b>[^<]*)?</a>\\W*(?:<br/?>)?\\W*)+$';
+        //The CRUDE Xn regexes are based off of:
+        //  https://regex101.com/r/GHYTaY/1
+        const crudeCloseCnRegexes = [
+            new RegExp(`^\\s*(?:for\\W*)?(?:close|closure)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:c(?:lose)?)${endOfCrudeXnRegex}`, 'i'), // eslint-disable-line no-useless-escape
+        ];
+        const crudeReopenRegexes = makeTagRegExArray('re-?openv?-?');
+        const crudeReopenRnRegexes = [
+            new RegExp(`^\\s*(?:for\\W*)?(?:reopen|unclose)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:r(?:eopen)?)${endOfCrudeXnRegex}`, 'i'), // eslint-disable-line no-useless-escape
+        ];
+        const crudeDeleteRegexes = makeTagRegExArray('d(?:el(?:ete|etion)?)?(?:v)?-?(?:vote)?-?');
+        const crudeDeleteDnRegexes = [
+            new RegExp(`^\\s*(?:for\\W*)?(?:delete|deletion)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:d(?:el(?:ete)?)?)${endOfCrudeXnRegex}`, 'i'), // eslint-disable-line no-useless-escape
+        ];
+        const crudeUndeleteRegexes = makeTagRegExArray('un?-?d(?:el(?:ete|etion)?)?(?:v)?-?(?:vote)?-?');
+        const crudeUndeleteUnRegexes = [
+            new RegExp(`^\\s*(?:for\\W*)?(?:undelete|undeletion)?\\W*(?:\\s*${aHrefQAPRtagWithS}(?:<b>)?\\s*(?:un?-?(?:del(?:ete)?)?)${endOfCrudeXnRegex}`, 'i'), // eslint-disable-line no-useless-escape
+        ];
 
         /* The RequestTypes Object contains definitions for the detections which are used to determine if a message should be archived.
            Each detection should be a separate key containing an Object which defines the detection. The keys within that Object define
@@ -468,7 +702,7 @@
                 andRegexes: Array of RegExp | RegExp
                     Additional RegExps which must also have a match. The RegExp are tested against the HTML with <code> removed.
                 archiveParentWithThis: Boolean (truthy)
-                    If true, then parents (messages to which these are a direct reply) are archive which the matching messages.
+                    If true, then parents (messages to which these are a direct reply) are archived with the matching messages.
                 archiveWithChildren: Boolean (truthy)
                     Archive this message when any direct response to it (it's children) are archived.
                 archiveWithNextFromUserId: userId (Number)
@@ -486,7 +720,7 @@
                 onlyQuestions: Boolean (truthy)
                     The posts associated with this type can only point to questions. Any URLs which include information about both the question
                     and an answer, a comment or an answer and a comment will be reduced the the question. This does not, currently, look for questions
-                    associated with answers when only the answer is specified in the URL (e.g. //stackoverflow/a/123456)
+                    associated with answers when only the answer is specified in the URL (e.g. //stackoverflow.com/a/123456)
                 primary: Boolean (truthy)
                     This type is considered primary (not currently used, theses are manually defined, so there is a known order).
                 regexes: Array of RegExp | RegExp
@@ -494,7 +728,7 @@
                 replyToTypeKeys: Array of String
                     Matches if this is a reply to the specified type.
                 textRegexes: Array of RegExp | RegExp
-                    At least one of which must match the `.text()` content of the message with all <code> removed.
+                    At least one of which must match the `.text()` content of the message with all <code> removed, and all meta and chat links removed.
                 underAgeTypeKey: String (a RequestTypes key)
                     When the message is under the "alwaysArchiveAfterSeconds", treat matching messages as if they were of the specified type.
                     The RequestTypes is specified as the type's key.
@@ -542,10 +776,10 @@
                 primary: true,
                 regexes: approveRejectRegexes,
                 alwaysArchiveAfterSeconds: 2 * SECONDS_IN_HOUR, //2 hours
-                //This really should have a separate call the the SE API to get review information, where possible.
+                //This really should have a separate call to the SE API to get review information, where possible.
                 underAgeTypeKey: 'DELETE',
             },
-            QUEEN_SOCVFINDER: { //QUEEN: SOCVFinder
+            QUEEN_SOCVFINDER: {//QUEEN: SOCVFinder
                 name: 'Queen: SOCVFinder',
                 regexes: duplicateRegexes,
                 alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
@@ -569,7 +803,7 @@
                 underAgeTypeKey: 'DELETE',
                 onlyComments: true,
             },
-            EDITMONITOR: { // Monitors edits in the suggested edit queue
+            EDITMONITOR: {// Monitors edits in the suggested edit queue
                 name: 'Edit Monitor reports',
                 userIdMatch: knownUserIds.fox9000,
                 regexes: [editMonitorRegEx],
@@ -577,7 +811,7 @@
                 //This really should have a separate call to the SE API to get review information, where possible.
                 underAgeTypeKey: 'DELETE',
             },
-            YAM: { // Monitors cv-pls requests for edits above a threshold.
+            YAM: {// Monitors cv-pls requests for edits above a threshold.
                 name: 'Yam requested question change reports',
                 userIdMatch: knownUserIds.yam,
                 textRegexes: [/\d+%\s*changed\b/i],
@@ -597,9 +831,15 @@
                         //Expires SD reports with >= 1 false positive feedbacks.
                         return $('#message-' + event.message_id + ' > .ai-information .ai-feedback-info-fp').first().text() >= 1;
                     },
+                    //Relies on AIM.
+                    function(event) {
+                        //Expires SD reports marked with the ai-deleted class (i.e. AIM thinks it's deleted).
+                        return !!$('#message-' + event.message_id + ' > .content.ai-deleted').length;
+                    },
                     //Relies on both AIM and an updated version of the Unclosed Request Review Script
                     function(event) {
                         //Expires SD reports with >= 1 tp- feedbacks that have been edited since the message was posted.
+                        //  e.g. a vandalism report that has been reverted.
                         const message = $('#message-' + event.message_id).first();
                         //Relies on an updated version of the Unclosed Request Generator
                         const requestInfo = $('.request-info a', message).first();
@@ -611,7 +851,7 @@
                         lastEditDate = lastEditDate ? +lastEditDate : 0;
                         const aimHoverTpuText = aimHoverTpu.text();
                         const aimHoverTpuTitle = aimHoverTpu.attr('title');
-                        if (lastEditDate > event.time_stamp && aimHoverTpuText >= 1 && /^tp-:/.test(aimHoverTpuTitle)) {
+                        if (lastEditDate > event.time_stamp && aimHoverTpuText >= 1 && /^tp-?:/.test(aimHoverTpuTitle)) {
                             return true;
                         } // else
                         return false;
@@ -652,6 +892,14 @@
                 archiveWithChildren: true,
                 underAgeTypeKey: 'DELETE',
             },
+            SMOKEDETECTOR_REPLY_TO_REPORT: {
+                name: 'SmokeDetector reply to report',
+                replyToTypeKeys: [
+                    'SMOKEDETECTOR_NOCONTENT',
+                    'SMOKEDETECTOR',
+                ],
+                archiveWithParent: true,
+            },
             PANTA_SMOKEDETECTOR_FEEDBACK_TRAINING: {
                 name: 'Panta SmokeDetector Training feedback',
                 userIdMatch: knownUserIds.panta,
@@ -663,7 +911,97 @@
                 archiveWithParent: true,
                 archiveWithPreviousFromUserId: knownUserIds.smokeDetector,
             },
+            CRUDE_CLOSE: {
+                name: 'CRUDE Close',
+                regexes: crudeCloseRegexes,
+                onlyQuestions: true,
+                alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
+                underAgeTypeKey: 'CLOSE',
+            },
+            CRUDE_CLOSE_CN: {
+                name: 'CRUDE Close CN',
+                regexes: crudeCloseCnRegexes,
+                onlyQuestions: true,
+                alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
+                underAgeTypeKey: 'CLOSE',
+            },
+            CRUDE_REOPEN: {
+                name: 'CRUDE Reopen',
+                regexes: crudeReopenRegexes,
+                onlyQuestions: true,
+                alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
+                underAgeTypeKey: 'REOPEN',
+            },
+            CRUDE_REOPEN_RN: {
+                name: 'CRUDE Reopen RN',
+                regexes: crudeReopenRnRegexes,
+                onlyQuestions: true,
+                alwaysArchiveAfterSeconds: 3 * SECONDS_IN_DAY, //3 days
+                underAgeTypeKey: 'REOPEN',
+            },
+            CRUDE_DELETE: {
+                name: 'CRUDE Delete',
+                regexes: crudeDeleteRegexes,
+                alwaysArchiveAfterSeconds: 7 * SECONDS_IN_DAY, //7 days
+                underAgeTypeKey: 'DELETE',
+            },
+            CRUDE_DELETE_DN: {
+                name: 'CRUDE Delete DN',
+                regexes: crudeDeleteDnRegexes,
+                alwaysArchiveAfterSeconds: 7 * SECONDS_IN_DAY, //7 days
+                underAgeTypeKey: 'DELETE',
+            },
+            CRUDE_UNDELETE: {
+                name: 'CRUDE Undelete',
+                regexes: crudeUndeleteRegexes,
+                alwaysArchiveAfterSeconds: 7 * SECONDS_IN_DAY, //7 days
+                underAgeTypeKey: 'UNDELETE',
+            },
+            CRUDE_UNDELETE_UN: {
+                name: 'CRUDE Undelete UN',
+                regexes: crudeUndeleteUnRegexes,
+                alwaysArchiveAfterSeconds: 7 * SECONDS_IN_DAY, //7 days
+                underAgeTypeKey: 'UNDELETE',
+            },
         };
+        //If the targetRoomSet has a includedRequestTypes list, limit the RequestTypes to that list.
+        if (Array.isArray(targetRoomSet.includedRequestTypes)) {
+            const includeList = targetRoomSet.includedRequestTypes;
+            Object.keys(RequestTypes).forEach((typeKey) => {
+                if (includeList.indexOf(typeKey) === -1 && !(targetRoomSet.useCrudeRequestTypes && typeKey.indexOf('CRUDE_') === 0)) {
+                    //Keep it if it's in the include list, or using CRUDE RequestTypes and it is one.
+                    delete RequestTypes[typeKey];
+                }
+            });
+        }
+        if (targetRoomSet.useCrudeRequestTypes === false) {
+            Object.keys(RequestTypes).forEach((typeKey) => {
+                if (typeKey.indexOf('CRUDE_') === 0) {
+                    //If not using CRUDE RequestTypes and this one of them, then delete it.
+                    delete RequestTypes[typeKey];
+                }
+            });
+        }
+        //If the targetRoomSet has a excludedRequestTypes list, remove those from the RequestTypes.
+        if (Array.isArray(targetRoomSet.excludedRequestTypes)) {
+            targetRoomSet.excludedRequestTypes.forEach((typeKey) => delete RequestTypes[typeKey]);
+        }
+        //Remove any RequestTypes with defined, but non-numeric, UserIds
+        Object.keys(RequestTypes).forEach((typeKey) => {
+            const requestType = RequestTypes[typeKey];
+            [
+                'userIdMatch',
+                'archiveWithNextFromUserId',
+                'archiveWithPreviousFromUserId',
+            ].some((key) => {
+                const type = typeof requestType[key];
+                if (type !== 'undefined' && type !== 'number') {
+                    delete RequestTypes[typeKey];
+                    return true;
+                }
+                return false;
+            });
+        });
         const RequestTypeKeys = Object.keys(RequestTypes);
         //Add direct references to RequestTypes, which can't exist within the Object literal.
         RequestTypeKeys.forEach((key) => {
@@ -828,6 +1166,7 @@
         nodes.progresswrp.appendChild(nodes.progress);
 
         nodes.style = document.createElement('style');
+        nodes.style.id = 'SOCVR-Archiver-generalCSS';
         nodes.style.type = 'text/css';
         //Ideally, the colors used for the MoveTo control hover would be adjusted in case the user has a non-stock theme installed.
         //  But, we can't get colors here because the messages may not exist in the page yet.
@@ -908,7 +1247,6 @@
             'body:not(.SOCVR-Archiver-alwaysShowDeleted) .content .deleted:hover ~ .SOCVR-Archiver-deleted-content,',
             'body:not(.SOCVR-Archiver-alwaysShowDeleted) .content .deleted ~ .SOCVR-Archiver-deleted-content:hover {',
             '    display: block;',
-            //'    opacity: 1;', //This is needed in combination with the shrink-fade                                                                                                                                                                                             //WinMerge ignore line
             '}',
             '.SOCVR-Archiver-deleted-content-marker {',
             '    cursor: pointer;',
@@ -924,6 +1262,14 @@
             '}',
             'body.SOCVR-Archiver-alwaysShowDeleted .SOCVR-Archiver-contains-deleted-content .SOCVR-Archiver-deleted-content  {',
             '    display: inline;',
+            '}',
+            'body:not(.SOCVR-Archiver-alwaysShowDeleted) .message.SOCVR-Archiver-contains-deleted-content .content {',
+            '    overflow: unset;',
+            '    display: block;',
+            '}',
+            //Needed for seeing hovered deleted content on mobile.
+            '#chat .monologue .message:hover .content {',
+            '    overflow: unset;',
             '}',
             '.SOCVR-Archiver-hide-message-meta-menu .meta {',
             '    display: none !important;',
@@ -941,13 +1287,25 @@
             '    color: white;',
             '    background-color: black;',
             '}',
+            '.message.reply-child.SOCVR-Archiver-multiMove-selected .meta,',
             '.message.reply-child.SOCVR-Archiver-multiMove-selected,',
+            '.message.reply-parent.SOCVR-Archiver-multiMove-selected  .meta,',
             '.message.reply-parent.SOCVR-Archiver-multiMove-selected {',
             '    background-color: lightBlue !important;',
             '}',
             '.message.selected.SOCVR-Archiver-multiMove-selected .meta,',
             '.message.selected.SOCVR-Archiver-multiMove-selected {',
             '    background-color: #c8d8e4 !important;',
+            '}',
+            '.highlight.SOCVR-Archiver-multiMove-selected .meta,',
+            '.highlight.SOCVR-Archiver-multiMove-selected {',
+            '    background-color: #eeeebb !important;',
+            '}',
+            '.message.highlight.reply-child.SOCVR-Archiver-multiMove-selected .meta,',
+            '.message.highlight.reply-child.SOCVR-Archiver-multiMove-selected,',
+            '.message.highlight.reply-parent.SOCVR-Archiver-multiMove-selected  .meta,',
+            '.message.highlight.reply-parent.SOCVR-Archiver-multiMove-selected {',
+            '    background-color: #ccf !important;',
             '}',
             '.SOCVR-Archiver-multiMove-selected .meta,',
             '.SOCVR-Archiver-multiMove-selected {',
@@ -963,17 +1321,89 @@
             //  has a link which is not clickable due to the controls obscuring it.
             //  Now: Press & hold Caps-Lock to not show the meta controls.
             //Show the meta options for your own posts (have to be able to move them).
-            '.monologue.mine:hover .messages .timestamp:hover + div.message .meta,',
-            '.monologue.mine:hover .messages .message:hover .meta {',
-            //This color really should be determined at runtime, as it can be different for various room themes (see code in AIM).
-            '    background-color: #fbf2d9;',
+            '#chat-body .monologue.mine:hover .messages .timestamp:hover + div.message .meta,',
+            '#chat-body .monologue.mine:hover .messages .message:hover .meta {',
             '    display: inline-block;',
+            '}',
+            //Float the meta controls outside the message (easier than Caps-Lock).
+            'div.message .meta.meta {',
+            '    position: absolute;',
+            '    bottom: -17px;',
+            '    border-bottom: 1px dotted;',
+            '    border-left: 1px dotted;',
+            '    border-right: 1px dotted;',
+            '    right: -1px;',
+            '}',
+            '.message:hover > .ai-information {',
+            '    display: none;',
+            '}',
+            'body:not(.SOCVR-Archiver-alwaysShowDeleted) .message.SOCVR-Archiver-contains-deleted-content:hover .meta {',
+            '    top: -2px;',
+            '    border-bottom: none;',
+            '    border-top: 2px solid;',
+            '    border-left: 2px solid;',
+            '    border-right: 2px solid;',
+            '    right: 0px;',
+            '    background-color: #ffffff;',
+            '}',
+            'body.SOCVR-Archiver-alwaysShowDeleted .SOCVR-Archiver-contains-deleted-content:not(.reply-parent):not(.reply-child) .meta {',
+            '    background-color: #f4eaea;',
+            '}',
+            'body:not(.SOCVR-Archiver-alwaysShowDeleted) .SOCVR-Archiver-contains-deleted-content .content {',
+            '    position: relative;',
+            '}',
+            'body:not(.SOCVR-Archiver-alwaysShowDeleted) .SOCVR-Archiver-contains-deleted-content .SOCVR-Archiver-deleted-content {',
+            '    width: calc(100% - 4px);',
+            '}',
+            '.meta .ai-information.inline {',
+            '    padding-right: 5px;',
             '}',
             //Page JavaScript is not functional for these
             '#chat-body .monologue.mine:hover .messages .timestamp:hover + div.message .meta .vote-count-container,',
             '#chat-body .monologue.mine:hover .messages .message:hover .meta .vote-count-container {',
             '    display: none;',
             '}',
+            //There's a problem under some conditions of the message .content jumping between different heights between when hovered and
+            //  when not. It may require any/all of the Archiver, URRS, FIRE, and AIM.
+            '.message .content a {',
+            '    display: inline;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-action-entry {',
+            '    cursor: pointer;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-action-entry {',
+            '    display: inline-block;',
+            '    min-width: 90%;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-action-entry:hover {',
+            '    background-color: #eee;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-action-entry.delete:before {',
+            '    content:"\\232b";',
+            '    color: red;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-list-length-container {',
+            '    display: inline-block;',
+            '    margin: auto;',
+            '    width: 100%;',
+            '    text-align: center;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-popup-title {',
+            '    width: calc(100% - 21px);',
+            '    text-align: center;',
+            '    display: inline-block;',
+            '    margin-left: 10px;',
+            '    margin-right: -7px;',
+            '}',
+            '.SOCVR-Archiver-sprite-placeholder {',
+            '    display: inline-block;',
+            '    width: 14px;',
+            '    height: 14px;',
+            '}',
+            '.SOCVR-Archiver-inline-popup-action-active .SOCVR-Archiver-inline-popup-action-entry {',
+            '    cursor: not-allowed;',
+            '}',
+
             (showMeta ? [
                 'div.message .meta {',
                 //A clearer indicator of separation between controls and message text.
@@ -1020,6 +1450,7 @@
             }).catch((error) => {
                 console.error(error);
                 alert('There was an error in getting and/or processing the messages. You will need to try again.\n\nMore information is available in the console.');
+                nodes.cancel.disabled = false;
             });
         }, false);
 
@@ -1123,20 +1554,40 @@
 
         var nextBefore;
 
-        function getEvents(roomNumber, userFkey, count, before) {
+        function getEventsWithBasicErrorHandling(roomNumber, userFkey, count, before) {
             if (count > 500 || count < 1) {
-                return Promise.reject(new Error('Count not in range (500 >= n >= 1)'));
+                return jQuery.Deferred().reject(new Error('Count not in range (500 >= n >= 1)'));
             } // else
-            if (!room) {
-                return Promise.reject(new Error('Invalid room'));
+            if (!roomNumber) {
+                return jQuery.Deferred().reject(new Error('Invalid room'));
             } // else
             if (!fkey) {
-                return Promise.reject(new Error('Invalid fkey'));
+                return jQuery.Deferred().reject(new Error('Invalid fkey'));
             } // else
+            return getEvents(roomNumber, userFkey, count, before)
+                .then(null, function(xhr, status, error) {
+                    console.error(
+                        'AJAX Error getting events:',
+                        '\n::  xhr:', xhr,
+                        '\n::  status:', status,
+                        '\n::  error:', error,
+                        '\n::  count:', count,
+                        '\n::  before:', before,
+                    );
+                    if (confirm('$.ajax encountered an error getting events. See console for details.' + (error && error.length < 100 ? ' error: ' + error : '') +
+                            '\n\ncount:' + count + '::  before:' + before + '\n\nRetry fetching these?')) {
+                        //Allow the user to retry.
+                        return getEventsWithBasicErrorHandling(roomNumber, userFkey, count, before);
+                    }
+                });
+        }
+
+        function getEvents(roomNumber, userFkey, count, before) {
             const data = {
                 fkey: userFkey,
                 msgCount: count,
                 mode: 'Messages',
+                //There is also a since property. That appears to be used to load new content on chat pages.
             };
             if (before) {
                 data.before = before;
@@ -1161,52 +1612,47 @@
                 if (count <= 0) {
                     //Done getting all requested events.
                     // Re-type those that need to have a parent found.
-                    resolve(promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents)));
+                    resolve(promised
+                        .then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length))
+                        .then(() => delay(0, scanEvents)));
                     return false;
                 }
                 const msgCount = count > 500 ? 500 : count;
-                getEvents(room, fkey, msgCount, before).then(function(response) {
-                    var respEvents = response.events;
-                    if (respEvents.length) {
-                        respEvents.forEach(function(event) {
-                            event.timeStampUTC = (new Date(event.time_stamp * 1000)).toJSON();
-                        });
-                    }
-                    events.push(response.events);
-                    //Adding 'reply-request' to this doesn't appear to help make the process significantly faster.
-                    promised = promised
-                        .then(() => delay(0, addEventsToByNumber, response.events, '', '', 'By Id'))
-                        .then(() => delay(0, scanStageEventChunk, response.events, assignEventBaseTypeAndContentWithoutCode, needParentList, 'typing............', totalEventsToFetch - count, totalEventsToFetch));
+                getEventsWithBasicErrorHandling(room, fkey, msgCount, before)
+                    .then(function(response) {
+                        var respEvents = response.events;
+                        if (respEvents.length) {
+                            respEvents.forEach(function(event) {
+                                event.timeStampUTC = (new Date(event.time_stamp * 1000)).toJSON();
+                            });
+                        }
+                        if (Array.isArray(response.events) && response.events.length) {
+                            //We are progressively fetching older events and each returned events array is in oldest first order.
+                            //  Putting newly fetched events at the front of the events array keeps the events in oldest first order.
+                            events.unshift(response.events);
+                        }
+                        //Adding 'reply-request' to this doesn't appear to help make the process significantly faster.
+                        promised = promised
+                            .then(() => delay(0, addEventsToByNumber, response.events, '', '', 'By Id'))
+                            .then(() => delay(0, scanStageEventChunk, response.events, assignEventBaseTypeAndContentWithoutCode, needParentList, 'typing............', totalEventsToFetch - count, totalEventsToFetch));
 
-                    if (!response.events[0]) {
-                        // No more events in the transcript
-                        // Re-type those that need to have a parent found.
-                        resolve(promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents)));
-                        return false;
-                    }
+                        if (!response.events[0]) {
+                            // No more events in the transcript
+                            // Re-type those that need to have a parent found.
+                            resolve(promised.then(() => delay(0, scanStageEventChunk, needParentList, assignEventBaseTypeAndContentWithoutCode, [], 'typing-needParentList', 0, needParentList.length)).then(() => delay(0, scanEvents)));
+                            return false;
+                        }
 
-                    nodes.scandate.textContent = new Date(1000 * response.events[0].time_stamp).toISOString();
+                        nodes.scandate.textContent = new Date(1000 * response.events[0].time_stamp).toISOString();
 
-                    nextBefore = response.events[0].message_id;
-                    resolve(getEventsAndScan(count - 500, response.events[0].message_id, promised, needParentList));
-                }, function(xhr, status, error) {
-                    console.error(
-                        'AJAX Error getting events:',
-                        '\n::  xhr:', xhr,
-                        '\n::  status:', status,
-                        '\n::  error:', error,
-                        '\n::  count:', count,
-                        '\n::  before:', before
-                    );
-                    if (confirm('$.ajax encountered an error getting events. See console for data.' + (error && error.length < 100 ? ' error: ' + error : '') +
-                            '\n\ncount:' + count + '::  before:' + before + '\n\nRetry fetching these?')) {
-                        //Allow the user to retry.
-                        resolve(getEventsAndScan(count, before, promised, needParentList));
-                    } else {
-                        reject(new Error('AJAX Error getting events: ' + error));
-                    }
-                });
+                        nextBefore = response.events[0].message_id;
+                        resolve(getEventsAndScan(count - 500, response.events[0].message_id, promised, needParentList));
+                    }, reject);
             });
+        }
+
+        function backoffTimer(backoff) {
+            return delay(backoff > 0 ? (backoff + 1) * 1000 : 0);
         }
 
         function delay(time, delayedFunction) {
@@ -1325,19 +1771,7 @@
         }
 
         function doesEventMatchType(event, type, needParentList) {
-            if (type.userIdMatch && type.userIdMatch !== event.user_id) {
-                return false;
-            } //else
-            if (type.regexes && !matchesRegex(event.contentNoCode, type.regexes)) {
-                //Use the RegExp array as one indicator of the type.
-                return false;
-            } //else
-            if (type.andRegexes && !matchesRegex(event.contentNoCode, type.andRegexes)) {
-                //Another RegExp array which must match.
-                return false;
-            } //else
-            if (type.textRegexes && !matchesRegex(event.contentNoCodeText, type.textRegexes)) {
-                //Existing text regexes didn't match.
+            if (typeof type.userIdMatch === 'number' && type.userIdMatch !== event.user_id) {
                 return false;
             } //else
             if (type.noContent && event.content) {
@@ -1364,6 +1798,19 @@
                 } //else
                 //Passed type.replyToTypes
             }
+            //RegExp are relatively slow, let the other criteria disqualify first.
+            if (type.regexes && !matchesRegex(event.contentNoCode, type.regexes)) {
+                //Use the RegExp array as one indicator of the type.
+                return false;
+            } //else
+            if (type.andRegexes && !matchesRegex(event.contentNoCode, type.andRegexes)) {
+                //Another RegExp array which must match.
+                return false;
+            } //else
+            if (type.textRegexes && !matchesRegex(event.contentNoCodeText, type.textRegexes)) {
+                //Existing text regexes didn't match.
+                return false;
+            } //else
             //All existing tests passed.
             return true;
         }
@@ -1381,19 +1828,32 @@
         function assignEventBaseTypeAndContentWithoutCode(event, eventIndex, currentEvents, needParentList) {
             //First pass identifying request types. The type is added to the event Object, along with a version of the message without code
             //  in both HTML text, and just text content.
-            var message = event.content;
+            const message = event.content;
             //Don't match things in code format, as those normally are used to explain, not as intended tags indicating a request.
-            //The message content should really be converted to DOM and parsed form there.
+            //The message content should really be converted to DOM and parsed from there.
             //Note that converting to DOM changes HTML entities into the represented characters.
-            var messageAsDom = $(getHTMLTextAsDOM(message));
+            const messageAsDom = $(getHTMLTextAsDOM(message));
+            //Remove any <code>
             messageAsDom.find('code').remove();
-            message = messageAsDom.html();
+            messageAsDom.find('a').each(function() {
+                targetRoomSet.regExp.chatMetaElimiation.lastIndex = 0;
+                if (targetRoomSet.regExp.chatMetaElimiation.test(this.href)) {
+                    this.remove();
+                }
+            });
+            const messageWithoutCodeAndMetaLinks = messageAsDom.html();
 
-            //Prevent matches of meta.stackoverflow.com
-            message = message.replace(/(?:meta|chat)\.stackoverflow\.com\/?\/?/, '');
+            //Prevent matches of the meta and chat sites (e.g. meta.stackoverflow.com)
+            targetRoomSet.regExp.chatMetaElimiation.lastIndex = 0;
+            const messageWithoutCodeAndMeta = messageWithoutCodeAndMetaLinks.replace(targetRoomSet.regExp.chatMetaElimiation, ' ');
             //Determine if it matches one of the RegExp.
-            event.contentNoCode = message;
+            event.contentNoCode = messageWithoutCodeAndMeta;
             event.contentNoCodeText = messageAsDom.text();
+            //Remove the text from links that are not tags (used to prevent detecting post URLs within link-text).
+            messageAsDom.find('a').filter(function() {
+                return !$(this).find('.ob-post-tag').length;
+            }).text('');
+            event.contentNoCodeNoNonTagLinkText = messageAsDom.html();
             event.type = null;
 
             RequestTypeKeys.some((typeKey) => {
@@ -1462,7 +1922,7 @@
         }
 
         function checkEvent(event, eventIndex, currentEvents, needParentList) {
-            //Check an event to see if it directly qualifies to be archived, or if it needs further information about the post in order to determine it's disposition.
+            //Check an event to see if it directly qualifies to be archived, or if it needs further information about the post in order to determine its disposition.
             var type = event.type;
             if (!type) {
                 return false;
@@ -1491,7 +1951,7 @@
             }
 
             //Archive with previous from an ID
-            if (type.archiveWithPreviousFromUserId) {
+            if (typeof type.archiveWithPreviousFromUserId === 'number') {
                 //It's feedback like 'sd k', so search within the current batch to find the SD message to which it applies.
                 //XXX This does not handle complex SD feedback (e.g. sd 2k). It just assumes the feedback applies to the first found.
                 //XXX It doesn't test for SD messages which have already been moved.
@@ -1505,7 +1965,7 @@
             }
 
             //Archive with next from an ID
-            if (type.archiveWithNextFromUserId) {
+            if (typeof type.archiveWithNextFromUserId === 'number') {
                 for (let feedbackToIndex = eventIndex + 1; feedbackToIndex < currentEvents.length; feedbackToIndex++) {
                     const testEvent = currentEvents[feedbackToIndex];
                     if (testEvent.user_id === type.archiveWithNextFromUserId) {
@@ -1571,25 +2031,31 @@
             // Handle non-expired primary requests, which require getting question/answer data.
             //  We really should do a full parse of the URL, including making a choice based on request type as to considering the question, answer, or comment
             //  for longer formats.
-            var matches = event.contentNoCode.match(/stackoverflow\.com\/(?:q[^\/]*|posts|a[^\/]*)\/+(\d+)/g); // eslint-disable-line no-useless-escape
+            targetRoomSet.regExp.questionAnswerPostsId.lastIndex = 0;
+            var matches = event.contentNoCodeNoNonTagLinkText.match(targetRoomSet.regExp.questionAnswerPostsId);
             //For a cv-pls we assume it's the associated question when the URL is to an answer or to a comment.
             if (!event.onlyQuestions) {
                 //The above will preferentially obtain questions over some answer URL formats: e.g.
                 //    https://stackoverflow.com/questions/7654321/foo-my-baz/1234567#1234567
                 //  That's good for cv-pls/reopen-pls, but for other types of requests we should be considering the answer instead, if the URL is the alternate answer URL.
-                const answerMatches = event.contentNoCode.match(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"'])/g); // eslint-disable-line no-useless-escape
+                targetRoomSet.regExp.answerIdFromQuestionUrl.lastIndex = 0;
+                const answerMatches = event.contentNoCodeNoNonTagLinkText.match(targetRoomSet.regExp.answerIdFromQuestionUrl);
                 if (answerMatches) {
                     //Convert each one into a short answer URL so a single RegExp can be used below.
-                    matches = answerMatches.map((match) => match.replace(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts)[^\s#]*#(\d+)(?:$|[\s"'])/, 'stackoverflow.com/a/$1')); // eslint-disable-line no-useless-escape
+                    targetRoomSet.regExp.answerIdFromQuestionUrl.lastIndex = 0;
+                    matches = answerMatches.map((match) => match.replace(targetRoomSet.regExp.answerIdFromQuestionUrl, `${targetRoomSet.mainSite}/a/$1`)); // eslint-disable-line no-useless-escape
                 }
             }
             const isComment = event.onlyComments;
             if (matches !== null && isComment) {
                 //There are URLs, but this type, or a type from which this was changed due to being too young is only comments
-                const commentMatches = event.contentNoCode.match(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts|a)[^\s#]*#comment(\d+)(?:$|[\s"'_])/g); // eslint-disable-line no-useless-escape
+                targetRoomSet.regExp.commentIdFromUrl.lastIndex = 0;
+                const commentMatches = event.contentNoCodeNoNonTagLinkText.match(targetRoomSet.regExp.commentIdFromUrl);
                 if (commentMatches) {
-                    //Convert each one into a short answer URL so a single RegExp can be used below.
-                    matches = commentMatches.map((match) => match.replace(/(?:^|[\s"'])(?:(?:https?:)?(?:(?:\/\/)?(?:www\.|\/\/)?stackoverflow\.com\/))(?:q[^\/]*|posts|a)[^\s#]*#comment(\d+)(?:$|[\s"'_])/, 'stackoverflow.com/a/$1')); // eslint-disable-line no-useless-escape
+                    //Convert each one into a short answer URL so a single RegExp can be used below to get the ID of the question/answer/post/comment, even though it's not an answer.
+                    //  That it is a comment is tracked by isComment.
+                    targetRoomSet.regExp.commentIdFromUrl.lastIndex = 0;
+                    matches = commentMatches.map((match) => match.replace(targetRoomSet.regExp.commentIdFromUrl, `${targetRoomSet.mainSite}/a/$1`));
                 } else {
                     matches = null;
                 }
@@ -1598,16 +2064,31 @@
             // matches will be null if an user screws up the formatting
             if (matches !== null) {
                 for (const match of matches) {
-                    posts[/stackoverflow\.com\/(?:q[^\/]*|posts|a[^\/]*)\/+(\d+)/.exec(match)[1]] = true; // eslint-disable-line no-useless-escape
+                    targetRoomSet.regExp.questionAnswerPostsId.lastIndex = 0;
+                    posts[targetRoomSet.regExp.questionAnswerPostsId.exec(match)[1]] = true; // eslint-disable-line no-useless-escape
                 }
             }
             //Add one entry in the requests list per postId found above.
             Object.keys(posts).forEach((postId) => {
                 requests.push(new Request(event, postId, isComment));
+                if (!Array.isArray(event.requestedPosts)) {
+                    event.requestedPosts = [];
+                }
+                //Not using the Request Object in order to not create a circular reference. Some testing code relies on being able to
+                //  JSON.stringify events and/or requests, which would not be possible with circular references.
+                event.requestedPosts.push({
+                    postId,
+                    isComment,
+                });
             });
         }
 
-        function checkRequests(totalRequests, questionBackoff, answerBackoff, commentBackoff) {
+        //Initialize the backoff timers
+        //  For the SE API, backoff is per-endpoint.
+        var questionBackoff = backoffTimer(0);
+        var answerBackoff = backoffTimer(0);
+        var commentBackoff = backoffTimer(0);
+        function checkRequests(totalRequests) {
             //Each call to this checks one block of requests. It is looped through by being called at the end of the
             //  asynchronous operations in checkRequestsOthers.
             var remaining = getTotalLengthOfChunks(requests);
@@ -1616,10 +2097,10 @@
             setProgress('checking requests', remaining, totalRequests);
             //All request types have been reduced to their primary type equivalent (cv, delv, reopen, undelete).
             //  Any reply that extends when the FireAlarm/Queen is valid has already been rolled up into the event being treated as a cv-pls.
-            return checkRequestsOthers(currentRequests, totalRequests, questionBackoff, answerBackoff, commentBackoff);
+            return checkRequestsOthers(currentRequests, totalRequests);
         }
 
-        function checkRequestsOthers(currentRequests, totalRequests, questionBackoff, answerBackoff, commentBackoff) {
+        function checkRequestsOthers(currentRequests, totalRequests) {
             //The SE API is queried for each identified post, first as a question, then as an answer.
             //This could be more efficient. There is no need to request answer information when the data was returned as a question.
             //Further, it would be better to request everything as an answer first. This will give question information, which could be substituted
@@ -1628,26 +2109,48 @@
             //      is considered complete, then the request is listed for archiving. This should be updated to account for the possibility
             //      of having multiple posts in a request (which would also require accounting for things like a cv-pls dup with the dup-target
             //      in the request). Currently that situation is handled by the dup-question being closed qualifying the question for archiving.
-            questionBackoff = questionBackoff ? questionBackoff : 0;
-            answerBackoff = answerBackoff ? answerBackoff : 0;
-            commentBackoff = commentBackoff ? commentBackoff : 0;
 
             function makeSEApiUrl(requestsForUrl, type) {
                 var filters = {
                     comments: '!9Z(-x)zjA',
                     answers: '!.UDo6l2k)5RjcU7O',
-                    questions: '!5RCJFFV3*1idqdx)f2XdVzdib',
+                    //Add various additional fields that can affect question actionability (e.g. locked, type of closure, bounty, etc.)
+                    //  We don't account for all of those, but we should add handling for them.
+                    questions: '!E-Pkeq16TOMhhkDlE3*qdvcSDSfgwsxSdIlhjY',
                 };
                 var filter = filters[type];
                 if (typeof filter !== 'string') {
                     throw new Error('makeSEApiUrl: not a valid type:' + type);
                 } //else
-                return 'https://api.stackexchange.com/2.2/' + type + '/' + formatPosts(requestsForUrl) + '?' + [
+                return 'https://api.stackexchange.com/2.3/' + type + '/' + formatPosts(requestsForUrl) + '?' + [
                     'pagesize=100',
-                    'site=stackoverflow',
+                    `site=${targetRoomSet.mainSiteSEApiParam}`,
                     'key=qhq7Mdy8)4lSXLCjrzQFaQ((',
                     'filter=' + filter,
                 ].join('&');
+            }
+
+            function handleCompletedRequestForPost(request, responseItem) {
+                //When called, it's assumed that the request is complete, for one reason or another.
+                //  We remove the post from the list of posts in the event.
+                //  If the post was closed as a duplicate, then we remove the duplicate post also (i.e. users often
+                //    indicate both the post to close and the dup-target).
+                //  If that leaves no remaining posts for that event (pointed to in the request), then the event/message
+                //  is added to the list of those to archive. If not, then it's not added.
+                function removePostFromEvent(event, thisPostId, thisIsComment) {
+                    event.requestedPosts = event.requestedPosts.filter(({postId, isComment}) => !(+postId === +thisPostId && !!isComment === !!thisIsComment));
+                }
+                if (request.type === RequestTypes.CLOSE && responseItem && responseItem.closed_details && Array.isArray(responseItem.closed_details.original_questions)) {
+                    //Remove the duplicate targets, if any of them exist in the message, but only for close requests.
+                    responseItem.closed_details.original_questions.forEach(({question_id}) => { // eslint-disable-line camelcase
+                        removePostFromEvent(request.event, question_id, false);
+                    });
+                }
+                removePostFromEvent(request.event, request.post, request.isComment);
+                //If the list of posts on the event is empty, then the event has had all of it's posts handled.
+                if (request.event.requestedPosts.length === 0) {
+                    addEventToMessagesToMove(request.event);
+                }
             }
 
             function handleDeleteAndUndeleteWithValidData(items, requestsToHandle, itemIdPropKey) {
@@ -1656,9 +2159,9 @@
                 for (const item of items) {
                     requestsToHandle.forEach((currentRequest, requestIndex) => {
                         if (currentRequest.post == item[itemIdPropKey]) { // eslint-disable-line eqeqeq
-                            if (item.locked_date) {
-                                //The post is locked. We can't do anything. The request is thus "complete".
-                                addEventToMessagesToMove(currentRequest.event);
+                            if (item.locked_date && !(item.notice && item.notice.body && item.notice.body.indexOf('<p>Lock the comments') === 0)) {
+                                //The post is locked, and it's not a comment lock. We can't do anything. The request is thus "complete".
+                                handleCompletedRequestForPost(currentRequest, item);
                                 indexesToDelete[requestIndex] = true;
                                 return true;
                             } // else
@@ -1669,7 +2172,7 @@
                             } // else
                             if (currentRequest.type === RequestTypes.UNDELETE) {
                                 //Add matching undel-pls to move list, as they are fulfilled.
-                                addEventToMessagesToMove(currentRequest.event);
+                                handleCompletedRequestForPost(currentRequest, item);
                                 //No need to request the data again as an answer.
                                 indexesToDelete[requestIndex] = true;
                                 return true;
@@ -1695,7 +2198,7 @@
             function handleQuestionResponse(responseData) {
                 return new Promise((resolve) => {
                     //Deal with the SE API response for questions.
-                    questionBackoff = responseData.backoff;
+                    questionBackoff = backoffTimer(responseData.backoff);
                     var items = responseData.items;
                     handleDeleteAndUndeleteWithValidData(items, currentRequests, 'question_id');
                     //Check for data returned for CLOSE and REOPEN
@@ -1707,7 +2210,7 @@
                                     //Item is closed.
                                     if (currentRequest.type === RequestTypes.CLOSE) {
                                         //CLOSE request is handled.
-                                        addEventToMessagesToMove(currentRequest.event);
+                                        handleCompletedRequestForPost(currentRequest, item);
                                         return false;
                                     }
                                     if (currentRequest.type === RequestTypes.REOPEN) {
@@ -1718,7 +2221,7 @@
                                     //Item is open.
                                     if (currentRequest.type === RequestTypes.REOPEN) {
                                         //REOPEN request is handled.
-                                        addEventToMessagesToMove(currentRequest.event);
+                                        handleCompletedRequestForPost(currentRequest, item);
                                         return false;
                                     }
                                     if (currentRequest.type === RequestTypes.CLOSE) {
@@ -1740,7 +2243,13 @@
                         if (item[idProperty] == request.post && request.onlyQuestions) { // eslint-disable-line eqeqeq
                             //This is a request which is only about questions, but this post was identified as an answer.
                             //  Change the postId for the request to the question_id for this answer.
+                            request.originalPostId = request.post;
                             request.post = item[questionIdProperty];
+                            //Also change the postIds in the requestPost list;
+                            request.event.requestedPosts.forEach((requestedPost) => {
+                                requestedPost.originalPostId = requestedPost.postId;
+                                requestedPost.postId = item[questionIdProperty];
+                            });
                         }
                     });
                 });
@@ -1750,7 +2259,7 @@
                 return new Promise((resolve) => {
                     //Deal with the SE API response for answers.
                     var answerItems = responseData.items;
-                    answerBackoff = responseData.backoff;
+                    answerBackoff = backoffTimer(responseData.backoff);
                     handleDeleteAndUndeleteWithValidData(answerItems, currentRequests, 'answer_id');
                     //All requests which were about answers have been handled.
                     convertOnlyQuestionRequestsToQuestion(answerItems, currentRequests, 'answer_id', 'question_id');
@@ -1761,7 +2270,7 @@
             function handleCommentResponse(responseData) {
                 return new Promise((resolve) => {
                     var commentItems = responseData.items;
-                    commentBackoff = responseData.backoff;
+                    commentBackoff = backoffTimer(responseData.backoff);
                     handleDeleteAndUndeleteWithValidData(commentItems, currentRequests, 'comment_id');
                     convertOnlyQuestionRequestsToQuestion(commentItems, currentRequests, 'comment_id', 'post_id');
                     resolve();
@@ -1771,7 +2280,25 @@
             function sendAjaxIfRequests(requestsToSend, endpoint) {
                 //If there are requests, then send the $.ajax. If there aren't, then send an empty items.
                 if (Array.isArray(requestsToSend) && requestsToSend.length) {
-                    return $.ajax(makeSEApiUrl(requestsToSend, endpoint)).then(checkXhrStatus);
+                    if (requestsToSend.length > 100) {
+                        alert(`There are too many requests to check: ${requestsToSend.length}. The Archiver can only handle a max of 100 active, non-time-expired requests at a time.\n\nPlease re-run the scan with fewer events selected.`);
+                        return Promise.reject(new Error('Too many requests to check (> 100). Scan fewer events.'));
+                    }
+                    return $.ajax(makeSEApiUrl(requestsToSend, endpoint))
+                        .then(checkXhrStatus, function(xhr, status, error) {
+                            console.error(
+                                'AJAX Error getting data from the SE API:',
+                                '\n  this:', this,
+                                '\n  xhr:', xhr,
+                                '\n  status:', status,
+                                '\n  error:', error,
+                                '\n  endpoint:', endpoint,
+                                '\n  requestsToSend:', requestsToSend,
+                            );
+                            if (confirm(`There was an error getting data for ${endpoint} from the SE API. More information should be in the console.\n\nDo you want to retry the request?`)) {
+                                return sendAjaxIfRequests(requestsToSend, endpoint);
+                            }
+                        });
                 } // else
                 return Promise.resolve({items: []});
             }
@@ -1788,31 +2315,45 @@
             //  will consider 30 requests/s/IP "very abusive". However, it should take significantly longer
             //  for the round trip than the average 67ms which would be needed to launch 30 requests in 1s.
             //Send the request for comments, then answers, then questions (converting to questions at each earlier stage, when needed).
-            return delay(commentBackoff * 1000)
+            //Wait for any existing comment backoff
+            return commentBackoff
+                //Send request for comments
                 .then(() => sendAjaxIfRequests(getOnlyCommentRequests(currentRequests), 'comments'))
                 .then(handleCommentResponse)
+                //Wait for any existing answer backoff
+                .then(() => answerBackoff)
                 //Send the request for answers
-                .then(() => delay(answerBackoff * 1000))
                 .then(() => sendAjaxIfRequests(getNonCommentRequests(currentRequests), 'answers'))
                 .then(handleAnswerResponse)
+                //Wait for any existing question backoff
+                .then(() => questionBackoff)
                 //Send the request for questions
-                .then(() => delay(questionBackoff * 1000))
                 .then(() => sendAjaxIfRequests(getNonCommentRequests(currentRequests), 'questions'))
                 .then(handleQuestionResponse)
                 .then(() => {
                     for (const request of currentRequests) {
                         if (request.type !== RequestTypes.UNDELETE) {
-                            addEventToMessagesToMove(request.event);
+                            handleCompletedRequestForPost(request, null);
                         }
                     }
                     if (!requests.length) {
                         return checkDone();
                         //return false;
                     }
-                    return checkRequests(totalRequests, questionBackoff, answerBackoff, commentBackoff);
-                }).catch((error) => {
-                    console.error(error);
-                    checkDone();
+                    return checkRequests(totalRequests);
+                }).catch(function(xhr) {
+                    nodes.cancel.disabled = false;
+                    const jsonError = typeof xhr.responseJSON === 'object' ? `${xhr.responseJSON.error_id}: ${xhr.responseJSON.error_name}: ${xhr.responseJSON.error_message}` : '';
+                    const errorText = `${(typeof xhr.statusText === 'string' ? `${xhr.statusText}: ` : '')}${jsonError}`;
+                    console.error(
+                        'Error getting data for comments, answers, and questions',
+                        '\n::  xhr:', xhr,
+                        '\n::  statusText:', xhr.statusText,
+                        '\n::  xhr.responseJSON:', xhr.responseJSON,
+                        '\n::  jsonError:', jsonError,
+                        '\n::  errorText:', errorText,
+                    );
+                    alert(`Something${((errorText && errorText.length < 300) ? ` (${errorText})` : '')} went wrong when trying to get data for comments, answers, and questions. Please try again.\nSee console for more information.`);
                 });
         }
 
@@ -1866,15 +2407,20 @@
             nodes.indicator.value = messagesToMove.length + ' request' + ['', 's'][+(messagesToMove.length > 1)] + ' found';
         }
 
+        function savePostsListAsPreviousMove(posts, targetRoomId, sourceRoomId, action) {
+            return setStorageJSON('previousMoveTo', {
+                posts,
+                targetRoomId,
+                //You can't move from more than one room in a single AJAX call.
+                sourceRoomId,
+                action,
+            });
+        }
+
         function saveMoveInformationAndMovePosts() {
             //Prior to moving posts, save the list of posts so we can undo a move by assigning those messages to the manual move list, if the user clicks 'U'.
-            var ids = convertRequestsListToMessageIds(messagesToMove);
-            setStorageJSON('previousMoveTo', {
-                posts: ids,
-                targetRoomId: defaultTargetRoom,
-                //It would need to be tested to see if you really can only move from a single room, or if you can move from multiple rooms at a time.
-                sourceRoomId: room,
-            });
+            const ids = convertRequestsListToMessageIds(messagesToMove);
+            savePostsListAsPreviousMove(ids, defaultTargetRoom, room, 'move');
             //Use the global variables to call moveSomePosts();
             moveSomePosts(ids, defaultTargetRoom, () => {
                 //All done
@@ -2008,107 +2554,178 @@
             var mainHeight = /px$/.test(inputHeight) ? +inputHeight.replace(/px$/, '') + 75 : 150;
             $(shownToBeMoved).append([
                 /* eslint-disable indent */
-                '<div id="SOCVR-archiver-messagesToMove-container">',
+                '<div id="SOCVR-Archiver-messagesToMove-container">',
                 '    <style>',
-                '        #SOCVR-archiver-messagesToMove-container {',
+                '        #SOCVR-Archiver-messagesToMove-container {',
                 '            display: block;',
                 '            position: fixed;',
                 '            top: 25px;',
-                '            left: 50px;',
+                '            left: 2vw;',
                 '            background-color: #fff;',
-                '            width: calc(100% - 100px);',
+                '            width: calc(100% - 6.7vw);',
                 '            height: calc(100% - ' + mainHeight + 'px);',
                 '            z-index: 10000;',
                 '            border: 2px solid;',
                 '            box-shadow: 0px 0px 20px;',
                 '            resize: both;',
-                '            padding: 5px;',
+                '            padding: 5px 5px 10px 5px;',
+                ([
+                    'color',
+                    'image',
+                    'repeat',
+                    'attachment',
+                    'clip',
+                    'origin',
+                    'position-x',
+                    'position-y',
+                    'size',
+                ].reduce((sum, prop) => {
+                    const fullProp = `background-${prop}`;
+                    return `${(sum ? sum + '\n' : '')}${fullProp}: ${$body.css(fullProp)};`;
+                }, '')),
                 '        }',
-                '        .SOCVR-Archiver-moveCount-container > span {',
-                '            margin: 15px;',
+                '        .SOCVR-Archiver-popup-button-separator,',
+                '        .SOCVR-Archiver-popup-button-container {',
+                '            display: inline-block;',
+                '        }',
+                '        .SOCVR-Archiver-button-container {',
+                '            padding-left: 2vw;',
+                '            padding-right: 2vw;',
+                '        }',
+                '        .SOCVR-Archiver-popup-button-container > div:first-of-type {',
+                '            font-size: 120%;',
+                '        }',
+                '        .SOCVR-Archiver-popup-button-separator {',
+                '            flex-grow: 100;',
+                '        }',
+                '        .SOCVR-Archiver-popup-button-separator.SOCVR-Archiver-popup-button-separator-after-move,',
+                '        .SOCVR-Archiver-popup-button-separator.SOCVR-Archiver-popup-button-separator-before-cancel {',
+                '            flex-grow: 200;',
                 '        }',
                 '        .SOCVR-Archiver-button-container {',
                 '            text-align: center;',
+                '            margin-top: .6em;',
+                '            display: flex;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container button,',
-                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container button {',
-                '            margin: 0px;',
+                '        #SOCVR-Archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container button,',
+                '        #SOCVR-Archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container button {',
+                '            margin: 0 0 0 .13vw;',
                 '            padding-left: 3px;',
                 '            padding-right: 3px;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container,',
-                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container {',
-                '            margin-right: 10px;',
+                '        #SOCVR-Archiver-messagesToMove-container button.SOCVR-Archiver-button-remove-from-move-list {',
+                '            margin-right: 0.5vw;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container,',
-                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container {',
-                '            margin-left: 20px;',
+                '        #SOCVR-Archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container,',
+                '        #SOCVR-Archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container {',
+                '            margin-right: 1.0vw;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container .SOCVR-Archiver-button-cancel {',
-                '            margin-left: 40px;',
+                '        #SOCVR-Archiver-messagesToMove-container .SOCVR-Archiver-button-scanMore-container,',
+                '        #SOCVR-Archiver-messagesToMove-container .SOCVR-Archiver-button-moveList-container {',
+                '            margin-left: 2.0vw;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container button {',
-                '            margin: 10px;',
+                '        #SOCVR-Archiver-messagesToMove-container .SOCVR-Archiver-button-cancel {',
+                '            margin-left: 2.0vw;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container .monologue {',
+                '        #SOCVR-Archiver-messagesToMove-container button {',
+                '            margin-left: 1vw;',
+                '            margin-right: 1vw;',
+                '        }',
+                '        #SOCVR-Archiver-messagesToMove-container .monologue {',
+                '            min-width: initial;',
                 '            position: relative;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container h1 {',
+                '        #SOCVR-Archiver-messagesToMove-container h1 {',
                 '            text-align: center;',
+                '        }',
+                '        #SOCVR-Archiver-messagesToMove-container button {',
+                '            cursor: pointer;',
+                '        }',
+                '        #SOCVR-Archiver-messagesToMove-container button:disabled {',
+                '            cursor: default;',
                 '        }',
                 '        .SOCVR-Archiver-moveCount-container {',
                 '            text-align: center;',
+                '            margin-top: .6em;',
+                '        }',
+                '        .SOCVR-Archiver-moveCount-separator {',
+                '            flex-grow: 100;',
+                '        }',
+                '        .SOCVR-Archiver-moveCount-container > span {',
+                '            margin-left: 1.0vw;',
+                '            margin-right: 1.0vw;',
+                '            font-size: 120%;',
+                '        }',
+                '        #SOCVR-Archiver-messagesToMove-container .messages {',
+                '            position: relative;',
+                '        }',
+                '        #SOCVR-Archiver-messagesToMove-container .messages .SOCVR-Archiver-close-icon {',
+                '            top: 2px;',
                 '        }',
                 '        .SOCVR-Archiver-moveCount {',
                 '            font-weight: bold;',
-                '            font-size: 120%;',
                 '        }',
                 '        .SOCVR-Archiver-latestDate {',
                 '            font-size: 120%;',
                 '        }',
-                '        .SOCVR-Archiver-moveMessages-container {',
-                '            height: calc(100% - 65px);',
-                '            width: 100%;',
-                '        }',
                 '        .SOCVR-Archiver-moveMessages-inner {',
                 '            height: 100%;',
+                '            position: relative;',
+                '            display: flex;',
+                '            flex-direction: column;',
+                '        }',
+                '        .SOCVR-Archiver-moveMessages-container {',
+                '            width: 100%;',
+                '            position: relative;',
+                '            flex-grow: 100;',
+                '            margin-top: 1em;',
                 '        }',
                 '        .SOCVR-Archiver-moveMessages {',
                 '            margin: 0 auto;',
                 '            display: block;',
                 '            overflow-y: auto;',
+                '            height: calc(100% - 1.5vh);',
+                '            position: absolute;',
+                //This padding and width assume that this is being used with the URRS. These should be normalized for use without the URRS
+                //  and these in the CSS which the URRS adds to chat.
                 '            padding: 5px 60px 0px 0px;',
-                '            height: 90%;',
+                '            width: calc(100% - 60px);', //This is using box-sizing: content-box, so have to account for the 60px padding.
+                '        }',
+                '        .SOCVR-Archiver-important-display-block {',
+                '            display: block !important;',
                 '        }',
                 // Close icon CSS is from the answer to "Pure css close button - Stack Overflow"
                 // at https://stackoverflow.com/a/20139794, copyright 2013 by Craig Wayne,
                 // licensed under CC BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/).
                 // Some modifications have been made.
                 '        .SOCVR-Archiver-close-icon {',
-                '            display:block;',
-                '            box-sizing:border-box;',
-                '            width:20px;',
-                '            height:20px;',
-                '            border-width:3px;',
+                '            display: block;',
+                '            box-sizing: border-box;',
+                '            width: 20px;',
+                '            height: 20px;',
+                '            border-width: 1px;',
                 '            border-style: solid;',
-                '            border-color:#dd0000;',
-                '            border-radius:100%;',
+                '            border-color: #dd0000;',
+                '            border-radius: 100%;',
                 '            background: -webkit-linear-gradient(-45deg, transparent 0%, transparent 46%, white 46%,  white 56%,transparent 56%, transparent 100%), -webkit-linear-gradient(45deg, transparent 0%, transparent 46%, white 46%,  white 56%,transparent 56%, transparent 100%);',
-                '            background-color:#dd0000;',
+                '            background-color: #dd0000;',
                 '            box-shadow:0px 0px 1px 1px rgba(0,0,0,0.5);',
                 '            cursor: pointer;',
                 '            position: absolute;',
                 '            top: 0px;',
-                '            right: 6px;',
+                '            right: 0px;',
                 '            z-index: 1000;',
+                '            transform: translateX(50%) translateY(-50%) scale(0.8, 0.8);',
+                '            -webkit-transform: translateX(50%) translateY(-50%) scale(0.8, 0.8);',
+                '            -ms-transform: translateX(50%) translateY(-50%) scale(0.8, 0.8);',
                 '        }',
                 '        .SOCVR-Archiver-close-icon:hover {',
                 '            border-color: #ff0000;',
                 '            background-color: #ff0000;',
                 '        }',
-                '        #SOCVR-archiver-messagesToMove-container > .SOCVR-Archiver-close-icon {',
-                '            top: -10px;',
-                '            right: -10px;',
+                '        #SOCVR-Archiver-messagesToMove-container > .SOCVR-Archiver-close-icon {',
+                '            top: 0px;',
+                '            right: 0px;',
                 '        }',
                 '    </style>',
                 '    <div class="SOCVR-Archiver-close-icon" title="Cancel"></div>',
@@ -2117,34 +2734,47 @@
                 '            <h1>Move messages to ' + defaultTargetRoomObject.fullName + '</h1>',
                 '        </div>',
                 '        <div class="SOCVR-Archiver-moveCount-container">',
-                '            <span class="SOCVR-Archiver-moveCount"></span>',
-                '            <span class="SOCVR-Archiver-latestDate">',
-                '                Going back to: ' + nodes.scandate.textContent,
-                '            </span>',
+                '            <span class="SOCVR-Archiver-moveCount-separator"></span>',
                 '            <span class="SOCVR-Archiver-scan-count-container">Scanned: ',
                 '                <span class="SOCVR-Archiver-scan-count">' + nodes.count.value + '</span>',
                 '            </span>',
+                '            <span class="SOCVR-Archiver-latestDate">',
+                '                from current back to ' + nodes.scandate.textContent.replace(/\.000/, '').replace(/T/, ' '),
+                '            </span>',
                 '        </div>',
                 '        <div class="SOCVR-Archiver-button-container">',
-                '            <button class="SOCVR-Archiver-button-move" title="Move all of the messages listed in this popup to the ' + defaultTargetRoomObject.shortName + '">Move these to the ' + defaultTargetRoomObject.shortName + '</button>',
-                '            <span class="SOCVR-Archiver-button-scanMore-container">',
-                '                <span>Scan more:</span>',
-                '                <button class="SOCVR-Archiver-button-1kmore" title="Scan 1,000 more">1k</button>',
-                '                <button class="SOCVR-Archiver-button-10kmore" title="Scan 10,000 more">10k</button>',
-                '                <button class="SOCVR-Archiver-button-100kmore" title="Scan 100,000 more">100k</button>',
-                '            </span>',
-                '            <span class="SOCVR-Archiver-button-moveList-container">',
-                '                <span class="SOCVR-Archiver-moveList-container-text">Manual Move List (0):</span>',
-                '                <button class="SOCVR-Archiver-button-set-as-move-list" title="Set the Manual Move List to the messages shown in this popup.">Set</button>',
-                '                <button class="SOCVR-Archiver-button-add-to-move-list" title="Add all messages shown in this popup to the Manual Move List.">Add</button>',
-                '                <button class="SOCVR-Archiver-button-remove-from-move-list" title="Remove the messages shown in this popup from the Manual Move List.">Remove</button>',
+                '            <div class="SOCVR-Archiver-popup-button-container">',
+                '            <div class="SOCVR-Archiver-moveCount"></div>',
+                '                <button class="SOCVR-Archiver-button-move" title="Move all of the messages listed in this popup to the ' + defaultTargetRoomObject.shortName + '">Move these to the ' + defaultTargetRoomObject.shortName + '</button>',
+                '            </div>',
+                '            <div class="SOCVR-Archiver-popup-button-separator SOCVR-Archiver-popup-button-separator-after-move"></div>',
+                '            <div class="SOCVR-Archiver-popup-button-container SOCVR-Archiver-button-scanMore-container">',
+                '                <div>Scan more:</div>',
+                '                <div class="SOCVR-Archiver-button-row-container"><!--',
+                '                 --><button class="SOCVR-Archiver-button-1kmore" title="Scan 1,000 more">1k</button><!--',
+                '                 --><button class="SOCVR-Archiver-button-10kmore" title="Scan 10,000 more">10k</button><!--',
+                '                 --><button class="SOCVR-Archiver-button-100kmore" title="Scan 100,000 more">100k</button><!--',
+                '             --></div>',
+                '            </div>',
+                '            <div class="SOCVR-Archiver-popup-button-separator"></div>',
+                '            <div class="SOCVR-Archiver-popup-button-container SOCVR-Archiver-button-moveList-container">',
+                '                <div class="SOCVR-Archiver-moveList-container-text">Manual Move List (0):</div>',
+                '                <div class="SOCVR-Archiver-button-row-container"><!--',
+                '                 --><button class="SOCVR-Archiver-button-set-as-move-list" title="Set the Manual Move List to the messages shown in this popup.">Set</button><!--',
+                '                 --><button class="SOCVR-Archiver-button-add-to-move-list" title="Add all messages shown in this popup to the Manual Move List.">Add</button><!--',
+                '                 --><button class="SOCVR-Archiver-button-remove-from-move-list" title="Remove the messages shown in this popup from the Manual Move List.">Remove</button><!--',
                 //'                <button class="SOCVR-Archiver-button-fill-move-list" title="Fill the Manual Move List to 100. If needed, additional events are fetched and classified.\nThe first time you click this, it will take a while for it to go through the events back to where the transcript has been cleaned out. If you then move those it finds, where you left off will be remembered.\nThis can be used to slowly clean out the transcript.\nHowever, the transcript could be cleaned out in bulk. Up to 2,048 messages can be moved in one move-message.\nIf you\'re moving messages which are currently displayed in chat, then the move containing those is limited to 100, due to a display bug in SE chat. If you try to move more than 100, then additional individual moves are made. If you\'re not moving any messages which are visible in chat, then the maximum is 2048.\nIf you select more than those numbers, then the messages will be grouped in chunks and multiple moves will be made.">Fill</button>',
                 (targetRoomsByRoomNumberOrder.reduce((htmlText, key) => {
                     const current = targetRoomsByRoomNumber[key];
-                    return htmlText + `<button class="SOCVR-Archiver-move-list-button SOCVR-Archiver-button-${current.classInfo}-move-list" title="Move all messages on the Manual Move List to ${current.fullName}.">${current.classInfo}</button> `;
+                    return htmlText + `--><button class="SOCVR-Archiver-move-list-button SOCVR-Archiver-button-${current.classInfo}-move-list" title="Move all messages on the Manual Move List to ${current.fullName}.">${current.classInfo}</button><!--`;
                 }, '')),
-                '            </span>',
-                '            <button class="SOCVR-Archiver-button-cancel">Cancel</button>',
+                '             --></div>',
+                '            </div>',
+                '            <div class="SOCVR-Archiver-popup-button-separator SOCVR-Archiver-popup-button-separator-before-cancel"></div>',
+                '            <div class="SOCVR-Archiver-popup-button-container">',
+                '                <div>&nbsp;</div>',
+                '                <button class="SOCVR-Archiver-button-cancel">Cancel</button>',
+                '            </div>',
                 '        </div>',
                 '        <div class="SOCVR-Archiver-moveMessages-container">',
                 '            <div class="SOCVR-Archiver-moveMessages">',
@@ -2163,7 +2793,7 @@
             });
             moveMessagesDiv[0].insertAdjacentHTML('beforeend', messagesHtml);
             //Events
-            $('#SOCVR-archiver-messagesToMove-container > .SOCVR-Archiver-close-icon', shownToBeMoved).on('click', resetIfThisNotDisabled);
+            $('#SOCVR-Archiver-messagesToMove-container > .SOCVR-Archiver-close-icon', shownToBeMoved).on('click', resetIfThisNotDisabled);
             $('.SOCVR-Archiver-button-cancel', shownToBeMoved).first().on('click', resetIfThisNotDisabled);
             $('.SOCVR-Archiver-button-move', shownToBeMoved).first().on('click', saveMoveInformationAndMovePosts);
             $('.SOCVR-Archiver-button-1kmore', shownToBeMoved).first().on('click', getMoreEvents.bind(null, 1000));
@@ -2224,7 +2854,7 @@
             updateMessagesToMove();
             $(document.body).prepend(shownToBeMoved);
             doOncePerChatChangeAfterDOMUpdate();
-            var replyNode = $('.monologue:not(.mine) .message .newreply').first().clone(true);
+            getReplyNode();
             moveMessagesDiv.find('.message .meta').filter(function() {
                 return !$(this).children('.newreply').length;
             }).each(function() {
@@ -2232,14 +2862,9 @@
             });
             //Request that the unclosed request review script update request-info for the page, including the popup.
             var shownToBeMovedMessages = $(shownToBeMoved).find('.message');
-            var eventToSend = (shownToBeMovedMessages.length === priorMessagesShown.length) ? 'urrs-Request-Info-update-desired' : 'urrs-Request-Info-update-immediate';
+            const urrsUpdateType = (shownToBeMovedMessages.length === priorMessagesShown.length) ? 'desired' : 'immediate';
             //Send the event, but after we're done processing & the display updates.
-            setTimeout(() => {
-                window.dispatchEvent(new CustomEvent(eventToSend, {
-                    bubbles: true,
-                    cancelable: true,
-                }));
-            }, 0);
+            setTimeout(requestURRSUpdate, 10, urrsUpdateType);
             priorMessagesShown = shownToBeMovedMessages;
             //Every once in a while the first .tiny-signature in the popup ends up with display:none;
             //This is a hack to try to eliminate the problem. The issue has not been reliably duplicated, so it's unclear if this will actually solve the issue.
@@ -2250,7 +2875,14 @@
             [50, 1000, 5000, 10000].forEach((time) => {
                 setTimeout(() => {
                     if (moveMessagesDiv) {
-                        $('.tiny-signature', moveMessagesDiv).removeAttr('style');
+                        $('.monologue .signature', moveMessagesDiv).each(function() {
+                            const children = $(this).children();
+                            if (children.length === 1) {
+                                children.addClass('SOCVR-Archiver-important-display-block');
+                            } else {
+                                children.removeClass('SOCVR-Archiver-important-display-block');
+                            }
+                        });
                     }
                 }, time);
             });
@@ -2264,6 +2896,14 @@
                 shownToBeMoved = null;
                 scanCountSpan = null;
             }
+        }
+
+        function activateMessageDropdownMenusOnAddedMessages() {
+            //This can't just enable the menu on the archiver popup, because the functions in the menu rely on getting the message ID
+            //  from the id attribute of the .message which is done with .replace("message-", "");
+            const stockImg = $('.message:not(.SOCVR-Archiver-contains-deleted-content):not(.SOCVR-Archiver-added-message) .action-link').first();
+            const addedMenus = $('.message.SOCVR-Archiver-added-message .action-link');
+            addedMenus.replaceWith(() => stockImg.clone(true).removeClass('edits'));
         }
 
         function makeMonologueHtml(messageEvent, useUTC) {
@@ -2400,7 +3040,6 @@
                 //From transcript
                 /* beautify preserve:start *//* eslint-disable indent */
                 '<div class="monologue user-' + userId + (userId == me ? ' mine' : '') + ' SOCVR-Archiver-monologue-for-message-' + messageId + '">', // eslint-disable-line eqeqeq
-                '    <div class="SOCVR-Archiver-close-icon" data-message-id="' + messageId + '" title="Don\'t move"></div>',
                 '    <div class="signature">',
                 '        <div class="tiny-signature">',
                             (userAvatar16 ? '' +
@@ -2412,7 +3051,8 @@
                 '        </div>',
                 '    </div>',
                 '    <div class="messages">',
-                '        <div class="message" id="SOCVR-Archiver-message-' + messageId + '">',
+                '        <div class="SOCVR-Archiver-close-icon" data-message-id="' + messageId + '" title="Don\'t move"></div>',
+                '        <div class="message SOCVR-Archiver-added-message" id="SOCVR-Archiver-message-' + messageId + '">',
                 '            <div class="timestamp">' + timestamp + '</div>',
                 '            <a name="' + messageId + '" href="/transcript/' + room + '?m=' + messageId + '#' + messageId + '"><span style="display:inline-block;" class="action-link"><span class="img"> </span></span></a>',
                              (messageEvent.show_parent ? '<a class="reply-info" title="This is a reply to an earlier message" href="/transcript/message/' + messageEvent.parent_id + '#' + messageEvent.parent_id + '"></a>' : ''),
@@ -2433,11 +3073,12 @@
         var chatListenerAddMetaTimeout = 0;
         var debounceGetAvatars = 0;
 
-        function doOncePerChatChangeAfterDOMUpdate(chatInfo) {
+        function doOncePerChatChangeAfterDOMUpdate(chatEvent) {
             //Things that we do to when the Chat changes to keep the page updated.
+            addReplyToMine();
             addMoveToInMeta();
             recordOldestMessageInChat();
-            if (!chatInfo || chatInfo.event_type === 10 || chatInfo.event_type === 20) {
+            if (!chatEvent || chatEvent.event_type === 10 || chatEvent.event_type === 20) {
                 //This isn't called by a CHAT event, or a message was deleted (10) or moved-in (20) (which might already be deleted).
                 addAllDeletedContent();
             }
@@ -2447,32 +3088,33 @@
             debounceGetAvatars = setTimeout(getAvatars, 1000);
         }
 
-        function listenToChat(chatInfo) {
+        function archiverChatListener(chatEvent) {
             //Called when an event happens in chat. For add/delete this is called prior to the message being added or deleted.
             //Delay until after the content has been added. Only 0ms is required.
             //A delay of 100ms groups multiple CHAT events that happen at basically the same time.
             //  For showing deleted messages, it gives other implementations (e.g. non-privileged saving of deleted content) a chance to
             //  handle the deletion first.
             clearTimeout(chatListenerAddMetaTimeout);
-            chatListenerAddMetaTimeout = setTimeout(doOncePerChatChangeAfterDOMUpdate, 100, chatInfo);
-            if (chatInfo.event_type === 19) {
+            chatListenerAddMetaTimeout = setTimeout(doOncePerChatChangeAfterDOMUpdate, 100, chatEvent);
+            if (chatEvent.event_type === 19) {
                 //A message was moved out. We want to remove it from the moveList.
                 //This tracks messages which other people move. The user's own moves should be handled elsewhere.
                 //  This depends on having a tab open to chat.
-                var movedMessageId = chatInfo.message_id;
+                var movedMessageId = chatEvent.message_id;
                 removeFromLSManualMoveList(movedMessageId);
                 //Remove it from the popup
                 removeMessageIdFromPopupAndMoveList(movedMessageId);
             }
         }
-        if (CHAT && typeof CHAT.addEventHandlerHook === 'function') {
-            CHAT.addEventHandlerHook(listenToChat);
+        if (typeof CHAT !== 'undefined' && typeof CHAT?.addEventHandlerHook === 'function') {
+            CHAT.addEventHandlerHook(archiverChatListener);
         }
 
         //Add deleted content to be shown on hover.
         var deletedMessagesWithoutDeletedContent;
         var delayBetweenGettingDeletedContent = 500;
         var gettingDeletedContent = 0;
+        var didGetDeletedContent = false;
 
         function addAllDeletedContent() {
             //Go through the DOM and add the content back in for all deleted messages which don't already have it added back in.
@@ -2480,14 +3122,55 @@
                 //Deleted messages are not to be shown here.
                 return;
             }
-            if (!gettingDeletedContent && (!deletedMessagesWithoutDeletedContent || !deletedMessagesWithoutDeletedContent.length)) {
-                deletedMessagesWithoutDeletedContent = $('.content .deleted').parent().filter(function() {
-                    return !$(this).children('.SOCVR-Archiver-deleted-content').length;
-                }).closest('.message');
-                if (deletedMessagesWithoutDeletedContent.length) {
-                    addNextDeletedContent();
+            if (!gettingDeletedContent) {
+                if (!deletedMessagesWithoutDeletedContent || !deletedMessagesWithoutDeletedContent.length) {
+                    deletedMessagesWithoutDeletedContent = $('.content .deleted').parent().filter(function() {
+                        return !$(this).children('.SOCVR-Archiver-deleted-content').length;
+                    }).closest('.message');
+                    if (deletedMessagesWithoutDeletedContent.length) {
+                        addNextDeletedContent();
+                        return;
+                    }
                 }
+                //We're not in the process of getting deleted content and we didn't find any new content to get.
+                requestURRSUpdateIfGotDeletedContent();
             }
+        }
+
+        let urrsUpdateRequestCooldownTimer = 0;
+        let urrsUpdateRequestCooldownTimerShouldRequest = false;
+        function requestURRSUpdate(updateType) {
+            //Ask the URRS to update the display of messages. However, only do so at most once every 5 seconds.
+            //  The limitation as to how often to update should really be in the URRS, and it will be, but
+            //  it's more likely that an update to this script will happen prior to an update of the URRS.
+            if (urrsUpdateRequestCooldownTimer) {
+                //We're in a cooldown period. Indicate that a request should be made after the cooldown, but wait.
+                urrsUpdateRequestCooldownTimerShouldRequest = true;
+                return;
+            }
+            urrsUpdateRequestCooldownTimerShouldRequest = false;
+            urrsUpdateRequestCooldownTimer = setTimeout(() => {
+                urrsUpdateRequestCooldownTimer = 0;
+                if (urrsUpdateRequestCooldownTimerShouldRequest) {
+                    requestURRSUpdate(updateType);
+                }
+            }, 5000);
+            window.dispatchEvent(new CustomEvent(`urrs-Request-Info-update-${updateType}`, {
+                bubbles: true,
+                cancelable: true,
+            }));
+        }
+
+        function requestURRSUpdateIfGotDeletedContent() {
+            if (didGetDeletedContent) {
+                let urrsUpdateType = 'desired';
+                if ($('.message.SOCVR-Archiver-contains-deleted-content .content a[href*="/q/"], .message.SOCVR-Archiver-contains-deleted-content .content a[href*="/a/"], .message.SOCVR-Archiver-contains-deleted-content .content a[href*="/question/"]').length) {
+                    //If there's a link to a question or answer in the deleted content, then request immediate update.
+                    urrsUpdateType = 'immediate';
+                }
+                requestURRSUpdate(urrsUpdateType);
+            }
+            didGetDeletedContent = false;
         }
 
         function addNextDeletedContent() {
@@ -2497,11 +3180,14 @@
                 if (deletedMessagesWithoutDeletedContent.length) {
                     gettingDeletedContent = setTimeout(addNextDeletedContent, delayToGetNextDeleted);
                 } else {
+                    //After we think we're done, we always start the process over, just to be sure we haven't missed something that was added
+                    //  after we started this process.
                     gettingDeletedContent = 0;
                     setTimeout(addAllDeletedContent, delayToGetNextDeleted);
                 }
             }
             gettingDeletedContent = 1;
+            didGetDeletedContent = true;
             if (deletedMessagesWithoutDeletedContent.length) {
                 const message = deletedMessagesWithoutDeletedContent.last();
                 //Remove the message we're working on.
@@ -2512,7 +3198,7 @@
                     doMoreDeletedContentIfNeeded(true);
                     return;
                 }
-                //Mark this message as in the process of being handled, so there isn't duplicate fetches of history, should another script be doing the same thing.
+                //Mark this message as in the process of being handled, so there aren't duplicate fetches of history, should another script be doing the same thing.
                 message.addClass('SOCVR-Archiver-deleted-content-in-process');
                 const messageId = getMessageIdFromMessage(message);
                 getMessageMostRecentVersionFromHistory(messageId, function(deletedContent) {
@@ -2536,7 +3222,7 @@
                 deletedContent.removeClass('content').addClass('SOCVR-Archiver-deleted-content');
                 newContent.append(deletedContent);
                 //Indicate to the user that the content is available.
-                const marker = $('<span class="SOCVR-Archiver-deleted-content-marker">&#128065;</span>');
+                const marker = $('<span class="SOCVR-Archiver-deleted-content-marker" title="Click this icon to toggle between showing deleted messages upon hover and always showing them inline">&#128065;</span>');
                 newContent.find('.deleted').append(' ').append(marker.attr('title', 'Click this icon to show all deleted messages.')).after(marker.clone().attr('title', 'This message was deleted. Click this icon to show deleted content only on hover.'));
                 newContent.closest('.message').addClass('SOCVR-Archiver-contains-deleted-content');
             }
@@ -2544,21 +3230,43 @@
 
         function fechHistoryForMessage(messageId, callback) {
             //Get the history page for a message.
-            $.ajax({
+            return $.ajax({
                 type: 'GET',
                 url: 'https://' + window.location.hostname + '/messages/' + messageId + '/history',
                 success: callback,
                 error: function(xhr, status, error) {
-                    console.error('AJAX Error Getting history', '\n::  xhr:', xhr, '\n::  status:', status, '\n::  error:', error, '\n::  room:', room, '\n::  fkey,:', fkey, '\n::  messageId:', messageId);
+                    console.error(
+                        'AJAX error getting history',
+                        '\n::  xhr:', xhr,
+                        '\n::  status:', status,
+                        '\n::  error:', error,
+                        '\n::  room:', room,
+                        '\n::  fkey.length,:', fkey.length,
+                        '\n::  messageId:', messageId,
+                    );
                 },
             });
         }
 
-        function getMessageMostRecentVersionFromHistory(messageId, callback) {
-            //Get the last version of a message prior to it being deleted.
-            fechHistoryForMessage(messageId, function(data) {
-                var newDoc = jQuery.parseHTML(data);
-                callback($('.message .content', newDoc).first());
+        function getMessageMostRecentVersionFromHistory(messageId, lastContentCallback) {
+            return getAndParseMessageHistory(messageId).then((messageInfo) => {
+                if (typeof lastContentCallback === 'function') {
+                    lastContentCallback(messageInfo.lastContent);
+                }
+                return messageInfo.lastContent;
+            });
+        }
+
+        function getAndParseMessageHistory(messageId) {
+            //Get the data contained on the history page, including the last version of a message (prior to it being deleted).
+            return fechHistoryForMessage(messageId).then(function(historyHtml) {
+                const historyDom = parser.parseFromString(historyHtml, 'text/html');
+                const lastContent = $('.message .content', historyDom).first();
+                const lastContentIsPartial = !!lastContent.find('.partial').length;
+                return {
+                    lastContent,
+                    lastContentIsPartial,
+                };
             });
         }
 
@@ -2581,14 +3289,9 @@
                     countPosts = posts.length;
                 }
             }
-            if (countPosts && window.confirm('Move ' + countPosts + ' message' + (countPosts === 1 ? '' : 's') + ' to ' + targetRoomsByRoomNumber[targetRoomId].fullName + '?')) {
-                //Save a copy of the last information.
-                setStorageJSON('previousMoveTo', {
-                    posts: posts,
-                    targetRoomId: targetRoomId,
-                    //It would need to be tested to see if you really can only move from a single room, or if you can move from multiple rooms at a time.
-                    sourceRoomId: room,
-                });
+            if (countPosts && window.confirm(`Move ${countPosts} message${(countPosts === 1 ? '' : 's')} to ${(targetRoomsByRoomNumber[targetRoomId] || {fullName: `room # ${targetRoomId}`}).fullName}?`)) {
+                //Save a copy of the last move information.
+                savePostsListAsPreviousMove(posts, targetRoomId, room, 'move');
                 //Move the posts
                 moveSomePosts(posts, targetRoomId, callback);
             } else {
@@ -2609,6 +3312,11 @@
                 setProgress('moving messages', moveSomePostsTotal, moveSomePostsTotal);
                 moveSomePostsTotal = 0;
                 //Done with messages. Normal completion.
+                //When we move a message, it's possible that it had replies or was a reply. In those cases, it's possible
+                //  for there to be reply-child or reply-parent classes left on .message elements which will never be
+                //  removed. So, we remove all existing ones. This might result in not showing the parent or child
+                //  of the currently hovered message, but that will be fixed as the mouse is moved.
+                $('.message.reply-child, .message.reply-parent').removeClass('reply-child reply-parent');
                 if (Array.isArray(postsWithoutUserId) && postsWithoutUserId.length) {
                     alert('The following messages don\'t have an identified "user_id". Trying to move them will result in an API error. Any other messages which were to be moved were moved. See the console for additional information.\n\n' + postsWithoutUserId.join(', '));
                 }
@@ -2678,7 +3386,7 @@
                     to: targetRoomId + '',
                     fkey: fkey,
                 },
-                url: '/admin/movePosts/' + room,
+                url: '/admin/movePosts/' + (room ? room : roomForMostRecentlyAddedManualMove),
                 success: function() {
                     if (!posts.length) {
                         doneMovingMessages();
@@ -2694,15 +3402,17 @@
                         '\n::  status:', status,
                         '\n::  error:', error,
                         '\n::  targetRoomId:', targetRoomId,
-                        '\n::  fkey:', fkey,
+                        //The fkey is private, so its value should not be printed in something that might be copy-and-pasted to another person for debugging.
+                        '\n::  fkey.length:', fkey.length, //should be 32;
                         '\n::  messagesBeingMoved.length:', messagesBeingMoved.length,
                         '\n::  messagesBeingMoved:', messagesBeingMoved,
                         '\n::  formatted messagesBeingMoved:', messagesBeingMoved.join(','),
                         '\n::  posts:', posts,
                         '\n::  callback:', callback,
-                        '\n::  ajaxInfo:', ajaxInfo
+                        '\n::  ajaxInfo:', ajaxInfo,
                     );
                     alert('$.ajax encountered an error moving some posts. See console for details.' + (error && error.length < 100 ? ' error: ' + error : ''));
+                    nodes.cancel.disabled = false;
                 },
             };
             $.ajax(ajaxInfo);
@@ -2719,12 +3429,10 @@
             //Create the HTML for the in-question moveTo controls for rooms in an order and given rooms data.
             return roomOrder.reduce((htmlText, key) => {
                 var targetRoom = roomsByRoomNumber[key];
-                return htmlText + '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-' +
-                    targetRoom.shortName + '" title="Move this/selected message(s) (and any already in the list) to ' +
-                    targetRoom.fullName + '." data-room-id="' +
-                    targetRoom.roomNumber + '">' +
-                    targetRoom.displayed + '</span>';
+                return htmlText + `<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-${targetRoom.shortName}" title="Move this/selected message(s) (and any already in the list) to ${targetRoom.fullName} (#${targetRoom.roomNumber})." data-room-id="${targetRoom.roomNumber}">${targetRoom.displayed}</span>`;
             }, '') + [
+                //Prompt for room
+                '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-prompt-for-room" title="Prompt you for a room to which to move this/selected message(s) (and any already in the list)." data-room-id="prompt">?</span>',
                 //Add message
                 '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-add-to-list" title="Add this/selected message(s) to the list." data-room-id="add">+</span>',
                 //remove message
@@ -2733,6 +3441,8 @@
                 '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-clear-list" title="Clear the list." data-room-id="clear">*</span>',
                 //Undo/re-select the last moved list
                 '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-reselect" title="Re-select the messages which were last moved. This can be used to undo the last move by reselecting them (this control); going to the room they have been moved to; find one that\'s selected; then, manually moving them back by clicking on the control you want them moved to." data-room-id="reselect">U</span>',
+                //Open menu
+                '<span class="SOCVR-Archiver-in-message-move-button SOCVR-Archiver-move-to-popup-menu" title="Open a popup from which you can select additional actions." data-room-id="popup-menu">&#8801;</span>',
             ].join('');
         }
 
@@ -2751,7 +3461,20 @@
                 return !$(this).children('.meta').length;
             });
             //Add meta to any messages which don't have it.
-            messagesWithoutMeta.children('.request-info,.flash:not(.request-info ~ .flash)').before('<span class="meta"></span>');
+            messagesWithoutMeta.children('.request-info, .flash:not(.request-info ~ .flash)').before('<span class="meta"></span>');
+            //On pages where a .meta doesn't normally exist, and if AIM has already added information to the message, then copy the
+            //  AIM information into the newly created meta.
+            messagesWithoutMeta.each(function() {
+                const message = $(this);
+                const nonMetaAiInfo = message.children('.ai-information');
+                if (nonMetaAiInfo.length > 0) {
+                    const meta = message.find('.meta');
+                    const metaAiInfo = meta.find('.ai-information');
+                    if (metaAiInfo.length === 0) {
+                        meta.append(nonMetaAiInfo.clone(true).addClass('inline'));
+                    }
+                }
+            });
             const messagesMetaWithoutAddedMeta = messages.find('.meta').filter(function() {
                 return !$(this).children('.SOCVR-Archiver-in-message-move-button').length;
             });
@@ -2790,13 +3513,13 @@
                 if (message.length) {
                     message = message[0];
                 } else {
-                    return '';
+                    return 0;
                 }
             }
             if (message) {
-                return el.id.replace(/(?:SOCVR-Archiver-)?message-/, '');
+                return +el.id.replace(/(?:SOCVR-Archiver-)?message-/, '');
             } //else
-            return '';
+            return 0;
         }
 
         function moveMoveList(roomId, callback) {
@@ -2830,20 +3553,255 @@
             });
         }
 
-        function moveToInMetaHandler() {
+        function addMessageAndPriorSelectionToManualMoveList(message) {
+            const messageId = getMessageIdFromMessage(message);
+            addToLSManualMoveList(messageId);
+            addMessageToNoUserListIfMonologueIsNoUser(message);
+            addToLSManualMoveList(priorSelectionMessageIds);
+        }
+
+        function addAdditionalMoveListOptionsToPopup(popup) {
+            function MoveListPopupEntry(_displayText, _outerSpanClass, _imageSpanClass, _titleText, _action, _needModerator = false, _actionFunction = null) {
+                this.displayText = _displayText;
+                this.outerSpanClass = _outerSpanClass;
+                this.imageSpanClass = _imageSpanClass;
+                this.titleText = _titleText;
+                this.action = _action;
+                this.needModerator = _needModerator;
+                this.actionFunction = _actionFunction;
+            }
+
+            const moveListPopupEntries = [
+                //star/unstar tested, returns 'ok'; fails when trying to star/unstar your own; rate limited to 1/second
+                new MoveListPopupEntry('star/unstar as interesting (toggle)', 'star extra-links-unpin-cancel', 'sprite sprite-icon-star', 'Try to change the state of *your* stars on all highlighted messages. SE has implemented this as a toggle. In addition, after some time that you\'ve starred something becomes locked in, so you can\'t unstar your own star without canceling all stars on the message. If you use this on messages where your star is locked on, this will silently fail for that message. Effectively, the "unstar" ability is an "undo", which has a relatively brief period where you can actually undo.', 'star'),
+                //unstar (cancel-stars) tested, returns 'ok'; does not appear to be rate limited
+                new MoveListPopupEntry('cancel all stars', '', 'sprite sprite-icon-star-off', 'Cancel all stars on all highlighted messages', 'unstar'),
+                //owner-star (pin) tested, returns 'ok'; rate limited to 1/second; is actually a toggle; doing it again clears the pin, but not your own star, even on your own message
+                //owner-star then owner-star could be used to star your own posts.
+                //owner-star then owner-star can be used to re-pin something and reset the pin 14 day timer; must be done prior to expiration of the current pin.
+                new MoveListPopupEntry('pin', 'owner-star', 'img', 'Pin all highlighted messages (toggle)', 'owner-star'),
+                //unpin tested: returns 'ok'; doesn't fail when not pinned; doesn't appear to be rate limited.
+                new MoveListPopupEntry('unpin', 'owner-star', 'sprite sprite-ownerstar-off', 'Unpin all messages in the Manual Move List', 'unowner-star'),
+                //spam flag tested: returns 'ok'; rate limited to 1/second
+                new MoveListPopupEntry('flag as spam/offensive', 'flag', 'img', 'Flag all highlighted messages as spam/abusive.', 'flag'),
+                new MoveListPopupEntry('counter flag', '', 'SOCVR-Archiver-sprite-placeholder', 'Counter flag all highlighted messages', 'counter-flag'),
+                new MoveListPopupEntry('meh flag', '', 'SOCVR-Archiver-sprite-placeholder', 'Meh flag all highlighted messages', 'meh-flag'),
+                new MoveListPopupEntry('cancel flags', '', 'sprite sprite-flag-off', 'Cancel flags on all highlighted messages', 'cancel-flags', true),
+                //If already deleted, the response is 'This message has already been deleted.'
+                new MoveListPopupEntry('delete', 'delete', '', 'Delete all highlighted messages', 'delete', true),
+                //new MoveListPopupEntry('delete-img', 'delete', 'img', 'Delete all messages in the Manual Move List', 'delete'),
+                new MoveListPopupEntry('redact', '', 'SOCVR-Archiver-sprite-placeholder', 'Redact the message for all highlighted messages', 'redact', true),
+                //This does *not* respond with "OK". It gives a 302 response to redirect to /history for the message.
+                new MoveListPopupEntry('purge history', '', 'SOCVR-Archiver-sprite-placeholder', 'Purge the message history for all highlighted messages', 'purge-history', true),
+                new MoveListPopupEntry('redact and purge history', '', 'SOCVR-Archiver-sprite-placeholder', 'Redact and purge the message history for all highlighted messages', 'redact_purge-history', true),
+                //Sam's Chat Redact Messages script indicates we can/should delete the message first; tested.
+                new MoveListPopupEntry('delete, redact, and purge history', '', 'SOCVR-Archiver-sprite-placeholder', 'Redact, delete, and purge the message history for all highlighted messages', 'delete_redact_purge-history', true),
+            ];
+            const moveListPopupEntriesByAction = {};
+            moveListPopupEntries.forEach((entry) => {
+                moveListPopupEntriesByAction[entry.action] = entry;
+            });
+
+            function addActionToPopup(popupEntry) {
+                if (!popupEntry.needModerator || (popupEntry.needModerator && isModerator)) {
+                    popup.append(`<span class="SOCVR-Archiver-inline-popup-action-entry ${popupEntry.outerSpanClass}"${popupEntry.titleText ? ` title="${popupEntry.titleText}"` : ''} data-action="${popupEntry.action}">${popupEntry.imageSpanClass ? `<span class="${popupEntry.imageSpanClass}"></span>` : ''} ${popupEntry.displayText}</span></br>`);
+                }
+            }
+
+            function jQueryDeferredDelay(deferredDelay = 0) {
+                return jQuery.Deferred((deferred) => setTimeout(deferred.resolve, deferredDelay));
+            }
+
+            function jQueryGeneralAjaxErrorRetry(originalSettings) {
+                const keysToTransfer = [
+                    'url',
+                    'data',
+                    'type',
+                    'data',
+                    'success',
+                    'cache',
+                    'complete',
+                    'contentType',
+                    'dataTypes',
+                    'error',
+                    'statusCode',
+                    'timeout',
+                    'username',
+                ];
+                const settings = {};
+                keysToTransfer
+                    .filter((key) => Object.getOwnPropertyDescriptor(originalSettings, key))
+                    .forEach((key) => {
+                        settings[key] = originalSettings[key];
+                    });
+                return $.ajax(settings);
+            }
+
+            function jQueryDelayedRetryUponConflictResponse(jQueryXHROuter, statusOuter, errorOuter) {
+                let retryCount = 0;
+                function conflictDelayAutoRetryInner(jQueryXHR, status, error) {
+                    let isDelay = false;
+                    let seconds = 5; //Default delay for other errors.
+                    if (error === 'Conflict' && jQueryXHR.responseText) {
+                        //In chat, the delay response is in the form of:
+                        // "You can perform this action again in 4 seconds."
+                        seconds = (jQueryXHR.responseText.match(/(?:again|in)\D*(\d+)\s*seconds?/) || ['', 4])[1];
+                        isDelay = true;
+                    }
+                    if (retryCount > 4 || !isDelay) {
+                        //It's either been tried the maximum number of times, or the response isn't one we recognize as something for an auto-retry.
+                        //The following is used to be able to chain jQuery error/reject responses.
+                        return jQuery.Deferred().rejectWith(this, [jQueryXHR, status, error]);
+                    }
+                    retryCount++;
+                    return jQueryDeferredDelay(seconds * 1000).then(() => jQueryGeneralAjaxErrorRetry(this)).then(null, conflictDelayAutoRetryInner);
+                }
+                return conflictDelayAutoRetryInner.call(this, jQueryXHROuter, statusOuter, errorOuter);
+            }
+
+            function popupMenuEntryMessageActionHandler(messageID, menuEntry) {
+                const actions = menuEntry.action.split('_');
+                return actions.reduce((thenChain, action) => {
+                    if (action === 'redact') {
+                        return thenChain
+                            .then(() => postToChatWithConflictRetryAndUserOptionToRetryNoOKIsError(`/messages/${messageID}`, {text: '*[message redacted by a moderator]*'}));
+                    } //else
+                    return thenChain
+                        .then(() => postToChatWithConflictRetryAndUserOptionToRetryNoOKIsError(`/messages/${messageID}/${action}`));
+                }, jQuery.Deferred().resolve());
+            }
+
+            function postToChatWithConflictRetryAndUserOptionToRetryNoOKIsError(url, data = {}) {
+                data.fkey = fkey;
+                function sendChatPost() {
+                    return $.post(url, data)
+                        .then(null, jQueryDelayedRetryUponConflictResponse)
+                        .then(function(response) {
+                            if (this.url.endsWith('/purge-history')) {
+                                //The response from /purge-history is the entire history page. We don't want to log that.
+                                return jQuery.Deferred().resolveWith(this, [response]);
+                            }
+                            const responseIsString = typeof response === 'string';
+                            //The /purge-history endpoint doesn't respond with "ok". Actually it responds with a 302 and redirects
+                            //  to a GET of /history.
+                            if (this.url.endsWith('/purge-history') || (responseIsString && response.toLowerCase() === 'ok')) {
+                                return jQuery.Deferred().resolveWith(this, [response]);
+                            } //else
+                            const status = 488; //Something the server won't send.
+                            const statusText = 'Response was not "ok".';
+                            const fakeJqXHR = {
+                                status,
+                                statusText,
+                                fakeErrorOriginalResponse: response,
+                            };
+                            let responseText = response;
+                            if (typeof response === 'object') {
+                                responseText = JSON.stringify(response);
+                                fakeJqXHR.responseJSON = response;
+                            }
+                            try {
+                                //If the response was JSON text, then we want to keep it as JSON text.
+                                responseText = JSON.stringify(JSON.parse(response));
+                            } catch (error) {
+                                //Do nothing
+                            }
+                            fakeJqXHR.responseText = responseText;
+                            return jQuery.Deferred().rejectWith(this, [fakeJqXHR, status, statusText]);
+                        })
+                        .then(null, function(jQueryXHR, status, error) {
+                            console.error(
+                                'AJAX Error POSTing data to SE Chat:',
+                                '\n  this.url:', this.url,
+                                '\n  jQueryXHR.responseText:', jQueryXHR.responseText,
+                                '\n  status:', status,
+                                '\n  error:', error,
+                                '\n  jQueryXHR:', jQueryXHR,
+                            );
+                            if (confirm(`There was an error${(jQueryXHR.responseText || '').length < 300 ? `:\n\n"${jQueryXHR.responseText}"\n\n` : ' '}sending a POST to SE/SO chat at:\n${url}\n\nMore information should be in the console.\n\nDo you want to retry the request?`)) {
+                                return sendChatPost();
+                            } // else
+                            return jQuery.Deferred().rejectWith(this, [jQueryXHR, status, error]);
+                        });
+                }
+                return sendChatPost();
+            }
+
+            function setPopupMoveListLength() {
+                popup.find('.SOCVR-Archiver-inline-popup-list-length').text(manualMoveList.length);
+                popup.find('.SOCVR-Archiver-inline-popup-list-length-plural').text(manualMoveList.length === 1 ? '' : 's');
+            }
+
+            function handlePopupClick() {
+                if (popup.hasClass('SOCVR-Archiver-inline-popup-action-active')) {
+                    //We're already doing something.
+                    return;
+                }
+                popup.addClass('SOCVR-Archiver-inline-popup-action-active');
+                const $this = $(this);
+                const action = $this.data('action');
+                const menuEntry = moveListPopupEntriesByAction[action];
+                if (!action || !menuEntry) {
+                    console.error('Did not understand popup click. action:', action, ':: menuEntry:', menuEntry, ':: $this:', $this);
+                    return false;
+                }
+                const mmlPlural = manualMoveList.length === 1 ? '' : 's';
+                if (confirm(`Are you sure you want to\n${menuEntry.displayText} the\n\n${manualMoveList.length} message${mmlPlural}\n\n on the action list (i.e. ${mmlPlural ? 'all ' : ''}the highlighted message${mmlPlural})?`)) {
+                    savePostsListAsPreviousMove(manualMoveList, -9999, room, action);
+                    const handlerFunction = typeof menuEntry.actionFunction === 'function' ? menuEntry.actionFunction : popupMenuEntryMessageActionHandler;
+                    let thenChain = jQuery.Deferred().resolve();
+                    manualMoveList
+                        .sort((a, b) => a - b)
+                        .forEach((messageId) => {
+                            thenChain = thenChain
+                                .then(() => handlerFunction(messageId, menuEntry))
+                                .then(() => {
+                                    removeFromLSManualMoveList(messageId);
+                                    setPopupMoveListLength();
+                                });
+                        });
+                    thenChain.then(() => {
+                        popup.removeClass('SOCVR-Archiver-inline-popup-action-active');
+                        popup.find('.btn-close').click();
+                    }, () => alert('An error occurred while trying to perform the selected action. Please see the console for more details'));
+                }
+                return false;
+            }
+
+            popup
+                .append('<h3 class="SOCVR-Archiver-inline-popup-popup-title" title="The action you select will be performed on each highlighted message.">Additional list actions</h3>')
+                .append(`<span class="SOCVR-Archiver-inline-popup-list-length-container">(list contains <span class="SOCVR-Archiver-inline-popup-list-length">${manualMoveList.length}</span> message<span class="SOCVR-Archiver-inline-popup-list-length-plural">s</span>)</span>`)
+                .on('click', '.SOCVR-Archiver-inline-popup-action-entry', handlePopupClick);
+            moveListPopupEntries.forEach(addActionToPopup);
+            popup.append('<br><span>The selected action will be performed on each highlighted message.</span>');
+            setPopupMoveListLength();
+        }
+
+        function moveToInMetaHandler(event) {
             //Handle a click on the moveTo controls
             /* jshint -W040 */ //This is called as a jQuery event handler, which explicitly sets `this`.
-            var $this = $(this);
-            var roomId = this.dataset.roomId;
+            const $this = $(this);
+            let roomId = this.dataset.roomId;
             /* jshint +W040 */
-            var message = $this.closest('.message');
+            const message = $this.closest('.message');
             if (message.length) {
-                var messageId = getMessageIdFromMessage(message);
+                const messageId = getMessageIdFromMessage(message);
                 if (messageId) {
+                    if (roomId === 'popup-menu') {
+                        //The click to open results in also closing if done within the event handler, so we wait.
+                        addMessageAndPriorSelectionToManualMoveList(message);
+                        setTimeout(() => {
+                            const menuPopup = popUp(event.pageX, event.pageY, message);
+                            //menuPopup.append('This is an option.');
+                            menuPopup.css({width: '250px'});
+                            addAdditionalMoveListOptionsToPopup(menuPopup);
+                        });
+                    }
+                    if (roomId === 'prompt') {
+                        addMessageAndPriorSelectionToManualMoveList(message);
+                        roomId = ((prompt('To what room do you want to move messages (enter a room number or room URL)?') || '').match(/\d+/) || [])[0];
+                    }
                     if (roomId === 'add') {
-                        addToLSManualMoveList(messageId);
-                        addMessageToNoUserListIfMonologueIsNoUser(message);
-                        addToLSManualMoveList(priorSelectionMessageIds);
+                        addMessageAndPriorSelectionToManualMoveList(message);
                     } else if (roomId === 'remove') {
                         removeFromLSManualMoveList(messageId);
                         addMessageToNoUserListIfMonologueIsNoUser(message);
@@ -2853,9 +3811,7 @@
                     } else if (roomId === 'reselect') {
                         reselectLastLSMoveList();
                     } else if (+roomId) {
-                        addToLSManualMoveList(messageId);
-                        addMessageToNoUserListIfMonologueIsNoUser(message);
-                        addToLSManualMoveList(priorSelectionMessageIds);
+                        addMessageAndPriorSelectionToManualMoveList(message);
                         moveMoveList(roomId);
                     }
                 }
@@ -2877,7 +3833,7 @@
         function addMessageToNoUserListIfMonologueIsNoUser(message) {
             //This would be better if we generated a list of messages to add all at once, but it should be very rare. Thus, one at a time shouldn't have much impact.
             if (message.first().closest('.monologue').hasClass('user-')) {
-                var messageId = getMessageIdFromMessage(message);
+                const messageId = getMessageIdFromMessage(message);
                 if (messageId) {
                     addToLSnoUserIdList(messageId);
                 }
@@ -2889,7 +3845,7 @@
             var messageIdsObject = {};
 
             function addMessageIdToSetAndCheckForNoUserId(message) {
-                var messageId = getMessageIdFromMessage(message);
+                const messageId = getMessageIdFromMessage(message);
                 if (messageId) {
                     messageIdsObject[messageId] = true;
                 }
@@ -2991,6 +3947,13 @@
             //This assumes the list stored in memory is primary. i.e. a change that's occurred in localStorage, but which has not been
             //  read in yet will be overwritten.
             if (addNonDuplicateValuesToList(manualMoveList, values)) {
+                values = Array.isArray(values) ? values : [values];
+                const lastValue = values[values.length - 1];
+                const lastHref = $(`#message-${lastValue} .action-link`).closest('a').attr('href');
+                if (lastHref) {
+                    roomForMostRecentlyAddedManualMove = (lastHref.match(/\/transcript\/(\d+)\?/) || [0, 0])[1];
+                    setStorage('roomForMostRecentlyAddedManualMove', roomForMostRecentlyAddedManualMove);
+                }
                 setLSManualMoveList(manualMoveList);
                 showAllManualMoveMessages();
             }
@@ -3049,8 +4012,8 @@
         function showAllManualMoveMessages(forceLengthUpdate) {
             //Make sure any visible messages have, or don't have, the class indicating they are on the manual move list.
             $('.message').each(function() {
-                var messageId = getMessageIdFromMessage(this);
-                if (manualMoveList.indexOf(+messageId) > -1) {
+                const messageId = getMessageIdFromMessage(this);
+                if (manualMoveList.indexOf(messageId) > -1) {
                     $(this).addClass('SOCVR-Archiver-multiMove-selected');
                 } else {
                     $(this).removeClass('SOCVR-Archiver-multiMove-selected');
@@ -3068,7 +4031,7 @@
 
         //Add Deleted messages to transcript pages
 
-        /* We get transcript events here and in other scripts (other scripts?). The "API" response data is shared, rather than get it twice.
+        /* We get transcript events here and in other scripts. The "API" response data is shared, rather than get it in each script.
          *   typeof window.transcriptChatEvents === 'undefined'
          *     No process has attempted to get the events.
          *   window.transcriptChatEvents = null
@@ -3077,11 +4040,13 @@
          *     Getting events is complete in a script.
          *   Array.isArray(window.transcriptChatEvents) === true && window.transcriptChatEvents.length > 0
          *     Events are valid on window.transcriptChatEvents
-         *   CustomEvent 'transcript-events-received' is fired from the script which received the transcript events.
-         *   CustomEvent 'transcript-events-received' is received in all scripts not doing the AJAX call to get the transcript events.
+         *   CustomEvent 'transcript-events-received' is fired from the script which fetched the transcript events.
+         *   CustomEvent 'transcript-events-received' is received in all scripts not doing the AJAX call(s) to get the transcript events.
+         *   CustomEvent 'transcript-events-rejected' is fired from the script which was getting transcript events when a non-recovered error occurs.
+         *   CustomEvent 'transcript-events-rejected' is received in all scripts not doing the AJAX call(s): Causes the Promise to be rejected.
          */
-        let gettingTranscriptEvents = false;
         function getAndShareTranscriptEvents() {
+            let gettingTranscriptEvents = false;
             //Get the events covering the time-frame shown in this transcript page.
             //  Currently this does not guarantee to get all messages that are in the time-frame
             //  of this transcript page. It normally will, but it's not checked for.
@@ -3089,40 +4054,171 @@
             // transcript page is sufficient, in total messages on the chat server, to get all deleted messages for this
             // room that are in the time-frame for this transcript page.  While this is often true, it is by no means
             // guaranteed.
-            const chatTranscriptEndMessagesOffset = 15000;
-            if (typeof window.transcriptChatEvents === 'undefined') {
-                window.transcriptChatEvents = null; //Indicate that we are requesting the chat events.
-                gettingTranscriptEvents = true;
-                const lastMessageId = getMessageIdFromMessage($('#transcript .message').last());
-                getEvents(room, fkey, 500, lastMessageId + chatTranscriptEndMessagesOffset).then((response) => {
-                    window.transcriptChatEvents = response.events;
-                    getAndShareTranscriptEvents();
-                }, () => {
-                    //We can continue upon failure.
-                    window.transcriptChatEvents = [];
-                    getAndShareTranscriptEvents();
-                });
-                return;
-            }
-            if (window.transcriptChatEvents === null) {
-                if (gettingTranscriptEvents) {
-                    //We are currently getting the events & will be called when they are available.
-                    return;
+            return new Promise((resolve, reject) => {
+                async function getTranscriptEvents() {
+                    const DEFAULT_CHAT_TRANSCRIPT_END_MESSAGES_OFFSET = 15000;
+                    //This should be based on the time we determine for the transcript, not just the IDs. This is so we
+                    //  have enough messages to cover any ones which were deleted in the time-frame of the current transcript display.
+                    let transcriptEvents = [];
+                    const messages = $('#transcript .message, #conversation .message');
+                    if (messages.length === 0) {
+                        //There are no messages on this transcript or conversation page. While we do want to get any transcript events which occurred here,
+                        //  we don't currently support that.
+                        throw new Error('No transcript events in page. Getting any possible transcript events isn\'t supported in this situation.');
+                    }
+                    const firstMessage = messages.first();
+                    const lastMessage = messages.last();
+                    const firstMessageId = getMessageIdFromMessage(firstMessage);
+                    const lastMessageId = getMessageIdFromMessage(lastMessage);
+                    const [transcriptDateStart, transcriptDateEnd] = getTranscriptDate();
+                    const transcriptStartTimestamp = transcriptDateStart.setMilliseconds(0).valueOf() / 1000;
+                    const transcriptEndTimestamp = transcriptDateEnd.setMilliseconds(0).valueOf() / 1000;
+                    //Unfortunately, there doesn't appear to be an endpoint to get messages by date, only by message number.
+                    //In order to get any deleted messages that are beyond the last one shown in the room, but still in the
+                    //  time-frame of the current transcript page, we guess at a message ID which is hopefully somewhat beyond
+                    //  the last message actually in the time-frame.
+                    let chatTranscriptEndMessagesOffset = DEFAULT_CHAT_TRANSCRIPT_END_MESSAGES_OFFSET;
+                    if (messages.length !== 1) {
+                        const firstToLastMessageIdDistance = lastMessageId - firstMessageId;
+                        const idChangePerMessage = firstToLastMessageIdDistance / messages.length;
+                        //If our first fetch of chat events doesn't get any events after the end of the transcript page, we get the HTML for the next day or time period,
+                        //  which is linked at the top of the transcript page and start fetching backward from that point. Doing that makes it highly likely we'll actually
+                        //  find a chat event which is in the current room and later than this page, if one exists.
+                        //  However, most of the time we are successful at guessing a message ID sufficiently after the most recent in the transcript, which saves us
+                        //  a fetch under most conditions, at the cost of an extra one rarely.
+                        //Use an offset that should be in the ballpark of 200 messages after the last message shown on the current page.
+                        //We want to pick a number to increment the last ID by such that will result in us almost always getting both all the transcript events shown on the page
+                        //  and at least one which is later. 200 is picked as a multiplier, because SE tends to subdivide dates such that each transcript page contains no more
+                        //  than 250, or so, messages.
+                        //  This will be sufficient for transcript pages probably about 99.9% of the time (probably better than that). What we might miss are deleted messages which are
+                        //  within the transcript timeframe, but which aren't within the number of message IDs equal to 200 * the average ID change per message.
+                        //  This would be most likely to happen if only a tight group of messages near the beginning of the timeframe remained undeleted and
+                        //  there were deleted messages substantially closer to the end of the timeframe.
+                        //If we don't get a transcript event which is later in time than what would be displayed on the current transcript page, then we do further processing and
+                        //  fetched to make it very likely that we will always end up with either the last event, if there are no more, or at least one event which is later than the
+                        //  current page.
+                        chatTranscriptEndMessagesOffset = Math.max(Math.ceil(200 * idChangePerMessage), DEFAULT_CHAT_TRANSCRIPT_END_MESSAGES_OFFSET);
+                    }
+                    let firstRequestBefore = lastMessageId === 0 ? 0 : lastMessageId + chatTranscriptEndMessagesOffset;
+                    const nextSectionOrNextDayButton = $('#main a.button.noprint:contains(next day), #main a.button.noprint:contains(last day)').first().add($('#main .pager .page-numbers.current').first().next('a')).last();
+                    if (!nextSectionOrNextDayButton.length) {
+                        //We're at the end of the transcript, so get events from the end.
+                        //We'll actually make the request for this where we make the "second" request.
+                        firstRequestBefore = 0;
+                    }
+                    let lastEventTimeStampOfFirstResponse = -1000;
+                    if (firstRequestBefore) {
+                        const firstResponse = await getEventsWithBasicErrorHandling(room, fkey, 500, firstRequestBefore);
+                        transcriptEvents = firstResponse.events;
+                        lastEventTimeStampOfFirstResponse = transcriptEvents[transcriptEvents.length - 1].time_stamp;
+                    }
+                    if (lastEventTimeStampOfFirstResponse < transcriptEndTimestamp) {
+                        //We didn't get enough messages to cover to the end of the transcript. In theory, there could be any number of deleted messages which
+                        //  we need to get, but we're only going to make one more attempt at finding messages beyond the current time.
+                        let secondTryFirstBefore = 0;
+                        if (nextSectionOrNextDayButton.length) {
+                            const nextDayUrl = nextSectionOrNextDayButton.attr('href');
+                            const nextDayHtml = await $.get(nextDayUrl);
+                            const nextDayAsDom = parser.parseFromString(nextDayHtml, 'text/html');
+                            const firstMessageIdOfNextSectionOrDay = Number((nextDayAsDom.querySelector('#main .message') || {id: 'foo-0'}).id.split('-')[1]);
+                            secondTryFirstBefore = firstMessageIdOfNextSectionOrDay + 10; //We should end up getting a single message past the end time of the current page.
+                            if (!firstMessageIdOfNextSectionOrDay) {
+                                //If, for some reason, we didn't get a valid messageId for the first message on the next page, then just try further than we did before.
+                                secondTryFirstBefore = firstRequestBefore + (3 * chatTranscriptEndMessagesOffset);
+                            }
+                        } //else: There is no next day, so we're at the end of the transcript. We then get messages from the end, which is secondTryFirstBefore=0, which is already the case.
+                        const responseFromSecondFindEndAttempt = await getEventsWithBasicErrorHandling(room, fkey, 500, secondTryFirstBefore);
+                        //Use the new set of events as our starting point, which just drops the ones we actually got first (we will get them again, if needed).
+                        transcriptEvents = responseFromSecondFindEndAttempt.events;
+                    }
+                    let firstEventId = transcriptEvents[0].message_id;
+                    let firstEventTimeStamp = transcriptEvents[0].time_stamp;
+                    const lastEventId = transcriptEvents[transcriptEvents.length - 1].message_id;
+                    let lastFetchReceivedCount = transcriptEvents.length;
+                    let fetchCount = 0; //Have a limit to the number of fetches we might do, just in case.
+                    if (firstMessageId > 0) {
+                        while ((firstEventId > firstMessageId || firstEventTimeStamp > transcriptStartTimestamp) && lastFetchReceivedCount > 0 && fetchCount < 10) {
+                            const response = await getEventsWithBasicErrorHandling(room, fkey, 500, firstEventId);
+                            fetchCount++;
+                            lastFetchReceivedCount = response.events.length;
+                            transcriptEvents = response.events.concat(transcriptEvents);
+                            firstEventId = transcriptEvents[0].message_id;
+                            firstEventTimeStamp = transcriptEvents[0].time_stamp;
+                        }
+                    } //else
+                    const allEventsReceived = transcriptEvents;
+                    if (transcriptStartTimestamp && transcriptEndTimestamp && transcriptStartTimestamp !== transcriptEndTimestamp) {
+                        //It looks like the start and end time_stamps for the page are valid, so filter the events down to only what's in the time period.
+                        transcriptEvents = transcriptEvents.filter((event) => !event.time_stamp || (event.time_stamp >= transcriptStartTimestamp && event.time_stamp <= transcriptEndTimestamp));
+                    }
+                    return [transcriptEvents, allEventsReceived];
                 }
-                //Some other process is getting the events.
-                //  We wait to be informed that they are available.
-                window.addEventListener('transcript-events-received', getAndShareTranscriptEvents);
-                return;
-            }
-            window.removeEventListener('transcript-events-received', getAndShareTranscriptEvents);
-            if (gettingTranscriptEvents) {
-                window.dispatchEvent(new CustomEvent('transcript-events-received', {
-                    bubbles: true,
-                    cancelable: true,
-                }));
-            }
-            //The events are available.
-            addDeletedEventsToTranscript();
+
+                function rejectWithError() {
+                    console.error('Rejecting getAndShareTranscriptEvents Promise');
+                    reject(new Error('Getting transcript events failed.'));
+                }
+
+                /*
+                    checkAndAdvanceGettingTranscriptState is a state machine which walks through either getting the transcript events or waiting for another script to get them.
+                        It currently relies on the scripts sharing the same window scope.
+                        It is called to start the process, to continue to the process, or in response to an event from another script.
+                        window.transcriptChatEvents    gettingTranscriptEvents      What
+                                 undefined                     any                  Starting. This process will get events. window.transcriptChatEvents = null; gettingTranscriptEvents=true;
+                                                                                        when have events, window.transcriptChatEvents = transcriptEvents; and re-call checkAndAdvanceGettingTranscriptState.
+                                                                                        If error-out, then reject and send a reject Event.
+                                    null                       true                 This script is in the process of getting events. Do nothing; waiting to be called again.
+                                                                                        Shouldn't actually get here unless the script which is using this calls twice.
+                                    null                       false                Another script is in the process of getting chatEvents. Listen for an Event to be fired.
+                                    other                      true                 This script has gotten chatEvents. Send Event; resolve with chatEvents
+                                    other                      false                Another script has gotten chatEvents. Stop listening for the Event; resolve with chatEvents
+                 */
+                function checkAndAdvanceGettingTranscriptState() {
+                    if (typeof window.transcriptChatEvents === 'undefined') {
+                        window.transcriptChatEvents = null; //Indicate that we are requesting the chat events.
+                        gettingTranscriptEvents = true;
+                        getTranscriptEvents().then(([transcriptEvents, allEventsReceived]) => {
+                            window.transcriptChatEvents = transcriptEvents;
+                            //We got the events, so should make them available, if something in the future wants to use them.
+                            window.transcriptChatEventsAllReceived = allEventsReceived;
+                            //We're done, but we handle that the same way we would if we received an event indicating that we're done.
+                            checkAndAdvanceGettingTranscriptState();
+                        }, () => {
+                            //We don't continue upon failure. There's already rudimentary error handling, with a choice by the user to
+                            //  retry or not.
+                            window.transcriptChatEvents = [];
+                            rejectWithError();
+                            window.dispatchEvent(new CustomEvent('transcript-events-reject', {
+                                bubbles: true,
+                                cancelable: true,
+                            }));
+                        });
+                        return;
+                    }
+                    if (window.transcriptChatEvents === null) {
+                        if (gettingTranscriptEvents) {
+                            //We are currently getting the events & will be called when they are available.
+                            return;
+                        }
+                        //Some other process is getting the events.
+                        //  We wait to be informed that they are available.
+                        window.addEventListener('transcript-events-received', checkAndAdvanceGettingTranscriptState);
+                        window.addEventListener('transcript-events-rejected', rejectWithError);
+                        return;
+                    }
+                    window.removeEventListener('transcript-events-received', checkAndAdvanceGettingTranscriptState);
+                    window.removeEventListener('transcript-events-rejected', rejectWithError);
+                    if (gettingTranscriptEvents) {
+                        window.dispatchEvent(new CustomEvent('transcript-events-received', {
+                            bubbles: true,
+                            cancelable: true,
+                        }));
+                    }
+                    //The events are available.
+                    resolve(window.transcriptChatEvents);
+                }
+                checkAndAdvanceGettingTranscriptState();
+            });
         }
 
         function insertEventBeforeAfter(event, refEl, isAfter) {
@@ -3138,9 +4234,12 @@
             //    the transcript (i.e. appending to the current monologue, if the same
             //    user, or as a new monologue if a different user.
             const beforeAfter = isAfter ? 'after' : 'before';
-            const nextMessageId = +getMessageIdFromMessage(refEl);
+            const nextMessageId = getMessageIdFromMessage(refEl);
             const nextMessage = $(refEl);
             const nextMessageMonologue = nextMessage.closest('.monologue');
+            //For situations where the message is being added as a duplicate (e.g. a popup), the makeMonologueHtml()
+            //  function creates the HTML with IDs in the format "SOCVR-Archiver-message-<ID#>".
+            //  Here we're adding non-duplicated messages to the transcript, so we want the actual ID to be "message-<ID#>".
             const newMonologueText = makeMonologueHtml(event, true).replace('SOCVR-Archiver-message-', 'message-');
             const newMonologue = $('<div></div>)').append(newMonologueText).find('.monologue');
             const newMessage = newMonologue.find('.message');
@@ -3155,10 +4254,10 @@
                 //We need to break the monologue into two.
                 const dupMessageMonologue = nextMessageMonologue.clone(true);
                 dupMessageMonologue.find('.message').filter(function() {
-                    return nextMessageId <= +getMessageIdFromMessage(this);
+                    return nextMessageId <= getMessageIdFromMessage(this);
                 }).remove();
                 nextMessageMonologue.find('.message').filter(function() {
-                    return nextMessageId > +getMessageIdFromMessage(this);
+                    return nextMessageId > getMessageIdFromMessage(this);
                 }).remove();
                 nextMessageMonologue.find('.timestamp').remove();
                 nextMessageMonologue.before(dupMessageMonologue);
@@ -3166,9 +4265,11 @@
             }
             const prevMonologue = nextMessageMonologue.prev();
             if (!isAfter && prevMonologue.is('.monologue')) {
-                const prevMonologueUserId = +prevMonologue.attr('class').match(/\buser-(\d+)\b/)[1];
-                if (prevMonologueUserId === event.user_id) {
+                const prevMonologueUserId = +(prevMonologue.attr('class').match(/\buser-(\d+)\b/) || [null, null])[1];
+                if (prevMonologueUserId !== null && prevMonologueUserId === event.user_id) {
                     //The previous monologue is from the same user. Just add the message.
+                    //If we can't find the userId for the previous monologue, then we assume that
+                    //  it's a different user.
                     prevMonologue.find('.message').last().after(newMessage);
                     return;
                 }// else
@@ -3179,18 +4280,13 @@
             return newMessage[0];
         }
 
-        function addDeletedEventsToTranscript() {
-            //This assumes that all transcript pages have < 500 messages, which in brief testing appears true.
-            //It also assumes that adding 15000 to the last message number will result in both getting any messages
-            //  which are after the last non-deleted one in the day and that it won't result in too few events at the
-            //  beginning of the period. This really should be replaced with code that makes sure we obtain all
-            //  the relevant events for the period covered by the transcript.
+        function addDeletedEventsToTranscript(allEvents) {
             const [transcriptDateStart, transcriptDateEnd] = getTranscriptDate();
             const transcriptStart = transcriptDateStart.getTime() / 1000;//SE Chat events are to the second, not millisecond.
             const transcriptEnd = transcriptDateEnd.getTime() / 1000;//SE Chat events are to the second, not millisecond.
             const messages = $('#transcript .message');
             //Get and array of the transcript events which are in the time-frame of this transcript page and are message-insert events (type 1).
-            const transcriptEvents = window.transcriptChatEvents.filter((event) => (event.event_type === 1 && event.time_stamp >= transcriptStart && event.time_stamp <= transcriptEnd));
+            const transcriptEvents = allEvents.filter((event) => (event.event_type === 1 && event.time_stamp >= transcriptStart && event.time_stamp <= transcriptEnd));
             //We have two lists: a list of message elements and a list of events. The list of events should have more
             //  items than the list of message elements. Both lists are sorted in ascending order.
             //We're going to walk through the two lists, adding additional messages in where they don't exist.
@@ -3199,7 +4295,7 @@
             let eventIndex = 0;
             for (let messageIndex = 0; messageIndex < messages.length; messageIndex++) {
                 //Loop through all the messages on the page from oldest to newest.
-                const messageId = +getMessageIdFromMessage(messages[messageIndex]);
+                const messageId = getMessageIdFromMessage(messages[messageIndex]);
                 if (!transcriptEvents[eventIndex]) {
                     //Out of events, which means that for some reason we didn't start getting them at, or beyond, the events on the transcript page.
                     return;
@@ -3226,10 +4322,21 @@
                 bubbles: true,
                 cancelable: true,
             }));
+            activateMessageDropdownMenusOnAddedMessages();
+            //We've potentially added messages to the transcript. Reposition the transcript to be at the same place
+            //  it would be had all of the current content been in the page that was delivered by SE.
+            const urlParams = new URLSearchParams(window.location.search);
+            let urlMessageId = urlParams.get('m');
+            urlMessageId = urlMessageId ? urlMessageId : (window.location.pathname.match(/\/message\/(\d+)$/) || [0, 0])[1];
+            if (urlMessageId) {
+                //We add the .highlight here, because the target message may be one that is deleted, which we've now added.
+                const urlMessage = $(`#message-${urlMessageId}`).addClass('highlight');
+                window.scrollTo(window.scrollX, urlMessage.offset().top - 100);
+            }
             doOncePerChatChangeAfterDOMUpdate();
         }
 
-        /*Copied from the Unclosed Request Review Script & modified to get start and end times.*/
+        /*Copied by the original author from the Unclosed Request Review Script & modified to get start and end times.*/
         function getTranscriptDate() {
             //Get the date for the transcript
             const bodyDateStart = document.body.dataset.archiverTranscriptDateStart;
@@ -3255,6 +4362,13 @@
             //Days are UTC days
             const transcriptDateStart = new Date(Date.UTC(year, monthIndex, dayNumber, hourStart, minuteStart));
             const transcriptDateEnd = new Date(Date.UTC(year, monthIndex, (dayNumber + ((hourEnd || minuteEnd) ? 0 : 1)), hourEnd, minuteEnd));
+            if (transcriptDateStart.valueOf() > Date.now()) {
+                //The transcript is for the prior year, but isn't indicating that in the date marker. This
+                //  happens for months in the prior year that are ~2 months later in the year.
+                const correctYear = transcriptDateStart.getUTCFullYear() - 1;
+                transcriptDateStart.setUTCFullYear(correctYear);
+                transcriptDateEnd.setUTCFullYear(correctYear);
+            }
             //Store the date for the page, so we don't have to parse it more than once.
             document.body.dataset.archiverTranscriptDateStart = transcriptDateStart.toJSON();
             document.body.dataset.archiverTranscriptDateEnd = transcriptDateEnd.toJSON();
@@ -3406,9 +4520,75 @@
         $body.toggleClass('SOCVR-Archiver-alwaysShowDeleted', getStorage('alwaysShowDeleted') === 'true');
 
         if (isTranscript && showDeleted) {
-            getAndShareTranscriptEvents();
+            getAndShareTranscriptEvents().then(addDeletedEventsToTranscript);
         }
         doOncePerChatChangeAfterDOMUpdate();
-    }
+
+        //Copied from my own (Makyen's) code on Charcoal's AIM
+        function getEffectiveBackgroundColor(element, defaultColor) {
+            element = element instanceof jQuery ? element : $(element);
+            defaultColor = defaultColor ? defaultColor : 'rgb(255,255,255)';
+            let testEl = element.first();
+            const colors = [];
+            do {
+                try {
+                    const current = testEl.css('background-color').replace(/\s+/g, '').toLowerCase();
+                    if (current && current !== 'transparent' && current !== 'rgba(0,0,0,0)') {
+                        colors.push(current);
+                    }
+                    if (current.indexOf('rgb(') === 0) {
+                        // There's a color without transparency.
+                        break;
+                    }
+                } catch (err) {
+                    // This should always get pushed if we make it up to the document element.
+                    colors.push(defaultColor);
+                }
+                testEl = testEl.parent();
+            } while (testEl.length);
+            return 'rgb(' + colors.reduceRight((sum, color) => {
+                color = color.replace(/rgba?\((.*)\)/, '$1').split(/,/g);
+                if (color.length < 4) {
+                    // rgb, not rgba
+                    return color;
+                }
+                if (color.length !== 4 || sum.length !== 3) {
+                    throw new Error('Something went wrong getting the effective color');
+                }
+                for (let index = 0; index < 3; index++) {
+                    const start = Number(sum[index]);
+                    const end = Number(color[index]);
+                    const distance = Number(color[3]);
+                    sum[index] = start + ((end - start) * distance);
+                }
+                return sum;
+            }, []).join(', ') + ')';
+        }
+
+
+        function getReplyNode() {
+            if (!replyNode.length) {
+                replyNode = $('.monologue:not(.mine) .message .newreply').first().clone(true);
+            }
+            return replyNode;
+        }
+
+        function addReplyToMine() {
+            if (!replyNode.length && !getReplyNode().length) {
+                //No reply node found.
+                return;
+            }
+            $('.monologue.mine .message .meta').filter(function() {
+                return !$(this).children('.newreply').length;
+            }).each(function() {
+                const newReply = replyNode.clone(true);
+                const $this = $(this);
+                const newBackground = getEffectiveBackgroundColor($this.closest('.messages').first());
+                this.style.backgroundColor = newBackground;
+                $(this).append(newReply);
+            });
+        }
+    } //cvRequestArchiver()
+
     startup();
 })();

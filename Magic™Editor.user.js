@@ -10,11 +10,17 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.6.0.3
+// @version        1.7.0.0
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
-// @include        /^https?:\/\/\w*.?(stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com\/(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
+// @include        /^https?:\/\/([\w-]*\.)*((stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com|mathoverflow.net)\/(c\/[^\/]*\/)?(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
+// @exclude       *://chat.stackoverflow.com/*
+// @exclude       *://chat.stackexchange.com/*
+// @exclude       *://chat.*.stackexchange.com/*
+// @exclude       *://api.*.stackexchange.com/*
+// @exclude       *://data.stackexchange.com/*
 // ==/UserScript==
+/* globals StackExchange */
 
 (function() {
     "use strict";
@@ -48,7 +54,7 @@
         App.globals.placeHolders = {
             //The text here is staticly used in some edit RegExp to prevent substitution of placeholders.
             //  See:
-            //    badphrases
+            //    badphrases which relies on "_xPlacexHolderx" starting a placeholder.
             "auto":        "_xPlacexHolderxAutoxInsertxTextxPlacexHolderx_",
             "quote":       "_xPlacexHolderxBlockxQuotexPlacexHolderx_",
             "inline":      "_xPlacexHolderxCodexInlinexPlacexHolderx_",
@@ -56,7 +62,10 @@
             "blockStart":  "_xPlacexHolderxCodexBlockxStartxPlacexHolderx_",
             "lsec":        "_xPlacexHolderxLinkxSectionxPlacexHolderx_",
             "links":       "_xPlacexHolderxLinkxPlacexHolderx_",
-            "tags":        "_xPlacexHolderxTagxPlacexHolderx_"
+            "preBlock":    "_xPlacexHolderxPrexBlockxPlacexHolderx_",
+            "codeTag":     "_xPlacexHolderxCodexTagxPlacexHolderx_",
+            "tags":        "_xPlacexHolderxTagxPlacexHolderx_",
+            "dashes":      "_xPlacexHolderxDashesxPlacexHolderx_"
         };
         App.globals.replacedStrings = {};
         App.globals.replacedStringsOriginal = {};
@@ -69,9 +78,9 @@
             //blockquotes
             //        https://regex101.com/r/fU5lE6/1
             "quote":  /^\>(?:(?!\n\n)[^])+/gm,
-            //single-line inline code
-            //        https://regex101.com/r/lL6fH3/1
-            "inline": /`[^`\n]+`/g,
+            //inline code
+            //        https://regex101.com/r/9JOfKb/1/
+            "inline": /(?:```(?:[^`](?!\n\n))+?```|`(?:[^`](?!\n\n))+?`)/g,
             //code blocks and multiline inline code.
             //        https://regex101.com/r/eC7mF7/4
             "block":  /(?:(?:^[ \t]*(?:[\r\n]|\r\n))?`[^`]+`|(?:^[ \t]*(?:[\r\n]|\r\n))^(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ \t]+\n)*)+)+)/gm,
@@ -83,13 +92,20 @@
             //  The prior version of this was https://regex101.com/r/tZ4eY3/7 it was saved and became version 21.
             //  It was then forked into it's own regex:
             //        https://regex101.com/r/C7nXfd/2
-            "lsec":   /(?:^ *(?:[\r\n]|\r\n))?(?:  (?:\[\d\]): \w*:+\/\/.*\n*)+/gm,
+            "lsec":   /(?:^ *(?:[\r\n]|\r\n))?(?: {2}(?:\[\d\]): \w*:+\/\/.*\n*)+/gm,
             //links and pathnames
             //  See comment above the "lsec" RegExp regarding testing sharing the same "regex" on regex101.com
             //        https://regex101.com/r/tZ4eY3/22
-            "links":  /!?\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])(?:\](?:\([^\)\n]+\)|\[[^\]\n]+\]))?|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d:/?#\[\]@!$&'()*+,;=\-~%]*/gi,
+            "links":  /!?\[[^\]\n]+\](?:\([^\)\n]+\)|\[[^\]\n]+\])(?:\](?:\([^\)\n]+\)|\[[^\]\n]+\]))?|(?:\/\w+\/|.:\\|\w*:\/\/|\.+\/[./\w\d]+|(?:\w+\.\w+){2,})[./\w\d:/?#\[\]@!$&'()*+,;=\-~%]*/gi, // ' fix syntax highlighting in code editor
+            //<pre></pre> blocks
+            //        https://regex101.com/r/KFvgol/1
+            "preBlock": /<pre(?: [^>]*?|)>[\W\w]*?<\/pre>/gi,
+            //<code></code> blocks
+            //        https://regex101.com/r/waCxWR/1
+            "codeTag":  /<code(?: [^>]*?|)>[\W\w]*?<\/code>/gi,
             //        https://regex101.com/r/bF0iQ0/2   tags and html comments
-            "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>|\[tag:[\w.-]+\]/gi
+            "tags":   /\<[\/a-z]+\>|\<\!\-\-[^>]+\-\-\>|\[tag:[\w.-]+\]/gi,
+            "dashes":   /^(\s*--+\s*?)$/gim
         };
         //Make a shallow copy of the App.globals.checks Object
         App.globals.checksr = (function(objIn){
@@ -134,6 +150,18 @@
 
         // Define edit rules
         // See https://regex101.com/r/fC3bY5/2 for a basic RegExp that excludes matches in filenames, paths, library names, etc.
+        // The following properties are available for each edit rule:
+        //    expr:         RegExp                          Used as the argument for the String methods .match() and the first argument for .replace().
+        //    replacement:  String or function              Used as the second argument for the String method .replace(). e.g. "$1 want".
+        //    reason:       String                          Should be one of the constants defined as a reason. e.g.:  App.consts.reasons.grammar
+        //    rerun:        String or Array of String       The keys of rules which will be re-run if there are any changes made by this current rule. "rerrun" is executed before "runAfter"
+        //    runBefore:    String or Array of String       The keys of rules which will be run, perhaps re-run, immediately before this key.
+        //    runAfter:     String or Array of String       The keys of rules which will be run, perhaps re-run, immediately after this key.
+        //    notAlone:     truthy (Boolean)                If evaluates to true, then the rule is only run when specified in a "rerun", "runBefore", or "runAfter"
+        //    titleOnly:    truthy (Boolean)                If evaluates to true, then the rule is only applied to titles.
+        //    bodyOnly:     truthy (Boolean)                If evaluates to true, then the rule is only applied to bodies.
+        //    debug:        truthy (Boolean)                If evaluates to true, then debug output is logged to the console for this rule.
+        //  WARNING: rerun, runBefore, and runAfter can result in an infinite loop.
         App.edits = {
             // Handle all-caps posts first
             noneedtoyell: {
@@ -146,10 +174,13 @@
             // Remove tags from title
             taglist: {  // https://regex101.com/r/wH4oA3/25
                 // WARNING: the expression from regex101 must have backslashes escaped here - wbn to automate this...
-                expr: new RegExp(  "(?:^(?:[(]?(?:_xTagsx_)(?!\\.\\w)(?:and|[ ,.&+/-])*)+[:. \\)-]*|\\b(?:[:. \\(-]|in|with|using|by|for|from)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
-                                 .replace(/_xTagsx_/g,App.globals.taglist.map(escapeTag).join("|")),
-                                 //.replace(/\\(?=[bsSdDwW])/g,"\\"), // https://regex101.com/r/pY1hI2/1 - WBN to figure this out.
-                                 'gi'),
+                expr: new RegExp(
+                    "(?:^(?:[(]?(?:_xTagsx_)(?!\\.\\w)(?:and|[ ,.&+/-])*)+[:. \\)-]*|\\b(?:[:. \\(-]|in|with|using|by|for|from)*(?:(?:_xTagsx_)(?:and|[ ,&+/)-])*)+([?.! ]*)$)"
+                        .replace(/_xTagsx_/g,App.globals.taglist.map(escapeTag).join("|")),
+                    //Consider escaping character classes:
+                    //.replace(/\\(?=[bsSdDwW])/g,"\\"), // https://regex101.com/r/pY1hI2/1 - WBN to figure this out.
+                    'gi'
+                ),
                 replacement: "$1",
                 debug: false,
                 titleOnly: true,
@@ -216,6 +247,11 @@
                 replacement: "AngularJS",
                 reason: App.consts.reasons.trademark
             },
+            angularcli: {
+                expr: /\bangular\W{0,2}cli\b(?![.-]\w)/gi,
+                replacement: "Angular CLI",
+                reason: App.consts.reasons.trademark
+            },
             angular: {
                 expr: /\bangular\b(?![.-]\w)/gi,
                 replacement: "Angular",
@@ -237,12 +273,12 @@
                 reason: App.consts.reasons.trademark
             },
             sqlite: {
-                expr: /\bsqlite(\s*[0-9]*)\b/gi,
+                expr: /\bsql*\W?l*ite(\s*[0-9]*)\b/gi,
                 replacement: "SQLite$1",
                 reason: App.consts.reasons.trademark
             },
             android: {
-                expr: /\bandroid\b(?![.-]\w)/gi,
+                expr: /\band(?:roi|ori)d\b(?![.-]\w)/gi,
                 replacement: "Android",
                 reason: App.consts.reasons.trademark
             },
@@ -255,14 +291,14 @@
                 // https://regex101.com/r/jF9zK1/8
                 expr: /\b(?:win(?=(?:\s+(?:2k|[0-9.]+|ce|me|nt|xp|vista|server)))|windows)(?:\s+(2k|[0-9.]+|ce|me|nt|xp|vista|server))?\b/gi,
                 replacement: function(match, ver) {
-                    ver = !ver ? '' : ' '+ver
-                    .replace(/ce/i, 'CE')
-                    .replace(/me/i, 'ME')
-                    .replace(/nt/i, 'NT')
-                    .replace(/xp/i, 'XP')
-                    .replace(/2k/i, '2000')
-                    .replace(/vista/i, 'Vista')
-                    .replace(/server/i, 'Server');
+                    ver = !ver ? '' : ' ' + ver
+                        .replace(/ce/i, 'CE')
+                        .replace(/me/i, 'ME')
+                        .replace(/nt/i, 'NT')
+                        .replace(/xp/i, 'XP')
+                        .replace(/2k/i, '2000')
+                        .replace(/vista/i, 'Vista')
+                        .replace(/server/i, 'Server');
                     return 'Windows' + ver;
                 },
                 reason: App.consts.reasons.trademark
@@ -315,6 +351,8 @@
                 reason: App.consts.reasons.trademark
             },
             python: {
+                //Given that "python" is a real word, this isn't something we necessarily should be capitalizing all the time.
+                //However, on SO it's far more likely to be the programming language than a snake.
                 expr: /\bpython\b/gi,
                 replacement: "Python",
                 reason: App.consts.reasons.trademark
@@ -338,10 +376,10 @@
                 expr: /(?:vb\.net|\bvb|(?:[^\b\w.]|^)\.net)\b(?:\s*[0-9]+)?\s*(?:framework|core)?/gi,
                 replacement: function(str) {
                     return str.replace(/([^.])vb/i, '$1VB')
-                    .replace(/([^.])asp/i, '$1ASP')
-                    .replace(/net/i, 'NET')
-                    .replace(/framework/i, 'Framework')
-                    .replace(/core/i, 'Core');
+                        .replace(/([^.])asp/i, '$1ASP')
+                        .replace(/net/i, 'NET')
+                        .replace(/framework/i, 'Framework')
+                        .replace(/core/i, 'Core');
                 },
                 reason: App.consts.reasons.trademark
             },
@@ -361,8 +399,21 @@
                 reason: App.consts.reasons.trademark
             },
             regex: {
-                expr: /\bregg?[ea]?x(p)?\b/gi,
-                replacement: "RegEx$1",
+                expr: /\b(r)egg?([ea]*)x(p)?\b/gi,
+                replacement: function (match, p1, p2, p3) {
+                    //If this is JavaScript related, then use RegExp
+                    const isRegExp = ['javascript', 'jquery', 'reactjs', 'nodejs'].some(function(testTag) {
+                        return App.globals.taglist.indexOf(testTag) > -1;
+                    });
+                    let result = `${(isRegExp ? 'R' : p1)}eg`;
+                    if ((p2 && p2 === p2.toUpperCase()) || isRegExp) {
+                        result += 'E';
+                    } else {
+                        result += 'e';
+                    }
+                    result += `x${(isRegExp ? 'p' : (p3 || ''))}`;
+                    return result;
+                },
                 reason: App.consts.reasons.trademark
             },
             postgresql: {
@@ -429,18 +480,18 @@
                 // https://regex101.com/r/dR0pJ7/1
                 expr: /\b(amazon(?: )?(?:redshift|web services|cloudfront|console)?)((?: )?(?:ec2|aws|s3|rds|sqs|iam|elb|emr|vpc))?\b/gi,
                 replacement: function(str,titlecase,uppercase) {
-                    var fixed = titlecase.toTitleCase() + (uppercase ? uppercase.toUpperCase() : '');
+                    var fixed = toTitleCase(titlecase) + (uppercase ? uppercase.toUpperCase() : '');
                     return fixed;
                 },
                 reason: App.consts.reasons.trademark
             },
             zend: {
                 expr: /\bzend((?: )?(?:framework|studio|guard))?\b/gi,
-                //replacement: String.toTitleCase,  // Doesn't work like built-in toUpperCase, returns 'undefined'. Load order?
-                replacement: function(str,prod) {
-                    return str.toTitleCase();
+                //replacement: toTitleCase(),  // Doesn't work like built-in toUpperCase, returns 'undefined'. Load order?
+                replacement: function(str) {
+                    return toTitleCase(str);
                 },
-               reason: App.consts.reasons.trademark
+                reason: App.consts.reasons.trademark
             },
             twitter: {
                 expr: /\btwitter\b(?![.-]\w)/gi,
@@ -470,7 +521,7 @@
             google_verbed: {
                 expr: /\bgoogl(?:ed|ing|er)\b/gi,
                 replacement: function(str) {
-                    return str.toTitleCase();
+                    return toTitleCase(str);
                 },
                 reason: App.consts.reasons.trademark
             },
@@ -480,16 +531,25 @@
                 reason: App.consts.reasons.spelling
             },
             google_things: { // https://regex101.com/r/iS5fO1/1
-                expr: /\bgoogle\b[ \t]*(?:maps?|sheets?|docs?|drive|sites?|forms?|documents?|spreadsheets?|images?|presentations?|play)?\b/gi,
+                expr: /\bgoogle\b[ \t-]*(?:maps?|sheets?|docs?|drive|sites?|forms?|documents?|spreadsheets?|images?|presentations?|play)?\b/gi,
                 replacement: function(str) {
-                    return str.toTitleCase();
+                    return toTitleCase(str);
                 },
                 reason: App.consts.reasons.trademark
             },
-            google_apps_script: {
-                expr: /\bgoogle[- ]?(?:apps?)?[- ]?script(?:ing|s)?\b/gi,
-                replacement: "Google Apps Script",
+            google_apps_script: { //Not in google_things due to possible missing 's' on Apps.
+                expr: /\bgoogle[- ]?(?:apps?)?[- ]?script(ing|s)?\b/gi,
+                replacement: "Google Apps Script$1",
                 reason: App.consts.reasons.trademark
+            },
+            google_app_engine: { //Not in google_things due to possible 's' on App.
+                expr: /\bgoogle[- ]?(?:apps?)?[- ]?engine(s)?\b/gi,
+                replacement: "Google App Engine$1",
+                reason: App.consts.reasons.trademark
+            },
+            google_analytics: { //Not in google_things due to possible missing 's' on analytics.
+                expr: /\bgoogle[- ]?analytics?\b/gi,
+                replacement: "Google Analytics",
             },
             bluetooth: {
                 expr: /\bbl(?:ue|oo)too?th?\b/gi,
@@ -594,7 +654,7 @@
             gwt: {
                 expr: /([^\b\w.]|^)gwt[- ](mosaic|designer)?\b/gi,
                 replacement: function (str,pre,titlecase) {
-                    var fixed = pre + "GWT" + (titlecase? ' '+titlecase.toTitleCase() : ' ');
+                    var fixed = pre + "GWT" + (titlecase ? ' ' + toTitleCase(titlecase) : ' ');
                     return fixed;
                 },
                 reason: App.consts.reasons.trademark
@@ -695,7 +755,7 @@
             hortonworks: {
                 expr: /([^\b\w.]|^)horton ?works[- ](sandbox|data platform|phoenix|hive)?\b/gi,
                 replacement: function (str,pre,titlecase) {
-                    var fixed = pre + "Hortonworks" + (titlecase? ' '+titlecase.toTitleCase() : ' ');
+                    var fixed = pre + "Hortonworks" + (titlecase ? ' ' + toTitleCase(titlecase) : ' ');
                     return fixed;
                 },
                 reason: App.consts.reasons.trademark
@@ -883,6 +943,88 @@
             godaddy: {
                 expr: /\bgodaddy\b/gi,
                 replacement: "GoDaddy",
+                reason: App.consts.reasons.trademark
+            },
+            cryptoapi: {
+                expr: /\bcrypto\s?api\b/gi,
+                replacement: "CryptoAPI",
+                reason: App.consts.reasons.trademark
+            },
+            selenium: {
+                expr: /\bselenium\b/gi,
+                replacement: "Selenium",
+                reason: App.consts.reasons.trademark
+            },
+            testng: {
+                expr: /\btest\s?ng\b/gi,
+                replacement: "TestNG",
+                reason: App.consts.reasons.trademark
+            },
+            ionic: {
+                expr: /\bionic(?:\s?pro)?\b/gi,
+                replacement: function(str) {
+                    return str.toTitleCase();
+                },
+                reason: App.consts.reasons.trademark
+            },
+            opencart: {
+                expr: /\bopen\s?cart\b/gi,
+                replacement: "OpenCart",
+                reason: App.consts.reasons.trademark
+            },
+            woocommerce: {
+                expr: /\bwoo\s?commerce\b/gi,
+                replacement: "WooCommerce",
+                reason: App.consts.reasons.trademark
+            },
+            laravel: {
+                expr: /\blaravel/gi,
+                replacement: "Laravel",
+                reason: App.consts.reasons.trademark
+            },
+            pfsense: {
+                expr: /\bpfsense\b/gi,
+                replacement: "pfSense",
+                reason: App.consts.reasons.trademark
+            },
+            mipsN: {
+                expr: /\bmips(32|64)?\b/gi,
+                replacement: "MIPS$1",
+                reason: App.consts.reasons.trademark
+            },
+            armN: {
+                expr: /\barm(32|64)\b/gi, //arm by itself is too generic to automatically capitalize
+                replacement: "ARM$1",
+                reason: App.consts.reasons.trademark
+            },
+            powerpcN: {
+                expr: /\bpowerpc(32|64)?\b/gi,
+                replacement: "PowerPC$1",
+                reason: App.consts.reasons.trademark
+            },
+            android_studio: {
+                expr: /\bandroid ?studio\b/gi,
+                replacement: "Android Studio",
+                reason: App.consts.reasons.trademark
+            },
+            arduino: {
+                expr: /\barduino(s?)\b/gi,
+                replacement: "Arduino$1",
+                reason: App.consts.reasons.trademark
+            },
+            crashlytics: {
+                expr: /\bcrashl[yi]tics?\b/gi,
+                replacement: "Crashlytics",
+                reason: App.consts.reasons.trademark
+            },
+            firebase: {
+                expr: /\bfirebase\b/gi,
+                replacement: "Firebase",
+                reason: App.consts.reasons.trademark
+            },
+            whatsapp: {
+                expr: /\bwhatsapp\b/gi,
+                replacement: "WhatsApp",
                 reason: App.consts.reasons.trademark
             },
             /*
@@ -1186,6 +1328,16 @@
             vps: {
                 expr: /\bvps\b/gi,
                 replacement: "VPS",
+                reason: App.consts.reasons.acronym
+            },
+            cisc: {
+                expr: /\bcisc\b/gi,
+                replacement: "CISC",
+                reason: App.consts.reasons.acronym
+            },
+            risc: {
+                expr: /\brisc\b/gi,
+                replacement: "RISC",
                 reason: App.consts.reasons.acronym
             },
             /*
@@ -1508,16 +1660,6 @@
                 replacement: "$1eird$2",
                 reason: App.consts.reasons.spelling
             },
-            believe: {
-                expr: /\b(b)eleive(r|s|d)?\b/gi,
-                replacement: "$1elieve$2",
-                reason: App.consts.reasons.spelling
-            },
-            piece: {
-                expr: /\b(p)eice(s|d)?\b/gi,
-                replacement: "$1iece$2",
-                reason: App.consts.reasons.spelling
-            },
             sample: {
                 expr: /\b(s)maple(s|d)?\b/gi,
                 replacement: "$1ample$2",
@@ -1708,11 +1850,6 @@
                 replacement: "$1llotted",
                 reason: App.consts.reasons.spelling
             },
-            every_time: {
-                expr: /\b(e)ve?rytime\b/g,
-                replacement: "$1very time",
-                reason: App.consts.reasons.spelling
-            },
             straight: {
                 expr: /\b(s)traig?h?t\b/g,
                 replacement: "$1traight",
@@ -1781,11 +1918,6 @@
             pattern: {
                 expr: /\b(p)at?(?:trn|tren|tern)(s)?\b/gi,
                 replacement: "$1attern$2",
-                reason: App.consts.reasons.spelling
-            },
-            function_: { // https://regex101.com/r/xF3jU3/1
-                expr: /\b(f)u[ncti]+onn?(s|ing|ed|al)?\b/gi,
-                replacement: "$1unction$2",
                 reason: App.consts.reasons.spelling
             },
             syntax: {
@@ -2132,7 +2264,7 @@
                 reason: App.consts.reasons.spelling
             },
             believe: {  // http://www.oxforddictionaries.com/words/common-misspellings https://regex101.com/r/pM1cC6/1
-                expr: /\b(b)e?l[ei]+v(e|ing|able)/gi,
+                expr: /\b(b)e?l[ei]+v(e|ing|able)/gi, // Note lack of \b at end.
                 replacement: "$1eliev$2",
                 reason: App.consts.reasons.spelling
             },
@@ -2255,7 +2387,7 @@
                 expr: /\b(?:(u)nti?l+|(t)il+)\b/gi,
                 replacement: function (match,f1,f2) {
                     var fchar = f1||f2;
-                    return ((fchar.toUpperCase() == fchar) ? "U" : "u") + "ntil";
+                    return ((fchar.toUpperCase() === fchar) ? "U" : "u") + "ntil";
                 },
                 reason: App.consts.reasons.spelling
             },
@@ -2295,9 +2427,9 @@
                 replacement: "$1ariable$2",
                 reason: App.consts.reasons.spelling
             },
-            function_: {  // hhttps://regex101.com/r/sI3lT5/1
+            function_: {  // https://regex101.com/r/kJu78M/1 Old regex101 URL was to RegExp for "variable"
                 //thanks Kyll - http://chat.stackoverflow.com/transcript/message/29352203#29352203
-                expr: /\b(f)[un]+ct[io]+n?/gi,
+                expr: /\b(f)(?:[un]+ct[io]+n*|u[ncti]+onn?)/gi,
                 replacement: "$1unction",
                 reason: App.consts.reasons.spelling
             },
@@ -2402,7 +2534,12 @@
                 replacement: "$1nformation",
                 reason: App.consts.reasons.spelling
             },
-            piece: { // https://regex101.com/r/tZ1fY3/1
+            piece: {
+                expr: /\b(p)eice(s|d)?\b/gi,
+                replacement: "$1iece$2",
+                reason: App.consts.reasons.spelling
+            },
+            peaceToPiece: { // https://regex101.com/r/tZ1fY3/1
                 expr: /\b(p)eace(s)?(?= of [\w -]*(?:code|cake|script|text|string|content|image|file))/gi,
                 replacement: "$1iece$2",
                 reason: App.consts.reasons.spelling
@@ -2460,11 +2597,17 @@
                 replacement: "",
                 reason: App.consts.reasons.grammar
             },
+            protect_column_a_Begin: { // Prevent "Column A" from being changed (Begin); order in App.edits Object does not matter.
+                expr: /(column\s+)(An?)\b/gi,
+                replacement: "$1_xPlacexHolderxColumn$2PlacexHolderx_",
+                notAlone: true, // Don't run unless it's as part of another edit rule.
+                reason: App.consts.reasons.silent
+            },
             a_vs_an: {  // See http://stackoverflow.com/q/34440307/1677912
                 expr: /\b(a|an) ([\(\"'“‘`<-]*\w*)\b/gim,   // https://regex101.com/r/nE1yA4/5
                 replacement: function( match, article, following ) {
                     var input = following.replace(/^[\s\(\"'“‘`<-]+|\s+$/g, "");//strip initial punctuation symbols
-                    var res = AvsAnOverride_(input) || AvsAnSimple.query(input);
+                    var res = AvsAnOverride_(input) || AvsAnSimple.query(input); // eslint-disable-line no-use-before-define
                     var newArticle = article[0] + res.substr(1);  // Preserve existing capitalization
                     return newArticle+' '+following;
 
@@ -2478,25 +2621,34 @@
                         var exceptionsA_ = /^(?:uis?)/i;
                         var exceptionsAn_ = /^(?:[lr]value|a\b|sql|ns|ng|is)/i;
                         return (exceptionsA_.test(fword) ? article[0] :
-                                exceptionsAn_.test(fword) ? article[0]+"n" : false);
+                            exceptionsAn_.test(fword) ? article[0]+"n" : false);
                     }
                 },
+                runBefore: ['protect_column_a_Begin'],
+                runAfter: ['protect_column_a_End'],
                 reason: App.consts.reasons.grammar
+            },
+            protect_column_a_End: { // Prevent "Column A" from being changed (End); order in App.edits Object does not matter.
+                expr: /_xPlacexHolderxColumn(An?)PlacexHolderx_/g,
+                replacement: "$1",
+                notAlone: true, // Don't run unless it's as part of another edit rule.
+                reason: App.consts.reasons.silent
             },
             firstcaps: {
                 //    https://regex101.com/r/JnSYVw/1
                 // Regex finds all sentences; replacement must determine whether it needs to capitalize.
                 expr: /(([A-Za-z]|\d(?!\d*\. )|[.$_]\w+)(\S*))((?:(?:etc\.|i\.e\.|e\.g\.|vs\.|\.\.\.|\w*\.(?![\s")])|[*-]+|\n(?![ \t]*\n| *(?:[*-]|\d+\.))|[^.?!\n]?))+(?:([.?!]+)(?=[\s")]|$)|\n\n|\n(?= *[*-])|\n(?= *\d+\.)|$))/gi,
-                replacement: function(sentence, fWord, fChar, fWordPost, sentencePost, endpunc) {
+                replacement: function(sentence, fWord, fChar, fWordPost, sentencePost/*, endpunc*/) {
                     var capChar = fChar.toUpperCase();
-                    if (sentence === "undefined"||capChar == fChar) return sentence;  // MUST match sentence, or gets counted as a change.
+                    if (sentence === "undefined" || capChar === fChar) return sentence;  // MUST match sentence, or gets counted as a change.
                     if (!fWord) fWord = '';
                     var fWordChars = fWord.split('');
                     // Leave some words alone: filenames, camelCase
                     for (var i=0; i<fWordChars.length; i++) {
                         if (fWordChars[i].search(/[._/$]/g) !== -1 ||
-                            (fWordChars[i].search(/[a-z]/gi) !==-1 && fWordChars[i] == fWordChars[i].toUpperCase()))
+                                (fWordChars[i].search(/[a-z]/gi) !==-1 && fWordChars[i] === fWordChars[i].toUpperCase())) {
                             return sentence;
+                        }
                     }
                     var update = capChar + fWordPost + sentencePost;
                     return update;
@@ -2542,11 +2694,6 @@
                 expr: /\betc(?:\.+)?|\bect\./g,
                 replacement: "etc.",
                 reason: App.consts.reasons.grammar
-            },
-            pysanky: {
-                expr: /([^\!])[!]{5}(?!\!)/g,
-                replacement: "$1!",
-                reason: window.atob('IkZpdmUgZXhjbGFtYXRpb24gbWFya3MsIHRoZSBzdXJlIHNpZ24gb2YgYW4gaW5zYW5lIG1pbmQi')
             },
             multiplesymbols: {  //    https://regex101.com/r/bE9zM6/6
                 expr: /(\b[cC]\+\+|={1,3}(?!=))|([^\w\s*#.\-_:\[\]\</>])\2{1,}/g,
@@ -2605,6 +2752,14 @@
                 reason: App.consts.reasons.grammar
             },
             /*
+            ** "Five exclamation marks, the sure sign of an insane mind"
+            **/
+            pysanky: {
+                expr: /([^\!])[!]{5}(?!\!)/g,
+                replacement: "$1!",
+                reason: window.atob('IkZpdmUgZXhjbGFtYXRpb24gbWFya3MsIHRoZSBzdXJlIHNpZ24gb2YgYW4gaW5zYW5lIG1pbmQi')
+            },
+            /*
             ** Noise reduction - Remove fluff that adds nothing of technical value to posts.
             **/
             help: {
@@ -2622,15 +2777,15 @@
                 replacement: "$1hanks",
                 reason: App.consts.reasons.silent
             },
-            tia: {  // common acronym; should only remove "thanks in advance" at end of post
-                expr: /\btia$/gi,
-                replacement: "",
-                reason: App.consts.reasons.noise
-            },
             please: {
                 expr: /\b(p)(?:lz+|lse?|l?ease?)\b/gi,
                 replacement: "$1lease",
                 reason: App.consts.reasons.silent
+            },
+            tia: {  // common acronym; should only remove "thanks in advance" at end of post
+                expr: /\btia$/gi,
+                replacement: "",
+                reason: App.consts.reasons.noise
             },
             editupdate: {
                 // https://regex101.com/r/tT2pK6/9
@@ -2736,6 +2891,63 @@
             //    debug: false,
             //    reason: App.consts.reasons.layout
             //},
+            //mdash and ndash
+            // See: https://regex101.com/r/vnM5cO/1 for text which was tested.
+            // --- is converted to &mdash;
+            // -- is converted to &ndash;
+            // Not having spaces is enforced around the &mdash; (For those &mdash; which are added here).
+            // Spaces are enforced around the &ndash; (For those &ndash; which are added here).
+            mdash: { //Must follow layout changes, due to adding an HTML tag, which would be mangled as a result of layout substitutions.
+                expr: /([^-]|^)---([^-]|$)/gmi,
+                replacement: "$1&mdash;$2",
+                reason: App.consts.reasons.grammar,
+                runAfter: [
+                    'mdash_clear',
+                    'mdash_clear' //Yes, twice.
+                ]
+            },
+            mdash_clear: { //For an mdash that we've added, make it so there's no space.
+                expr: /(?: *&mdash;(?! *$) +| +&mdash;)/gmi,
+                //expr: /(?: +&mdash;(?! +$) +| +&mdash;|&mdash;(?! +$) +)/gmi,
+                replacement: "&mdash;",
+                reason: App.consts.reasons.silent,
+                notAlone: true
+            },
+            ndash: { //Must follow layout changes, due to adding an HTML tag, which would be mangled as a result of layout substitutions.
+                expr: /([^-]|^)--([^-]|$)/gmi,
+                replacement: "$1&ndash;$2",
+                reason: App.consts.reasons.grammar,
+                runAfter: [ //These are run in the order listed.
+                    'ndash_protect_start',
+                    'ndash_clear_left',
+                    'ndash_unprotect_start',
+                    'ndash_clear_right'
+                ]
+            },
+            ndash_protect_start: { //For an ndash that we've added at the start of the line, make it so we don't add a space
+                expr: /^&ndash;/gmi,
+                replacement: "&qdash;", //Tags have been substituted out, so we don't need to worry about duplication.
+                reason: App.consts.reasons.silent,
+                notAlone: true,
+            },
+            ndash_clear_left: { //For an ndash that we've added, make it so there's a space to the left.
+                expr: / *&ndash;/gmi,
+                replacement: " &ndash;",
+                reason: App.consts.reasons.silent,
+                notAlone: true,
+            },
+            ndash_unprotect_start: { //Reverse the protection
+                expr: /&qdash;/gmi,
+                replacement: "&ndash;", //Tags have been substituted out, so we don't need to worry about duplication.
+                reason: App.consts.reasons.silent,
+                notAlone: true,
+            },
+            ndash_clear_right: { //For an ndash that we've added, make it so there's a space, or whatever spaces already existed and a line-break.
+                expr: /&ndash;(?! +$) */gmi,
+                replacement: "&ndash; ",
+                reason: App.consts.reasons.silent,
+                notAlone: true
+            },
             trailing_space: {  // https://regex101.com/r/iQ0yR8/1
                 expr: /([^ ])[ ]{1}$/gm,
                 replacement: "$1",
@@ -2754,7 +2966,7 @@
         };
 
         //Clear the global values which hold replacements
-        App.funcs.clearPlaceHolders = function(before, after) {
+        App.funcs.clearPlaceHolders = function() {
             App.globals.placeHolderKeys.forEach(function(key) {
                 App.globals.replacedStrings[key] = [];
                 App.globals.replacedStringsOriginal[key] = [];
@@ -2873,28 +3085,29 @@
             App.selections.diffToggle.text('show diff');
             App.selections.preview.show();
             App.selections.previewToggle.text('hide preview');
-        }
+        };
 
         App.funcs.showDiff = function() {
             App.selections.preview.hide();
             App.selections.previewToggle.text('show preview');
             App.selections.diff.show();
             App.selections.diffToggle.text('hide diff');
-        }
+        };
 
         App.funcs.togglePreview = function() {
             App.selections.diff.hide();
             App.selections.diffToggle.text('show diff');
-            if(/hide/.test(App.selections.previewToggle.text())) return App.selections.previewToggle.text('show preview'), App.selections.preview.toggle(), true;
-            if(/show/.test(App.selections.previewToggle.text())) return App.selections.previewToggle.text('hide preview'), App.selections.preview.toggle(), true;
-        }
+            if(/hide/.test(App.selections.previewToggle.text())) return App.selections.previewToggle.text('show preview'), App.selections.preview.toggle(), false;
+            if(/show/.test(App.selections.previewToggle.text())) return App.selections.previewToggle.text('hide preview'), App.selections.preview.toggle(), false;
+            return false;
+        };
 
         App.funcs.toggleDiff = function() {
             App.selections.preview.hide();
             App.selections.previewToggle.text('show preview');
-            if(/hide/.test(App.selections.diffToggle.text())) return App.selections.diffToggle.text('show diff'), App.selections.diff.toggle(), true;
-            if(/show/.test(App.selections.diffToggle.text())) return App.selections.diffToggle.text('hide diff'), App.selections.diff.toggle(), true;
-        }
+            if(/hide/.test(App.selections.diffToggle.text())) return App.selections.diffToggle.text('show diff'), App.selections.diff.toggle(), false;
+            if(/show/.test(App.selections.diffToggle.text())) return App.selections.diffToggle.text('hide diff'), App.selections.diff.toggle(), false;
+        };
 
         // Populate edit item sets from DOM selections
         App.funcs.popItems = function() {
@@ -2910,7 +3123,7 @@
             ['title', 'body', 'summary'].forEach(function(v) {
                 i[v] = s[v];
             });
-        }
+        };
 
         // Insert editing button
         App.funcs.createButton = function() {
@@ -2974,19 +3187,17 @@
                 if (type === '-') return strings.push('<span class="del">' + rij.replace(/\</g, '&lt;').replace(/(?=\n)/g,'↵') + '</span>'), true;
             }
 
-            function getDiff(matrix, a1, a2, x, y) {
-                if (x > 0 && y > 0 && a1[y - 1] === a2[x - 1]) {
-                    getDiff(matrix, a1, a2, x - 1, y - 1);
-                    maakRij(false, a1[y - 1]);
+            function getDiff(matrix, b1, b2, x, y) {
+                if (x > 0 && y > 0 && b1[y - 1] === b2[x - 1]) {
+                    getDiff(matrix, b1, b2, x - 1, y - 1);
+                    maakRij(false, b1[y - 1]);
                 } else {
                     if (x > 0 && (y === 0 || matrix[y][x - 1] >= matrix[y - 1][x])) {
-                        getDiff(matrix, a1, a2, x - 1, y);
-                        maakRij('+', a2[x - 1]);
+                        getDiff(matrix, b1, b2, x - 1, y);
+                        maakRij('+', b2[x - 1]);
                     } else if (y > 0 && (x === 0 || matrix[y][x - 1] < matrix[y - 1][x])) {
-                        getDiff(matrix, a1, a2, x, y - 1);
-                        maakRij('-', a1[y - 1]);
-                    } else {
-                        return;
+                        getDiff(matrix, b1, b2, x, y - 1);
+                        maakRij('-', b1[y - 1]);
                     }
                 }
             }
@@ -3036,17 +3247,19 @@
         App.pipeMods.omit = function(data) {
             if (!data.body) return false;
             for (var type in App.globals.checks) {
-                data.body = data.body.replace(App.globals.checks[type], function(match) {
-                    App.globals.replacedStrings[type].push(match);
-                    App.globals.replacedStringsOriginal[type].push(match);
-                    return App.globals.placeHolders[type];
-                });
+                if (App.globals.checks.hasOwnProperty(type)) {
+                    data.body = data.body.replace(App.globals.checks[type], function(match) { // eslint-disable-line no-loop-func
+                        App.globals.replacedStrings[type].push(match);
+                        App.globals.replacedStringsOriginal[type].push(match);
+                        return App.globals.placeHolders[type];
+                    });
+                }
             }
             return data;
         };
 
         App.pipeMods.codefix = function() {
-            var replaced = App.globals.replacedStrings.block, str;
+            var replaced = App.globals.replacedStrings.block;
             for (var i in replaced) {
                 // https://regex101.com/r/tX9pM3/1              https://regex101.com/r/tX9pM3/2                 https://regex101.com/r/tX9pM3/3
                 if (/^`[^]+`$/.test(replaced[i])) replaced[i] = '\n\n' + /(?!`)((?!`)[^])+/.exec(replaced[i])[0].replace(/(.+)/g, '    $1');
@@ -3073,7 +3286,7 @@
             imageNumbers.forEach(function(num) {
                 var replaceLink = new RegExp('^(\\s*)\\[([^\\[]*)\\](\\s*\\[' + num + '\\])(\\s*)$','');
                 App.globals.replacedStrings.links.forEach(function(link, index, array) {
-                    array[index] = link.replace(replaceLink, '$2:  \n$1[![$2]$3][' + num + ']$4').replace(/^enter image description here:  \n/,'');
+                    array[index] = link.replace(replaceLink, '$2:  \n$1[![$2]$3][' + num + ']$4').replace(/^enter image description here: {2}\n/,'');
                     if(array[index] !== link) {
                         replacements++;
                     }
@@ -3086,7 +3299,7 @@
                     App.globals.reasons.inlineImage = { reason:'inline image' + (replacements > 1 ? 's' : ''), editId:'inlineImage', count:replacements };
                 }
             }
-            return data
+            return data;
         };
 
         App.pipeMods.edit = function(data) {
@@ -3099,19 +3312,61 @@
             // List of fields to be edited
             var fields = {body:'body',title:'title'};
 
-            // Loop through all editing rules
-            for (var j in App.edits) for (var field in fields) {
-                var debug = App.edits[j].debug;
-                if (debug) console.log("edit "+j+" in "+field);
-                if (App.edits[j].titleOnly && 'title' !== field)
-                    continue;  // Skip title-only edits if not editing title.
-                var fix = App.funcs.fixIt(data[field], App.edits[j], j);
-                if (!fix) continue;
-                if (fix.reason in App.globals.reasons) App.globals.reasons[fix.reason].count += fix.count;
-                else App.globals.reasons[fix.reason] = { reason:fix.reason, editId:j, count:fix.count };
-                data[field] = fix.fixed;
-                App.edits[j].fixed = true;
+            function applyEditRules(ruleKeyList, notAlone) {
+                ruleKeyList = typeof ruleKeyList === 'string' ? [ruleKeyList] : ruleKeyList;
+                if (!Array.isArray(ruleKeyList)) {
+                    return false;
+                }
+                var changes = false
+                ruleKeyList.forEach(function(ruleKey) {
+                    changes = applyEditRule(ruleKey, notAlone) || changes;
+                });
+                return changes;
             }
+
+            function applyEditRule(ruleKey, notAlone) {
+                const editRule = App.edits[ruleKey];
+                const debug = editRule.debug;
+                var rerunChanges = false;
+                var changes = false;
+                if (editRule.notAlone && !notAlone) {
+                    if (debug) console.log("edit " + ruleKey + " skipped: not alone");
+                    return false;
+                }
+                if (debug && editRule.runBefore) console.log("edit " + ruleKey + ": running rules before:", editRule.runBefore);
+                var beforeChanges = applyEditRules(editRule.runBefore, true);
+
+                for (var field in fields) {
+                    if (fields.hasOwnProperty(field)) {
+                        if (debug) console.log("edit " + ruleKey + " in " + field);
+                        if ((editRule.titleOnly && 'title' !== field) || (editRule.bodyOnly && 'body' !== field)) {
+                            continue;  // Skip title-only edits if not editing title, or the same for bodies.
+                        }
+                        var fix = App.funcs.fixIt(data[field], editRule, ruleKey);
+                        if (!fix) continue;
+                        changes = true;
+                        //A change was made:
+                        console.log('Change by edit rule: reason:', editRule.reason, ':: ruleKey:', ruleKey, ':: editRule', editRule, ':: before:', {before: data[field]}, '::  fix:', fix);
+                        if (fix.reason in App.globals.reasons) {
+                            App.globals.reasons[fix.reason].count += fix.count;
+                        } else {
+                            App.globals.reasons[fix.reason] = { reason:fix.reason, editId:ruleKey, count:fix.count };
+                        }
+                        data[field] = fix.fixed;
+                        editRule.fixed = true;
+                    }
+                }
+                if (changes && editRule.rerun) {
+                    if (debug) console.log("edit " + ruleKey + ": re-running rules:", editRule.rerun);
+                    rerunChanges = applyEditRules(editRule.rerun, true);
+                }
+                if (debug && editRule.runAfter) console.log("edit " + ruleKey + ": running rules After:", editRule.runAfter);
+                var afterChanges = applyEditRules(editRule.runAfter, true);
+                return beforeChanges || changes || rerunChanges || afterChanges;
+            }
+
+            // Loop through all editing rules
+            applyEditRules(Object.keys(App.edits));
 
             // Remove silent change reason
             delete App.globals.reasons[App.consts.reasons.silent];
@@ -3124,26 +3379,33 @@
             App.globals.changes = 0;
 
             for (var z in App.globals.reasons) {
-                // For each type of change made, add a reason string with the reason text,
-                // optionally the rule ID, and the number of repeats if 2 or more.
-                reasons.push(App.globals.reasons[z].reason
-                             + (App.globals.showRules ? ' ['+ App.globals.reasons[z].editId +']' : '')
-                             + (App.globals.showCounts ? ((App.globals.reasons[z].count > 1) ? ' ('+App.globals.reasons[z].count+')' : '') : '') );
-                App.globals.changes += App.globals.reasons[z].count;
+                if (App.globals.reasons.hasOwnProperty(z)) {
+                    // For each type of change made, add a reason string with the reason text,
+                    // optionally the rule ID, and the number of repeats if 2 or more.
+                    reasons.push(App.globals.reasons[z].reason
+                                 + (App.globals.showRules ? ' ['+ App.globals.reasons[z].editId +']' : '')
+                                 + (App.globals.showCounts ? ((App.globals.reasons[z].count > 1) ? ' ('+App.globals.reasons[z].count+')' : '') : '') );
+                    App.globals.changes += App.globals.reasons[z].count;
+                }
             }
 
             var reasonStr = reasons.length ? reasons.join('; ')+'.' : '';  // Unique reasons separated by ; and terminated by .
 
-            if (!data.hasOwnProperty('summaryOrig')) data.summaryOrig = data.summary.trim() // Remember original summary
-                                                                            .replace(/([^;])[.?!:]?$/,"$1;");
-            if (data.summaryOrig.length)
-                data.summaryOrig = data.summaryOrig + ' ';
-            else
+            if (!data.hasOwnProperty('summaryOrig')) {
+                // Remember original summary
+                data.summaryOrig = data.summary.trim().replace(/([^;])[.?!:]?$/,"$1;");
+            }
+            if (data.summaryOrig.length) {
+                data.summaryOrig += ' ';
+            } else {
                 reasonStr = reasonStr.charAt(0).toUpperCase() + reasonStr.slice(1);  // Cap first letter.
+            }
 
             data.summary = data.summaryOrig + reasonStr;
             // Limit summary to 300 chars
-            if (data.summary.length > 300) data.summary = data.summary.substr(0,300-3) + '...';
+            if (data.summary.length > 300) {
+                data.summary = data.summary.substr(0,300-3) + '...';
+            }
 
             return data;
         };
@@ -3153,26 +3415,28 @@
             App.selections.diff.empty().append('<div class="difftitle">' + App.funcs.diff(App.originals.title, App.items.title, true) + '</div>' +
                                                '<div class="diffbody">' + App.pipeMods.replace({body:App.funcs.diff(App.originals.body, App.items.body)}, true).body + '</div>');
             App.funcs.showDiff();
-        }
+        };
 
         // Replace the previously omitted code
         App.pipeMods.replace = function(data, literal) {
             if (!data.body) return false;
             for (var type in App.globals.checksr) {
-                var i = 0;
-                data.body = data.body.replace(App.globals.placeHolderChecks[type], function(match) {
-                    var replace = App.globals.replacedStrings[type][i++];
-                    if(literal && /block|lsec/.test(type)) {
-                        var after = replace.replace(/^\n\n/,'');
-                        var prepend = after !== replace ? '<span class="add">\n\n</span><span class="del">`</span>' : '';
-                        var append  = after !== replace ? '<span class="del">`</span>' : '';
-                        var klass   = /lsec/.test(type) ? ' class="lang-none prettyprint prettyprinted"' : '';
-                        return prepend + '<pre' + klass + '><code>' + after.replace(/</g,'&lt;').replace(/^    /gm,'') + '</code></pre>' + append;
-                    }
-                    if(literal && /quote/.test(type)) return '<blockquote>' + replace.replace(/</g,'&lt;').replace(/^>/gm,'') + '</blockquote>';
-                    if(literal) return '<code>' + replace.replace(/</g,'&lt;').replace(/(?:^`|`$)/g,'') + '</code>';
-                    return replace;
-                });
+                if (App.globals.checksr.hasOwnProperty(type)) {
+                    var i = 0;
+                    data.body = data.body.replace(App.globals.placeHolderChecks[type], function() { // eslint-disable-line no-loop-func
+                        var replace = App.globals.replacedStrings[type][i++];
+                        if(literal && /block|lsec/.test(type)) {
+                            var after = replace.replace(/^\n\n/,'');
+                            var prepend = after !== replace ? '<span class="add">\n\n</span><span class="del">`</span>' : '';
+                            var append  = after !== replace ? '<span class="del">`</span>' : '';
+                            var klass   = /lsec/.test(type) ? ' class="lang-none prettyprint prettyprinted"' : '';
+                            return prepend + '<pre' + klass + '><code>' + after.replace(/</g,'&lt;').replace(/^ {4}/gm,'') + '</code></pre>' + append;
+                        }
+                        if(literal && /quote/.test(type)) return '<blockquote>' + replace.replace(/</g,'&lt;').replace(/^>/gm,'') + '</blockquote>';
+                        if(literal) return '<code>' + replace.replace(/</g,'&lt;').replace(/(?:^`|`$)/g,'') + '</code>';
+                        return replace;
+                    });
+                }
             }
             return data;
         };
@@ -3252,15 +3516,20 @@
     }
 })();
 
+/* eslint-disable */
 /*
   * To Title Case 2.1 – http://individed.com/code/to-title-case/
   * Copyright © 2008–2013 David Gouch. Licensed under the MIT License.
+  * It has been modified to be a function call, rather than added to the String prototype.
  */
 
-String.prototype.toTitleCase = function(){
+//This is function call, rather than a method on the String prototype, because a userscript, unless it's intended
+//  purpose is to make such a basic change, shouldn't be making a change to the prototype of a built-in type.
+//  Changing the prototype of a built-in has a significant chance of causing compatibility issues.
+function toTitleCase(text){
   var smallWords = /^(a|an|and|as|at|but|by|en|for|if|in|nor|of|on|or|per|the|to|vs?\.?|via)$/i;
 
-  return this.replace(/[A-Za-z0-9\u00C0-\u00FF]+[^\s-]*/g, function(match, index, title){
+  return text.replace(/[A-Za-z0-9\u00C0-\u00FF]+[^\s-]*/g, function(match, index, title){
     if (index > 0 && index + match.length !== title.length &&
       match.search(smallWords) > -1 && title.charAt(index - 2) !== ":" &&
       (title.charAt(index + match.length) !== '-' || title.charAt(index - 1) === '-') &&
