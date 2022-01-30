@@ -10,7 +10,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.7.0.0
+// @version        1.7.0.1
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/([\w-]*\.)*((stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com|mathoverflow.net)\/(c\/[^\/]*\/)?(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
@@ -2962,6 +2962,11 @@
                     return App.selections.title.val().replace(/[.?!]*$/,"? \n\n");
                 },
                 reason: App.consts.reasons.titleSaysAll
+            },
+            multiple_newlines: { // https://regex101.com/r/7XDqPi/1/
+                expr: /\n{2,}/g,
+                replacement: "\n\n",
+                reason: App.consts.reasons.silent
             }
         };
 
