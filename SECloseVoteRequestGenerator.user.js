@@ -2620,7 +2620,7 @@
                     if (!currentRealtimeTitle && questionTitleHref) {
                         const questionId = (questionTitleHref.match(/\/q(?:uestions?)\/(\d+)/) || ['', ''])[1];
                         $.get(`/posts/ajax-load-realtime/${questionId}?title=true`).done((response) => {
-                            const titleRealtime = (response.match(/data-title="(.*?)"\s*>/) || ['', ''])[1];
+                            const titleRealtime = (response.Html.match(/data-title="(.*?)"\s*>/) || ['', ''])[1];
                             if (titleRealtime) {
                                 questionTitle.attr('data-realtime-text', titleRealtime);
                                 questionTitleText = titleRealtime;
