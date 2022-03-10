@@ -518,7 +518,7 @@
         if (isSuggestedEditReviewPage && element.closest('.s-page-title').length) {
             return $('.js-review-task');
         }
-        const context = $el.closest('#mainbar,.review-content,.mainbar,#mainbar-full,.show-original,.cvrgFakeQuestionContext,body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td,.js-review-task');
+        const context = $el.closest('#mainbar, .review-content, .mainbar, #mainbar-full, .show-original, .cvrgFakeQuestionContext, body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td, .js-review-task, .makyen-flag-post-preview-container');
         if (!context.length) {
             //A containing element which we recognize as the context for the element's question wasn't found.
             return $(document);
