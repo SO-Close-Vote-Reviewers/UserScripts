@@ -2722,7 +2722,7 @@
                         const underTitleQuestionStatus = $('#question-header ~ div.d-flex').first();
                         if (underTitleQuestionStatus.length > 0) {
                             activityLink = underTitleQuestionStatus.children('.flex--item').filter(function() {
-                                return $(this).text().trim().startsWith('Active');
+                                return $(this).text().trim().startsWith('Modified');
                             }).find('a');
                         }
                     }
