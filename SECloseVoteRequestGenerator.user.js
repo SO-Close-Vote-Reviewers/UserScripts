@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        2.0.0
+// @version        2.0.1
 // @description    This script generates formatted close-/delete-/reopen-/undelete-vote requests, spam/offensive flag requests, Smoke Detector reports, and approve-/reject-pls requests for suggested edits, then sends them to a specified chat room.
 // @author         @TinyGiant @Makyen
 // @contributor    @rene @Tunaki
@@ -518,7 +518,7 @@
         if (isSuggestedEditReviewPage && element.closest('.s-page-title').length) {
             return $('.js-review-task');
         }
-        const context = $el.closest('#mainbar,.review-content,.mainbar,#mainbar-full,.show-original,.cvrgFakeQuestionContext,body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td,.js-review-task');
+        const context = $el.closest('#mainbar, .review-content, .mainbar, #mainbar-full, .show-original, .cvrgFakeQuestionContext, body.tools-page #mainbar > table.default-view-post-table > tbody > tr > td, .js-review-task, .makyen-flag-post-preview-container');
         if (!context.length) {
             //A containing element which we recognize as the context for the element's question wasn't found.
             return $(document);
@@ -2620,7 +2620,7 @@
                     if (!currentRealtimeTitle && questionTitleHref) {
                         const questionId = (questionTitleHref.match(/\/q(?:uestions?)\/(\d+)/) || ['', ''])[1];
                         $.get(`/posts/ajax-load-realtime/${questionId}?title=true`).done((response) => {
-                            const titleRealtime = (response.match(/data-title="(.*?)"\s*>/) || ['', ''])[1];
+                            const titleRealtime = (response.Html.match(/data-title="(.*?)"\s*>/) || ['', ''])[1];
                             if (titleRealtime) {
                                 questionTitle.attr('data-realtime-text', titleRealtime);
                                 questionTitleText = titleRealtime;
@@ -2722,7 +2722,7 @@
                         const underTitleQuestionStatus = $('#question-header ~ div.d-flex').first();
                         if (underTitleQuestionStatus.length > 0) {
                             activityLink = underTitleQuestionStatus.children('.flex--item').filter(function() {
-                                return $(this).text().trim().startsWith('Active');
+                                return $(this).text().trim().startsWith('Modified');
                             }).find('a');
                         }
                     }
@@ -2927,7 +2927,7 @@
             if (!tag) {
                 //huh, sponsored tags have images =/ and off-topic tag like C++ are URL encoded -> get the text only
                 if (isGuiReviewSE) {
-                    this.tag = tag = $('.post-taglist a.post-tag, .summary > h2 > .post-tag', questionContext).first().text();
+                    this.tag = tag = $('.post-taglist a.post-tag, .summary > h2 > .post-tag, .fs-title .post-tag', questionContext).first().text();
                 } else {
                     this.tag = tag = $('.question .post-taglist a.post-tag', questionContext).first().text();
                 }
