@@ -3309,7 +3309,7 @@
             var flashColor = colour2rgb(retrieveCSSVariable("--green-200"));
 
             // Visually confirm edit - SE makes it easy because the jQuery color animation plugin seems to be there by default
-			App.selections.body.animate({ backgroundColor: flashColor }, 10);
+            App.selections.body.animate({ backgroundColor: flashColor }, 10);
             App.selections.body.animate({ backgroundColor: defaultBgColor }, 1000);
 
             // List of fields to be edited
@@ -3498,7 +3498,6 @@
         $('body').append('<style>' +
                          '.difftitle {' +
                          '    color: var(--black-700);' +
-						 '    font-family: var(--ff-mono);' +
                          '    font-size: 24px;' +
                          '    font-weight: normal;' +
                          '    line-height: 36px;' +
@@ -3506,6 +3505,7 @@
                          '}' +
                          '.diffbody {' +
                          '    white-space: pre-wrap;' +
+                         '    font-family: var(--ff-mono);' +
                          '}' +
                          '.add {' +
                          '    background: var(--green-100);' +
