@@ -58,7 +58,7 @@
             //    badphrases which relies on "_xPlacexHolderx" starting a placeholder.
             "auto":        "_xPlacexHolderxAutoxInsertxTextxPlacexHolderx_",
             "quote":       "_xPlacexHolderxBlockxQuotexPlacexHolderx_",
-            "backickCode": "_xPlacexHolderxCodexPreserveBlockxPlacexHolderx_",
+            "bactickCode": "_xPlacexHolderxCodexPreserveBlockxPlacexHolderx_",
             "block":       "_xPlacexHolderxCodexBlockxPlacexHolderx_",
             "blockStart":  "_xPlacexHolderxCodexBlockxStartxPlacexHolderx_",
             "lsec":        "_xPlacexHolderxLinkxSectionxPlacexHolderx_",
@@ -81,7 +81,7 @@
             "quote":  /^\>(?:(?!\n\n)[^])+/gm,
             //code surrounded by backticks
             //        https://regex101.com/r/8tZD3i/2
-            "backickCode": /(?:(?:^(`{3,})[^]+?\1)|(`+)(?:\\`|[^`](?!\n\n))+\2)/gm,
+            "bactickCode": /(?:(?:^(`{3,})[^]+?\1)|(`+)(?:\\`|[^`](?!\n\n))+\2)/gm,
             //code blocks and multiline inline code.
             //        https://regex101.com/r/eC7mF7/4
             "block":  /(?:(?:^[ \t]*(?:[\r\n]|\r\n))?`[^`]+`|(?:^[ \t]*(?:[\r\n]|\r\n))^(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ \t]+\n)*)+)+)/gm,
@@ -3497,7 +3497,8 @@
         // This is the styling for the diff output.
         $('body').append('<style>' +
                          '.difftitle {' +
-                         '    color: var(--black);' +
+                         '    color: var(--black-700);' +
+						 '    font-family: var(--ff-mono);' +
                          '    font-size: 24px;' +
                          '    font-weight: normal;' +
                          '    line-height: 36px;' +
