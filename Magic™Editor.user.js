@@ -11,7 +11,7 @@
 // @grant          none
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
-// @version        1.7.0.3
+// @version        1.7.1.0
 // @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
 //                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/([\w-]*\.)*((stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com|mathoverflow.net)\/(c\/[^\/]*\/)?(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
@@ -3306,8 +3306,10 @@
         App.pipeMods.edit = function(data) {
             App.funcs.popOriginals();
             var defaultBgColor = App.selections.body.css("background-color");
+            var flashColor = colour2rgb(retrieveCSSVariable("--green-200"));
+
             // Visually confirm edit - SE makes it easy because the jQuery color animation plugin seems to be there by default
-            App.selections.body.animate({ backgroundColor: retrieveCSSVariable("--green-200") }, 10);
+			App.selections.body.animate({ backgroundColor: flashColor }, 10);
             App.selections.body.animate({ backgroundColor: defaultBgColor }, 1000);
 
             // List of fields to be edited
@@ -3566,6 +3568,30 @@ function escapeTag(tag) {
 function retrieveCSSVariable(val) {
     return getComputedStyle(document.body)
         .getPropertyValue(val);
+}
+
+/**
+ * Converts an arbitrary colour representation to an RGB string representation. Invalid colours might return "rgb(0,0,0)". The conversioon is done by
+ * offloading the interpreting the string to a canvas - common strings like hex or HSL would be supported but perhapos not all named colours would be.
+ *
+ * Based on the code by Aaron Watters: https://stackoverflow.com/a/52044517
+ *
+ * @param {string} string - any colour representation, for example: "salmon", "#FA8072", "#fa8072", hsl(6,93%,71%), hsl(6, 93%, 71%)
+ * @returns {string} - String of the format: "rgb(250,126,113)". Invalid input would produce black "rgb(0,0,0)"
+ */
+function colour2rgb(string) {
+	var canvas = document.createElement("canvas");
+
+	//make 1x1 px rectangle in the arbitrary colour
+	var context = canvas.getContext("2d");
+	context.beginPath();
+	context.rect(0,0,1,1);
+	context.fillStyle = string;
+	context.fill();
+
+	//extract the three primary colours and omit the alpha channel information
+	var rgbData = context.getImageData(0, 0, 1, 1).data.slice(0, 3);
+	return "rgb(" + rgbData.join(",") + ")";
 }
 
 // Better handling of indentation and the TAB key when editing posts
