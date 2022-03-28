@@ -58,7 +58,7 @@
             //    badphrases which relies on "_xPlacexHolderx" starting a placeholder.
             "auto":        "_xPlacexHolderxAutoxInsertxTextxPlacexHolderx_",
             "quote":       "_xPlacexHolderxBlockxQuotexPlacexHolderx_",
-            "bactickCode": "_xPlacexHolderxCodexPreserveBlockxPlacexHolderx_",
+            "backtickCode": "_xPlacexHolderxCodexPreserveBlockxPlacexHolderx_",
             "block":       "_xPlacexHolderxCodexBlockxPlacexHolderx_",
             "blockStart":  "_xPlacexHolderxCodexBlockxStartxPlacexHolderx_",
             "lsec":        "_xPlacexHolderxLinkxSectionxPlacexHolderx_",
@@ -81,7 +81,7 @@
             "quote":  /^\>(?:(?!\n\n)[^])+/gm,
             //code surrounded by backticks
             //        https://regex101.com/r/8tZD3i/2
-            "bactickCode": /(?:(?:^(`{3,})[^]+?\1)|(`+)(?:\\`|[^`](?!\n\n))+\2)/gm,
+            "backtickCode": /(?:(?:^(`{3,})[^]+?\1)|(`+)(?:\\`|[^`](?!\n\n))+\2)/gm,
             //code blocks and multiline inline code.
             //        https://regex101.com/r/eC7mF7/4
             "block":  /(?:(?:^[ \t]*(?:[\r\n]|\r\n))?`[^`]+`|(?:^[ \t]*(?:[\r\n]|\r\n))^(?:(?:[ ]{4}|[ ]{0,3}\t).+(?:[\r\n]?(?!\n\S)(?:[ \t]+\n)*)+)+)/gm,
