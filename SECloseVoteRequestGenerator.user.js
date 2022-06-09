@@ -5091,6 +5091,7 @@
         const topbarStyleObserver = new MutationObserver(adjustTopbarMarginToNotifyContainer);
 
         function startObservingTopbarStyle() {
+            if (!topBar.length) return
             topbarStyleObserver.observe(topBar[0], {
                 attributes: true,
                 attributeFilter: [
