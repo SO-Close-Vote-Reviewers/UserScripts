@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        2.0.1
+// @version        2.0.2
 // @description    This script generates formatted close-/delete-/reopen-/undelete-vote requests, spam/offensive flag requests, Smoke Detector reports, and approve-/reject-pls requests for suggested edits, then sends them to a specified chat room.
 // @author         @TinyGiant @Makyen
 // @contributor    @rene @Tunaki
@@ -226,17 +226,15 @@
     //  that close reason in the off-topic pane of the close-vote-/flag-dialog.
     //Stack Overflow
     configsForSites.push(new SiteConfig('Stack Overflow', /^stackoverflow.com$/, Object.assign({
-        4: 'General Computing',
-        7: 'Server / Networking',
+        18: 'Not About Programming',
         11: 'Typo or Cannot Reproduce',
         13: 'No MCVE',
         16: 'Request for Off-Site Resource',
     }, defaultOffTopicCloseReasons), Object.assign({
         'm': 'No MCVE',
+        'n': 'Not About Programming',
         'r': 'Typo or Cannot Reproduce',
         'g': 'General Computing',
-        's': 'Super User',
-        'v': 'Server Fault',
         'l': 'Request for Off-Site Resource',
         'F': '(FireAlarm)',
         'N': '(NATO)',
@@ -245,10 +243,10 @@
         'B': '(no specific expected behavior)',
         'E': '(no specific problem or error)',
     }, defaultQuickSubstitutions), {
+        //2022-08-03: The code which used these values is currently non-operable, due to past changes to post notices.
         'reproduced': 'r',
-        'general': 'g',
+        'programming': 'n',
         'recommend': 'l',
-        'server': 'a',
         'working': 'm',
     }, 'SOCVR'));
     //Meta Stack Exchange
@@ -336,8 +334,9 @@
     }
     setGlobalVariablesByConfigOptions();
     //Get the href for the user's profile.
-    var currentUserHref = $('.topbar .profile-me,.so-header .my-profile,.top-bar .my-profile').attr('href');
+    var currentUserHref = $('.s-topbar a.s-user-card').attr('href');
 
+    //*This is not effective for some users.
     //MathJax corrupts the text contents of titles (from a programmatic POV:  .text(),
     //  .textContent, and .innerText).  In order have requests contain the actual title text,
     //  we save a copy of the text for each title we find in the DOM, hopefully prior to
@@ -4193,7 +4192,7 @@
         });
     }
 
-    //Permit other user scripts to request that a cv-pls be posted for the next close vote.
+    //Permit other userscripts to request that a cv-pls be posted for the next close vote.
     //  If it is desired, they can send a custom event with the questionId for which they want
     //  a cv-pls posted upon the next page $.ajax call which sends a close vote.
     window.addEventListener('cvrg-requestPostRequestForNextVote', function(e) {
@@ -5020,7 +5019,7 @@
     //  This is a fix for SE not setting the margin-top correctly.
     function keepTopbarMarginAtNotifyConainer() {
         const notifyContainer = $('#notify-container');
-        const topBar = $('.top-bar').first();
+        const topBar = $('.s-topbar').first();
         const container = $(document.body);
         const $window = $(window);
         let prevNotifyContainerDisplay;
