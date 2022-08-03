@@ -4192,7 +4192,7 @@
         });
     }
 
-    //Permit other user scripts to request that a cv-pls be posted for the next close vote.
+    //Permit other userscripts to request that a cv-pls be posted for the next close vote.
     //  If it is desired, they can send a custom event with the questionId for which they want
     //  a cv-pls posted upon the next page $.ajax call which sends a close vote.
     window.addEventListener('cvrg-requestPostRequestForNextVote', function(e) {
