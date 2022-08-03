@@ -334,8 +334,9 @@
     }
     setGlobalVariablesByConfigOptions();
     //Get the href for the user's profile.
-    var currentUserHref = $('.topbar .profile-me,.so-header .my-profile,.top-bar .my-profile').attr('href');
+    var currentUserHref = $('.s-topbar a.s-user-card').attr('href');
 
+    //*This is not effective for some users.
     //MathJax corrupts the text contents of titles (from a programmatic POV:  .text(),
     //  .textContent, and .innerText).  In order have requests contain the actual title text,
     //  we save a copy of the text for each title we find in the DOM, hopefully prior to
@@ -5018,7 +5019,7 @@
     //  This is a fix for SE not setting the margin-top correctly.
     function keepTopbarMarginAtNotifyConainer() {
         const notifyContainer = $('#notify-container');
-        const topBar = $('.top-bar').first();
+        const topBar = $('.s-topbar').first();
         const container = $(document.body);
         const $window = $(window);
         let prevNotifyContainerDisplay;
