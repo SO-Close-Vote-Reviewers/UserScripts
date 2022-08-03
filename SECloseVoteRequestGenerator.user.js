@@ -226,17 +226,15 @@
     //  that close reason in the off-topic pane of the close-vote-/flag-dialog.
     //Stack Overflow
     configsForSites.push(new SiteConfig('Stack Overflow', /^stackoverflow.com$/, Object.assign({
-        4: 'General Computing',
-        7: 'Server / Networking',
+        18: 'Not About Programming',
         11: 'Typo or Cannot Reproduce',
         13: 'No MCVE',
         16: 'Request for Off-Site Resource',
     }, defaultOffTopicCloseReasons), Object.assign({
         'm': 'No MCVE',
+        'n': 'Not About Programming',
         'r': 'Typo or Cannot Reproduce',
         'g': 'General Computing',
-        's': 'Super User',
-        'v': 'Server Fault',
         'l': 'Request for Off-Site Resource',
         'F': '(FireAlarm)',
         'N': '(NATO)',
@@ -245,10 +243,10 @@
         'B': '(no specific expected behavior)',
         'E': '(no specific problem or error)',
     }, defaultQuickSubstitutions), {
+        //2022-08-03: The code which used these values is currently non-operable, due to past changes to post notices.
         'reproduced': 'r',
-        'general': 'g',
+        'programming': 'n',
         'recommend': 'l',
-        'server': 'a',
         'working': 'm',
     }, 'SOCVR'));
     //Meta Stack Exchange
