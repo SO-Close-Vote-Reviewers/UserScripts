@@ -3112,7 +3112,7 @@
 
         //Add deleted content to be shown on hover.
         var deletedMessagesWithoutDeletedContent;
-        var delayBetweenGettingDeletedContent = 500;
+        var delayBetweenGettingDeletedContent = 250;
         var gettingDeletedContent = 0;
         var didGetDeletedContent = false;
 
