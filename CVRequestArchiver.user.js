@@ -47,6 +47,8 @@
     const isSearch = /^\/+search/.test(window.location.pathname);
     const isTranscript = /^\/+transcript\//.test(window.location.pathname);
     const isUsersPage = /^\/+users\//.test(window.location.pathname);
+    const isInfoPage = /^\/rooms\/info\/\d+\//.test(window.location.pathname);
+    const isStarsPage = isInfoPage && /\btab=stars\b/.test(window.location.search);
     const fkey = getFkey();
 
     function getFkey() {
@@ -81,7 +83,11 @@
             setTimeout(startup, 250);
             return;
         }
-        room = (/(?:chat(?:\.meta)?\.stack(?:overflow|exchange).com)\/rooms\/(\d+)/.exec(window.location.href) || [false, false])[1];
+        room = (/(?:chat(?:\.meta)?\.stack(?:overflow|exchange).com)\/rooms\/(?:info\/)?(\d+)/.exec(window.location.href) || [false, false])[1];
+        if (isInfoPage && !isStarsPage) {
+            //The only info page the Archiver does anything on is the stars page.
+            room = 0;
+        }
         isChat = !!room;
         if (isSearch) {
             room = (/^.*\broom=(\d+)\b.*$/i.exec(window.location.search) || [false, false])[1];
