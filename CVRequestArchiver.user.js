@@ -3799,7 +3799,7 @@
                     }
                     if (roomId === 'prompt') {
                         addMessageAndPriorSelectionToManualMoveList(message);
-                        roomId = ((prompt('To what room do you want to move messages (enter a room number or room URL)?') || '').match(/\d+/) || [])[0];
+                        roomId = ((prompt('To which room do you want to move messages (enter a room number or room URL)?') || '').match(/\d+/) || [])[0];
                     }
                     if (roomId === 'add') {
                         addMessageAndPriorSelectionToManualMoveList(message);
