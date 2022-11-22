@@ -3501,10 +3501,14 @@
                     toAdd = addedMetaHtml;
                 }
                 if (doAdd) {
-                    $(this).prepend(toAdd);
+                    $this.prepend(toAdd);
                     //Add the moveList length to this message.
                     addManualMoveListLength(null, this);
                 }
+                //We need to set both the color and background color here for all of these due to transcripts
+                //  for rooms such as The Restaurant at the End of the Universe where both the color and background
+                //  color for all messages is different.
+                setColorAndBackgroundColorFromContianingMessage(this);
             });
             //Remove the meta we added from any of those which we didn't also add the moveToMeta
             messagesWithoutMeta.find('.meta').filter(function() {
@@ -4531,15 +4535,19 @@
         }
         doOncePerChatChangeAfterDOMUpdate();
 
-        //Copied from my own (Makyen's) code on Charcoal's AIM
+        //Copied from my own (Makyen's) code on Charcoal's AIM and modified.
         function getEffectiveBackgroundColor(element, defaultColor) {
+            return getEffectiveColor('background-color', element, defaultColor);
+        }
+
+        function getEffectiveColor(cssColorProperty, element, defaultColor) {
             element = element instanceof jQuery ? element : $(element);
             defaultColor = defaultColor ? defaultColor : 'rgb(255,255,255)';
             let testEl = element.first();
             const colors = [];
             do {
                 try {
-                    const current = testEl.css('background-color').replace(/\s+/g, '').toLowerCase();
+                    const current = testEl.css(cssColorProperty).replace(/\s+/g, '').toLowerCase();
                     if (current && current !== 'transparent' && current !== 'rgba(0,0,0,0)') {
                         colors.push(current);
                     }
@@ -4589,11 +4597,18 @@
                 return !$(this).children('.newreply').length;
             }).each(function() {
                 const newReply = replyNode.clone(true);
-                const $this = $(this);
-                const newBackground = getEffectiveBackgroundColor($this.closest('.messages').first());
-                this.style.backgroundColor = newBackground;
+                setColorAndBackgroundColorFromContianingMessage(this);
                 $(this).append(newReply);
             });
+        }
+
+        function setColorAndBackgroundColorFromContianingMessage(el) {
+            el = $(el);
+            const message = el.closest('.message');
+            const newBackground = getEffectiveBackgroundColor(message);
+            const newColor = getEffectiveColor('color', message);
+            el[0].style.backgroundColor = newBackground;
+            el[0].style.color = newColor;
         }
     } //cvRequestArchiver()
 
