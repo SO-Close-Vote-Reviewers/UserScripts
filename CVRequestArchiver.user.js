@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      3.4.0
+// @version      3.5.0
 // @description  Moves messages or performs other actions on Chat messages. In some rooms, including SOCVR, it scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests and SD, FireAlarm, Queen, etc. reports for status, then moves the completed or expired ones.
 // @author       @TinyGiant @rene @Tunaki @Makyen
 // @updateURL    https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/CVRequestArchiver.user.js
@@ -47,6 +47,8 @@
     const isSearch = /^\/+search/.test(window.location.pathname);
     const isTranscript = /^\/+transcript\//.test(window.location.pathname);
     const isUsersPage = /^\/+users\//.test(window.location.pathname);
+    const isInfoPage = /^\/rooms\/info\/\d+\//.test(window.location.pathname);
+    const isStarsPage = isInfoPage && /\btab=stars\b/.test(window.location.search);
     const fkey = getFkey();
 
     function getFkey() {
@@ -81,7 +83,11 @@
             setTimeout(startup, 250);
             return;
         }
-        room = (/(?:chat(?:\.meta)?\.stack(?:overflow|exchange).com)\/rooms\/(\d+)/.exec(window.location.href) || [false, false])[1];
+        room = (/(?:chat(?:\.meta)?\.stack(?:overflow|exchange).com)\/rooms\/(?:info\/)?(\d+)/.exec(window.location.href) || [false, false])[1];
+        if (isInfoPage && !isStarsPage) {
+            //The only info page the Archiver does anything on is the stars page.
+            room = 0;
+        }
         isChat = !!room;
         if (isSearch) {
             room = (/^.*\broom=(\d+)\b.*$/i.exec(window.location.search) || [false, false])[1];
@@ -3112,7 +3118,7 @@
 
         //Add deleted content to be shown on hover.
         var deletedMessagesWithoutDeletedContent;
-        var delayBetweenGettingDeletedContent = 500;
+        var delayBetweenGettingDeletedContent = 250;
         var gettingDeletedContent = 0;
         var didGetDeletedContent = false;
 
@@ -3495,10 +3501,14 @@
                     toAdd = addedMetaHtml;
                 }
                 if (doAdd) {
-                    $(this).prepend(toAdd);
+                    $this.prepend(toAdd);
                     //Add the moveList length to this message.
                     addManualMoveListLength(null, this);
                 }
+                //We need to set both the color and background color here for all of these due to transcripts
+                //  for rooms such as The Restaurant at the End of the Universe where both the color and background
+                //  color for all messages is different.
+                setColorAndBackgroundColorFromContianingMessage(this);
             });
             //Remove the meta we added from any of those which we didn't also add the moveToMeta
             messagesWithoutMeta.find('.meta').filter(function() {
@@ -3582,6 +3592,7 @@
                 new MoveListPopupEntry('pin', 'owner-star', 'img', 'Pin all highlighted messages (toggle)', 'owner-star'),
                 //unpin tested: returns 'ok'; doesn't fail when not pinned; doesn't appear to be rate limited.
                 new MoveListPopupEntry('unpin', 'owner-star', 'sprite sprite-ownerstar-off', 'Unpin all messages in the Manual Move List', 'unowner-star'),
+                new MoveListPopupEntry('pin-pin', 'owner-star', 'img', 'Use to restart the timer on a pin or star your own message.\nIf you\'ve already pinned the message, then the message is briefly unpinned and then re-pinned, which resets the 14 day max pin length timer.\nIf the message is not already pinned, it briefly pins the message, which adds a star from you, even on your own messages, and then unpins the message, leaving the star.', 'owner-star_owner-star'),
                 //spam flag tested: returns 'ok'; rate limited to 1/second
                 new MoveListPopupEntry('flag as spam/offensive', 'flag', 'img', 'Flag all highlighted messages as spam/abusive.', 'flag'),
                 new MoveListPopupEntry('counter flag', '', 'SOCVR-Archiver-sprite-placeholder', 'Counter flag all highlighted messages', 'counter-flag'),
@@ -3798,7 +3809,7 @@
                     }
                     if (roomId === 'prompt') {
                         addMessageAndPriorSelectionToManualMoveList(message);
-                        roomId = ((prompt('To what room do you want to move messages (enter a room number or room URL)?') || '').match(/\d+/) || [])[0];
+                        roomId = ((prompt('To which room do you want to move messages (enter a room number or room URL)?') || '').match(/\d+/) || [])[0];
                     }
                     if (roomId === 'add') {
                         addMessageAndPriorSelectionToManualMoveList(message);
@@ -4524,15 +4535,19 @@
         }
         doOncePerChatChangeAfterDOMUpdate();
 
-        //Copied from my own (Makyen's) code on Charcoal's AIM
+        //Copied from my own (Makyen's) code on Charcoal's AIM and modified.
         function getEffectiveBackgroundColor(element, defaultColor) {
+            return getEffectiveColor('background-color', element, defaultColor);
+        }
+
+        function getEffectiveColor(cssColorProperty, element, defaultColor) {
             element = element instanceof jQuery ? element : $(element);
             defaultColor = defaultColor ? defaultColor : 'rgb(255,255,255)';
             let testEl = element.first();
             const colors = [];
             do {
                 try {
-                    const current = testEl.css('background-color').replace(/\s+/g, '').toLowerCase();
+                    const current = testEl.css(cssColorProperty).replace(/\s+/g, '').toLowerCase();
                     if (current && current !== 'transparent' && current !== 'rgba(0,0,0,0)') {
                         colors.push(current);
                     }
@@ -4582,11 +4597,18 @@
                 return !$(this).children('.newreply').length;
             }).each(function() {
                 const newReply = replyNode.clone(true);
-                const $this = $(this);
-                const newBackground = getEffectiveBackgroundColor($this.closest('.messages').first());
-                this.style.backgroundColor = newBackground;
+                setColorAndBackgroundColorFromContianingMessage(this);
                 $(this).append(newReply);
             });
+        }
+
+        function setColorAndBackgroundColorFromContianingMessage(el) {
+            el = $(el);
+            const message = el.closest('.message');
+            const newBackground = getEffectiveBackgroundColor(message);
+            const newColor = getEffectiveColor('color', message);
+            el[0].style.backgroundColor = newBackground;
+            el[0].style.color = newColor;
         }
     } //cvRequestArchiver()
 
