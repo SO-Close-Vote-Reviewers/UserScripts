@@ -3582,6 +3582,7 @@
                 new MoveListPopupEntry('pin', 'owner-star', 'img', 'Pin all highlighted messages (toggle)', 'owner-star'),
                 //unpin tested: returns 'ok'; doesn't fail when not pinned; doesn't appear to be rate limited.
                 new MoveListPopupEntry('unpin', 'owner-star', 'sprite sprite-ownerstar-off', 'Unpin all messages in the Manual Move List', 'unowner-star'),
+                new MoveListPopupEntry('pin-pin', 'owner-star', 'img', 'Use to restart the timer on a pin or star your own message.\nIf you\'ve already pinned the message, then the message is briefly unpinned and then re-pinned, which resets the 14 day max pin length timer.\nIf the message is not already pinned, it briefly pins the message, which adds a star from you, even on your own messages, and then unpins the message, leaving the star.', 'owner-star_owner-star'),
                 //spam flag tested: returns 'ok'; rate limited to 1/second
                 new MoveListPopupEntry('flag as spam/offensive', 'flag', 'img', 'Flag all highlighted messages as spam/abusive.', 'flag'),
                 new MoveListPopupEntry('counter flag', '', 'SOCVR-Archiver-sprite-placeholder', 'Counter flag all highlighted messages', 'counter-flag'),
