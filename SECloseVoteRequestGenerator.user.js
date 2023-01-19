@@ -2321,6 +2321,7 @@
                 //Revisits are permitted on all posts, but not reviews. Need to test to see if it works on answers.
                 ((isGuiQuestion || isGuiAnswer) ? '<option value="revisit (in 2 days)" title="Revisit the post 2 days from now. Use this for questions which do not currently qualify for delete votes, as any question can be delete-voted by 10k+ users after being closed for 2 days. Revisits are only checked for when you load a page where this script is active">revisit (in 2 days)</option>' : '') +
                 ((isGuiQuestion || isGuiAnswer) ? '<option value="revisit (in 11 days)" title="Revisit the post 11 days from now. Example: verify a question is deleted by the Roomba. For instance, if a question has an answer which might be accepted (preventing it from being Roomba\'d), then you can check that it was actually deleted.">revisit (in 11 days)</option>' : '') +
+                ((isGuiQuestion || isGuiAnswer) ? '<option value="revisit (in 30 days)" title="Revisit the post 30 days from now.">revisit (in 30 days)</option>' : '') +
                 ((isGuiQuestion || isGuiAnswer) ? '<option value="revisit (in N days)" title="Revisit the post N days from now.">revisit (in N days)</option>' : '') +
                 (onlySdSpamOffensive ? '' : isGuiAnswer ? '<option value="reflag NAA" title="">reflag NAA</option>' : '') +
                 (onlySdSpamOffensive ? '' : (isGuiQuestion || isGuiAnswer) ? '<option value="reflag VLQ" title="">reflag VLQ</option>' : '') +
