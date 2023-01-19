@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        2.0.2
+// @version        2.0.3
 // @description    This script generates formatted close-/delete-/reopen-/undelete-vote requests, spam/offensive flag requests, Smoke Detector reports, and approve-/reject-pls requests for suggested edits, then sends them to a specified chat room.
 // @author         @TinyGiant @Makyen
 // @contributor    @rene @Tunaki
@@ -230,12 +230,14 @@
         11: 'Typo or Cannot Reproduce',
         13: 'No MCVE',
         16: 'Request for Off-Site Resource',
+        19: 'Not in English',
     }, defaultOffTopicCloseReasons), Object.assign({
         'm': 'No MCVE',
         'n': 'Not About Programming',
         'r': 'Typo or Cannot Reproduce',
         'g': 'General Computing',
         'l': 'Request for Off-Site Resource',
+        'e': 'Not in English',
         'F': '(FireAlarm)',
         'N': '(NATO)',
         'S': '(SD report)',
@@ -973,7 +975,7 @@
                 if (isVersionNewer(receivedVersion, GM.info.script.version)) {
                     var lastAcknowledgedVersion = getGMStorage('LastAcknowledgedVersion');
                     if (lastAcknowledgedVersion !== receivedVersion || force) {
-                        if (confirm('A new version of ALPHA VERSION of The Close Vote Request Generator is available, would you like to install it now?')) {
+                        if (confirm('A new version of the Close Vote Request Generator is available, would you like to install it now?')) {
                             window.location.href = URL;
                         } else {
                             setGMStorage('LastAcknowledgedVersion', receivedVersion);
@@ -2319,6 +2321,7 @@
                 //Revisits are permitted on all posts, but not reviews. Need to test to see if it works on answers.
                 ((isGuiQuestion || isGuiAnswer) ? '<option value="revisit (in 2 days)" title="Revisit the post 2 days from now. Use this for questions which do not currently qualify for delete votes, as any question can be delete-voted by 10k+ users after being closed for 2 days. Revisits are only checked for when you load a page where this script is active">revisit (in 2 days)</option>' : '') +
                 ((isGuiQuestion || isGuiAnswer) ? '<option value="revisit (in 11 days)" title="Revisit the post 11 days from now. Example: verify a question is deleted by the Roomba. For instance, if a question has an answer which might be accepted (preventing it from being Roomba\'d), then you can check that it was actually deleted.">revisit (in 11 days)</option>' : '') +
+                ((isGuiQuestion || isGuiAnswer) ? '<option value="revisit (in 30 days)" title="Revisit the post 30 days from now.">revisit (in 30 days)</option>' : '') +
                 ((isGuiQuestion || isGuiAnswer) ? '<option value="revisit (in N days)" title="Revisit the post N days from now.">revisit (in N days)</option>' : '') +
                 (onlySdSpamOffensive ? '' : isGuiAnswer ? '<option value="reflag NAA" title="">reflag NAA</option>' : '') +
                 (onlySdSpamOffensive ? '' : (isGuiQuestion || isGuiAnswer) ? '<option value="reflag VLQ" title="">reflag VLQ</option>' : '') +
