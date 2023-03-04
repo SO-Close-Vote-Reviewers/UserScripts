@@ -4216,6 +4216,7 @@
     function escapeForMarkdown(text) {
         //Quote characters and combinations of characters which might be interpreted as Chat Markdown formatting.
         //Looks like [\[\]`*_] show up as themselves when quoted at any time.
+        // " needs to be quoted only within URLs. Within regular text, the backslash displays for \".
         //"---" does not stop working if \ quoted only at the start. Quoting in the middle of the --- shows the \.
         //Interspersing zero-width spaces works, but it does put the zero-width spaces (\u200B) in the HTML.
         //Interspersing zero-width non-breaking spaces works, but it does put the zero-width non-breaking spaces (\uFEFF) in the HTML.
