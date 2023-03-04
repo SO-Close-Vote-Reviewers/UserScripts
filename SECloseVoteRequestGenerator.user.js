@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name           Stack Exchange CV Request Generator
 // @namespace      https://github.com/SO-Close-Vote-Reviewers/
-// @version        2.0.3
+// @version        2.0.4
 // @description    This script generates formatted close-/delete-/reopen-/undelete-vote requests, spam/offensive flag requests, Smoke Detector reports, and approve-/reject-pls requests for suggested edits, then sends them to a specified chat room.
 // @author         @TinyGiant @Makyen
 // @contributor    @rene @Tunaki
@@ -66,7 +66,7 @@
     const MORE_THAN_MONTH_IN_MILLISECONDS = Math.round((365.25 / 12) + 3) * DAY_IN_MILLISECONDS;
     const questionActivityWarningAge = (6 * MORE_THAN_MONTH_IN_MILLISECONDS) + (7 * DAY_IN_MILLISECONDS); //6 months plus a bit
     let openedAsDelayedRequestNoticeId = [];
-    const requestTypesWithNoReason = ['!!/reportuser', '!!/addblu-', '!!/rmblu-', '!!/addwlu-', '!!/rmwlu-', 'spam'];
+    const requestTypesWithNoReason = ['!!/reportuser', '!!/addblu-', '!!/rmblu-', '!!/addwlu-', '!!/rmwlu-'];
     const requestTypesWithOptionalReason = ['!!/report', '!!/report-force', '!!/scan', '!!/scan-force', 'spam', 'offensive', 'reflag NAA', 'reflag VLQ'];
     const knownRooms = {
         SOCVR: {
@@ -2519,6 +2519,8 @@
                     criticalRequestReasons,
                 };
             }
+            //Perform single character substitutions.
+            reason = reasons.get(reason);
             if (requestTypesWithNoReason.indexOf(requestType) === -1 && requestTypesWithOptionalReason.indexOf(requestType) === -1 && !delayableRequestRegex.test(actualRequestType)) {
                 reasonRequired = true;
                 if (!reason.trim() || !requestType) {
@@ -2528,12 +2530,12 @@
                         invalidRequestReasons,
                         criticalRequestReasons,
                     };
+                } else if (reason.length < 7) {
+                    invalidRequestReasons.push('The request reason is quite short. A bit more detail in the request reason is usually better.');
                 }
             }
             const isSOCVR = isCurrentRoomSOCVR();
             var isGuiReviewSE = this.guiType === 'reviewSE';
-            //Perform single character substitutions.
-            reason = reasons.get(reason);
             reason = addNatoIfIsNato(reason);
             //Questions and Answers
             var questionContext = this.questionContext;
@@ -2645,7 +2647,7 @@
                     ['answer', 'question'].forEach((postType) => {
                         if (!postLinkHref) {
                             const dataType = `data-${postType}id`;
-                            const wrapperContext = this.gui.wrapper.closest(`.${postType}answer[${dataType}]`);
+                            const wrapperContext = this.gui.wrapper.closest(`.${postType}[${dataType}]`);
                             if (wrapperContext.length) {
                                 postLinkHref = `/${postType[0]}/${wrapperContext.attr(dataType)}`;
                             }
@@ -4214,6 +4216,7 @@
     function escapeForMarkdown(text) {
         //Quote characters and combinations of characters which might be interpreted as Chat Markdown formatting.
         //Looks like [\[\]`*_] show up as themselves when quoted at any time.
+        // " needs to be quoted only within URLs. Within regular text, the backslash displays for \".
         //"---" does not stop working if \ quoted only at the start. Quoting in the middle of the --- shows the \.
         //Interspersing zero-width spaces works, but it does put the zero-width spaces (\u200B) in the HTML.
         //Interspersing zero-width non-breaking spaces works, but it does put the zero-width non-breaking spaces (\uFEFF) in the HTML.
