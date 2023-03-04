@@ -2519,6 +2519,8 @@
                     criticalRequestReasons,
                 };
             }
+            //Perform single character substitutions.
+            reason = reasons.get(reason);
             if (requestTypesWithNoReason.indexOf(requestType) === -1 && requestTypesWithOptionalReason.indexOf(requestType) === -1 && !delayableRequestRegex.test(actualRequestType)) {
                 reasonRequired = true;
                 if (!reason.trim() || !requestType) {
@@ -2528,12 +2530,12 @@
                         invalidRequestReasons,
                         criticalRequestReasons,
                     };
+                } else if (reason.length < 7) {
+                    invalidRequestReasons.push('The request reason is quite short. A bit more detail in the request reason is usually better.');
                 }
             }
             const isSOCVR = isCurrentRoomSOCVR();
             var isGuiReviewSE = this.guiType === 'reviewSE';
-            //Perform single character substitutions.
-            reason = reasons.get(reason);
             reason = addNatoIfIsNato(reason);
             //Questions and Answers
             var questionContext = this.questionContext;
