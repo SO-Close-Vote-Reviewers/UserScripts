@@ -2645,7 +2645,7 @@
                     ['answer', 'question'].forEach((postType) => {
                         if (!postLinkHref) {
                             const dataType = `data-${postType}id`;
-                            const wrapperContext = this.gui.wrapper.closest(`.${postType}answer[${dataType}]`);
+                            const wrapperContext = this.gui.wrapper.closest(`.${postType}[${dataType}]`);
                             if (wrapperContext.length) {
                                 postLinkHref = `/${postType[0]}/${wrapperContext.attr(dataType)}`;
                             }
