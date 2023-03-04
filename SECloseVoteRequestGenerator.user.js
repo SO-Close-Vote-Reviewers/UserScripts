@@ -66,7 +66,7 @@
     const MORE_THAN_MONTH_IN_MILLISECONDS = Math.round((365.25 / 12) + 3) * DAY_IN_MILLISECONDS;
     const questionActivityWarningAge = (6 * MORE_THAN_MONTH_IN_MILLISECONDS) + (7 * DAY_IN_MILLISECONDS); //6 months plus a bit
     let openedAsDelayedRequestNoticeId = [];
-    const requestTypesWithNoReason = ['!!/reportuser', '!!/addblu-', '!!/rmblu-', '!!/addwlu-', '!!/rmwlu-', 'spam'];
+    const requestTypesWithNoReason = ['!!/reportuser', '!!/addblu-', '!!/rmblu-', '!!/addwlu-', '!!/rmwlu-'];
     const requestTypesWithOptionalReason = ['!!/report', '!!/report-force', '!!/scan', '!!/scan-force', 'spam', 'offensive', 'reflag NAA', 'reflag VLQ'];
     const knownRooms = {
         SOCVR: {
