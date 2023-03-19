@@ -964,7 +964,7 @@
             ionic: {
                 expr: /\bionic(?:\s?pro)?\b/gi,
                 replacement: function(str) {
-                    return str.toTitleCase();
+                    return toTitleCase(str);
                 },
                 reason: App.consts.reasons.trademark
             },
@@ -3542,88 +3542,89 @@
     } catch (e) {
         console.log(e);
     }
+
+    /* eslint-disable */
+    /*
+      * To Title Case 2.1 – http://individed.com/code/to-title-case/
+      * Copyright © 2008–2013 David Gouch. Licensed under the MIT License.
+      * It has been modified to be a function call, rather than added to the String prototype.
+     */
+
+    //This is function call, rather than a method on the String prototype, because a userscript, unless it's intended
+    //  purpose is to make such a basic change, shouldn't be making a change to the prototype of a built-in type.
+    //  Changing the prototype of a built-in has a significant chance of causing compatibility issues.
+    function toTitleCase(text){
+      var smallWords = /^(a|an|and|as|at|but|by|en|for|if|in|nor|of|on|or|per|the|to|vs?\.?|via)$/i;
+
+      return text.replace(/[A-Za-z0-9\u00C0-\u00FF]+[^\s-]*/g, function(match, index, title){
+        if (index > 0 && index + match.length !== title.length &&
+          match.search(smallWords) > -1 && title.charAt(index - 2) !== ":" &&
+          (title.charAt(index + match.length) !== '-' || title.charAt(index - 1) === '-') &&
+          title.charAt(index - 1).search(/[^\s-]/) < 0) {
+          return match.toLowerCase();
+        }
+
+        if (match.substr(1).search(/[A-Z]|\../) > -1) {
+          return match;
+        }
+
+        return match.charAt(0).toUpperCase() + match.substr(1);
+      });
+    };
+
+    // From https://github.com/EamonNerbonne/a-vs-an
+    var AvsAnSimple=function(n){function i(n){var r=parseInt(t,36)||0,f=r&&r.toString(36).length,u,e;for(n.article=t[f]=="."?"a":"an",t=t.substr(1+f),u=0;u<r;u++)e=n[t[0]]={},t=t.substr(1),i(e)}var t="2h.#2.a;i;&1.N;*4.a;e;i;o;/9.a;e;h1.o.i;l1./;n1.o.o;r1.e.s1./;01.8;12.1a;01.0;12.8;9;2.31.7;4.5.6.7.8.9.8a;0a.0;1;2;3;4;5;6;7;8;9;11; .22; .–.31; .42; .–.55; .,.h.k.m.62; .k.72; .–.82; .,.92; .–.8;<2.m1.d;o;=1.=1.E;@;A6;A1;A1.S;i1;r1;o.m1;a1;r1; .n1;d1;a1;l1;u1;c1.i1.a1.n;s1;t1;u1;r1;i1;a1;s.t1;h1;l1;e1;t1;e1.s;B2.h2.a1.i1;r1;a.á;o1.r1.d1. ;C3.a1.i1.s1.s.h4.a2.i1.s1;e.o1.i;l1.á;r1.o1.í;u2.i;r1.r1.a;o1.n1.g1.j;D7.a1.o1.q;i2.n1.a1.s;o1.t;u1.a1.l1.c;á1. ;ò;ù;ư;E7;U1;R.b1;o1;l1;i.m1;p1;e1;z.n1;a1;m.s1;p5.a1.c;e;h;o;r;u1.l1;o.w1;i.F11. ;,;.;/;0;1;2;3;4;5;6;71.0.8;9;Ae;B.C.D.F.I2.L.R.K.L.M.N.P.Q.R.S.T.B;C1;M.D;E2.C;I;F1;r.H;I3.A1;T.R1. ;U;J;L3.C;N;P;M;O1. ;P1;..R2.A1. ;S;S;T1;S.U2.,;.;X;Y1;V.c;f1.o.h;σ;G7.e1.r1.n1.e;h1.a3.e;i;o;i1.a1.n1.g;o2.f1. ;t1.t1. ;r1.i1.a;w1.a1.r1.r;ú;Hs. ;&;,;.2;A.I.1;2;3;5;7;B1;P.C;D;F;G;H1;I.I6;C.G.N.P.S1.D;T.K1.9;L;M1;..N;O2. ;V;P;R1;T.S1.F.T;V;e2.i1.r;r1.r1.n;o2.n6;d.e1.s;g.k.o2;l.r1;i1.f;v.u1.r;I3;I2;*.I.n1;d1;e1;p1;e1;n1;d2;e1;n1;c1;i.ê.s1;l1;a1;n1;d1;s.J1.i1.a1.o;Ly. ;,;.;1;2;3;4;8;A3. ;P;X;B;C;D;E2. ;D;F1;T.G;H1.D.I1.R;L;M;N;P;R;S1;m.T;U1. ;V1;C.W1.T;Z;^;a1.o1.i1.g;o1.c1.h1.a1;b.p;u1.s1.h1;o.ộ;M15. ;&;,;.1;A1;.1;S./;1;2;3;4;5;6;7;8;Ai;B.C.D.F.G.J.L.M.N.P.R.S.T.V.W.X.Y.Z.B1;S1;T.C;D;E3.P1;S.W;n;F;G;H;I4. ;5;6;T1;M.K;L;M;N;O1.U;P;Q;R;S;T1;R.U2. ;V;V;X;b1.u1.m;f;h;o2.D1.e.U1;..p1.3;s1.c;Ny. ;+;.1.E.4;7;8;:;A3.A1;F.I;S1.L;B;C;D;E3.A;H;S1. ;F1;U.G;H;I7.C.D1. ;K.L.N.O.S.K;L;M1;M.N2.R;T;P1.O1.V1./1.B;R2;J.T.S1;W.T1;L1.D.U1.S;V;W2.A;O1.H;X;Y3.C1.L;P;U;a1.s1.a1.n;t1.h;v;²;×;O5;N1;E.l1;v.n2;c1.e.e1.i;o1;p.u1;i.P1.h2.i1.a;o2.b2;i.o.i;Q1.i1.n1.g1.x;Rz. ;&;,;.1;J./;1;4;6;A3. ;.;F1;T.B1;R.C;D;E3. ;S1.P;U;F;G;H1.S;I2.A;C1. ;J;K;L1;P.M5;1.2.3.5.6.N;O2.H;T2;A.O.P;Q;R1;F.S4;,...?.T.T;U4;B.M.N.S.V;X;c;f1;M1...h2.A;B;ò;S11. ;&;,;.4.E;M;O;T1..3.B;D;M;1;3;4;5;6;8;9;A3. ;8;S2;E.I.B;C3.A1. ;R2.A.U.T;D;E6. ;5;C3;A.O.R.I1.F.O;U;F3;&.H.O1.S.G1;D.H3.2;3;L;I2. ;S1.O.K2.I.Y.L3;A2. ;.;I1. ;O.M3;A1. ;I.U1.R.N5.A.C3.A.B.C.E.F.O.O5. ;A1.I;E;S1;U.V;P7;A7;A.C.D.M.N.R.S.E1. ;I4;C.D.N.R.L1;O.O.U.Y.Q1. ;R;S1;W.T9.A1. ;C;D;F;I;L;M;S;V;U7.B.L.M.N.P.R.S.V;W1.R;X1.M;h1.i1.g1.a1.o;p1.i1.o1;n.t2.B;i1.c1.i;T4.a2.i2.g1.a.s1.c;v1.e1.s;e1.a1.m1.p;u1.i2.l;r;à;Um..1.N1..1.C;/1.1;11. .21.1;L1.T;M1.N;N4.C1.L;D2. .P.K;R1. .a;b2;a.i.d;g1.l;i1.g.l2;i.y.m;no. ;a1.n.b;c;d;e1;s.f;g;h;i2.d;n;j;k;l;m;n;o;p;q;r;s;t;u;v;w;p;r3;a.e.u1.k;s3. ;h;t1;r.t4.h;n;r;t;x;z;í;W2.P1.:4.A1.F;I2.B;N1.H.O1.V;R1.F1.C2.N.U.i1.k1.i1.E1.l1.i;X7;a.e.h.i.o.u.y.Y3.e1.t1.h;p;s;[5.A;E;I;a;e;_2._1.i;e;`3.a;e;i;a7; .m1;a1;r1. .n1;d2; .ě.p1;r1;t.r1;t1;í.u1;s1;s1;i1. .v1;u1;t.d3.a1.s1. ;e2.m1. ;r1. ;i2.c1.h1. ;e1.s1.e2.m;r;e8;c1;o1;n1;o1;m1;i1;a.e1;w.l1;i1;t1;e1;i.m1;p1;e1;z.n1;t1;e1;n1;d.s2;a1. .t4;a1; .e1; .i1;m1;a1;r.r1;u1.t.u1.p1. ;w.f3. ;M;y1.i;h9. ;,;.;C;a1.u1.t1;b.e2.i1.r1;a.r1.m1.a1.n;o4.m2.a1; .m;n8; .b.d.e3; .d.y.g.i.k.v.r1.s1. ;u1.r;r1. ;t1;t1;p1;:.i6;b1;n.e1;r.n2;f2;l1;u1;ê.o1;a.s1;t1;a1;l1;a.r1; .s1; .u.k1.u1. ;l3.c1.d;s1. ;v1.a;ma. ;,;R;b1.a.e1.i1.n;f;p;t1.a.u1.l1.t1.i1.c1.a1.m1.p1.i;×;n6. ;V;W;d1; .t;×;o8;c2;h1;o.u1;p.d1;d1;y.f1; .g1;g1;i.no. ;';,;/;a;b;c1.o;d;e2.i;r;f;g;i;l;m;n;o;r;s;t;u;w;y;z;–;r1;i1;g1;e.t1;r1.s;u1;i.r3. ;&;f;s9.,;?;R;f2.e.o.i1.c1.h;l1. ;p2.3;i1. ;r1.g;v3.a.e.i.t2.A;S;uc; ...b2.e;l;f.k2.a;i;m1;a1. .n3;a3; .n5.a;c;n;s;t;r1;y.e2; .i.i8.c2.o1.r1.p;u1.m;d1;i1.o;g1.n;l1.l;m1;o.n;s1.s;v1.o1;c.r5;a.e.i.l.o.s3. ;h;u1.r2;e.p3;a.e.i.t2.m;t;v.w1.a;xb. ;';,;.;8;b;k;l;m1;a.t;y1. ;y1.l;{1.a;|1.a;£1.8;À;Á;Ä;Å;Æ;É;Ò;Ó;Ö;Ü;à;á;æ;è;é1;t3.a;o;u;í;ö;ü1; .Ā;ā;ī;İ;Ō;ō;œ;Ω;α;ε;ω;ϵ;е;–2.e;i;ℓ;";return i(n),{raw:n,query:function(t){var i=n,f=0,u,r;do r=t[f++];while("\"‘’“”$'".indexOf(r)>=0);for(;;){if(u=i.article||u,i=i[r],!i)return u;r=t[f++]||" "}}}}({})
+
+    // Adapted from http://stackoverflow.com/a/6969486/1677912
+    function escapeTag(tag) {
+        // See https://regex101.com/r/yW9cD4/1
+        var retag = tag.replace(/(?:(\-)|([+.#]))/g,
+                         function (match, hyphen, other) {
+                             var escaped = (hyphen) ? "[ \\-]" : "\\"+match;
+                             return escaped;
+                         });
+        return "(?:\\s|\\b|$)" + retag + "(?:\\s|\\b|$)";  // hack - enclose tag in regexp boundary checks. WBN to do this in the taglist regexp.
+    }
+
+    /**
+     * Pass a CSS variable to get its value
+     * @param {string} val - for example "--black" or "--green-600"
+     */
+    function retrieveCSSVariable(val) {
+        return getComputedStyle(document.body)
+            .getPropertyValue(val);
+    }
+
+    /**
+     * Converts an arbitrary colour representation to an RGB string representation. Invalid colours might return "rgb(0,0,0)". The conversioon is done by
+     * offloading the interpreting the string to a canvas - common strings like hex or HSL would be supported but perhapos not all named colours would be.
+     *
+     * Based on the code by Aaron Watters: https://stackoverflow.com/a/52044517
+     *
+     * @param {string} string - any colour representation, for example: "salmon", "#FA8072", "#fa8072", hsl(6,93%,71%), hsl(6, 93%, 71%)
+     * @returns {string} - String of the format: "rgb(250,126,113)". Invalid input would produce black "rgb(0,0,0)"
+     */
+    function colour2rgb(string) {
+        var canvas = document.createElement("canvas");
+
+        //make 1x1 px rectangle in the arbitrary colour
+        var context = canvas.getContext("2d");
+        context.beginPath();
+        context.rect(0,0,1,1);
+        context.fillStyle = string;
+        context.fill();
+
+        //extract the three primary colours and omit the alpha channel information
+        var rgbData = context.getImageData(0, 0, 1, 1).data.slice(0, 3);
+        return "rgb(" + rgbData.join(",") + ")";
+    }
+
+    // Better handling of indentation and the TAB key when editing posts
+    // From balpha's stackexchange-tab-editing
+    // (c) 2012 Benjamin Dumke-von der Ehe
+    // Which is released under the MIT License - https://opensource.org/licenses/MIT
+    // See http://stackapps.com/questions/3247/better-handling-of-indentation-and-the-tab-key-when-editing-posts
+    // Current version: 2.0.0, from https://github.com/mogsdad/UserScripts/blob/master/tab-editing.user.js
+    function with_jquery(t){var e=document.createElement("script");e.type="text/javascript",e.textContent="("+t.toString()+")(jQuery)",document.body.appendChild(e)}with_jquery(function(t){t(function(){if(window.StackExchange&&StackExchange.ready){var e=4,n=" ".repeat(e),r="selectionDirection"in t("<textarea />")[0],i={9:{handler:u,allowShift:!0},36:{handler:function(n){var r,i,a=t(this),c=this.value||"",h=s(a),u=c.substring(0,h.directedEnd),l=c.substring(h.directedEnd),o=(u.match(/(?:^|\n)([^\n]*)$/)||["",""])[1];if(o.length){r=o.search(/[^ \t]/);var f=new RegExp("^ {0,"+(e-1)+"}\t");(r>=e||r>0&&f.test(o))&&(i=h.directedEnd-o.length+r)}else(r=(l.match(/^[\t ]*/)||[""])[0].length)>0&&(i=h.directedEnd+r);if(void 0!==i)return n?d(a,h.directedStart,i):d(a,i),!1;return!0},allowShift:r},8:{handler:function(){var e=t(this),n=this.value||"",r=s(e),i=(n.substring(0,r.end).match(/(?:^|\n)([^\n]*)$/)||["",""])[1];if(r.start===r.end&&/^[ \t]+$/.test(i))return u.call(this,!0);return!0}}},a=!0,c=!1;t("#mainbar").on("keyup",".wmd-input",function(t){c&&17===t.which?h(this):h(this,!0)}),t("#mainbar").on("keydown",".wmd-input",function(t){if(c=17===t.which,t.ctrlKey||t.altKey||t.metaKey)return!0;var e=a;if(h(this,!0),!e)return!0;if(!i.hasOwnProperty(t.which))return!0;var n=i[t.which];return!(!t.shiftKey||n.allowShift)||n.handler.call(this,t.shiftKey)})}function s(t){var e=t.caret(),n="backward"===t[0].selectionDirection;return e.end-=e.text.match(/([ \t\n]*)$/)[0].length,n?(e.directedStart=e.end,e.directedEnd=e.start,e.backward=!0):(e.directedStart=e.start,e.directedEnd=e.end),e}function d(t,e,n,i){var a,c;2===arguments.length&&(n=e),i&&(a=e,e=n,n=a),e>n&&(a=e,e=n,n=a,c=!0),c&&r?t[0].setSelectionRange(e,n,"backward"):t.caret(e,n)}function h(e,n){void 0===n&&(n=!a),a^n&&(t(e).css("opacity",n?1:.3),a=n)}function u(r){var i,a,c=t(this),h=this.value||"",u=s(c),l=h.substring(0,u.start),o=h.substring(u.start,u.end),f=h.substring(u.end);if(u.start===u.end){var g,v=(l.match(/(?:^|\n)([^\n]*)$/)||["",""])[1],w=0;if(r&&!/(^|[ \t])$/.test(v))return!1;var p=!0;for(r&&!v.length&&(f=f.replace(/^[ \t]*/,function(t){return v=t,l+=t,""}),p=!1),g=0;g<v.length;g++)"\t"===v.charAt(g)?w=0:w++;if(r){var y=v.length&&w%e||e,b=new RegExp(" {0,"+(y-1)+"}[ \\t]$");l=l.replace(b,function(t){return i=-t.length,""})}else i=e-w%e,l+=n.slice(w%e);c.val(l+f),p||(i=0),c.caret(u.start+i,u.start+i)}else{l=l.replace(/(^|\n)([^\n]*)$/,function(t,e,n){return o=n+o,e});var m="\n"===h.substr(u.start-1,1)?0:1;if(r){i=0;b=new RegExp("(^|\n)(\t| {1,"+(e-1)+"}[ \t])","g");if(o=o.replace(b,function(t,n,r){return i||(a=e-r.length),i-=r.length,n}),!i)return!1}else i=0,a=0,o=o.replace(/^|\n/g,function(t){return i+=e,t+n});c.val(l+o+f),d(c,u.start+a+m*i,u.end+i,u.backward)}return!1}})});
+
 })();
-
-/* eslint-disable */
-/*
-  * To Title Case 2.1 – http://individed.com/code/to-title-case/
-  * Copyright © 2008–2013 David Gouch. Licensed under the MIT License.
-  * It has been modified to be a function call, rather than added to the String prototype.
- */
-
-//This is function call, rather than a method on the String prototype, because a userscript, unless it's intended
-//  purpose is to make such a basic change, shouldn't be making a change to the prototype of a built-in type.
-//  Changing the prototype of a built-in has a significant chance of causing compatibility issues.
-function toTitleCase(text){
-  var smallWords = /^(a|an|and|as|at|but|by|en|for|if|in|nor|of|on|or|per|the|to|vs?\.?|via)$/i;
-
-  return text.replace(/[A-Za-z0-9\u00C0-\u00FF]+[^\s-]*/g, function(match, index, title){
-    if (index > 0 && index + match.length !== title.length &&
-      match.search(smallWords) > -1 && title.charAt(index - 2) !== ":" &&
-      (title.charAt(index + match.length) !== '-' || title.charAt(index - 1) === '-') &&
-      title.charAt(index - 1).search(/[^\s-]/) < 0) {
-      return match.toLowerCase();
-    }
-
-    if (match.substr(1).search(/[A-Z]|\../) > -1) {
-      return match;
-    }
-
-    return match.charAt(0).toUpperCase() + match.substr(1);
-  });
-};
-
-// From https://github.com/EamonNerbonne/a-vs-an
-var AvsAnSimple=function(n){function i(n){var r=parseInt(t,36)||0,f=r&&r.toString(36).length,u,e;for(n.article=t[f]=="."?"a":"an",t=t.substr(1+f),u=0;u<r;u++)e=n[t[0]]={},t=t.substr(1),i(e)}var t="2h.#2.a;i;&1.N;*4.a;e;i;o;/9.a;e;h1.o.i;l1./;n1.o.o;r1.e.s1./;01.8;12.1a;01.0;12.8;9;2.31.7;4.5.6.7.8.9.8a;0a.0;1;2;3;4;5;6;7;8;9;11; .22; .–.31; .42; .–.55; .,.h.k.m.62; .k.72; .–.82; .,.92; .–.8;<2.m1.d;o;=1.=1.E;@;A6;A1;A1.S;i1;r1;o.m1;a1;r1; .n1;d1;a1;l1;u1;c1.i1.a1.n;s1;t1;u1;r1;i1;a1;s.t1;h1;l1;e1;t1;e1.s;B2.h2.a1.i1;r1;a.á;o1.r1.d1. ;C3.a1.i1.s1.s.h4.a2.i1.s1;e.o1.i;l1.á;r1.o1.í;u2.i;r1.r1.a;o1.n1.g1.j;D7.a1.o1.q;i2.n1.a1.s;o1.t;u1.a1.l1.c;á1. ;ò;ù;ư;E7;U1;R.b1;o1;l1;i.m1;p1;e1;z.n1;a1;m.s1;p5.a1.c;e;h;o;r;u1.l1;o.w1;i.F11. ;,;.;/;0;1;2;3;4;5;6;71.0.8;9;Ae;B.C.D.F.I2.L.R.K.L.M.N.P.Q.R.S.T.B;C1;M.D;E2.C;I;F1;r.H;I3.A1;T.R1. ;U;J;L3.C;N;P;M;O1. ;P1;..R2.A1. ;S;S;T1;S.U2.,;.;X;Y1;V.c;f1.o.h;σ;G7.e1.r1.n1.e;h1.a3.e;i;o;i1.a1.n1.g;o2.f1. ;t1.t1. ;r1.i1.a;w1.a1.r1.r;ú;Hs. ;&;,;.2;A.I.1;2;3;5;7;B1;P.C;D;F;G;H1;I.I6;C.G.N.P.S1.D;T.K1.9;L;M1;..N;O2. ;V;P;R1;T.S1.F.T;V;e2.i1.r;r1.r1.n;o2.n6;d.e1.s;g.k.o2;l.r1;i1.f;v.u1.r;I3;I2;*.I.n1;d1;e1;p1;e1;n1;d2;e1;n1;c1;i.ê.s1;l1;a1;n1;d1;s.J1.i1.a1.o;Ly. ;,;.;1;2;3;4;8;A3. ;P;X;B;C;D;E2. ;D;F1;T.G;H1.D.I1.R;L;M;N;P;R;S1;m.T;U1. ;V1;C.W1.T;Z;^;a1.o1.i1.g;o1.c1.h1.a1;b.p;u1.s1.h1;o.ộ;M15. ;&;,;.1;A1;.1;S./;1;2;3;4;5;6;7;8;Ai;B.C.D.F.G.J.L.M.N.P.R.S.T.V.W.X.Y.Z.B1;S1;T.C;D;E3.P1;S.W;n;F;G;H;I4. ;5;6;T1;M.K;L;M;N;O1.U;P;Q;R;S;T1;R.U2. ;V;V;X;b1.u1.m;f;h;o2.D1.e.U1;..p1.3;s1.c;Ny. ;+;.1.E.4;7;8;:;A3.A1;F.I;S1.L;B;C;D;E3.A;H;S1. ;F1;U.G;H;I7.C.D1. ;K.L.N.O.S.K;L;M1;M.N2.R;T;P1.O1.V1./1.B;R2;J.T.S1;W.T1;L1.D.U1.S;V;W2.A;O1.H;X;Y3.C1.L;P;U;a1.s1.a1.n;t1.h;v;²;×;O5;N1;E.l1;v.n2;c1.e.e1.i;o1;p.u1;i.P1.h2.i1.a;o2.b2;i.o.i;Q1.i1.n1.g1.x;Rz. ;&;,;.1;J./;1;4;6;A3. ;.;F1;T.B1;R.C;D;E3. ;S1.P;U;F;G;H1.S;I2.A;C1. ;J;K;L1;P.M5;1.2.3.5.6.N;O2.H;T2;A.O.P;Q;R1;F.S4;,...?.T.T;U4;B.M.N.S.V;X;c;f1;M1...h2.A;B;ò;S11. ;&;,;.4.E;M;O;T1..3.B;D;M;1;3;4;5;6;8;9;A3. ;8;S2;E.I.B;C3.A1. ;R2.A.U.T;D;E6. ;5;C3;A.O.R.I1.F.O;U;F3;&.H.O1.S.G1;D.H3.2;3;L;I2. ;S1.O.K2.I.Y.L3;A2. ;.;I1. ;O.M3;A1. ;I.U1.R.N5.A.C3.A.B.C.E.F.O.O5. ;A1.I;E;S1;U.V;P7;A7;A.C.D.M.N.R.S.E1. ;I4;C.D.N.R.L1;O.O.U.Y.Q1. ;R;S1;W.T9.A1. ;C;D;F;I;L;M;S;V;U7.B.L.M.N.P.R.S.V;W1.R;X1.M;h1.i1.g1.a1.o;p1.i1.o1;n.t2.B;i1.c1.i;T4.a2.i2.g1.a.s1.c;v1.e1.s;e1.a1.m1.p;u1.i2.l;r;à;Um..1.N1..1.C;/1.1;11. .21.1;L1.T;M1.N;N4.C1.L;D2. .P.K;R1. .a;b2;a.i.d;g1.l;i1.g.l2;i.y.m;no. ;a1.n.b;c;d;e1;s.f;g;h;i2.d;n;j;k;l;m;n;o;p;q;r;s;t;u;v;w;p;r3;a.e.u1.k;s3. ;h;t1;r.t4.h;n;r;t;x;z;í;W2.P1.:4.A1.F;I2.B;N1.H.O1.V;R1.F1.C2.N.U.i1.k1.i1.E1.l1.i;X7;a.e.h.i.o.u.y.Y3.e1.t1.h;p;s;[5.A;E;I;a;e;_2._1.i;e;`3.a;e;i;a7; .m1;a1;r1. .n1;d2; .ě.p1;r1;t.r1;t1;í.u1;s1;s1;i1. .v1;u1;t.d3.a1.s1. ;e2.m1. ;r1. ;i2.c1.h1. ;e1.s1.e2.m;r;e8;c1;o1;n1;o1;m1;i1;a.e1;w.l1;i1;t1;e1;i.m1;p1;e1;z.n1;t1;e1;n1;d.s2;a1. .t4;a1; .e1; .i1;m1;a1;r.r1;u1.t.u1.p1. ;w.f3. ;M;y1.i;h9. ;,;.;C;a1.u1.t1;b.e2.i1.r1;a.r1.m1.a1.n;o4.m2.a1; .m;n8; .b.d.e3; .d.y.g.i.k.v.r1.s1. ;u1.r;r1. ;t1;t1;p1;:.i6;b1;n.e1;r.n2;f2;l1;u1;ê.o1;a.s1;t1;a1;l1;a.r1; .s1; .u.k1.u1. ;l3.c1.d;s1. ;v1.a;ma. ;,;R;b1.a.e1.i1.n;f;p;t1.a.u1.l1.t1.i1.c1.a1.m1.p1.i;×;n6. ;V;W;d1; .t;×;o8;c2;h1;o.u1;p.d1;d1;y.f1; .g1;g1;i.no. ;';,;/;a;b;c1.o;d;e2.i;r;f;g;i;l;m;n;o;r;s;t;u;w;y;z;–;r1;i1;g1;e.t1;r1.s;u1;i.r3. ;&;f;s9.,;?;R;f2.e.o.i1.c1.h;l1. ;p2.3;i1. ;r1.g;v3.a.e.i.t2.A;S;uc; ...b2.e;l;f.k2.a;i;m1;a1. .n3;a3; .n5.a;c;n;s;t;r1;y.e2; .i.i8.c2.o1.r1.p;u1.m;d1;i1.o;g1.n;l1.l;m1;o.n;s1.s;v1.o1;c.r5;a.e.i.l.o.s3. ;h;u1.r2;e.p3;a.e.i.t2.m;t;v.w1.a;xb. ;';,;.;8;b;k;l;m1;a.t;y1. ;y1.l;{1.a;|1.a;£1.8;À;Á;Ä;Å;Æ;É;Ò;Ó;Ö;Ü;à;á;æ;è;é1;t3.a;o;u;í;ö;ü1; .Ā;ā;ī;İ;Ō;ō;œ;Ω;α;ε;ω;ϵ;е;–2.e;i;ℓ;";return i(n),{raw:n,query:function(t){var i=n,f=0,u,r;do r=t[f++];while("\"‘’“”$'".indexOf(r)>=0);for(;;){if(u=i.article||u,i=i[r],!i)return u;r=t[f++]||" "}}}}({})
-
-// Adapted from http://stackoverflow.com/a/6969486/1677912
-function escapeTag(tag) {
-    // See https://regex101.com/r/yW9cD4/1
-    var retag = tag.replace(/(?:(\-)|([+.#]))/g,
-                     function (match, hyphen, other) {
-                         var escaped = (hyphen) ? "[ \\-]" : "\\"+match;
-                         return escaped;
-                     });
-    return "(?:\\s|\\b|$)" + retag + "(?:\\s|\\b|$)";  // hack - enclose tag in regexp boundary checks. WBN to do this in the taglist regexp.
-}
-
-/**
- * Pass a CSS variable to get its value
- * @param {string} val - for example "--black" or "--green-600"
- */
-function retrieveCSSVariable(val) {
-    return getComputedStyle(document.body)
-        .getPropertyValue(val);
-}
-
-/**
- * Converts an arbitrary colour representation to an RGB string representation. Invalid colours might return "rgb(0,0,0)". The conversioon is done by
- * offloading the interpreting the string to a canvas - common strings like hex or HSL would be supported but perhapos not all named colours would be.
- *
- * Based on the code by Aaron Watters: https://stackoverflow.com/a/52044517
- *
- * @param {string} string - any colour representation, for example: "salmon", "#FA8072", "#fa8072", hsl(6,93%,71%), hsl(6, 93%, 71%)
- * @returns {string} - String of the format: "rgb(250,126,113)". Invalid input would produce black "rgb(0,0,0)"
- */
-function colour2rgb(string) {
-	var canvas = document.createElement("canvas");
-
-	//make 1x1 px rectangle in the arbitrary colour
-	var context = canvas.getContext("2d");
-	context.beginPath();
-	context.rect(0,0,1,1);
-	context.fillStyle = string;
-	context.fill();
-
-	//extract the three primary colours and omit the alpha channel information
-	var rgbData = context.getImageData(0, 0, 1, 1).data.slice(0, 3);
-	return "rgb(" + rgbData.join(",") + ")";
-}
-
-// Better handling of indentation and the TAB key when editing posts
-// From balpha's stackexchange-tab-editing
-// (c) 2012 Benjamin Dumke-von der Ehe
-// Which is released under the MIT License - https://opensource.org/licenses/MIT
-// See http://stackapps.com/questions/3247/better-handling-of-indentation-and-the-tab-key-when-editing-posts
-// Current version: 2.0.0, from https://github.com/mogsdad/UserScripts/blob/master/tab-editing.user.js
-function with_jquery(t){var e=document.createElement("script");e.type="text/javascript",e.textContent="("+t.toString()+")(jQuery)",document.body.appendChild(e)}with_jquery(function(t){t(function(){if(window.StackExchange&&StackExchange.ready){var e=4,n=" ".repeat(e),r="selectionDirection"in t("<textarea />")[0],i={9:{handler:u,allowShift:!0},36:{handler:function(n){var r,i,a=t(this),c=this.value||"",h=s(a),u=c.substring(0,h.directedEnd),l=c.substring(h.directedEnd),o=(u.match(/(?:^|\n)([^\n]*)$/)||["",""])[1];if(o.length){r=o.search(/[^ \t]/);var f=new RegExp("^ {0,"+(e-1)+"}\t");(r>=e||r>0&&f.test(o))&&(i=h.directedEnd-o.length+r)}else(r=(l.match(/^[\t ]*/)||[""])[0].length)>0&&(i=h.directedEnd+r);if(void 0!==i)return n?d(a,h.directedStart,i):d(a,i),!1;return!0},allowShift:r},8:{handler:function(){var e=t(this),n=this.value||"",r=s(e),i=(n.substring(0,r.end).match(/(?:^|\n)([^\n]*)$/)||["",""])[1];if(r.start===r.end&&/^[ \t]+$/.test(i))return u.call(this,!0);return!0}}},a=!0,c=!1;t("#mainbar").on("keyup",".wmd-input",function(t){c&&17===t.which?h(this):h(this,!0)}),t("#mainbar").on("keydown",".wmd-input",function(t){if(c=17===t.which,t.ctrlKey||t.altKey||t.metaKey)return!0;var e=a;if(h(this,!0),!e)return!0;if(!i.hasOwnProperty(t.which))return!0;var n=i[t.which];return!(!t.shiftKey||n.allowShift)||n.handler.call(this,t.shiftKey)})}function s(t){var e=t.caret(),n="backward"===t[0].selectionDirection;return e.end-=e.text.match(/([ \t\n]*)$/)[0].length,n?(e.directedStart=e.end,e.directedEnd=e.start,e.backward=!0):(e.directedStart=e.start,e.directedEnd=e.end),e}function d(t,e,n,i){var a,c;2===arguments.length&&(n=e),i&&(a=e,e=n,n=a),e>n&&(a=e,e=n,n=a,c=!0),c&&r?t[0].setSelectionRange(e,n,"backward"):t.caret(e,n)}function h(e,n){void 0===n&&(n=!a),a^n&&(t(e).css("opacity",n?1:.3),a=n)}function u(r){var i,a,c=t(this),h=this.value||"",u=s(c),l=h.substring(0,u.start),o=h.substring(u.start,u.end),f=h.substring(u.end);if(u.start===u.end){var g,v=(l.match(/(?:^|\n)([^\n]*)$/)||["",""])[1],w=0;if(r&&!/(^|[ \t])$/.test(v))return!1;var p=!0;for(r&&!v.length&&(f=f.replace(/^[ \t]*/,function(t){return v=t,l+=t,""}),p=!1),g=0;g<v.length;g++)"\t"===v.charAt(g)?w=0:w++;if(r){var y=v.length&&w%e||e,b=new RegExp(" {0,"+(y-1)+"}[ \\t]$");l=l.replace(b,function(t){return i=-t.length,""})}else i=e-w%e,l+=n.slice(w%e);c.val(l+f),p||(i=0),c.caret(u.start+i,u.start+i)}else{l=l.replace(/(^|\n)([^\n]*)$/,function(t,e,n){return o=n+o,e});var m="\n"===h.substr(u.start-1,1)?0:1;if(r){i=0;b=new RegExp("(^|\n)(\t| {1,"+(e-1)+"}[ \t])","g");if(o=o.replace(b,function(t,n,r){return i||(a=e-r.length),i-=r.length,n}),!i)return!1}else i=0,a=0,o=o.replace(/^|\n/g,function(t){return i+=e,t+n});c.val(l+o+f),d(c,u.start+a+m*i,u.end+i,u.backward)}return!1}})});
