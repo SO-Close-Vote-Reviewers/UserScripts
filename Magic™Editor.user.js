@@ -1028,6 +1028,21 @@
                 replacement: "WhatsApp",
                 reason: App.consts.reasons.trademark
             },
+            atlassian: {
+                expr: /\batl[ae]s+ian\b/gi,
+                replacement: "Atlassian",
+                reason: App.consts.reasons.trademark
+            },
+            confluence: {
+                expr: /\bconfluence\b/gi,
+                replacement: "Confluence",
+                reason: App.consts.reasons.trademark
+            },
+            woocommerce: {
+                expr: /\bcwoocommerce\b(?!\.\S)/gi,
+                replacement: "WooCommerce",
+                reason: App.consts.reasons.trademark
+            },
             /*
             ** Acronyms - to be capitalized (except sometimes when part of a file name)
             **/
@@ -1339,6 +1354,16 @@
             risc: {
                 expr: /\brisc\b/gi,
                 replacement: "RISC",
+                reason: App.consts.reasons.acronym
+            },
+            midi: {
+                expr: /\bmidi\b/gi,
+                replacement: "MIDI",
+                reason: App.consts.reasons.acronym
+            },
+            cdn: {
+                expr: /\bcdn\b/gi,
+                replacement: "CDN",
                 reason: App.consts.reasons.acronym
             },
             /*
