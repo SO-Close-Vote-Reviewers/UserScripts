@@ -12,8 +12,7 @@
 // @license        MIT
 // @namespace      http://github.com/SO-Close-Vote-Reviewers/UserScripts/Magic™Editor
 // @version        1.7.1.0
-// @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click
-//                 Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
+// @description    Fix common grammar/usage annoyances on Stack Exchange posts with a click. Forked from https://github.com/AstroCB/Stack-Exchange-Editor-Toolkit
 // @include        /^https?:\/\/([\w-]*\.)*((stackoverflow|stackexchange|serverfault|superuser|askubuntu|stackapps)\.com|mathoverflow.net)\/(c\/[^\/]*\/)?(questions|posts|review|tools)\/(?!tagged\/|new\/).*/
 // @exclude       *://chat.stackoverflow.com/*
 // @exclude       *://chat.stackexchange.com/*
@@ -21,7 +20,8 @@
 // @exclude       *://api.*.stackexchange.com/*
 // @exclude       *://data.stackexchange.com/*
 // ==/UserScript==
-/* globals StackExchange */
+/* globals StackExchange, $ */
+/* eslint-disable no-multi-spaces, no-sequences */
 
 (function() {
     "use strict";
