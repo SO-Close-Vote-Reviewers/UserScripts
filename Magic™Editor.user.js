@@ -3461,7 +3461,7 @@
                             return prepend + '<pre' + klass + '><code>' + after.replace(/</g,'&lt;').replace(/^ {4}/gm,'') + '</code></pre>' + append;
                         }
                         if(literal && /quote/.test(type)) return '<blockquote>' + replace.replace(/</g,'&lt;').replace(/^>/gm,'') + '</blockquote>';
-                        if(literal) return '<code>' + replace.replace(/</g,'&lt;').replace(/(?:^`|`$)/g,'') + '</code>';
+                        if(literal) return '<code>' + replace.replace(/</g,'&lt;') + '</code>';
                         return replace;
                     });
                 }
