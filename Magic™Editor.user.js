@@ -3345,7 +3345,7 @@
                 if (!Array.isArray(ruleKeyList)) {
                     return false;
                 }
-                var changes = false
+                var changes = false;
                 ruleKeyList.forEach(function(ruleKey) {
                     changes = applyEditRule(ruleKey, notAlone) || changes;
                 });
