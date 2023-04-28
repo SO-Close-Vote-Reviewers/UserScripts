@@ -269,6 +269,18 @@
                 ],
                 useCrudeRequestTypes: false,
             },
+            {//SOCVR ugly stepson room CV-PLS old questions
+                name: 'CV-PLS old questions',
+                primeRoom: 253110,
+                chatServer: soChat,
+                defaultTargetRoom: 253305,
+                rooms: makeRoomsByNumberObject([
+                    //CV-PLS old questions
+                    new TargetRoom(253110, soChat, 'CV-PLS old questions', 'CV-PLS-OQ', 'C', 'Cvpls', commonRoomOptions.allTrue),
+                    //CV-PLS OQ requests graveyard
+                    new TargetRoom(253305, soChat, 'CV-PLS OQ requests graveyard', 'Graveyard', 'G', 'Grave', commonRoomOptions.allTrue),
+                ]),
+            },
             {//SOBotics
                 name: 'SOBotics',
                 primeRoom: 111347,
