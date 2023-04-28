@@ -19,6 +19,13 @@
 /* jshint esnext: true */
 /* globals CHAT, $, jQuery, popUp */ //eslint-disable-line no-redeclare
 
+// You need to be a room owner for this script to work.
+// In rooms where you are the owner, it adds a button to the bottom bar in chat
+// (with the label "scan 3k") and on-hover decorations on all chat messages
+// which allow you to manually move or otherwise manipulate them
+
+// To add support for a new room, edit the targetRoomSets definition below
+// (as of 2023-04-28, it starts on line 244)
 
 (function() {
     'use strict';
