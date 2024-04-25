@@ -4,9 +4,9 @@
 // @version      2.1.0
 // @description  Adds buttons to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request, or delete request query, then it scans the results and displays them along with additional information.
 // @author       @TinyGiant @rene @mogsdad @Makyen
-// @include      /^https?://chat\.stackoverflow\.com/rooms/(?:41570|90230|126195|68414|111347|126814|123602|167908|167826|253110)(?:\b.*$|$)/
-// @include      /^https?://chat\.stackoverflow\.com/search.*[?&]room=(?:41570|90230|126195|68414|111347|126814|123602|167908|167826|253110)(?:\b.*$|$)/
-// @include      /^https?://chat\.stackoverflow\.com/transcript/(?:41570|90230|126195|68414|111347|126814|123602|167908|167826|253110)(?:\b.*$|$)/
+// @include      /^https?://chat\.stackoverflow\.com/rooms/(?:41570|90230|126195|68414|111347|126814|123602|167908|167826|253110|253305)(?:\b.*$|$)/
+// @include      /^https?://chat\.stackoverflow\.com/search.*[?&]room=(?:41570|90230|126195|68414|111347|126814|123602|167908|167826|253110|253305)(?:\b.*$|$)/
+// @include      /^https?://chat\.stackoverflow\.com/transcript/(?:41570|90230|126195|68414|111347|126814|123602|167908|167826|253110|253305)(?:\b.*$|$)/
 // @include      /^https?://chat\.stackoverflow\.com/transcript/.*$/
 // @include      /^https?://chat\.stackoverflow\.com/users/.*$/
 // @require      https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/gm4-polyfill.js
