@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         Unclosed Request Review Script
 // @namespace    http://github.com/Tiny-Giant
-// @version      2.1.0
+// @version      2.1.1
 // @description  Adds buttons to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request, or delete request query, then it scans the results and displays them along with additional information.
 // @author       @TinyGiant @rene @mogsdad @Makyen
 // @include      /^https?://chat\.stackoverflow\.com/rooms/(?:41570|90230|126195|68414|111347|126814|123602|167908|167826|253110|253305)(?:\b.*$|$)/
@@ -3007,6 +3007,8 @@
     };
 
     funcs.fixN0kTagsInDeleteRequests = () => {
+        const minAnswerScoreToDelPls = 0;
+
         //Make all delete/undelete requests which have a >3k reputation requirement have a tag indicating that requirement.
         //  If 10k+ tags are added is a user configurable option.
         //  Also adjusts del-pls to indicate an invalid request.
@@ -3035,10 +3037,10 @@
                     return;
                 } //else
                 if (reqData.postStatus === 'answer') {
-                    if (postScore <= -1) {
+                    if (postScore <= minAnswerScoreToDelPls) {
                         is20k = true;
                     } else {
-                        invalidReason = 'Answer: score > -1';
+                        invalidReason = 'Answer: score > ' + minAnswerScoreToDelPls;
                     }
                 }
                 if (reqData.postStatus === 'closed' && +reqData.score <= -3) {
