@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
-// @name         Unclosed Request Review Script
-// @namespace    http://github.com/Tiny-Giant
-// @version      2.1.1
+// @name         Uncompleted Request Review Script
+// @namespace    http://github.com/SO-Close-Vote-Reviewers
+// @version      2.2.0
 // @description  Adds buttons to the chat buttons controls; clicking on the button takes you to the recent unclosed close vote request, or delete request query, then it scans the results and displays them along with additional information.
 // @author       @TinyGiant @rene @mogsdad @Makyen
 // @include      /^https?://chat\.stackoverflow\.com/rooms/(?:41570|90230|126195|68414|111347|126814|123602|167908|167826|253110|253305)(?:\b.*$|$)/
