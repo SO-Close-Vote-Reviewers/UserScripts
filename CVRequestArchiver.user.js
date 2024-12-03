@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         CV Request Archiver
 // @namespace    https://github.com/SO-Close-Vote-Reviewers/
-// @version      3.5.0
+// @version      3.6.0
 // @description  Moves messages or performs other actions on Chat messages. In some rooms, including SOCVR, it scans the chat transcript and checks all cv+delete+undelete+reopen+dupe requests and SD, FireAlarm, Queen, etc. reports for status, then moves the completed or expired ones.
 // @author       @TinyGiant @rene @Tunaki @Makyen
 // @updateURL    https://github.com/SO-Close-Vote-Reviewers/UserScripts/raw/master/CVRequestArchiver.user.js
@@ -275,6 +275,18 @@
                 excludedRequestTypes: [
                 ],
                 useCrudeRequestTypes: false,
+            },
+            {//CV-PLS old questions
+                name: 'CV-PLS old questions',
+                primeRoom: 253110,
+                chatServer: soChat,
+                defaultTargetRoom: 253305,
+                rooms: makeRoomsByNumberObject([
+                    //CV-PLS old questions
+                    new TargetRoom(253110, soChat, 'CV-PLS old questions', 'CV-PLS-OQ', 'C', 'Cvpls', commonRoomOptions.allTrue),
+                    //CV-PLS OQ requests graveyard
+                    new TargetRoom(253305, soChat, 'CV-PLS OQ requests graveyard', 'Graveyard', 'G', 'Grave', commonRoomOptions.allTrue),
+                ]),
             },
             {//SOBotics
                 name: 'SOBotics',
