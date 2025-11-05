@@ -683,7 +683,7 @@
             return;
         }
         setTimeout(() => {
-            const popup = message.querySelector('.message > .popup');
+            const popup = message.querySelector('.message .popup');
             if (popup) {
                 message.classList.add('urrsRequestComplete-temp-disable');
                 const popupObserver = new MutationObserver(function(mutations, observer) {
@@ -1701,7 +1701,7 @@
             }
             node.appendChild(link);
             //Place the request-info prior to the .flash.
-            message.insertBefore(node, message.querySelector('.flash'));
+            message.querySelector('.flash').before(node);
         }
         //The link is now inserted in the request info.
         //Add post data to the DOM to enable other functionality.
@@ -2002,7 +2002,7 @@
 
     funcs.mp.markAllRequestInfoOnNonRequests = (searchText) => {
         //Visually differentiate requests from just info on post URLs contained in a message.
-        [].slice.call(document.querySelectorAll('.message > .request-info')).forEach((requestInfo) => {
+        [].slice.call(document.querySelectorAll('.message .request-info')).forEach((requestInfo) => {
             //I disagree with searching the text for [cv-pls], etc. within the text of the message.  It is not
             //  something that is searched for on the search pages.  Thus, people should not be given the inaccurate
             //  impression that it will be treated as a request.  Once it goes off the chat transcript, it will be
@@ -2041,7 +2041,7 @@
                 tagsInTextContentRegExes[type].lastIndex = 0;
             });
         }
-        [].slice.call(document.querySelectorAll('.message > .request-info')).forEach((requestInfo) => {
+        [].slice.call(document.querySelectorAll('.message .request-info')).forEach((requestInfo) => {
             //There is only ever one request-info per message
             //XXX This is currently not going to handle duplicate requests where the duplicate-target is also included.
             //XXX No attempt is made to detect request tags in text.
@@ -2476,7 +2476,7 @@
 
     funcs.getRequestInfoLinksFromMessage = (message) => { // eslint-disable-line arrow-body-style
         //Get all links in all .request-info for the message.
-        return message.parentNode.querySelectorAll('#' + message.id + ' > .request-info > a');
+        return message.parentNode.querySelectorAll('#' + message.id + ' .request-info > a');
     };
 
     funcs.getContentFromMessage = (message) => {
@@ -2484,24 +2484,17 @@
         if (!message) {
             return null;
         }
-        var child = message.firstChild;
-        while (child) {
-            if (child.classList && child.classList.contains('content')) {
-                return child;
-            }
-            child = child.nextSibling;
-        }
-        return null;
+        return message.querySelector(".content");
     };
 
     funcs.getRequestInfoFromMessage = (message) => { // eslint-disable-line arrow-body-style
         //Get the first (assumed only) .request-info for the message
-        return message.parentNode.querySelector('#' + message.id + ' > .request-info');
+        return message.parentNode.querySelector('#' + message.id + ' .request-info');
     };
 
     funcs.getFirstRequestInfoLinkFromMessage = (message) => { // eslint-disable-line arrow-body-style
         //Get the first (assumed only) .request-info <a> for the message
-        return message.parentNode.querySelector('#' + message.id + ' > .request-info > a');
+        return message.parentNode.querySelector('#' + message.id + ' .request-info > a');
     };
 
     funcs.doesElementContainRequestTagAsText = (element) => {
